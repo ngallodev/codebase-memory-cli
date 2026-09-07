@@ -206,7 +206,10 @@ bash "$ROOT/tests/test_build_dir_safety.sh"
 echo "=== Step 0b: Windows VM worktree sync contract ==="
 bash "$ROOT/tests/test_vm_worktree_manifest.sh"
 
-echo "=== Step 0c: UI development proxy security contract ==="
+echo "=== Step 0c: Jenkins artifact contract ==="
+bash "$ROOT/tests/test_jenkins_artifact_contract.sh"
+
+echo "=== Step 0d: UI development proxy security contract ==="
 bash "$ROOT/tests/test_ui_dev_proxy_security.sh"
 
 echo "=== Step 0d: daemon soak recovery contract ==="
