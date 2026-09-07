@@ -8,6 +8,7 @@
 #include "../src/foundation/compat_fs.h"
 #include "../src/foundation/platform.h"
 #include "test_framework.h"
+#include "test_helpers.h"
 #include "discover/discover.h"
 #include "discover/userconfig.h"
 
@@ -16,6 +17,8 @@
 #include <string.h>
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
+
+static char userconfig_tmpdir[512];
 
 /* Write a JSON file to path. Returns 0 on success. */
 static int write_json(const char *path, const char *json) {
@@ -33,7 +36,7 @@ static int write_json(const char *path, const char *json) {
 TEST(userconfig_project_basic) {
     /* Write a .codebase-memory.json in a temp dir */
     char dir[256];
-    snprintf(dir, sizeof(dir), "%s/uctest_proj_basic", cbm_tmpdir());
+    snprintf(dir, sizeof(dir), "%s/uctest_proj_basic", userconfig_tmpdir);
     cbm_mkdir_p(dir, 0755); /* from compat_fs.h via compat.h */
 
     char proj[512];
@@ -60,7 +63,7 @@ TEST(userconfig_global_via_env) {
     /* Point config dir to a temp dir via the platform-appropriate env var:
      * XDG_CONFIG_HOME on Linux/macOS, APPDATA on Windows. */
     char cfg_dir[256];
-    snprintf(cfg_dir, sizeof(cfg_dir), "%s/uctest_global_xdg", cbm_tmpdir());
+    snprintf(cfg_dir, sizeof(cfg_dir), "%s/uctest_global_xdg", userconfig_tmpdir);
 
     char app_dir[512];
     snprintf(app_dir, sizeof(app_dir), "%s/codebase-memory-mcp", cfg_dir);
@@ -103,7 +106,7 @@ TEST(userconfig_global_via_env) {
 TEST(userconfig_project_wins_over_global) {
     /* Global says .xyz → python; project says .xyz → rust */
     char xdg_dir[256];
-    snprintf(xdg_dir, sizeof(xdg_dir), "%s/uctest_priority_xdg", cbm_tmpdir());
+    snprintf(xdg_dir, sizeof(xdg_dir), "%s/uctest_priority_xdg", userconfig_tmpdir);
 
     char app_dir[512];
     snprintf(app_dir, sizeof(app_dir), "%s/codebase-memory-mcp", xdg_dir);
@@ -116,7 +119,7 @@ TEST(userconfig_project_wins_over_global) {
         0);
 
     char proj_dir[256];
-    snprintf(proj_dir, sizeof(proj_dir), "%s/uctest_priority_proj", cbm_tmpdir());
+    snprintf(proj_dir, sizeof(proj_dir), "%s/uctest_priority_proj", userconfig_tmpdir);
     cbm_mkdir_p(proj_dir, 0755);
 
     char proj_path[512];
@@ -143,7 +146,7 @@ TEST(userconfig_project_wins_over_global) {
 
 TEST(userconfig_unknown_lang_skipped) {
     char dir[256];
-    snprintf(dir, sizeof(dir), "%s/uctest_unknown_lang", cbm_tmpdir());
+    snprintf(dir, sizeof(dir), "%s/uctest_unknown_lang", userconfig_tmpdir);
     cbm_mkdir_p(dir, 0755);
 
     char proj[512];
@@ -185,7 +188,7 @@ TEST(userconfig_integration_override) {
      * respect the override. We map ".blade.php" → PHP, which is not in the
      * built-in table. */
     char dir[256];
-    snprintf(dir, sizeof(dir), "%s/uctest_integ", cbm_tmpdir());
+    snprintf(dir, sizeof(dir), "%s/uctest_integ", userconfig_tmpdir);
     cbm_mkdir_p(dir, 0755);
 
     char proj[512];
@@ -223,6 +226,13 @@ TEST(userconfig_free_null) {
 /* ── Suite ──────────────────────────────────────────────────────── */
 
 SUITE(userconfig) {
+    snprintf(userconfig_tmpdir, sizeof(userconfig_tmpdir), "%s/cbm-userconfig-XXXXXX",
+             cbm_tmpdir());
+    if (!cbm_mkdtemp(userconfig_tmpdir)) {
+        printf("  FAIL: could not create userconfig fixture root\n");
+        return;
+    }
+
     RUN_TEST(userconfig_project_basic);
     RUN_TEST(userconfig_global_via_env);
     RUN_TEST(userconfig_project_wins_over_global);
@@ -230,4 +240,9 @@ SUITE(userconfig) {
     RUN_TEST(userconfig_missing_files_ok);
     RUN_TEST(userconfig_integration_override);
     RUN_TEST(userconfig_free_null);
+
+    if (th_rmtree(userconfig_tmpdir) != 0) {
+        printf("  FAIL: could not remove userconfig fixture root\n");
+    }
+    userconfig_tmpdir[0] = '\0';
 }
