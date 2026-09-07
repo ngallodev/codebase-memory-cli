@@ -169,8 +169,11 @@ and top-level definite/indirect loss remains a release failure. Heaptrack's raw
 retained-allocation count remains diagnostic attribution rather than an
 ownership verdict.
 
-A fresh `scripts/test.sh` and `scripts/analyze-memory.sh` run remains required
-before Linux qualification can be considered green.
+The subsequent post-CP74 qualification run reached both legs: dynamic memory
+analysis completed green, while the broad sanitizer suite reached execution and
+isolated its remaining failures to CLI/incremental contracts. See the CP76
+reconciliation below; only the broad `scripts/test.sh` rerun remains required
+for the CP76 candidate unless new memory evidence appears.
 
 ## CP75 immutable RC identity hardening
 
@@ -179,3 +182,63 @@ Gate-2 review found one remaining contradiction between the release-qualificatio
 The release workflow now fails closed. It refuses an existing GitHub release or remote tag at the draft boundary, creates the tag for the exact dispatched `GITHUB_SHA` without force, and contains no replace/delete path. A concurrent duplicate dispatch can pass the read check, but only one normal tag push can succeed; the other run therefore stops before release creation. Failed candidates are retained as immutable evidence and require a new deliberate release identity.
 
 The existing release gate-chain contract was extended rather than adding another test surface. It now rejects replacement/deletion/force-tag behavior and requires both the remote identity guards and normal dispatched-SHA tag push. This is Gate-2 readiness work and does not alter product/runtime code or change the pending need for a fresh broad Linux suite after CP74.
+
+## CP76 broad-suite failure reconciliation
+
+The post-CP74 canonical run reached the sanitized suite and reported 7,352 passed / 59 failed. Failure concentration was narrow rather than systemic: 53 failures were in `cli` and 6 in `incremental`; daemon application, daemon runtime, and daemon IPC were green. The corrected memory-analysis leg also completed green, with Valgrind reporting no lost memory.
+
+CP76 reconciles that evidence rather than treating 59 assertions as independent product defects. Most failures were stale MCP-era test expectations after the CLI-first migration. Three production defects were found while doing that reconciliation and are fixed in this candidate:
+
+1. registry-backed agent lifecycle installation could run before the effective config path was resolved, causing Qoder/Devin hooks to be skipped;
+2. hook project lookup could open a nonexistent derived-name DB during its fast probe and thereby shadow an existing custom-named index discoverable by canonical `root_path`;
+3. Claude's exact-owned gate-script migration did not recognize the released MCP-era sibling binary basename after the product executable rename.
+
+The incremental assertions now follow the neutral operation-result wire shape. CLI installer assertions require supported CLI-first configuration, durable instructions/skills, and lifecycle hooks while preserving explicit legacy ownership/cleanup contracts where compatibility requires them.
+
+Focused sanitizer verification of the final eight-case CLI cluster passes 8/8 with ASan/UBSan and leak detection enabled. Changed production and test objects compile under the normal strict sanitizer and production warning flags. The sandbox cannot execute the full incremental fixture because that fixture performs an outbound GitHub clone; its changed assertions were reconciled against the captured real-run response shapes and compile successfully.
+
+**Gate status:** `scripts/test.sh` must be rerun on CP76 because CP76 changes `src/cli/cli.c` and `src/cli/hook_augment.c`. A repeat of `scripts/analyze-memory.sh` is not required unless the new broad sanitizer run produces memory evidence that needs attribution; the post-CP74 corrected memory-analysis run is already green.
+
+## CP76 qualification evidence and CP77 incremental closeout
+
+The canonical CP76 `scripts/test.sh` rerun completed the clean ASan/UBSan build,
+all preflight contracts, and all 138 suites. It improved the broad result to
+7,408 passed / 3 failed / 3 skipped. `cli` is now fully green at 236/236;
+`daemon_application` is 44/44, `daemon_runtime` 46/46, and `daemon_ipc` 43/43.
+The only failing suite is `incremental` (160 passed / 3 failed).
+
+The CP76 memory-analysis rerun is independently green: scan-build reported no
+findings, Heaptrack retained 85 allocations under the diagnostic retention
+policy, and Valgrind reported 0 lost bytes with the same 2,816 bytes of
+intentional process-lifetime reachable state. No new daemon-memory remediation
+is indicated.
+
+The three incremental failures reduce to two causes:
+
+1. the in-process test operation host did not wire the physical index worker's
+   `project_invalidate` seam. After ADR operations cached the current project
+   store, later reindex tests attempted to publish while that test-only cached
+   reader remained live. Production daemon indexing does not share that
+   in-process store: it delegates physical indexing to a separate worker
+   process. CP77 wires the existing invalidation seam in the test host so the
+   integration host obeys the production worker lifecycle contract;
+2. one query assertion still expected a JSON-shaped result key even though the
+   default neutral query response is the compact table form (`rows: ...
+   (cols: n)`). CP77 asserts the current compact response contract directly.
+
+The invalid-project `search_graph` failure also exposed a real read-path edge
+case: search used the create-capable project open, so an unknown project could
+be materialized as an empty DB and returned as an empty search rather than a
+`project not indexed` result. CP77 opens the requested project read-only and
+requires its project row to exist before searching, preventing that ghost DB
+path.
+
+The 2,896-byte LeakSanitizer tail in the failing incremental suite is accounted
+for by the three assertion exits before their response buffers were freed
+(1,024 + 992 + 880 bytes, exactly matching the report). It is not separate leak
+evidence once those assertions are corrected.
+
+**Gate status:** CP77 requires one final external `scripts/test.sh` rerun because
+it changes `src/operations/search.c`. The memory-analysis leg does not need to
+be repeated unless that rerun exposes new memory evidence.
+

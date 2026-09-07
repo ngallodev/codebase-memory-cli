@@ -4784,14 +4784,14 @@ static const char cmm_released_subagent_script[] =
     "text, configs, and non-code files.\"}}\n"
     "REMINDER\n";
 
-static int cbm_build_released_gate_script(const char *binary_path, char *script,
-                                          size_t script_size) {
-    if (!binary_path || !script || strchr(binary_path, '"')) {
+static int cbm_build_released_gate_script_variant(const char *binary_path, const char *product,
+                                                  char *script, size_t script_size) {
+    if (!binary_path || !product || !script || strchr(binary_path, '"')) {
         return CLI_ERR;
     }
     int written = snprintf(script, script_size,
                            "#!/usr/bin/env bash\n"
-                           "# codebase-memory-cli search augmenter (Claude Code PreToolUse).\n"
+                           "# %s search augmenter (Claude Code PreToolUse).\n"
                            "# NOTE: the legacy filename is kept for zero-migration upgrades.\n"
                            "# Despite the name this NEVER blocks a tool call - it only adds\n"
                            "# graph context. Any failure is silent (exit 0, no output).\n"
@@ -4799,8 +4799,76 @@ static int cbm_build_released_gate_script(const char *binary_path, char *script,
                            "[ -x \"$BIN\" ] || exit 0\n"
                            "\"$BIN\" hook-augment 2>/dev/null\n"
                            "exit 0\n",
-                           binary_path);
+                           product, binary_path);
     return written > 0 && (size_t)written < script_size ? CLI_OK : CLI_ERR;
+}
+
+/* The gate wrapper shipped across the MCP -> CLI rename with two independent
+ * byte-shape changes: the comment branding changed, and managed installs moved
+ * from the sibling `codebase-memory-mcp` basename to `codebase-memory-cli`.
+ * Ownership stays fail-closed by accepting only the exact released combinations
+ * below; a merely similar or user-modified script is never claimed. */
+static int cbm_legacy_mcp_binary_sibling(const char *binary_path, char *legacy,
+                                         size_t legacy_size) {
+    if (!binary_path || !legacy || legacy_size == 0U) {
+        return CLI_ERR;
+    }
+    const char *base = binary_path;
+    const char *slash = strrchr(binary_path, '/');
+    const char *backslash = strrchr(binary_path, '\\');
+    if (slash && (!backslash || slash > backslash)) {
+        base = slash + 1;
+    } else if (backslash) {
+        base = backslash + 1;
+    }
+    const char *suffix = NULL;
+    if (strcmp(base, "codebase-memory-cli") == 0) {
+        suffix = "codebase-memory-mcp";
+    } else if (strcmp(base, "codebase-memory-cli.exe") == 0) {
+        suffix = "codebase-memory-mcp.exe";
+    } else {
+        return CLI_ERR;
+    }
+    size_t prefix_len = (size_t)(base - binary_path);
+    size_t suffix_len = strlen(suffix);
+    if (prefix_len + suffix_len + 1U > legacy_size) {
+        return CLI_ERR;
+    }
+    memcpy(legacy, binary_path, prefix_len);
+    memcpy(legacy + prefix_len, suffix, suffix_len + 1U);
+    return CLI_OK;
+}
+
+#define CMM_RELEASED_GATE_VARIANT_COUNT 4U
+
+static size_t cbm_build_released_gate_candidates(
+    const char *binary_path, char scripts[CMM_RELEASED_GATE_VARIANT_COUNT][CLI_BUF_8K],
+    const char *candidates[CMM_RELEASED_GATE_VARIANT_COUNT]) {
+    if (!binary_path || !scripts || !candidates) {
+        return 0U;
+    }
+    size_t count = 0U;
+    static const char *const products[] = {"codebase-memory-cli", "codebase-memory-mcp"};
+    for (size_t i = 0U; i < sizeof(products) / sizeof(products[0]); i++) {
+        if (cbm_build_released_gate_script_variant(binary_path, products[i], scripts[count],
+                                                   CLI_BUF_8K) == CLI_OK) {
+            candidates[count] = scripts[count];
+            count++;
+        }
+    }
+    char legacy_binary[CLI_BUF_1K];
+    if (cbm_legacy_mcp_binary_sibling(binary_path, legacy_binary, sizeof(legacy_binary)) == CLI_OK) {
+        for (size_t i = 0U; i < sizeof(products) / sizeof(products[0]) &&
+                            count < CMM_RELEASED_GATE_VARIANT_COUNT;
+             i++) {
+            if (cbm_build_released_gate_script_variant(legacy_binary, products[i], scripts[count],
+                                                       CLI_BUF_8K) == CLI_OK) {
+                candidates[count] = scripts[count];
+                count++;
+            }
+        }
+    }
+    return count;
 }
 
 static int cbm_remove_owned_hook_script(const char *path, const char *expected_current,
@@ -4869,12 +4937,9 @@ bool cbm_install_hook_gate_script(const char *home, const char *binary_path) {
                                       sizeof(script)) != CLI_OK) {
         return false;
     }
-    char released_script[CLI_BUF_8K];
-    const char *const legacy[] = {released_script};
-    size_t legacy_count = cbm_build_released_gate_script(binary_path, released_script,
-                                                         sizeof(released_script)) == CLI_OK
-                              ? 1U
-                              : 0U;
+    char released_scripts[CMM_RELEASED_GATE_VARIANT_COUNT][CLI_BUF_8K];
+    const char *legacy[CMM_RELEASED_GATE_VARIANT_COUNT] = {0};
+    size_t legacy_count = cbm_build_released_gate_candidates(binary_path, released_scripts, legacy);
 #ifdef _WIN32
     if (cbm_remove_owned_legacy_hook_script(hooks_dir, CMM_HOOK_GATE_SCRIPT_LEGACY, script, legacy,
                                             legacy_count) != CLI_OK) {
@@ -5159,12 +5224,12 @@ static bool cbm_hook_script_write_would_succeed(const char *home, const char *bi
     }
     /* Released shapes are accepted by the real write, so they must be accepted
      * here too or the preview would warn about a script that upgrades fine. */
-    char released[CLI_BUF_8K];
-    const char *candidates[2];
+    char released_gate[CMM_RELEASED_GATE_VARIANT_COUNT][CLI_BUF_8K];
+    const char *candidates[CMM_RELEASED_GATE_VARIANT_COUNT] = {0};
     size_t candidate_count = 0U;
-    if (strcmp(script_name, CMM_HOOK_GATE_SCRIPT) == 0 &&
-        cbm_build_released_gate_script(binary_path, released, sizeof(released)) == CLI_OK) {
-        candidates[candidate_count++] = released;
+    if (strcmp(script_name, CMM_HOOK_GATE_SCRIPT) == 0) {
+        candidate_count =
+            cbm_build_released_gate_candidates(binary_path, released_gate, candidates);
     } else if (strcmp(script_name, CMM_SESSION_REMINDER_SCRIPT) == 0) {
         candidates[candidate_count++] = cmm_released_session_script;
     } else if (strcmp(script_name, CMM_SUBAGENT_REMINDER_SCRIPT) == 0) {
@@ -7052,7 +7117,7 @@ static void print_detected_agents(const cbm_detected_agents_t *a, const char *ho
  * behavior (it is the same code path with mutations disabled). */
 typedef struct {
     char agent[CLI_BUF_32];
-    char kind[CLI_BUF_32]; /* mcp_config | instructions | skills | hook */
+    char kind[CLI_BUF_32]; /* config | legacy mcp_config | instructions | skills | hook */
     char path[CLI_BUF_1K];
 } cbm_plan_entry_t;
 
@@ -7967,7 +8032,9 @@ static void install_agent_client_registry(const char *home, const char *binary_p
         }
 
         char config_path[CLI_BUF_1K] = {0};
-        bool config_resolved = false;
+        bool config_resolved =
+            cbm_agent_client_resolve_path(profile->id, &registry.options, config_path,
+                                          sizeof(config_path)) == 0;
 
         if (profile->id == CBM_AGENT_CLIENT_QODER) {
             install_qoder_durable_context(home, binary_path, config_path, config_resolved, force,
@@ -8156,7 +8223,7 @@ static void install_cli_agent_configs(const cbm_detected_agents_t *agents, const
         snprintf(ip, sizeof(ip), "%s/CONVENTIONS.md", home);
         if (g_install_plan) {
             plan_record("Aider", "instructions", ip);
-            plan_record("Aider", "instructions", cp);
+            plan_record("Aider", "config", cp);
         } else {
             printf("Aider:\n");
             if (!dry_run) {
@@ -8225,7 +8292,9 @@ static void install_editor_agent_configs(const cbm_detected_agents_t *agents, co
         snprintf(ip, sizeof(ip), "%s/.config/kilo/rules/codebase-memory-mcp.md", home);
         snprintf(ap, sizeof(ap), "%s/.config/kilo/agents/codebase-memory.md", home);
         install_generic_agent_config("KiloCode", ip, dry_run);
-        if (!dry_run && !g_install_plan) {
+        if (g_install_plan) {
+            plan_record("KiloCode", "config", cp);
+        } else if (!dry_run) {
             if (cbm_json_like_add_unique_string(cp, "instructions", ip) != CLI_OK) {
                 record_agent_config_error(false, "KiloCode", "instruction_reference_install", cp);
             }
@@ -8562,6 +8631,7 @@ static void install_additional_agent_configs(const cbm_detected_agents_t *agents
         install_generic_agent_config("Crush", NULL, dry_run);
         if (g_install_plan) {
             plan_record("Crush", "instructions", ip);
+            plan_record("Crush", "config", cp);
         } else {
             if (!dry_run) {
                 if (cbm_upsert_instructions(ip, crush_context_content) != CLI_OK) {
@@ -9074,7 +9144,7 @@ static char *cbm_build_install_plan_json_options(const char *home, const char *b
     yyjson_mut_val *hooks = yyjson_mut_arr(doc);
     for (int i = 0; i < plan.count; i++) {
         cbm_plan_entry_t *e = &plan.items[i];
-        if (strcmp(e->kind, "mcp_config") == 0) {
+        if (strcmp(e->kind, "config") == 0 || strcmp(e->kind, "mcp_config") == 0) {
             yyjson_mut_arr_add_strcpy(doc, configs, e->path);
         } else if (strcmp(e->kind, "hook") == 0) {
             yyjson_mut_val *h = yyjson_mut_obj(doc);
@@ -9677,14 +9747,12 @@ static void uninstall_claude_code(const char *home, bool dry_run) {
         char current_gate[CLI_BUF_8K];
         char current_session[CLI_BUF_8K];
         char current_subagent[CLI_BUF_8K];
-        char released_gate[CLI_BUF_8K];
-        const char *const gate_legacy[] = {released_gate};
+        char released_gate[CMM_RELEASED_GATE_VARIANT_COUNT][CLI_BUF_8K];
+        const char *gate_legacy[CMM_RELEASED_GATE_VARIANT_COUNT] = {0};
         const char *const session_legacy[] = {cmm_released_session_script};
         const char *const subagent_legacy[] = {cmm_released_subagent_script};
-        size_t gate_legacy_count = cbm_build_released_gate_script(installed_binary, released_gate,
-                                                                  sizeof(released_gate)) == CLI_OK
-                                       ? 1U
-                                       : 0U;
+        size_t gate_legacy_count =
+            cbm_build_released_gate_candidates(installed_binary, released_gate, gate_legacy);
         static const struct {
             const char *name;
             const char *legacy_name;

@@ -34,6 +34,11 @@ static void test_store_invalidate(void *context) {
     cbm_store_host_invalidate((cbm_store_host_t *)context);
 }
 
+static void test_project_invalidate(void *context, const char *project) {
+    (void)project;
+    test_store_invalidate(context);
+}
+
 static char *test_store_error(void *context, const char *project) {
     (void)context;
     return cbm_store_host_error(project);
@@ -59,6 +64,8 @@ cbm_test_operation_host_t *cbm_test_operation_host_new(const char *store_path) {
     host->runtime.store_invalidate = test_store_invalidate;
     host->runtime.store_error = test_store_error;
     host->runtime.store_context = host->stores;
+    host->runtime.project_invalidate = test_project_invalidate;
+    host->runtime.project_invalidate_context = host->stores;
     host->runtime.cancelled = test_cancelled;
     host->runtime.cancelled_context = host->session;
     host->runtime.cancel_flag = cbm_operation_session_cancel_flag(host->session);

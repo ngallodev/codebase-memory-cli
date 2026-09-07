@@ -1,6 +1,8 @@
 #include "operations/search.h"
 
 #include "foundation/constants.h"
+#include "foundation/platform.h"
+#include "foundation/str_util.h"
 #include "sqlite3/sqlite3.h"
 #include "store/store.h"
 #include "yyjson/yyjson.h"
@@ -139,6 +141,26 @@ static char *file_pattern_like(const char *pattern) {
     contains[length + 2U] = '\0';
     free(like);
     return contains;
+}
+
+static cbm_store_t *open_indexed_project(const char *project) {
+    if (!project || !cbm_validate_project_name(project)) return NULL;
+    const char *cache_dir = cbm_resolve_cache_dir();
+    if (!cache_dir) return NULL;
+
+    char db_path[CBM_SZ_2K];
+    int n = snprintf(db_path, sizeof(db_path), "%s/%s.db", cache_dir, project);
+    if (n <= 0 || (size_t)n >= sizeof(db_path)) return NULL;
+
+    cbm_store_t *store = cbm_store_open_path_query(db_path);
+    if (!store) return NULL;
+    cbm_project_t indexed = {0};
+    if (cbm_store_get_project(store, project, &indexed) != CBM_STORE_OK) {
+        cbm_store_close(store);
+        return NULL;
+    }
+    cbm_project_free_fields(&indexed);
+    return store;
 }
 
 static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *project,
@@ -405,7 +427,7 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
 
     if (!project || !project[0]) { result = error_result("project is required", "Run the command from an indexed repository."); goto done; }
     if (relationship && !valid_relationship(relationship)) { result = error_result("relationship must be uppercase letters and underscores", NULL); goto done; }
-    store = cbm_store_open(project);
+    store = open_indexed_project(project);
     if (!store) { result = error_result("project not indexed", "Run 'codebase-memory-cli index .' first."); goto done; }
 
     if (query && query[0]) {

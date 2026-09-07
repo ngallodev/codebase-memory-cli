@@ -128,7 +128,7 @@ static char *call_tool(const char *tool, const char *args_fmt, ...) {
     return cbm_test_operation_execute(g_srv, tool, args);
 }
 
-/* Parse integer from a tool response (handles the nested MCP envelope).
+/* Parse integer from an operation response.
  * Matches the JSON forms "key":N / \"key\":N and the TOON scalar `key: N`
  * (search_graph default output since the compact-output change). */
 static int count_in_response(const char *resp, const char *key) {
@@ -920,7 +920,7 @@ TEST(incr_perf_single_file_fast) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
- *  PHASE 8: MCP tool integration — comprehensive per-tool tests
+ *  PHASE 8: operation integration — comprehensive per-operation tests
  *
  *  Every tool, every parameter, error paths, timeouts.
  *  Timing: each call_tool_timed() warns if > PERF_WARN_MS.
@@ -1080,7 +1080,8 @@ TEST(tool_qg_defines_method_more_than_10) {
                               " WHERE c.name = 'BigClass' RETURN count(m) AS n\"}",
                               g_project);
     TOOL_OK(r, ms);
-    ASSERT(strstr(r, "\"15\"") != NULL || strstr(r, "\\\"15\\\"") != NULL);
+    ASSERT(strstr(r, "rows: 1  (cols: n)") != NULL);
+    ASSERT(strstr(r, "15") != NULL);
     free(r);
     PASS();
 }
@@ -1354,7 +1355,7 @@ TEST(tool_sg_offset) {
                               "\"limit\":5,\"offset\":10}",
                               g_project);
     TOOL_OK(r, ms);
-    ASSERT(strstr(r, "results") != NULL);
+    ASSERT(resp_has_key(r, "groups"));
     free(r);
     PASS();
 }
@@ -1454,8 +1455,7 @@ TEST(tool_sg_invalid_project) {
     char *r = call_tool_timed("search_graph", &ms,
                               "{\"project\":\"nonexistent\",\"label\":\"Function\"}");
     TOOL_OK(r, ms);
-    ASSERT(strstr(r, "error") != NULL || strstr(r, "not found") != NULL ||
-           strstr(r, "not_found") != NULL);
+    ASSERT(resp_has_key(r, "error") || strstr(r, "project not indexed") != NULL);
     free(r);
     PASS();
 }
@@ -1617,7 +1617,7 @@ TEST(tool_qg_invalid_project) {
                               "{\"project\":\"nonexistent\","
                               "\"query\":\"MATCH (n) RETURN n LIMIT 1\"}");
     TOOL_OK(r, ms);
-    ASSERT(strstr(r, "error") != NULL || strstr(r, "not found") != NULL);
+    ASSERT(strstr(r, "project not found") != NULL || strstr(r, "project not indexed") != NULL);
     free(r);
     PASS();
 }
@@ -2039,7 +2039,7 @@ TEST(tool_err_query_bad_project) {
                               "{\"project\":\"xxx\","
                               "\"query\":\"MATCH (n) RETURN n LIMIT 1\"}");
     TOOL_OK(r, ms);
-    ASSERT(strstr(r, "error") != NULL || strstr(r, "not found") != NULL);
+    ASSERT(strstr(r, "project not found") != NULL || strstr(r, "project not indexed") != NULL);
     free(r);
     PASS();
 }
@@ -2102,7 +2102,8 @@ TEST(tool_index_mode_fast) {
     char *r = call_tool_timed("index_repository", &ms, "{\"repo_path\":\"%s\",\"mode\":\"fast\"}",
                               g_repodir);
     ASSERT(r != NULL);
-    ASSERT(strstr(r, "indexed") != NULL);
+    ASSERT(strstr(r, "\"status\":\"indexed\"") != NULL ||
+           strstr(r, "\"status\":\"degraded\"") != NULL);
     free(r);
     PASS();
 }

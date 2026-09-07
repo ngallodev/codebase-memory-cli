@@ -21,6 +21,7 @@
 #include "foundation/compat_fs.h"
 #include "foundation/constants.h"
 #include "foundation/mem.h"
+#include "foundation/platform.h"
 #include "pipeline/pipeline.h"
 #include "yyjson/yyjson.h"
 
@@ -845,6 +846,19 @@ static char *ha_registry_project_for_path(const char *cwd, char *root_out,
 /* Return the nearest indexed graph project for cwd. Probe derived names first
  * (the common one-database path), then scan lightweight root metadata for
  * explicit custom names and worktree aliases. */
+static bool ha_exact_project_db_exists(const char *project) {
+    if (!project || !project[0]) {
+        return false;
+    }
+    const char *cache_dir = cbm_resolve_cache_dir();
+    if (!cache_dir || !cache_dir[0]) {
+        return false;
+    }
+    char db_path[4096];
+    int written = snprintf(db_path, sizeof(db_path), "%s/%s.db", cache_dir, project);
+    return written > 0 && (size_t)written < sizeof(db_path) && cbm_file_exists(db_path);
+}
+
 static char *ha_resolve_indexed_project_with_root(const char *cwd, char *root_out,
                                                   size_t root_out_size) {
     if (!cwd || !cbm_hook_path_is_abs(cwd)) {
@@ -854,7 +868,7 @@ static char *ha_resolve_indexed_project_with_root(const char *cwd, char *root_ou
     snprintf(dir, sizeof(dir), "%s", cwd);
     for (int level = 0; level < HA_MAX_WALKUP && cbm_hook_path_is_abs(dir); level++) {
         char *project = cbm_project_name_from_path(dir);
-        if (project) {
+        if (project && ha_exact_project_db_exists(project)) {
             yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
             yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
             if (doc && root) {
@@ -879,8 +893,8 @@ static char *ha_resolve_indexed_project_with_root(const char *cwd, char *root_ou
             } else if (doc) {
                 yyjson_mut_doc_free(doc);
             }
-            free(project);
         }
+        free(project);
         if (!ha_strip_last_component(dir)) {
             break;
         }

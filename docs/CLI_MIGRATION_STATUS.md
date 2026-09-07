@@ -320,3 +320,25 @@ Status: **IMPLEMENTED / REQUIRES EXTERNAL RERUN**
 - **COMPLETE:** immediately before drafting, the workflow refuses an already-existing GitHub release or remote tag and creates the dispatched-SHA tag with a normal non-force push, so duplicate/racing dispatches fail closed.
 - **COMPLETE:** the existing release gate-chain contract now protects this immutable-identity boundary; the RC dispatch runbook records that workflow-side enforcement is independent of the operator's pre-dispatch availability check.
 - **PRESERVED:** the external-qualification hold remains the default and registry/public promotion remains owned by the promotion workflow after exact Windows-byte qualification.
+
+### CP76 — Post-qualification CLI contract reconciliation
+
+- **COMPLETE:** the first broad sanitized run after CP74 reached suite execution and isolated all 59 failures to `cli` (53) and `incremental` (6); the daemon application/runtime/IPC suites were green.
+- **COMPLETE:** the six incremental failures were stale assertions against retired MCP-shaped/raw response text. They now assert the neutral operation-result keys/statuses actually emitted by the production operation layer.
+- **COMPLETE:** stale CLI installer tests now describe supported CLI-first durable context, skill, config, and lifecycle surfaces instead of requiring fresh MCP registration. Legacy MCP ownership remains tested only where exact cleanup/migration compatibility is still product behavior.
+- **FIXED:** registry-backed agent installs now resolve their effective client config path before Qoder/Devin lifecycle installation and cleanup; previously those hooks could be silently skipped as `config path unresolved`.
+- **FIXED:** hook project resolution no longer opens a derived, nonexistent project DB as a fast probe. The derived-name path is used only when that exact DB already exists, allowing indexed custom project names to fall back to canonical `root_path` metadata instead of being shadowed by a phantom empty DB.
+- **FIXED:** exact-owned Claude gate-script migration recognizes the released MCP-era sibling binary basename as well as transition-era branding/path combinations. Ownership remains byte-exact; modified/foreign scripts are still refused.
+- **VERIFIED:** the final eight-case CLI sanitizer cluster passes 8/8 under ASan/UBSan with leak detection enabled. The changed production and test objects compile under the repository's strict sanitizer and production warning policies.
+- **PENDING EXTERNAL GATE:** rerun `scripts/test.sh` on the CP76 candidate. CP76 changes production CLI code, so the earlier 7,352-pass/59-fail broad result is diagnostic input, not final Gate-1 evidence. The corrected post-CP74 memory-analysis run is already green and need not be repeated unless the broad sanitizer rerun produces new memory evidence.
+
+### CP77 — Incremental Gate-1 closeout
+
+- **EVIDENCE:** the CP76 canonical rerun completed all 138 suites with 7,408 passed / 3 failed / 3 skipped. `cli` is 236/236 and all daemon suites are green; only `incremental` remains red at 160/163.
+- **FIXED (test host):** the neutral in-process operation host now wires `project_invalidate` to its cached store host. Reindex tests therefore release ADR/read-side cached handles before physical publication, matching the separate-process lifecycle used by production indexing.
+- **FIXED (read path):** `search_graph` no longer uses a create-capable open for an unknown project. It requires an existing read-only project DB with the requested project row, so an invalid search cannot create a ghost empty database or masquerade as an empty successful result.
+- **RECONCILED:** the remaining count-query assertion now checks the current compact table contract (`rows: ... (cols: n)`) rather than a retired JSON/MCP-shaped key assumption.
+- **MEMORY ATTRIBUTION:** the CP76 incremental LeakSanitizer total (2,896 bytes in three allocations) exactly corresponds to response buffers abandoned by those three failed assertions; the independent CP76 memory-analysis leg is green with 0 Valgrind lost bytes.
+- **VERIFIED LOCALLY:** changed production/test objects compile under the repository's strict production and ASan/UBSan warning policies. Full incremental execution still requires the externally cached FastAPI fixture unavailable in this sandbox.
+- **PENDING EXTERNAL GATE:** run `scripts/test.sh` once on CP77. No separate memory-analysis rerun is required unless new memory evidence appears.
+
