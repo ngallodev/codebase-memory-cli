@@ -15,7 +15,7 @@ Status markers: **COMPLETE**, **PARTIAL**, **REMAINING**, **BLOCKED/EXTERNAL**.
 - **COMPLETE** Canonical exploration loop exists for `index`, `projects`, `status`, `search`, `snippet`, `trace`, and `coverage`.
 - **COMPLETE** Neutral graph/source commands now also include `schema`, `query`, `architecture`, `changes`, `source-search`, `outline`, and `compare`.
 - **COMPLETE** Existing cache/index/database naming and persisted compatibility-sensitive internals remain unchanged.
-- **PARTIAL** Legacy installer/update/uninstall cleanup remains only for ownership-aware removal of MCP-era state; active install paths are structurally CLI-first and no longer carry an MCP-enable transition flag.
+- **COMPLETE (CP78/CP80 audit):** active install, hook-install, update, and uninstall paths do not create, migrate, adopt, or remove `codebase-memory-mcp` registrations or MCP-owned assets. Historical MCP recognizers may remain as unreachable compatibility utilities, but the CLI lifecycle treats those artifacts as foreign.
 
 ## 2. Neutral operation API / MCP extraction
 
@@ -207,7 +207,7 @@ No production or retained C behavioral-test source includes `mcp/mcp.h` or calls
 
 - **COMPLETE:** renamed the historical tier/profile renderer source and test surfaces to `legacy_agent_profiles.*`, making their ownership explicit: they reproduce bytes from prior releases solely so update/uninstall can remove exact Codebase Memory-owned documents without deleting modified or foreign files.
 - **PRESERVED:** historical `--tool-profile=analysis|scout`, MCP server names, and old agent dialect payloads remain inside that legacy renderer because byte-accurate recognition is a safety mechanism, not an active install capability.
-- **COMPLETE:** new OpenClaw compaction augmentation now writes `Codebase Knowledge Graph (codebase-memory-cli)`. Cleanup recognizes and removes both the current CLI label and the historical MCP label.
+- **COMPLETE (CP78):** OpenClaw compaction augmentation uses the CLI-owned `Codebase Knowledge Graph (codebase-memory-cli)` label. The CLI lifecycle no longer claims the historical MCP label.
 - **COMPLETE:** the durable agent-instructions contract test now validates the actual CLI-first instructions and rejects `codebase-memory-mcp`/`search_graph` leakage from new instructions.
 - **COMPLETE:** `doctor` now reports effective watcher state plus UI enabled/port configuration in both human and JSON output, reusing existing configuration sources rather than introducing duplicate health infrastructure.
 
@@ -215,7 +215,7 @@ No production or retained C behavioral-test source includes `mcp/mcp.h` or calls
 
 - **COMPLETE:** removed the unused `cbm_cli_mcp_result_is_error()` API. It had no production caller and survived only through a self-test for the retired MCP result envelope.
 - **COMPLETE:** removed creation-era CLI tests that expected fresh tiered MCP subagents, per-agent MCP server blocks, or `--tool-profile` registrations. Current install behavior is CLI-first; byte-accurate historical renderers remain tested separately for ownership-aware update/uninstall cleanup.
-- **PRESERVED:** durable CLI instructions, skills, hooks, exact legacy cleanup recognition, foreign-file protection, and tier-profile uninstall/migration coverage remain in the active test graph.
+- **PRESERVED:** durable CLI instructions, skills, hooks, foreign-file protection, and historical recognition helpers remain where useful for compatibility analysis; CLI lifecycle operations do not use those helpers to remove MCP-owned state.
 
 ## CP58 — recovery observability and concurrency evidence audit
 
@@ -351,4 +351,35 @@ Status: **IMPLEMENTED / REQUIRES EXTERNAL RERUN**
 - **COMPLETE:** setup scripts no longer activate repository Git hooks implicitly. Post-install guidance makes agent-hook installation explicitly opt-in.
 - **REGRESSION COVERAGE ADDED:** CP78 plan tests assert that asset and hook plans are disjoint, and a Claude coexistence test asserts that explicit CLI hook installation preserves a pre-existing MCP hook command/file while installing separate CLI hook identities.
 - **VERIFIED LOCALLY:** changed production CLI and CLI-test translation units compile with the repository's strict `-Wall -Wextra -Werror` production/test policies and ASan/UBSan test instrumentation.
-- **PENDING EXTERNAL GATE:** the full sanitizer runner could not be linked within the bounded local compiler windows because the repository-wide grammar/dependency build repeatedly exhausted the command window. No CP78 compile failure surfaced. Run the canonical Jenkins/`scripts/test.sh` gate on the CP78 candidate; reconcile any stale pre-CP78 ownership assertions rather than weakening the MCP/CLI separation contract.
+- **VERIFIED LOCALLY (runtime):** the two CP78-specific sanitizer regressions pass 2/2: asset and hook plans are disjoint, and explicit Claude CLI-hook installation preserves pre-existing MCP hook files/settings while adding separate CLI-owned hook identities. The broader CLI suite cannot be treated as local Gate-1 evidence in this sandbox because an older activation/hash test stalls before the CP78 region when the runner is relocated under a private safe path.
+- **PENDING EXTERNAL GATE:** run the canonical Jenkins/`scripts/test.sh` gate on the CP78 candidate; reconcile any stale pre-CP78 ownership assertions rather than weakening the MCP/CLI separation contract.
+
+### CP79 — CP78 local qualification closeout
+
+- **COMPLETE:** CP78's focused runtime qualification is green under ASan/UBSan (2/2). The coexistence regression was corrected to snapshot file contents with allocating reads rather than aliasing the test helper's static buffer.
+- **COMPLETE:** a fresh incremental CLI runner was linked successfully after the repository-wide sanitizer dependency graph completed. Running from `/mnt/data` correctly triggers the installer's unsafe-ancestor guard; relocating the runner beneath a private `0700` directory gets past that guard but an unrelated pre-existing activation/hash test stalls before the CP78 assertions. No product workaround was added.
+- **QUALIFICATION LIMITATION:** an optimized production build progressed through all ordinary production objects and grammar objects but the monolithic `prod_lsp_all.o` compilation alone exceeds the sandbox's maximum uninterrupted command window (including a 240-second attempt). No production compiler error surfaced.
+- **PENDING EXTERNAL GATE:** Jenkins remains the authoritative Gate-1 venue for the complete clean sanitizer suite and optimized production link. CP79 makes no runtime/product architecture changes beyond the CP78 candidate.
+
+### CP80 — Static side-by-side ownership audit
+
+- **FIXED:** KiloCode asset installation once again installs the CLI-owned `codebase-memory-cli.md` durable instruction and registers only that instruction reference; the CP78 reconstruction had accidentally left uninstall operations in the install branch.
+- **FIXED:** KiloCode uninstall now removes only the CLI-owned instruction reference/file and leaves both current and historical MCP configuration/rules untouched.
+- **FIXED:** shell PATH persistence is labeled `codebase-memory-cli install` rather than the retired MCP product name.
+- **RECONCILED:** migration-status language now matches the CP78 side-by-side contract: active CLI lifecycle operations do not use historical MCP cleanup as a migration mechanism.
+- **STATIC AUDIT ONLY:** per user direction, CP80 was reviewed by source/diff inspection only. No compilation or tests were run for this checkpoint.
+
+### CP81 — Static lifecycle ownership closeout
+
+- **FIXED:** VS Code profile uninstall no longer enumerates profile `mcp.json` files or removes any MCP registration; profile MCP state is foreign under the CP78 side-by-side contract.
+- **FIXED:** hook-augment timeout breadcrumbs now use the CLI-owned `~/.cache/codebase-memory-cli/logs` namespace rather than writing diagnostics into the MCP cache namespace. The compatibility-sensitive graph/index cache remains unchanged.
+- **RECONCILED:** `cli.h`, agent-client source comments, `docs/llms.txt`, configuration guidance, and Windows/Linux qualification instructions now describe the actual split lifecycle: `install` writes assets only, `install-hooks` is explicit, and MCP state is preserved.
+- **STATIC AUDIT ONLY:** no compilation or tests were run for CP81 by explicit instruction. Package verification is limited to source/diff/overlay integrity checks.
+
+### CP82 — Static lifecycle wording and legacy-fingerprint audit
+
+- **STATIC AUDIT ONLY:** no compilation or tests were run for CP82.
+- **RECONCILED:** generic asset installation now reports that hooks require the explicit `codebase-memory-cli install-hooks` surface instead of describing the asset-only path as “instructions/hooks”.
+- **RECONCILED:** `uninstall --help` now explicitly limits removal to CLI-owned agent assets/hooks and states that MCP registrations/assets are preserved.
+- **CLARIFIED:** legacy MCP SessionStart/SubagentStart payload constants are named and documented as byte-for-byte recognition fingerprints only; current CLI hook generation continues to invoke `codebase-memory-cli hook-augment`.
+- **REVIEWED:** release-facing `codebase-memory-mcp` repository URLs remain intentional historical-repository-slug references; compatibility cache/config paths retaining the historical name are likewise unchanged.

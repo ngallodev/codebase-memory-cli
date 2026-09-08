@@ -444,14 +444,15 @@ void cbm_cli_set_activation_runtime_parent_for_test(const char *runtime_parent);
 
 /* ── Subcommands (wired from main.c) ─────────────────────────── */
 
-/* install: copy binary, install skills, install editor MCP configs, ensure PATH.
- * Prompts to delete old indexes if any exist — rejects on "no". */
+/* install: copy the binary, install CLI-owned skills/instructions, and ensure PATH.
+ * Hooks and MCP client configuration are outside this command. */
 int cbm_cmd_install(int argc, char **argv);
 
 /* install-hooks: explicit opt-in installation of CLI-owned agent hooks only. */
 int cbm_cmd_install_hooks(int argc, char **argv);
 
-/* uninstall: remove skills, remove editor MCP configs, remove binary. */
+/* uninstall: remove CLI-owned skills/instructions/hooks and the binary.
+ * MCP registrations and MCP-owned assets are preserved. */
 int cbm_cmd_uninstall(int argc, char **argv);
 
 /* update: check latest release, prompt for index deletion, prompt for ui/standard,

@@ -195,7 +195,7 @@ not name is permitted.
 
 ## 5. Agent and Editor Integration Files
 
-The CLI-first `install` path can write Codebase Memory skills, durable CLI instructions, and compatible lifecycle/context hooks for detected agents. It does **not** create new MCP registrations or MCP-bound tier profiles/extensions. Legacy ownership-aware editors/removers remain present so update/uninstall can safely remove older Codebase Memory-owned MCP entries without deleting foreign or modified configuration.
+The CLI-first `install` path can write Codebase Memory skills and durable CLI instructions for detected agents. Hooks are a separate explicit opt-in via `codebase-memory-cli install-hooks`. Neither lifecycle surface creates, migrates, adopts, or removes MCP registrations or MCP-owned assets; existing MCP state is treated as foreign for side-by-side safety.
 
 Those target paths vary by tool and platform, so the easiest way to inspect the exact files for your machine is:
 

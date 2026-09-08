@@ -1,9 +1,9 @@
 /*
- * agent_clients.c — Agent-client discovery and legacy MCP cleanup.
+ * agent_clients.c — Agent-client discovery and historical MCP recognizers.
  *
- * Active installation is CLI-first. This module retains legacy MCP path
- * resolution and ownership-preserving removal solely so upgrades/uninstalls
- * can clean configurations created by older releases.
+ * Active installation and lifecycle cleanup are CLI-owned only. Historical
+ * MCP path/ownership helpers remain for compatibility analysis and tests;
+ * current install/update/uninstall flows must treat MCP artifacts as foreign.
  */
 #include "agent_clients.h"
 

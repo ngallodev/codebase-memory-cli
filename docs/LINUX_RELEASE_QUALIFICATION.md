@@ -193,7 +193,7 @@ CP76 reconciles that evidence rather than treating 59 assertions as independent 
 2. hook project lookup could open a nonexistent derived-name DB during its fast probe and thereby shadow an existing custom-named index discoverable by canonical `root_path`;
 3. Claude's exact-owned gate-script migration did not recognize the released MCP-era sibling binary basename after the product executable rename.
 
-The incremental assertions now follow the neutral operation-result wire shape. CLI installer assertions require supported CLI-first configuration, durable instructions/skills, and lifecycle hooks while preserving explicit legacy ownership/cleanup contracts where compatibility requires them.
+The incremental assertions now follow the neutral operation-result wire shape. CLI installer assertions require supported CLI-first durable instructions/skills from `install`, explicit CLI-owned hooks only from `install-hooks`, and preservation of MCP registrations/assets across CLI lifecycle operations.
 
 Focused sanitizer verification of the final eight-case CLI cluster passes 8/8 with ASan/UBSan and leak detection enabled. Changed production and test objects compile under the normal strict sanitizer and production warning flags. The sandbox cannot execute the full incremental fixture because that fixture performs an outbound GitHub clone; its changed assertions were reconciled against the captured real-run response shapes and compile successfully.
 
@@ -241,4 +241,3 @@ evidence once those assertions are corrected.
 **Gate status:** CP77 requires one final external `scripts/test.sh` rerun because
 it changes `src/operations/search.c`. The memory-analysis leg does not need to
 be repeated unless that rerun exposes new memory evidence.
-

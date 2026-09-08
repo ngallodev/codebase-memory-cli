@@ -105,7 +105,7 @@ Exercise supported install/update/uninstall paths separately from the portable b
 
 Verify installed executable identity matches the candidate.
 
-Pay particular attention to ownership-aware legacy cleanup: Codebase Memory-owned historical MCP configuration may be removed, but foreign or modified configuration must remain intact. Clean install must not create new MCP registrations.
+Pay particular attention to side-by-side ownership: existing MCP configuration and MCP-owned assets must remain unchanged across CLI install/update/uninstall. Clean install must not create new MCP registrations, and CLI-owned hooks must appear only after an explicit `codebase-memory-cli install-hooks` invocation.
 
 ## Step 8 — Comparative benchmarking
 

@@ -126,8 +126,9 @@ Required scenarios:
 - basic index/search/doctor workflow;
 - update handoff where supported;
 - uninstall;
-- cleanup of Codebase Memory-owned legacy MCP configuration without deleting foreign/modified entries;
-- no clean-install creation of MCP server registrations or retired executable names.
+- preservation of existing MCP configuration and MCP-owned assets across CLI install/update/uninstall;
+- no clean-install creation of MCP server registrations or retired executable names;
+- hooks installed only after an explicit `codebase-memory-cli install-hooks` invocation.
 
 Capture before/after filesystem/config evidence for install and uninstall tests.
 

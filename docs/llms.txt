@@ -12,7 +12,7 @@
 - Machine output: canonical commands support deterministic `--json` output and non-zero exit status on operational failure.
 - Semantic search: local bundled embeddings; no API key or hosted inference required.
 - Cross-repo intelligence: graph relationships and architecture queries across indexed repositories.
-- Install integration: `install` may add CLI-first skills, durable instructions, and compatible lifecycle/context hooks for detected coding agents. Clean installs do not create MCP registrations.
+- Install integration: `install` may add CLI-first skills and durable instructions for detected coding agents. Hooks require the separate explicit `install-hooks` command. Neither lifecycle surface creates, migrates, adopts, or removes MCP registrations or MCP-owned assets.
 - Distribution: native release archives plus npm, PyPI, Homebrew, Scoop, Winget, Chocolatey, AUR, and Go packaging.
 
 ## Agent use
