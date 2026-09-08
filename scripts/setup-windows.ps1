@@ -22,9 +22,13 @@ function Write-Warn($msg)  { Write-Host "  $msg" -ForegroundColor Yellow }
 function Write-AgentIntegrationGuidance($Command) {
     Write-Host ""
     Write-Host "  Codebase Memory is CLI-first; this setup script does not write MCP client configuration." -ForegroundColor White
-    Write-Host "  To install CLI-first skills/instructions/hooks for detected agents, run:" -ForegroundColor White
+    Write-Host "  To install CLI-first skills/instructions for detected agents, run:" -ForegroundColor White
     Write-Host ""
     Write-Host "    $Command install --skip-binary" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  Hooks are never installed by setup or install. To opt in separately, run:" -ForegroundColor White
+    Write-Host ""
+    Write-Host "    $Command install-hooks" -ForegroundColor Yellow
 }
 
 

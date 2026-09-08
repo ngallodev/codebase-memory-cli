@@ -1034,6 +1034,7 @@ static void print_help(void) {
     printf("\nAdministration:\n");
     printf("  codebase-memory-cli allow-root [--approve-sensitive] <path>\n");
     printf("  codebase-memory-cli install [-y|-n] [--force] [--dry-run] [--dir=<path>] [--skip-config]\n");
+    printf("  codebase-memory-cli install-hooks [--dry-run] [--plan] [--clients=<list>]\n");
     printf("  codebase-memory-cli uninstall [-y|-n] [--dry-run]\n");
     printf("  codebase-memory-cli update [-y|-n]\n");
     printf("  codebase-memory-cli config <list|get|set|reset>\n");
@@ -1200,6 +1201,9 @@ static int handle_subcommand(int argc, char **argv, cbm_project_lock_manager_t *
         }
         if (strcmp(argv[i], "install") == 0) {
             return cbm_cmd_install(argc - i - SKIP_ONE, argv + i + SKIP_ONE);
+        }
+        if (strcmp(argv[i], "install-hooks") == 0) {
+            return cbm_cmd_install_hooks(argc - i - SKIP_ONE, argv + i + SKIP_ONE);
         }
         if (strcmp(argv[i], "uninstall") == 0) {
             return cbm_cmd_uninstall(argc - i - SKIP_ONE, argv + i + SKIP_ONE);

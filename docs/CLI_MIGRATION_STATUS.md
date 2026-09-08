@@ -342,3 +342,13 @@ Status: **IMPLEMENTED / REQUIRES EXTERNAL RERUN**
 - **VERIFIED LOCALLY:** changed production/test objects compile under the repository's strict production and ASan/UBSan warning policies. Full incremental execution still requires the externally cached FastAPI fixture unavailable in this sandbox.
 - **PENDING EXTERNAL GATE:** run `scripts/test.sh` once on CP77. No separate memory-analysis rerun is required unless new memory evidence appears.
 
+
+### CP78 — Explicit CLI hook-install boundary and MCP coexistence
+
+- **COMPLETE (implementation):** ordinary `codebase-memory-cli install` is an asset-only surface. CLI-owned agent hooks require the separate, explicit `codebase-memory-cli install-hooks` command; `--plan`, `--dry-run`, and `--clients` are independently supported on that hook surface.
+- **COMPLETE:** CLI-owned durable-context assets and hook identities use `codebase-memory-cli` namespaces rather than MCP-era names. The CLI no longer adopts MCP-era Claude/Gemini hook identities as upgrade ownership.
+- **COMPLETE:** install, hook installation, and uninstall treat `codebase-memory-mcp` registrations, MCP-era hook files, legacy MCP compaction labels, and MCP-owned skill namespaces as foreign. Side-by-side installation therefore does not use MCP cleanup as a migration mechanism.
+- **COMPLETE:** setup scripts no longer activate repository Git hooks implicitly. Post-install guidance makes agent-hook installation explicitly opt-in.
+- **REGRESSION COVERAGE ADDED:** CP78 plan tests assert that asset and hook plans are disjoint, and a Claude coexistence test asserts that explicit CLI hook installation preserves a pre-existing MCP hook command/file while installing separate CLI hook identities.
+- **VERIFIED LOCALLY:** changed production CLI and CLI-test translation units compile with the repository's strict `-Wall -Wextra -Werror` production/test policies and ASan/UBSan test instrumentation.
+- **PENDING EXTERNAL GATE:** the full sanitizer runner could not be linked within the bounded local compiler windows because the repository-wide grammar/dependency build repeatedly exhausted the command window. No CP78 compile failure surfaced. Run the canonical Jenkins/`scripts/test.sh` gate on the CP78 candidate; reconcile any stale pre-CP78 ownership assertions rather than weakening the MCP/CLI separation contract.

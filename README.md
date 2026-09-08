@@ -95,17 +95,23 @@ The skill preserves three evidence levels:
 
 ### Skills and hooks
 
-`install` may place CLI-first skills, durable instructions, and compatible lifecycle/context hooks for detected coding agents. New installs do **not** create MCP registrations or MCP-bound tier profiles/extensions.
+`install` may place CLI-first skills and durable instructions for detected coding agents. It **never installs hooks** and does not create, migrate, or remove `codebase-memory-mcp` registrations or MCP-owned assets.
+
+Hooks are a separate, explicit opt-in surface. Install only `codebase-memory-cli`-owned lifecycle/context hooks with:
+
+```sh
+codebase-memory-cli install-hooks
+```
 
 Hooks are an optimization and guidance surface, not the only route to the graph. If a warm runtime is absent or a hook cannot augment context, it fails open and the ordinary CLI still works.
 
-To configure detected agent integrations without replacing an externally managed binary:
+To configure detected agent assets without replacing an externally managed binary:
 
 ```sh
 codebase-memory-cli install --skip-binary
 ```
 
-Use `install --plan` when you want to inspect planned writes before applying them.
+Use `install --plan` to inspect asset writes and `install-hooks --plan` to inspect hook writes before applying either surface. `--clients=<list>` is supported independently by both commands.
 
 ## Installation
 
@@ -132,7 +138,7 @@ Windows PowerShell:
 irm https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/scripts/setup-windows.ps1 | iex
 ```
 
-The setup scripts install the executable. They do not write MCP client configuration. Afterward, run `codebase-memory-cli install --skip-binary` if you want Codebase Memory to install its CLI-first skills/instructions/hooks for detected agents.
+The setup scripts install the executable. They do not install hooks or write MCP client configuration. Afterward, run `codebase-memory-cli install --skip-binary` for CLI-first skills/instructions. Run `codebase-memory-cli install-hooks` separately only if you explicitly want CLI-owned agent hooks.
 
 ## Human and machine output
 

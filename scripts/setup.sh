@@ -209,9 +209,13 @@ build_from_source() {
 print_agent_integration_guidance() {
     echo ""
     info "Codebase Memory is CLI-first; this setup script does not write MCP client configuration."
-    info "To install CLI-first skills/instructions/hooks for detected agents, run:"
+    info "To install CLI-first skills/instructions for detected agents, run:"
     echo ""
     echo "  ${INSTALL_DIR}/${BINARY_NAME} install --skip-binary"
+    echo ""
+    info "Hooks are never installed by setup or install. To opt in separately, run:"
+    echo ""
+    echo "  ${INSTALL_DIR}/${BINARY_NAME} install-hooks"
 }
 
 # --- PATH check ---
@@ -257,12 +261,8 @@ fi
 print_agent_integration_guidance
 check_path
 
-# --- Git hooks ---
-# If run from inside the repo, activate tracked hooks
-if [ -d "scripts/hooks" ] && git rev-parse --git-dir &>/dev/null; then
-    git config core.hooksPath scripts/hooks
-    ok "Git hooks activated (scripts/hooks/)"
-fi
+# Hook installation is intentionally never implicit. Repository contributors may
+# opt into tracked Git hooks separately with: git config core.hooksPath scripts/hooks
 
 echo ""
 ok "Done! Try: ${BINARY_NAME} --help"

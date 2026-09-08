@@ -448,6 +448,9 @@ void cbm_cli_set_activation_runtime_parent_for_test(const char *runtime_parent);
  * Prompts to delete old indexes if any exist — rejects on "no". */
 int cbm_cmd_install(int argc, char **argv);
 
+/* install-hooks: explicit opt-in installation of CLI-owned agent hooks only. */
+int cbm_cmd_install_hooks(int argc, char **argv);
+
 /* uninstall: remove skills, remove editor MCP configs, remove binary. */
 int cbm_cmd_uninstall(int argc, char **argv);
 
@@ -526,5 +529,6 @@ bool cbm_hook_path_is_abs(const char *path);
  * would write, produced WITHOUT mutating anything. Returns a heap JSON string
  * (caller frees) or NULL on error. Exposed for `install --plan` and testing. */
 char *cbm_build_install_plan_json(const char *home, const char *binary_path);
+char *cbm_build_hook_install_plan_json(const char *home, const char *binary_path);
 
 #endif /* CBM_CLI_H */

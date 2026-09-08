@@ -10417,6 +10417,87 @@ TEST(cli_update_only_names_an_installer_that_exists_issue1632) {
     PASS();
 }
 
+
+TEST(cli_cp78_install_and_hook_plans_are_disjoint) {
+    char tmpdir[256];
+    snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-cp78-plan-XXXXXX");
+    if (!cbm_mkdtemp(tmpdir)) {
+        FAIL("cbm_mkdtemp failed");
+    }
+
+    char claude_dir[512];
+    snprintf(claude_dir, sizeof(claude_dir), "%s/.claude", tmpdir);
+    test_mkdirp(claude_dir);
+
+    char *assets = cbm_build_install_plan_json(tmpdir, "/opt/codebase-memory-cli");
+    char *hooks = cbm_build_hook_install_plan_json(tmpdir, "/opt/codebase-memory-cli");
+
+    bool ok = assets && hooks && strstr(assets, "\"surface\": \"assets\"") &&
+              strstr(hooks, "\"surface\": \"hooks\"") &&
+              strstr(assets, "codebase-memory-cli/SKILL.md") &&
+              !strstr(assets, "codebase-memory-cli-discovery-gate") &&
+              !strstr(assets, "codebase-memory-cli-session-reminder") &&
+              strstr(hooks, "codebase-memory-cli-discovery-gate") &&
+              strstr(hooks, "codebase-memory-cli-session-reminder") &&
+              !strstr(hooks, "codebase-memory-cli/SKILL.md") &&
+              !strstr(hooks, "codebase-memory-mcp");
+
+    free(assets);
+    free(hooks);
+    test_rmdir_r(tmpdir);
+    ASSERT_TRUE(ok);
+    PASS();
+}
+
+#ifndef _WIN32
+TEST(cli_cp78_explicit_claude_hooks_preserve_mcp_hook_assets) {
+    char tmpdir[256];
+    snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-cp78-coexist-XXXXXX");
+    if (!cbm_mkdtemp(tmpdir)) {
+        FAIL("cbm_mkdtemp failed");
+    }
+
+    char *old_home = NULL;
+    char *old_cache = NULL;
+    cli_activation_save_env(&old_home, &old_cache);
+    cbm_setenv("HOME", tmpdir, 1);
+
+    char hooks_dir[512];
+    char settings_path[640];
+    char mcp_gate_path[640];
+    snprintf(hooks_dir, sizeof(hooks_dir), "%s/.claude/hooks", tmpdir);
+    snprintf(settings_path, sizeof(settings_path), "%s/.claude/settings.json", tmpdir);
+    snprintf(mcp_gate_path, sizeof(mcp_gate_path), "%s/cbm-code-discovery-gate", hooks_dir);
+    test_mkdirp(hooks_dir);
+
+    const char *mcp_gate = "#!/bin/sh\necho mcp-owned\n";
+    const char *mcp_command = "~/.claude/hooks/cbm-code-discovery-gate";
+    write_test_file(mcp_gate_path, mcp_gate);
+    write_test_file(settings_path,
+                    "{\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Grep|Glob|Bash\","
+                    "\"hooks\":[{\"type\":\"command\","
+                    "\"command\":\"~/.claude/hooks/cbm-code-discovery-gate\"}]}]}}\n");
+
+    int rc = cbm_cmd_install_hooks(0, NULL);
+    const char *after_script = read_test_file(mcp_gate_path);
+    const char *after_settings = read_test_file(settings_path);
+
+    char cli_gate_path[640];
+    snprintf(cli_gate_path, sizeof(cli_gate_path), "%s/codebase-memory-cli-discovery-gate",
+             hooks_dir);
+    const char *cli_gate = read_test_file(cli_gate_path);
+
+    bool ok = rc == 0 && after_script && strcmp(after_script, mcp_gate) == 0 && after_settings &&
+              strstr(after_settings, mcp_command) &&
+              strstr(after_settings, "codebase-memory-cli-discovery-gate") && cli_gate;
+
+    cli_activation_restore_env(old_home, old_cache);
+    test_rmdir_r(tmpdir);
+    ASSERT_TRUE(ok);
+    PASS();
+}
+#endif
+
 SUITE(cli) {
     RUN_TEST(cli_update_only_names_an_installer_that_exists_issue1632);
     RUN_TEST(cli_progress_visibility_policy);
@@ -10557,6 +10638,10 @@ SUITE(cli) {
     RUN_TEST(cli_detect_agents_finds_cursor_issue222);
     RUN_TEST(cli_supported_agent_surfaces_match_installers);
     RUN_TEST(cli_new_agent_install_plans_use_documented_paths);
+    RUN_TEST(cli_cp78_install_and_hook_plans_are_disjoint);
+#ifndef _WIN32
+    RUN_TEST(cli_cp78_explicit_claude_hooks_preserve_mcp_hook_assets);
+#endif
     RUN_TEST(cli_hook_conflict_emits_stdout_notice_issue1388);
 #ifndef _WIN32
     RUN_TEST(cli_install_preserves_hook_entries_when_scripts_unowned_issue1387);
