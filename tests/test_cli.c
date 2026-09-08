@@ -10479,18 +10479,21 @@ TEST(cli_cp78_explicit_claude_hooks_preserve_mcp_hook_assets) {
                     "\"command\":\"~/.claude/hooks/cbm-code-discovery-gate\"}]}]}}\n");
 
     int rc = cbm_cmd_install_hooks(0, NULL);
-    const char *after_script = read_test_file(mcp_gate_path);
-    const char *after_settings = read_test_file(settings_path);
+    char *after_script = read_test_file_alloc(mcp_gate_path);
+    char *after_settings = read_test_file_alloc(settings_path);
 
     char cli_gate_path[640];
     snprintf(cli_gate_path, sizeof(cli_gate_path), "%s/codebase-memory-cli-discovery-gate",
              hooks_dir);
-    const char *cli_gate = read_test_file(cli_gate_path);
+    char *cli_gate = read_test_file_alloc(cli_gate_path);
 
     bool ok = rc == 0 && after_script && strcmp(after_script, mcp_gate) == 0 && after_settings &&
               strstr(after_settings, mcp_command) &&
               strstr(after_settings, "codebase-memory-cli-discovery-gate") && cli_gate;
 
+    free(after_script);
+    free(after_settings);
+    free(cli_gate);
     cli_activation_restore_env(old_home, old_cache);
     test_rmdir_r(tmpdir);
     ASSERT_TRUE(ok);
