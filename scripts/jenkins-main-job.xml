@@ -1,25 +1,15 @@
 <?xml version='1.1' encoding='UTF-8'?>
 <flow-definition plugin="workflow-job">
-  <description>Fast incremental codebase-memory-cli release-tooling build and test.</description>
+  <description>Full codebase-memory-cli main build and test gate.</description>
   <properties>
     <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty>
       <abortPrevious>false</abortPrevious>
     </org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty>
-    <hudson.model.ParametersDefinitionProperty>
-      <parameterDefinitions>
-        <hudson.model.StringParameterDefinition>
-          <name>CBM_TEST_SUITES</name>
-          <defaultValue>cli daemon daemon_ipc pipeline</defaultValue>
-          <description>Focused incremental test suites for release-tooling. Leave empty only to run the full gate manually.</description>
-          <trim>true</trim>
-        </hudson.model.StringParameterDefinition>
-      </parameterDefinitions>
-    </hudson.model.ParametersDefinitionProperty>
   </properties>
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition">
     <scm class="hudson.plugins.git.GitSCM">
       <userRemoteConfigs><hudson.plugins.git.UserRemoteConfig><url>file:///lump/apps/codebase-memory-cli</url></hudson.plugins.git.UserRemoteConfig></userRemoteConfigs>
-      <branches><hudson.plugins.git.BranchSpec><name>refs/heads/release-tooling</name></hudson.plugins.git.BranchSpec></branches>
+      <branches><hudson.plugins.git.BranchSpec><name>refs/heads/main</name></hudson.plugins.git.BranchSpec></branches>
       <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations><submoduleCfg class="empty-list"/><extensions/>
     </scm>
     <scriptPath>Jenkinsfile</scriptPath><lightweight>true</lightweight>

@@ -12,7 +12,9 @@ pipeline {
             steps { sh 'scripts/build.sh' }
         }
         stage('Test') {
-            steps { sh 'scripts/test.sh' }
+            steps {
+                sh 'if [ -n "${CBM_TEST_SUITES:-}" ]; then scripts/test.sh --suites "$CBM_TEST_SUITES"; else scripts/test.sh; fi'
+            }
         }
         stage('Archive Linux CLI artifact') {
             steps {

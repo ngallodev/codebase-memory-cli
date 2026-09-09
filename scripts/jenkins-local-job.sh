@@ -7,6 +7,11 @@ jenkins_url="${JENKINS_TARGET_URL:-http://192.168.88.146:8080}"
 cli="${JENKINS_CLI:-/tmp/codebase-memory-cli-jenkins-cli.jar}"
 job_dir="${JENKINS_HOME:-/var/lib/jenkins}/jobs/$job_name"
 config="$job_dir/config.xml"
+case "$job_name" in
+  codebase-memory-cli-release-tooling) job_template="$root/scripts/jenkins-local-job.xml" ;;
+  codebase-memory-cli-main) job_template="$root/scripts/jenkins-main-job.xml" ;;
+  *) echo "unsupported JENKINS_JOB_NAME: $job_name" >&2; exit 2 ;;
+esac
 
 if [[ -r /home/nate/.config/osint-suite/jenkins.env ]]; then
   # Reuse the host's existing Jenkins credentials when no explicit ones were set.
@@ -30,9 +35,9 @@ case "${1:-}" in
       curl -fsS "$jenkins_url/jnlpJars/jenkins-cli.jar" -o "$cli"
     fi
     if cli get-job "$job_name" >/dev/null 2>&1; then
-      cli update-job "$job_name" < "$root/scripts/jenkins-local-job.xml"
+      cli update-job "$job_name" < "$job_template"
     else
-      cli create-job "$job_name" < "$root/scripts/jenkins-local-job.xml"
+      cli create-job "$job_name" < "$job_template"
     fi
     echo "configured $job_name"
     ;;
