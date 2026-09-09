@@ -50,6 +50,8 @@ Use the following stable five-repository corpus for `windows-corpus-1`:
 2. `specgen-aw` — realistic specification-authoring application from the user's development workflow: `https://github.com/ngallodev-software/specgen-aw.git`.
 3. `agent-workflow` — realistic companion workflow application: `https://github.com/ngallodev-software/agent-workflow.git`.
 4. `agent-workflow-spec-contracts` — the shared contract dependency used by SpecGen/Agent-Workflow integration: `https://github.com/ngallodev-software/agent-workflow-spec-contracts.git`.
+
+Current integration-version expectations for the first frozen corpus are SpecGen `0.2.1`, Agent-Workflow `0.10.0`, and the released shared contracts package `0.2.1`. Before freeze, initialize SpecGen and Agent-Workflow from their declared `master` integration refs, and initialize `agent-workflow-spec-contracts` from release tag `v0.2.1`; its current `master` metadata still reports `0.2.0` and must not be substituted for the released contract package consumed by the two applications. These initialization refs are pre-freeze selection constraints, not substitutes for the immutable commit SHA captured from each frozen checkout. If upstream moves again before the corpus is frozen, update the expected version/ref and the resulting pinned commit before baseline capture. Before recording the frozen SHAs, run `python scripts/qualification/validate-corpus-checkouts.py --allow-unpinned`; after replacing the commit placeholders, rerun the validator without `--allow-unpinned`.
 5. `herdr` — larger open-source, multi-language workload used to add scale and language diversity: `https://github.com/herdrdev/herdr.git`.
 
 The repository identities are fixed for this corpus generation. The exact commit for each entry is deliberately captured from the actual frozen checkout used to initialize `luigi.home.arpa`; do not substitute current remote HEAD during planning. Once those commits are recorded, changing any one of them creates a new corpus generation and requires a new baseline.
@@ -75,7 +77,7 @@ Do not reuse caches between baseline and candidate.
 
 ## Workload semantics
 
-Use `scripts/benchmark-agent-workflows.sh` (or its Windows wrapper when added) with identical workload parameters for baseline and candidate.
+Use `scripts/benchmark-agent-workflows.ps1` on native Windows (the Linux counterpart is `scripts/benchmark-agent-workflows.sh`) with the repository-specific frozen workload parameters in `BENCHMARK_CORPUS.json`. Identical parameters are required for baseline and candidate.
 
 Measure real agent workflows:
 

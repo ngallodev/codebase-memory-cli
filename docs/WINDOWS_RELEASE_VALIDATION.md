@@ -17,6 +17,22 @@ This procedure validates the exact GitHub release-candidate bytes. It does not b
 - Use isolated `CBM_CACHE_DIR` locations unless a test explicitly validates upgrade/persisted-state behavior.
 - Record every environment override.
 
+
+## Automated qualification entry point
+
+The preferred operator path is:
+
+```powershell
+.\scripts\qualification\run-windows-rc-qualification.ps1 `
+  -ReleaseTag <vX.Y.Z-rc.N> `
+  -InitializeCorpus `
+  -BenchmarkResult BASELINE_ZERO
+```
+
+For the first CLI-first RC, this automates Stages 1-8 below against the exact supplied/downloaded candidate bytes and emits the external-promotion evidence bundle. The individual stages remain authoritative for diagnosis and manual fallback. The script does not compile the executable.
+
+`scripts/setup-windows.ps1 -Binary <candidate.exe> -InstallDir <isolated-dir> -NoPathPrompt` is the qualification/offline installation path; it copies and hash-verifies the exact candidate rather than downloading `latest`.
+
 ## Prerequisites
 
 Record before testing:

@@ -31,6 +31,13 @@ Your job is to collect evidence, not to improve the product during the run.
 
 If any identity input is missing, record `BLOCKED_IDENTITY` and do not fabricate it.
 
+
+## Preferred automation
+
+Unless a stage must be diagnosed manually, run `scripts/qualification/run-windows-rc-qualification.ps1` from the exact clean RC source checkout. It implements the artifact-identity, machine-state, portable, Windows-guard, recovery, installed-product, benchmark-corpus, and evidence-generation stages below. A PASS from the orchestrator is valid only because it finishes by invoking the same `verify-external-qualification.py` used by promotion.
+
+Do not use `setup-windows.ps1` in its default `latest`-download mode during RC qualification. The orchestrator uses the explicit `-Binary` qualification path so the installed form is byte-identical to the draft artifact.
+
 ## Step 1 — Create immutable run directory
 
 Create a new timestamped run directory. Never reuse an older run directory.
@@ -173,12 +180,14 @@ Do not say "Windows validated" unless the exact GitHub candidate bytes completed
 When establishing a new corpus generation, the operator may explicitly authorize corpus initialization. For `windows-corpus-1`, the repository identities are already selected in `docs/qualification/BENCHMARK_CORPUS.json`; do not replace them with different repositories. In that one-time workflow:
 
 1. locate or clone the five declared repository checkouts;
-2. ensure each is at a deliberate stable commit;
-3. verify each checkout's canonical remote matches the manifest and record its exact commit;
+2. check out the manifest `initialization_ref` when one is declared, then ensure the resulting checkout is at a deliberate stable commit;
+3. verify each checkout's canonical remote matches the manifest, verify its declared version evidence matches `expected_release_version`, and record its exact commit;
 4. ensure clean state;
-5. copy the finalized manifest into version control;
-6. establish baseline measurements against the selected baseline artifact;
-7. freeze the corpus.
+5. run `python scripts/qualification/validate-corpus-checkouts.py --allow-unpinned` and require every checkout to pass before recording commits;
+6. replace each `TO_BE_PINNED_FROM_FROZEN_CHECKOUT` value with the reported exact `HEAD`; rerun the validator without `--allow-unpinned`;
+7. copy the finalized manifest into version control;
+8. establish baseline measurements against the selected baseline artifact;
+9. freeze the corpus.
 
 After freeze, agents must never automatically advance it. A repository update requires a new corpus-generation identifier and new baseline capture.
 

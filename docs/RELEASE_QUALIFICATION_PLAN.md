@@ -166,6 +166,8 @@ The first Windows benchmark generation (`windows-corpus-1`) uses five fixed repo
 - `specgen-aw` (`https://github.com/ngallodev-software/specgen-aw.git`);
 - `agent-workflow` (`https://github.com/ngallodev-software/agent-workflow.git`);
 - `agent-workflow-spec-contracts` (`https://github.com/ngallodev-software/agent-workflow-spec-contracts.git`);
+
+For the current integration set, qualification expects SpecGen `0.2.1`, Agent-Workflow `0.10.0`, and the released `specgen-agent-workflow-contracts` package `0.2.1`. The corpus manifest records both the expected version and the pre-freeze initialization ref: `master` for SpecGen and Agent-Workflow, and release tag `v0.2.1` for the shared contracts repository because its current `master` project metadata still reports `0.2.0`. Frozen commit SHAs remain the authoritative benchmark identity after initialization. The machine-verifiable `version_check` object is enforced by `scripts/qualification/validate-corpus-checkouts.py`; initialization uses `--allow-unpinned`, then the validator is rerun without that flag after exact commit SHAs are recorded.
 - `herdr` (`https://github.com/herdrdev/herdr.git`).
 
 Exact commit SHAs are not selected from remote HEAD during planning. They are recorded from the actual clean checkouts frozen for qualification on `luigi.home.arpa`. After that freeze, any commit change creates a new corpus generation and requires new baseline capture.

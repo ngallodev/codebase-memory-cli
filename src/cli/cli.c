@@ -8451,6 +8451,15 @@ int cbm_install_agent_configs(const char *home, const char *binary_path, bool fo
     return g_agent_install_errors == 0 ? CLI_OK : CLI_ERR;
 }
 
+int cbm_install_agent_hooks_for_testing(const char *home, const char *binary_path, bool force,
+                                         bool dry_run) {
+    cbm_agent_install_surface_t saved_surface = g_agent_install_surface;
+    g_agent_install_surface = CBM_AGENT_INSTALL_HOOKS;
+    int result = cbm_install_agent_configs(home, binary_path, force, dry_run);
+    g_agent_install_surface = saved_surface;
+    return result;
+}
+
 static int cbm_install_agent_configs_with_previous(const char *home, const char *binary_path,
                                                    const char *previous_managed_binary_path,
                                                    bool force, bool dry_run) {

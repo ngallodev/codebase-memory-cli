@@ -4,6 +4,9 @@
 
 param(
     [switch]$FromSource,
+    [string]$Binary,
+    [string]$InstallDir,
+    [switch]$NoPathPrompt,
     [switch]$Help
 )
 
@@ -11,7 +14,8 @@ $ErrorActionPreference = "Stop"
 
 $Repo = "DeusData/codebase-memory-mcp"
 $BinaryName = "codebase-memory-cli"
-$InstallDir = Join-Path $env:LOCALAPPDATA "codebase-memory-cli"
+$DefaultInstallDir = Join-Path $env:LOCALAPPDATA "codebase-memory-cli"
+if (-not $InstallDir) { $InstallDir = $DefaultInstallDir }
 
 # --- Helpers ---
 
@@ -36,10 +40,13 @@ function Write-AgentIntegrationGuidance($Command) {
 
 if ($Help) {
     Write-Host ""
-    Write-Host "Usage: .\setup-windows.ps1 [-FromSource] [-Help]"
+    Write-Host "Usage: .\setup-windows.ps1 [-FromSource] [-Binary PATH] [-InstallDir PATH] [-NoPathPrompt] [-Help]"
     Write-Host ""
     Write-Host "  Default:      Download pre-built Windows binary"
     Write-Host "  -FromSource:  Build a native Windows .exe with MSYS2/Clang (no WSL)"
+    Write-Host "  -Binary PATH: Install exact existing candidate bytes (qualification/offline mode)"
+    Write-Host "  -InstallDir:  Override the installation directory"
+    Write-Host "  -NoPathPrompt: Never prompt to change the user PATH"
     Write-Host ""
     exit 0
 }
@@ -47,6 +54,27 @@ if ($Help) {
 Write-Host ""
 Write-Host "codebase-memory-cli installer (Windows)" -ForegroundColor White
 Write-Host ""
+
+if ($FromSource -and $Binary) { throw "-FromSource and -Binary are mutually exclusive" }
+
+if ($Binary) {
+    $sourceBinary = (Resolve-Path -LiteralPath $Binary).Path
+    if (-not (Test-Path -LiteralPath $InstallDir)) { New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null }
+    $binaryPath = Join-Path $InstallDir "$BinaryName.exe"
+    Copy-Item -LiteralPath $sourceBinary -Destination $binaryPath -Force
+    $sourceHash = (Get-FileHash -LiteralPath $sourceBinary -Algorithm SHA256).Hash
+    $installedHash = (Get-FileHash -LiteralPath $binaryPath -Algorithm SHA256).Hash
+    if ($sourceHash -ne $installedHash) { throw "installed candidate hash mismatch" }
+    $verOut = & $binaryPath --version 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "installed candidate failed --version" }
+    Write-Ok "Installed exact candidate bytes to $binaryPath"
+    Write-Ok "SHA-256: $($installedHash.ToLowerInvariant())"
+    Write-Ok "Version: $verOut"
+    Write-AgentIntegrationGuidance ('"' + $binaryPath + '"')
+    Write-Host ""
+    Write-Ok "Done! Try: $binaryPath --help"
+    return
+}
 
 if ($FromSource) {
     # --- Native Windows source build via MSYS2/Clang ---
@@ -158,7 +186,7 @@ if ($FromSource) {
 
     # Check if install dir is on PATH
     $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-    if ($userPath -notlike "*$InstallDir*") {
+    if (-not $NoPathPrompt -and $userPath -notlike "*$InstallDir*") {
         Write-Host ""
         Write-Warn "$InstallDir is not on your PATH."
         $addPath = Read-Host "  Add it to your user PATH? [y/N]"

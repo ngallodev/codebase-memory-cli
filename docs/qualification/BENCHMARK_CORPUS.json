@@ -19,7 +19,13 @@
         "outline",
         "changes",
         "status"
-      ]
+      ],
+      "workload": {
+        "query": "daemon",
+        "symbol": "main",
+        "file_path": "src/main.c",
+        "base_branch": "master"
+      }
     },
     {
       "id": "specgen-aw",
@@ -38,7 +44,20 @@
         "changes",
         "status",
         "cross_repo"
-      ]
+      ],
+      "expected_release_version": "0.2.1",
+      "initialization_ref": "master",
+      "version_evidence": "pyproject.toml [project].version",
+      "version_check": {
+        "kind": "pyproject_project_version",
+        "path": "pyproject.toml"
+      },
+      "workload": {
+        "query": "specification",
+        "symbol": "main",
+        "file_path": "src/specgen/cli.py",
+        "base_branch": "master"
+      }
     },
     {
       "id": "agent-workflow",
@@ -57,7 +76,20 @@
         "changes",
         "status",
         "cross_repo"
-      ]
+      ],
+      "expected_release_version": "0.10.0",
+      "initialization_ref": "master",
+      "version_evidence": "pyproject.toml [project].version",
+      "version_check": {
+        "kind": "pyproject_project_version",
+        "path": "pyproject.toml"
+      },
+      "workload": {
+        "query": "workflow",
+        "symbol": "main",
+        "file_path": "src/agent_workflow/cli.py",
+        "base_branch": "master"
+      }
     },
     {
       "id": "agent-workflow-spec-contracts",
@@ -76,7 +108,20 @@
         "changes",
         "status",
         "cross_repo"
-      ]
+      ],
+      "expected_release_version": "0.2.1",
+      "initialization_ref": "v0.2.1",
+      "version_evidence": "published GitHub release v0.2.1; master pyproject.toml remains 0.2.0",
+      "version_check": {
+        "kind": "exact_git_tag",
+        "tag": "v0.2.1"
+      },
+      "workload": {
+        "query": "contract",
+        "symbol": "main",
+        "file_path": "src/specgen_contracts/cli.py",
+        "base_branch": "master"
+      }
     },
     {
       "id": "herdr",
@@ -94,7 +139,14 @@
         "outline",
         "changes",
         "status"
-      ]
+      ],
+      "initialization_ref": "master",
+      "workload": {
+        "query": "worktree",
+        "symbol": "main",
+        "file_path": "src/main.rs",
+        "base_branch": "master"
+      }
     }
   ]
 }

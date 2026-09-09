@@ -383,3 +383,36 @@ Status: **IMPLEMENTED / REQUIRES EXTERNAL RERUN**
 - **RECONCILED:** `uninstall --help` now explicitly limits removal to CLI-owned agent assets/hooks and states that MCP registrations/assets are preserved.
 - **CLARIFIED:** legacy MCP SessionStart/SubagentStart payload constants are named and documented as byte-for-byte recognition fingerprints only; current CLI hook generation continues to invoke `codebase-memory-cli hook-augment`.
 - **REVIEWED:** release-facing `codebase-memory-mcp` repository URLs remain intentional historical-repository-slug references; compatibility cache/config paths retaining the historical name are likewise unchanged.
+### CP83 — integration version reconciliation (static)
+
+**COMPLETE (static only; no compile/test run):** reconciled qualification metadata with the current SpecGen/Agent-Workflow integration set: SpecGen `0.2.1`, Agent-Workflow `0.10.0`, and released `specgen-agent-workflow-contracts` `0.2.1`. The benchmark corpus now records these as expected release versions while retaining immutable commit SHAs as the authoritative frozen-corpus identity. The contracts repository `master` metadata still declares `0.2.0`; codebase-memory-cli intentionally follows the published `v0.2.1` release consumed by both applications rather than rewriting upstream metadata.
+
+**CP84 — COMPLETE (static only; no compile/test run):** tightened integration-corpus initialization after the CP83 version reconciliation. SpecGen `0.2.1` and Agent-Workflow `0.10.0` now declare `master` as their pre-freeze initialization ref; `agent-workflow-spec-contracts` `0.2.1` declares release tag `v0.2.1` because repository `master` still reports project version `0.2.0`. Qualification instructions now require operators to verify the declared version evidence before recording the immutable frozen commit SHA.
+
+**CP85 — COMPLETE (static only; no compile/test run):** made the CP84 corpus initialization contract machine-enforceable. Added `scripts/qualification/validate-corpus-checkouts.py`, a stdlib-only validator for repository origin, cleanliness, initialization ref, version evidence, and frozen commit identity. The corpus manifest now carries structured `version_check` metadata: `pyproject.toml` project versions for SpecGen `0.2.1` and Agent-Workflow `0.10.0`, and exact tag `v0.2.1` for the shared contracts repository. Qualification instructions require validation once with `--allow-unpinned` during initialization and again without it after immutable commit SHAs are recorded. No compilation or test execution was performed for CP85.
+
+
+**CP86 — STATIC REPAIR / WINDOWS BASELINE PREP:** rebased from the authoritative post-CP85 source and reconciled the current benchmark integration set to SpecGen `0.2.1`, Agent-Workflow `0.10.0`, and shared contracts `0.2.1`. Added native PowerShell benchmark and corpus-orchestration scripts plus `docs/WINDOWS_BENCHMARK_RUNBOOK.md`. Began static reconciliation of the 64 CLI-suite failures reported after CP85: updated CLI skill namespaces, CLI instruction markers, current hook filenames, MCP-preservation expectations, and explicit hook-surface test calls where the tests were still exercising pre-CP78 combined-install semantics. No compile or test run was performed; the next external suite run is the validation source for remaining failures.
+
+**CP87 — STATIC CLI TEST CONTRACT CLOSEOUT:** consumed the external CP86 full-suite evidence (7,391 passed / 22 failed / 3 skipped; all 137 non-CLI suites green) and statically reconciled every reported CLI failure location with the CP78 split lifecycle. Hook-oriented integration tests now use the explicit hook plan/install surface; current CLI hook/script identities use the `codebase-memory-cli` namespace; MCP-era Gemini/Claude hook commands/scripts are asserted foreign and preserved rather than migrated; OpenClaw compaction is treated as an explicit CLI hook surface while MCP compaction remains foreign; and activation ordering tests now use an asset-owned OpenClaw instruction path rather than a hook/config path no longer touched by ordinary `install`. No compilation or test execution was performed for CP87; the next external `scripts/test.sh` run is authoritative validation.
+
+### CP86 — Windows benchmark automation and CLI contract repair
+
+- **COMPLETE (static implementation):** added native Windows benchmark execution (`scripts/benchmark-agent-workflows.ps1`) and five-repository corpus orchestration (`scripts/qualification/run-windows-benchmark-corpus.ps1`) while retaining exact candidate-byte provenance.
+- **COMPLETE:** reconciled the benchmark integration set to SpecGen `0.2.1`, Agent-Workflow `0.10.0`, shared contracts `v0.2.1`, and the selected `herdr` scale corpus.
+- **EVIDENCE:** external full-suite execution reduced CLI failures from 64 to 22; every non-CLI suite remained green.
+
+### CP87 — CLI test-contract closeout
+
+- **COMPLETE (static repair):** reconciled the 22 residual CLI assertions with the CP78 explicit-hook/MCP-preservation contract without restoring MCP ownership or implicit hook installation.
+- **EVIDENCE:** external targeted CLI execution completed 236 passes with only two Claude hook ownership/mutation assertions remaining.
+
+### CP88 — Windows RC qualification closeout
+
+- **COMPLETE (static implementation; no local compile/test run):** adds `scripts/qualification/run-windows-rc-qualification.ps1`, a top-level native-Windows RC qualification orchestrator covering exact artifact acquisition/hash verification, machine-state capture, portable smoke/canonical workflow, retained Windows guards against supplied candidate bytes, explicit recovery cycles, isolated installed-product/CLI-hook/MCP-coexistence lifecycle checks, five-repository benchmark execution, promotion-compatible evidence generation, evidence self-verification, and optional draft-release upload.
+- **COMPLETE:** `scripts/setup-windows.ps1` accepts `-Binary`, `-InstallDir`, and `-NoPathPrompt` so qualification can install byte-identical RC candidates without rebuilding or substituting the public `latest` release.
+- **COMPLETE:** Windows benchmark workloads are repository-specific and frozen in `BENCHMARK_CORPUS.json`; the validator rejects missing workload files/fields before measurement begins.
+- **FIXED (benchmark correctness):** the PowerShell benchmark harness now fails a repository run on any required warm-up/measured operation failure and emits explicit `RESULT`/`FAILURES.txt` evidence instead of silently excluding failures from performance summaries.
+- **FIXED (evidence isolation):** corpus initialization writes the frozen manifest into the qualification evidence tree rather than dirtying the exact RC source checkout.
+- **RECONCILED:** the last two known Claude-hook tests now enforce exact current CLI command ownership while preserving MCP-era hook identities as foreign, matching the CP78 side-by-side contract.
+- **PENDING EXTERNAL EVIDENCE:** run the external CLI/full suite after CP88 and then execute the Windows RC orchestrator on `luigi.home.arpa` against the immutable draft artifact. No compile or test execution was performed locally for CP88.
