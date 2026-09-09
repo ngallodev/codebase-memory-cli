@@ -10,6 +10,25 @@
 
 ## Open
 
+- [ ] Selectively evaluate remaining upstream fixes from
+  `../codebase-memory-mcp` before merging into the CLI fork. Do not
+  cherry-pick MCP-only changes or overwrite CP89/release-tooling work; apply
+  compatible patches into a temporary worktree, run focused suites, then
+  review the resulting diff before integration.
+  - `77a0c7d9` pipeline empty-graph function-sort guard.
+  - `04ba2fa3` Cypher variable-limit validation; `98899ba5` is the related
+    unnamed-head-node follow-up.
+  - `9846c3f1` and `c1b9c451` Windows daemon/session-root separator
+    handling; port daemon-only hunks and omit MCP hunks.
+  - `92725a5e` Windows stdio parent-death cleanup; verify relevance to the
+    CLI-only process model before porting.
+  - `e5c17de6` and `b04f5450` coverage correctness/performance; manually
+    reconcile against the fork's changed coverage implementation.
+  - `1770d68a` Razor Pages/MVC extraction and `24f54c0e` inline
+    Svelte/HTML/Astro extraction; assess grammar and fixture scope separately.
+  - MCP-only output/search/pagination/compact-output commits are intentionally
+    excluded from this backlog item.
+
 - [ ] Retire or migrate legacy MCP-dependent test sources. The production
   Makefile now leaves `MCP_SRCS` empty, but the monolithic test runner still
   compiles MCP tests and repro harnesses; focused daemon tests therefore stop

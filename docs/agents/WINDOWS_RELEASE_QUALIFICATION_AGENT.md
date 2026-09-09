@@ -230,3 +230,8 @@ Required manifest shape:
 ```
 
 If any required gate is not releasable, do not upload a PASS manifest. Keep the evidence bundle locally and report the blocker.
+
+
+### Qualified source identity
+
+External qualification evidence must bind the exact release tag to its immutable source commit (`release.source_commit`) in addition to the Windows archive and executable SHA-256 values. The promotion workflow checks out the exact tag and rejects evidence whose source commit differs.

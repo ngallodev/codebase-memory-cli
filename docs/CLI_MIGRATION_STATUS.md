@@ -416,3 +416,13 @@ Status: **IMPLEMENTED / REQUIRES EXTERNAL RERUN**
 - **FIXED (evidence isolation):** corpus initialization writes the frozen manifest into the qualification evidence tree rather than dirtying the exact RC source checkout.
 - **RECONCILED:** the last two known Claude-hook tests now enforce exact current CLI command ownership while preserving MCP-era hook identities as foreign, matching the CP78 side-by-side contract.
 - **PENDING EXTERNAL EVIDENCE:** run the external CLI/full suite after CP88 and then execute the Windows RC orchestrator on `luigi.home.arpa` against the immutable draft artifact. No compile or test execution was performed locally for CP88.
+
+### CP89 — Windows RC qualification provenance closeout
+
+Static/source audit only; no local compilation or test execution was performed.
+
+- external Windows qualification evidence now binds the exact release tag to its immutable source commit in addition to the Windows archive/executable SHA-256 values;
+- `run-windows-rc-qualification.ps1` requires PowerShell 7+ for deterministic BOM-free UTF-8 JSON evidence and refuses cross-checkout `SourceRoot` execution;
+- `run-windows-benchmark-corpus.ps1` resolves moving initialization branches from `origin/<branch>` and freezes the resulting commit before benchmarking;
+- the promotion workflow checks out the exact qualified tag both when verifying evidence and when publishing npm/PyPI wrappers, preventing registry publication from a later default-branch revision;
+- the Windows benchmark runbook now accurately describes the external frozen-manifest evidence flow and the deliberate post-qualification commit that establishes the durable corpus generation for later releases.

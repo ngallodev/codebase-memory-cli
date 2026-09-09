@@ -18,6 +18,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.version }}
       - name: Validate version input
         env:
           VERSION: ${{ inputs.version }}
@@ -39,12 +41,14 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
         run: |
+          SOURCE_COMMIT="$(git rev-parse HEAD)"
           python3 scripts/ci/verify-external-qualification.py \
             --manifest release/qualification-manifest.json \
             --summary release/qualification-summary.md \
             --archive release/codebase-memory-cli-windows-amd64.zip \
             --checksums release/checksums.txt \
-            --expected-tag "$VERSION"
+            --expected-tag "$VERSION" \
+            --expected-source-commit "$SOURCE_COMMIT"
 
   publish-registries:
     needs: [verify-external-qualification]
@@ -54,6 +58,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.version }}
       - name: Sync packaging versions
         env:
           RELEASE_VERSION: ${{ inputs.version }}

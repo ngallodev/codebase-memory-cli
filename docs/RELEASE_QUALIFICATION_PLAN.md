@@ -199,3 +199,8 @@ If qualification finds a defect and the candidate changes:
 RC dispatch is now a distinct evidence-bearing step. Use `scripts/ci/prepare-rc-dispatch.py` and `docs/agents/GITHUB_RC_DISPATCH_AGENT.md` rather than hand-assembling workflow inputs.
 
 The dispatch record binds the clean source commit, explicit RC tag, release workflow hash, corpus-generation manifest hash, and external-qualification hold. The first CLI-first candidate should normally use the next deliberate prerelease in the current release line (recommended `v0.11.0-rc.1` after public `v0.10.8`), but the operator must select the tag explicitly and verify it is unused before dispatch. Because `v0.10.8` predates the comparable CLI-first workflow surface, the first qualified CLI release must explicitly use `BASELINE_ZERO`; the next release uses that qualified CLI release as its immutable comparative baseline.
+
+
+### Qualified source identity
+
+External qualification evidence must bind the exact release tag to its immutable source commit (`release.source_commit`) in addition to the Windows archive and executable SHA-256 values. The promotion workflow checks out the exact tag and rejects evidence whose source commit differs.

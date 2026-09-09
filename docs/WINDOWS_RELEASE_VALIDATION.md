@@ -189,3 +189,8 @@ Native Windows qualification is complete only when:
 - recovery/lifecycle checks complete;
 - evidence bundle is complete;
 - all non-pass results have explicit disposition.
+
+
+### Qualified source identity
+
+External qualification evidence must bind the exact release tag to its immutable source commit (`release.source_commit`) in addition to the Windows archive and executable SHA-256 values. The promotion workflow checks out the exact tag and rejects evidence whose source commit differs.

@@ -24,6 +24,7 @@ def main() -> None:
     ap.add_argument('--archive', required=True, type=pathlib.Path)
     ap.add_argument('--checksums', required=True, type=pathlib.Path)
     ap.add_argument('--expected-tag', required=True)
+    ap.add_argument('--expected-source-commit', required=True)
     ap.add_argument('--expected-host', default='luigi.home.arpa')
     ap.add_argument('--expected-corpus', default='windows-corpus-1')
     args = ap.parse_args()
@@ -35,6 +36,8 @@ def main() -> None:
     if data.get('corpus_generation') != args.expected_corpus: fail('corpus generation mismatch')
     rel = data.get('release') or {}
     if rel.get('tag') != args.expected_tag: fail('release tag mismatch')
+    if rel.get('source_commit') != args.expected_source_commit:
+        fail('release source commit mismatch')
 
     for key in ('portable_result','installed_result','windows_guards_result','recovery_result'):
         if data.get(key) != 'PASS': fail(f'{key} is not PASS')
@@ -63,7 +66,7 @@ def main() -> None:
     if rel.get('windows_executable_sha256','').lower() != h:
         fail('Windows executable SHA-256 mismatch')
 
-    print(f'External qualification verified: {args.expected_tag} on {args.expected_host} ({args.expected_corpus})')
+    print(f'External qualification verified: {args.expected_tag} @ {args.expected_source_commit} on {args.expected_host} ({args.expected_corpus})')
 
 if __name__ == '__main__':
     main()

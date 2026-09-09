@@ -18,7 +18,7 @@ The two moving `master` references above are **initialization references only**.
 
 ## Prerequisites on Luigi
 
-Use native 64-bit PowerShell 7 if available. Required commands: `git`, `python`, and the candidate `codebase-memory-cli.exe`. Use a local SSD directory, not a network share. Keep AC power connected, disable sleep for the run, close large background workloads, and keep the same Windows power mode for all trials.
+Use native 64-bit **PowerShell 7 or newer**. The qualification orchestrator intentionally rejects Windows PowerShell 5.1 so JSON/evidence UTF-8 encoding is deterministic. Required commands: `git`, `python`, and the candidate `codebase-memory-cli.exe`. Use a local SSD directory, not a network share. Keep AC power connected, disable sleep for the run, close large background workloads, and keep the same Windows power mode for all trials.
 
 Suggested layout:
 
@@ -89,15 +89,15 @@ Run the corpus orchestrator in initialization mode. `-CodebaseMemoryRef` must be
 2. fetches tags/refs;
 3. checks out each declared initialization ref (and the supplied exact RC ref for self-hosting);
 4. hard-resets/cleans each benchmark checkout;
-5. writes each local path and exact `HEAD` SHA into `docs/qualification/BENCHMARK_CORPUS.json`;
-6. runs `scripts/qualification/validate-corpus-checkouts.py` against the frozen manifest;
+5. writes each local path and exact `HEAD` SHA into a separate frozen manifest (`BENCHMARK_CORPUS.frozen.json`);
+6. runs `scripts/qualification/validate-corpus-checkouts.py` against that frozen manifest;
 7. executes the benchmark corpus using the exact candidate executable.
 
-After this first successful freeze, **commit the populated corpus manifest**. Any later repository SHA change requires a new corpus generation rather than silently editing `windows-corpus-1`.
+The top-level RC orchestrator stores the frozen manifest under its `evidence` directory so the exact RC source checkout remains clean throughout qualification. After the first successful BASELINE_ZERO run, review that evidence manifest and deliberately copy its frozen repository entries into `docs/qualification/BENCHMARK_CORPUS.json` on the development branch for subsequent releases, then commit that change. Do not modify the already-qualified RC tag. Any later repository SHA change requires a new corpus generation rather than silently editing `windows-corpus-1`.
 
 ## Subsequent runs
 
-Once the manifest is pinned, omit `-Initialize` and do not supply a moving branch as a substitute for a pinned commit:
+Once a later source revision contains the committed frozen manifest, omit `-Initialize` and do not supply a moving branch as a substitute for a pinned commit:
 
 ```powershell
 .\scripts\qualification\run-windows-benchmark-corpus.ps1 `

@@ -31,8 +31,14 @@ foreach($r in $doc.repositories){
     elseif($r.initialization_ref){$ref=[string]$r.initialization_ref}
     else { throw "No initialization ref for $($r.id)" }
   }
-  git -C $path checkout --detach $ref; if($LASTEXITCODE){throw "checkout failed: $($r.id) ref=$ref"}
-  git -C $path reset --hard HEAD | Out-Null
+  # Freeze moving branch refs from origin, not from a potentially stale local branch.
+  $checkoutRef=$ref
+  & git -C $path show-ref --verify --quiet "refs/remotes/origin/$ref"
+  if($LASTEXITCODE -eq 0){$checkoutRef="refs/remotes/origin/$ref"}
+  $resolvedCommit=(& git -C $path rev-parse "$checkoutRef^{commit}" 2>$null).Trim()
+  if($LASTEXITCODE -ne 0 -or -not $resolvedCommit){throw "cannot resolve checkout ref: $($r.id) ref=$checkoutRef"}
+  git -C $path checkout --detach $resolvedCommit; if($LASTEXITCODE){throw "checkout failed: $($r.id) ref=$checkoutRef commit=$resolvedCommit"}
+  git -C $path reset --hard $resolvedCommit | Out-Null
   git -C $path clean -ffd | Out-Null
   $dirty=@(& git -C $path status --porcelain)
   if($dirty.Count -ne 0){throw "checkout is dirty after reset/clean: $($r.id)"}

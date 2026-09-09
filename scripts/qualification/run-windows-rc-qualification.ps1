@@ -16,8 +16,12 @@ param(
   [string]$ExpectedHost = 'luigi.home.arpa'
 )
 $ErrorActionPreference='Stop'
+if($PSVersionTable.PSVersion.Major -lt 7){throw 'Windows RC qualification requires PowerShell 7 or newer for deterministic UTF-8 evidence output'}
 $repoRoot=(Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 if(-not $SourceRoot){$SourceRoot=$repoRoot}else{$SourceRoot=(Resolve-Path -LiteralPath $SourceRoot).Path}
+if([IO.Path]::GetFullPath($SourceRoot).TrimEnd('\') -ne [IO.Path]::GetFullPath($repoRoot).TrimEnd('\')){
+  throw 'SourceRoot must be the same exact checkout that contains this qualification script; cross-checkout qualification is not allowed'
+}
 $stamp=[DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')
 $runRoot=Join-Path $QualificationRoot (($ReleaseTag -replace '[^A-Za-z0-9._-]','_') + '-' + $stamp)
 $artifactDir=Join-Path $runRoot 'artifact'
@@ -224,11 +228,11 @@ $manifestPath=Join-Path $evidenceDir 'qualification-manifest.json'
   recovery_result=$recoveryResult
   benchmark_result=$BenchmarkResult
   summary_sha256=$summaryHash
-  release=[ordered]@{tag=$ReleaseTag;windows_archive_sha256=$archiveHash;windows_executable_sha256=$exeHash}
+  release=[ordered]@{tag=$ReleaseTag;source_commit=$ExpectedSourceCommit;windows_archive_sha256=$archiveHash;windows_executable_sha256=$exeHash}
 } | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8 -LiteralPath $manifestPath
 
 # Verify the evidence with the same verifier used by promotion before optional upload.
-& python (Join-Path $repoRoot 'scripts\ci\verify-external-qualification.py') --manifest $manifestPath --summary $summary --archive $CandidateArchive --checksums $Checksums --expected-tag $ReleaseTag --expected-host $ExpectedHost --expected-corpus 'windows-corpus-1'
+& python (Join-Path $repoRoot 'scripts\ci\verify-external-qualification.py') --manifest $manifestPath --summary $summary --archive $CandidateArchive --checksums $Checksums --expected-tag $ReleaseTag --expected-source-commit $ExpectedSourceCommit --expected-host $ExpectedHost --expected-corpus 'windows-corpus-1'
 Require-Exit $LASTEXITCODE 'external qualification evidence verification'
 if($UploadEvidence){
   $gh=(Get-Command gh -ErrorAction SilentlyContinue); if(-not $gh){throw 'gh is required for -UploadEvidence'}
