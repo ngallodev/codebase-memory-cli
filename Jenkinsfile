@@ -7,20 +7,7 @@ pipeline {
         timeout(time: 45, unit: 'MINUTES')
     }
 
-    parameters {
-        choice(name: 'TRIGGER_SOURCE', choices: ['manual', 'post-commit'], description: 'Build origin')
-    }
-
     stages {
-        stage('Trigger contract') {
-            steps {
-                script {
-                    if (!(params.TRIGGER_SOURCE in ['manual', 'post-commit'])) {
-                        error("unsupported trigger source: ${params.TRIGGER_SOURCE}")
-                    }
-                }
-            }
-        }
         stage('Build') {
             steps { sh 'scripts/build.sh' }
         }
