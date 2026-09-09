@@ -34,7 +34,7 @@ install_post_commit_hook() {
 set -u
 root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 [[ "$(git -C "$root" branch --show-current 2>/dev/null)" == "release-tooling" ]] || exit 0
-nohup "$root/scripts/jenkins-local-job.sh" trigger-hook >/dev/null 2>&1 &
+nohup "$root/scripts/jenkins-local-job.sh" trigger-hook >> "$root/.git/jenkins-post-commit.log" 2>&1 &
 EOF
   chmod 700 "$temporary"
   mv "$temporary" "$hook"
