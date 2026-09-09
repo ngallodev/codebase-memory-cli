@@ -23,6 +23,23 @@ cli() {
   fi
 }
 
+install_post_commit_hook() {
+  local hooks hook temporary
+  hooks="$root/.git/hooks"
+  hook="$hooks/post-commit"
+  mkdir -p "$hooks"
+  temporary="$(mktemp "$hooks/.post-commit.XXXXXX")"
+  cat > "$temporary" <<'EOF'
+#!/usr/bin/env bash
+set -u
+root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+[[ "$(git -C "$root" branch --show-current 2>/dev/null)" == "release-tooling" ]] || exit 0
+nohup "$root/scripts/jenkins-local-job.sh" trigger-hook >/dev/null 2>&1 &
+EOF
+  chmod 700 "$temporary"
+  mv "$temporary" "$hook"
+}
+
 case "${1:-}" in
   configure)
     mkdir -p "$(dirname "$cli")"
@@ -34,14 +51,18 @@ case "${1:-}" in
     else
       cli create-job "$job_name" < "$root/scripts/jenkins-local-job.xml"
     fi
+    install_post_commit_hook
     echo "configured $job_name"
     ;;
   inspect)
     test -r "$config" && rg -n '<triggers|pollSCM|release-tooling|file://' "$config"
     ;;
   trigger)
-    cli build "$job_name" -s
+    cli build "$job_name" -p TRIGGER_SOURCE=manual -s
     echo "triggered $jenkins_url/job/$job_name/"
     ;;
-  *) echo "usage: $0 configure|inspect|trigger" >&2; exit 2 ;;
+  trigger-hook)
+    cli build "$job_name" -p TRIGGER_SOURCE=post-commit
+    ;;
+  *) echo "usage: $0 configure|inspect|trigger|trigger-hook" >&2; exit 2 ;;
 esac

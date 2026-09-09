@@ -2,6 +2,16 @@
 <flow-definition plugin="workflow-job">
   <description>Script-triggered codebase-memory-cli release-tooling build and test.</description>
   <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>TRIGGER_SOURCE</name>
+          <defaultValue>manual</defaultValue>
+          <description>Build origin; post-commit hooks use post-commit.</description>
+          <trim>true</trim>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
     <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty>
       <abortPrevious>false</abortPrevious>
     </org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty>
