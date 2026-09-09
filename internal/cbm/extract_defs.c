@@ -7902,6 +7902,73 @@ void cbm_extract_definitions_without_module(CBMExtractCtx *ctx) {
     extract_variables(ctx, ctx->root, spec);
 }
 
+/* Razor's @page directive is outside the recovered C# AST. */
+static bool cbm_path_is_razor(const char *rel_path) {
+    if (!rel_path) {
+        return false;
+    }
+    static const char *const suffixes[] = {".razor", ".cshtml"};
+    size_t len = strlen(rel_path);
+    for (size_t i = 0; i < sizeof(suffixes) / sizeof(suffixes[0]); i++) {
+        size_t slen = strlen(suffixes[i]);
+        if (len > slen && strcmp(rel_path + len - slen, suffixes[i]) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static const char *razor_page_route_on_line(CBMArena *a, const char *line,
+                                             const char *line_end) {
+    static const char directive[] = "@page";
+    const size_t dlen = sizeof(directive) - 1U;
+    const char *p = line;
+    while (p < line_end && (*p == ' ' || *p == '\t')) {
+        p++;
+    }
+    if (p == line_end || (size_t)(line_end - p) <= dlen ||
+        strncmp(p, directive, dlen) != 0) {
+        return NULL;
+    }
+    p += dlen;
+    if (p == line_end || (*p != ' ' && *p != '\t')) {
+        return NULL;
+    }
+    while (p < line_end && (*p == ' ' || *p == '\t')) {
+        p++;
+    }
+    if (p == line_end || *p != '"') {
+        return NULL;
+    }
+    const char *route = ++p;
+    while (p < line_end && *p != '"') {
+        p++;
+    }
+    if (p == line_end || p == route || *route != '/') {
+        return NULL;
+    }
+    return cbm_arena_strndup(a, route, (size_t)(p - route));
+}
+
+static const char *cbm_razor_page_route(CBMArena *a, const char *source, int source_len) {
+    if (!source || source_len <= 0) {
+        return NULL;
+    }
+    const char *end = source + source_len;
+    for (const char *line = source; line < end;) {
+        const char *nl = memchr(line, '\n', (size_t)(end - line));
+        const char *route = razor_page_route_on_line(a, line, nl ? nl : end);
+        if (route) {
+            return route;
+        }
+        if (!nl) {
+            break;
+        }
+        line = nl + 1;
+    }
+    return NULL;
+}
+
 void cbm_extract_definitions(CBMExtractCtx *ctx) {
     const CBMLangSpec *spec = cbm_lang_spec(ctx->language);
     if (!spec) {
@@ -7923,6 +7990,13 @@ void cbm_extract_definitions(CBMExtractCtx *ctx) {
     mod.is_test = ctx->result->is_test_file;
     // #519: index what a config file declares itself to be, not only its path.
     mod.docstring = extract_config_module_description(ctx);
+    if (ctx->language == CBM_LANG_CSHARP && cbm_path_is_razor(ctx->rel_path)) {
+        const char *route = cbm_razor_page_route(a, ctx->source, ctx->source_len);
+        if (route) {
+            mod.route_path = route;
+            mod.route_method = "GET";
+        }
+    }
     cbm_defs_push(&ctx->result->defs, a, mod);
 
     cbm_extract_definitions_without_module(ctx);

@@ -2125,13 +2125,32 @@ static int cx_order_copy_fixture(const char *src_dir, const char *dst_dir) {
 static int cx_order_cmp_node_qn(const void *pa, const void *pb) {
     const cbm_node_t *a = *(const cbm_node_t *const *)pa;
     const cbm_node_t *b = *(const cbm_node_t *const *)pb;
-    return strcmp(a->qualified_name ? a->qualified_name : "",
-                  b->qualified_name ? b->qualified_name : "");
+    int r = strcmp(a->qualified_name ? a->qualified_name : "",
+                   b->qualified_name ? b->qualified_name : "");
+    if (r != 0) {
+        return r;
+    }
+    r = strcmp(a->file_path ? a->file_path : "", b->file_path ? b->file_path : "");
+    if (r != 0) {
+        return r;
+    }
+    if (a->start_line != b->start_line) {
+        return a->start_line < b->start_line ? -1 : 1;
+    }
+    if (a->end_line != b->end_line) {
+        return a->end_line < b->end_line ? -1 : 1;
+    }
+    r = strcmp(a->name ? a->name : "", b->name ? b->name : "");
+    if (r != 0) {
+        return r;
+    }
+    return strcmp(a->label ? a->label : "", b->label ? b->label : "");
 }
 
-/* One line per Function in qualified-name order: "<qn> <tld> <recursive>".
- * Sorting by name keeps DB ids and row order out of the comparison. Returns a
- * heap string, or NULL when the store cannot be read. */
+/* One line per Function in canonical content order: "<qn> <path> <range>
+ * <name> <label> <tld> <recursive>". The identity fields keep duplicate QNs
+ * from masking ordering differences. Returns a heap string, or NULL when the
+ * store cannot be read. */
 static char *cx_order_signature(const char *db_path, const char *project, int *func_count) {
     cbm_store_t *s = cbm_store_open_path(db_path);
     if (!s) {
@@ -2155,8 +2174,12 @@ static char *cx_order_signature(const char *db_path, const char *project, int *f
             const char *props = sorted[i]->properties_json ? sorted[i]->properties_json : "{}";
             const char *tld = strstr(props, "\"transitive_loop_depth\":");
             const char *rec = strstr(props, "\"recursive\":");
-            int w = snprintf(sig + used, CX_ORDER_LINE_MAX, "%s %.*s %.*s\n",
+            int w = snprintf(sig + used, CX_ORDER_LINE_MAX, "%s %s %d %d %s %s %.*s %.*s\n",
                              sorted[i]->qualified_name ? sorted[i]->qualified_name : "",
+                             sorted[i]->file_path ? sorted[i]->file_path : "",
+                             sorted[i]->start_line, sorted[i]->end_line,
+                             sorted[i]->name ? sorted[i]->name : "",
+                             sorted[i]->label ? sorted[i]->label : "",
                              tld ? (int)strcspn(tld, ",}") : 0, tld ? tld : "",
                              rec ? (int)strcspn(rec, ",}") : 0, rec ? rec : "");
             if (w < 0) {

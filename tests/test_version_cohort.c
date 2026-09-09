@@ -9,6 +9,7 @@
 #include "foundation/compat_fs.h"
 #include "foundation/compat_thread.h"
 #include "foundation/platform.h"
+#include "foundation/sha256.h"
 #include "foundation/subprocess.h"
 
 #include <stdatomic.h>
@@ -74,6 +75,20 @@ static bool version_cohort_fixture_start(version_cohort_fixture_t *fixture, cons
     }
     fixture->endpoint = cbm_daemon_ipc_endpoint_new("0123456789abcdef", fixture->parent);
     return fixture->endpoint != NULL;
+}
+
+static bool version_cohort_cache_root(const version_cohort_fixture_t *fixture, const char *name,
+                                      char root[VERSION_COHORT_TEST_PATH_CAP],
+                                      char fingerprint[CBM_SHA256_HEX_LEN + 1]) {
+    char canonical[VERSION_COHORT_TEST_PATH_CAP];
+    int written = snprintf(root, VERSION_COHORT_TEST_PATH_CAP, "%s/%s", fixture->parent, name);
+    if (written <= 0 || written >= VERSION_COHORT_TEST_PATH_CAP || !cbm_mkdir_p(root, 0700) ||
+        !cbm_canonical_path(root, canonical, sizeof(canonical))) {
+        return false;
+    }
+    cbm_normalize_path_sep(canonical);
+    cbm_sha256_hex(canonical, strlen(canonical), fingerprint);
+    return true;
 }
 
 static void version_cohort_release(cbm_version_cohort_lease_t **lease) {
@@ -262,6 +277,91 @@ TEST(version_cohort_rejects_exact_build_with_different_cache_root) {
     version_cohort_manager_close(&second);
     version_cohort_manager_close(&first);
     version_cohort_fixture_finish(&fixture);
+    PASS();
+}
+
+/* Exercise the handoff with the same inputs production uses: fingerprints of
+ * canonical cache roots, rather than test-only sentinel hashes. The holder is
+ * released only after the waiter has observed the distinct root conflict, so
+ * a successful turnover cannot pass by arriving late. */
+TEST(version_cohort_handoff_across_distinct_cache_roots) {
+    version_cohort_fixture_t fixture;
+    ASSERT_TRUE(version_cohort_fixture_start(&fixture, "cache-root-handoff"));
+    char active_root[VERSION_COHORT_TEST_PATH_CAP];
+    char requested_root[VERSION_COHORT_TEST_PATH_CAP];
+    char active_cache[CBM_SHA256_HEX_LEN + 1];
+    char requested_cache[CBM_SHA256_HEX_LEN + 1];
+    ASSERT_TRUE(version_cohort_cache_root(&fixture, "cache-a", active_root, active_cache));
+    ASSERT_TRUE(version_cohort_cache_root(&fixture, "cache-b", requested_root, requested_cache));
+    ASSERT_STR_NEQ(active_root, requested_root);
+    ASSERT_STR_NEQ(active_cache, requested_cache);
+
+    cbm_version_cohort_manager_t *holder = cbm_version_cohort_manager_new(fixture.endpoint);
+    cbm_version_cohort_manager_t *waiter = cbm_version_cohort_manager_new(fixture.endpoint);
+    ASSERT_NOT_NULL(holder);
+    ASSERT_NOT_NULL(waiter);
+    cbm_daemon_build_identity_t active = version_cohort_identity("2.4.0", VERSION_COHORT_BUILD_A);
+    cbm_daemon_build_identity_t requested = active;
+    active.cache_fingerprint = active_cache;
+    requested.cache_fingerprint = requested_cache;
+    cbm_version_cohort_lease_t *holder_lease = NULL;
+    cbm_version_cohort_lease_t *waiter_lease = NULL;
+    cbm_daemon_conflict_t conflict;
+
+    ASSERT_EQ(cbm_version_cohort_acquire(holder, &active, UINT64_MAX, &holder_lease, &conflict),
+              CBM_VERSION_COHORT_OK);
+    ASSERT_EQ(cbm_version_cohort_acquire(waiter, &requested, cbm_now_ms(), &waiter_lease,
+                                         &conflict),
+              CBM_VERSION_COHORT_CONFLICT);
+    ASSERT_NULL(waiter_lease);
+    ASSERT_EQ(conflict.status, CBM_DAEMON_HELLO_CACHE_CONFLICT);
+    ASSERT_STR_EQ(conflict.active_cache_fingerprint, active_cache);
+    ASSERT_STR_EQ(conflict.requested_cache_fingerprint, requested_cache);
+
+    version_cohort_release(&holder_lease);
+    ASSERT_EQ(cbm_version_cohort_acquire(waiter, &requested, UINT64_MAX, &waiter_lease, &conflict),
+              CBM_VERSION_COHORT_OK);
+    ASSERT_NOT_NULL(waiter_lease);
+
+    version_cohort_release(&waiter_lease);
+    version_cohort_manager_close(&waiter);
+    version_cohort_manager_close(&holder);
+    version_cohort_fixture_finish(&fixture);
+    PASS();
+}
+
+/* Windows normalizes drive-qualified roots and separator spellings before
+ * hashing. This is intentionally compiled and run only on Windows; POSIX
+ * never pretends that a backslash is a path separator. */
+TEST(version_cohort_windows_cache_root_separator_forms) {
+#ifdef _WIN32
+    version_cohort_fixture_t fixture;
+    ASSERT_TRUE(version_cohort_fixture_start(&fixture, "cache-root-separators"));
+    char root[VERSION_COHORT_TEST_PATH_CAP];
+    char slash_form[VERSION_COHORT_TEST_PATH_CAP];
+    char canonical_root[VERSION_COHORT_TEST_PATH_CAP];
+    char canonical_slash[VERSION_COHORT_TEST_PATH_CAP];
+    char root_cache[CBM_SHA256_HEX_LEN + 1];
+    char slash_cache[CBM_SHA256_HEX_LEN + 1];
+    ASSERT_TRUE(version_cohort_cache_root(&fixture, "cache", root, root_cache));
+    ASSERT_TRUE(snprintf(slash_form, sizeof(slash_form), "%s", root) > 0);
+    for (char *cursor = slash_form; *cursor; cursor++) {
+        if (*cursor == '\\') {
+            *cursor = '/';
+        }
+    }
+    ASSERT_TRUE(cbm_canonical_path(root, canonical_root, sizeof(canonical_root)));
+    ASSERT_TRUE(cbm_canonical_path(slash_form, canonical_slash, sizeof(canonical_slash)));
+    cbm_normalize_path_sep(canonical_root);
+    cbm_normalize_path_sep(canonical_slash);
+    cbm_sha256_hex(canonical_root, strlen(canonical_root), root_cache);
+    cbm_sha256_hex(canonical_slash, strlen(canonical_slash), slash_cache);
+    ASSERT_STR_EQ(canonical_root, canonical_slash);
+    ASSERT_STR_EQ(root_cache, slash_cache);
+    version_cohort_fixture_finish(&fixture);
+#else
+    /* No Windows path claim on POSIX. */
+#endif
     PASS();
 }
 
@@ -1027,6 +1127,8 @@ SUITE(version_cohort) {
     RUN_TEST(version_cohort_rejects_same_hash_with_different_abi);
     RUN_TEST(version_cohort_rejects_missing_cache_fingerprint);
     RUN_TEST(version_cohort_rejects_exact_build_with_different_cache_root);
+    RUN_TEST(version_cohort_handoff_across_distinct_cache_roots);
+    RUN_TEST(version_cohort_windows_cache_root_separator_forms);
     RUN_TEST(version_cohort_conflict_is_retried_until_the_deadline);
     RUN_TEST(version_cohort_conflict_waiter_is_admitted_when_the_holder_leaves);
     RUN_TEST(version_cohort_exclusive_activation_blocks_and_is_blocked_by_participants);

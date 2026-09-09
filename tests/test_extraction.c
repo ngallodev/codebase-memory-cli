@@ -3301,9 +3301,58 @@ TEST(vue_embedded_structure_host_controls_issue1410) {
         ASSERT_NOT_NULL(r);
         ASSERT_FALSE(r->has_error);
         ASSERT_EQ(count_defs_with_label(r, "Module"), 1);
+        ASSERT_EQ(count_defs_with_label(r, "Function"), 1);
+        ASSERT_EQ(r->calls.count, 1);
+        ASSERT_EQ(r->imports.count, 1);
+        cbm_free_result(r);
+    }
+    PASS();
+}
+
+TEST(embedded_structure_sibling_hosts_issue1807) {
+    static const struct {
+        CBMLanguage language;
+        const char *path;
+        const char *source;
+    } hosts[] = {
+        {CBM_LANG_SVELTE, "Sibling.svelte",
+         "<script>import value from './svelte.js'; function visible() { target(); }</script>\n"},
+        {CBM_LANG_HTML, "sibling.html",
+         "<script type=\"module\">import value from './html.js'; function visible() { target(); }</script>\n"},
+        {CBM_LANG_ASTRO, "Sibling.astro",
+         "---\nimport value from './astro.js'; function visible() { target(); }\n---\n"},
+    };
+    for (int i = 0; i < 3; i++) {
+        CBMFileResult *r = extract(hosts[i].source, hosts[i].language, "t", hosts[i].path);
+        ASSERT_NOT_NULL(r);
+        ASSERT_FALSE(r->has_error);
+        ASSERT_EQ(count_defs_named(r, "Function", "visible"), 1);
+        ASSERT_EQ(count_calls_named(r, "target"), 1);
+        ASSERT_EQ(r->imports.count, 1);
+        cbm_free_result(r);
+    }
+    PASS();
+}
+
+TEST(embedded_structure_inert_blocks_issue1807) {
+    static const struct {
+        CBMLanguage language;
+        const char *path;
+        const char *source;
+    } blocks[] = {
+        {CBM_LANG_SVELTE, "Inert.svelte",
+         "<script type=\"application/json\">function hidden() { target(); }</script>\n"},
+        {CBM_LANG_HTML, "inert.html",
+         "<script src=\"./x.js\">function hidden() { target(); }</script>\n"},
+        {CBM_LANG_ASTRO, "Inert.astro",
+         "<script type=\"application/json\">function hidden() { target(); }</script>\n"},
+    };
+    for (int i = 0; i < 3; i++) {
+        CBMFileResult *r = extract(blocks[i].source, blocks[i].language, "t", blocks[i].path);
+        ASSERT_NOT_NULL(r);
+        ASSERT_FALSE(r->has_error);
         ASSERT_EQ(count_defs_with_label(r, "Function"), 0);
         ASSERT_EQ(r->calls.count, 0);
-        ASSERT_EQ(r->imports.count, 1);
         cbm_free_result(r);
     }
     PASS();
@@ -3902,6 +3951,43 @@ TEST(extract_java_jaxrs_path_composition_issue1005) {
     ASSERT_NOT_NULL(count->route_path);
     ASSERT_STR_EQ(count->route_path, "/api/v1/widgets/count");
     ASSERT_STR_EQ(count->route_method, "GET");
+    cbm_free_result(r);
+    PASS();
+}
+
+static const CBMDefinition *find_module_def(CBMFileResult *r);
+
+TEST(extract_razor_page_route_cshtml) {
+    CBMFileResult *r = extract("@page \"/orders\"\n"
+                               "@model OrderIndexModel\n"
+                               "<h1>Orders</h1>\n",
+                               CBM_LANG_CSHARP, "t", "Pages/Orders/Index.cshtml");
+    ASSERT_NOT_NULL(r);
+    const CBMDefinition *mod = find_module_def(r);
+    ASSERT_NOT_NULL(mod);
+    ASSERT_STR_EQ(mod->route_path, "/orders");
+    ASSERT_STR_EQ(mod->route_method, "GET");
+    cbm_free_result(r);
+    PASS();
+}
+
+TEST(extract_razor_component_page_route) {
+    CBMFileResult *r = extract("  @page \"/counter\"\n@code { void Refresh() {} }\n",
+                               CBM_LANG_CSHARP, "t", "Pages/Counter.razor");
+    ASSERT_NOT_NULL(r);
+    const CBMDefinition *mod = find_module_def(r);
+    ASSERT_NOT_NULL(mod);
+    ASSERT_STR_EQ(mod->route_path, "/counter");
+    ASSERT_STR_EQ(mod->route_method, "GET");
+    cbm_free_result(r);
+    PASS();
+}
+
+TEST(extract_razor_view_without_page_has_no_route) {
+    CBMFileResult *r = extract("@model LayoutModel\n<html>@RenderBody()</html>\n",
+                               CBM_LANG_CSHARP, "t", "Pages/Shared/_Layout.cshtml");
+    ASSERT_NOT_NULL(r);
+    ASSERT_NULL(find_module_def(r)->route_path);
     cbm_free_result(r);
     PASS();
 }
@@ -6765,6 +6851,8 @@ SUITE(extraction) {
     RUN_TEST(vue_embedded_structure_issue1410);
     RUN_TEST(vue_embedded_structure_negative_controls_issue1410);
     RUN_TEST(vue_embedded_structure_host_controls_issue1410);
+    RUN_TEST(embedded_structure_sibling_hosts_issue1807);
+    RUN_TEST(embedded_structure_inert_blocks_issue1807);
     RUN_TEST(html_imports_basic);
 
     /* config_extraction_test.go ports */
@@ -6808,6 +6896,9 @@ SUITE(extraction) {
     RUN_TEST(arkts_lazy_import);
     RUN_TEST(arkts_ts_compat);
     RUN_TEST(extract_java_jaxrs_path_composition_issue1005);
+    RUN_TEST(extract_razor_page_route_cshtml);
+    RUN_TEST(extract_razor_component_page_route);
+    RUN_TEST(extract_razor_view_without_page_has_no_route);
     RUN_TEST(extract_ts_template_string_url_issue1006);
     RUN_TEST(extract_go_binary_concat_url_issue1249);
     RUN_TEST(extract_go_binary_concat_url_no_literal_suffix_issue1249);

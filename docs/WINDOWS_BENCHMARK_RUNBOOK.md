@@ -154,6 +154,41 @@ Benchmarking is only one part of the Windows RC gate. For the same exact executa
 8. generate `qualification-summary.md` and `qualification-manifest.json` against the exact artifact hashes;
 9. attach evidence to the draft release and use the existing promotion workflow.
 
+## Follow-up qualification batch
+
+The CP90 Windows follow-ups can be exercised in one native-Windows run. Build
+the source test runner once, then run both C follow-up suites, the existing
+native product guards, and the benchmark corpus without rebuilding between
+steps. Run this from a clean checkout when source-level test evidence is
+required; the RC orchestrator above remains the authority for immutable
+release-artifact evidence.
+
+```powershell
+$ErrorActionPreference = 'Stop'
+$make = (Get-Command make).Source
+& $make '-j' '-f' 'Makefile.cbm' 'build/c/test-runner' 'SANITIZE=' `
+  'TMP=' + $env:TEMP 'TEMP=' + $env:TEMP 'TMPDIR=' + $env:TEMP
+if ($LASTEXITCODE) { throw "test-runner build failed ($LASTEXITCODE)" }
+
+& 'build/c/test-runner' 'config_yaml_edit' 'version_cohort'
+if ($LASTEXITCODE) { throw "CP90 C follow-up tests failed ($LASTEXITCODE)" }
+
+& '.\scripts\test-windows.ps1' -GuardsOnly -Binary `
+  'build\c\codebase-memory-cli.exe'
+if ($LASTEXITCODE) { throw "native Windows guards failed ($LASTEXITCODE)" }
+
+& '.\scripts\qualification\run-windows-benchmark-corpus.ps1' `
+  -CandidateBinary 'build\c\codebase-memory-cli.exe' `
+  -ResultsRoot 'C:\cbm-benchmark\results\cp90-followup'
+if ($LASTEXITCODE) { throw "benchmark corpus failed ($LASTEXITCODE)" }
+```
+
+The YAML reparse-point/access-denied and cohort separator cases are the
+Windows-specific CP90 evidence. Record the complete console output and the
+timestamped benchmark result directory. A source-built executable is suitable
+for follow-up qualification only; it must not replace the exact published RC
+bytes used by the release qualification sequence.
+
 ## Manual fallback
 
 To benchmark one repository without the orchestrator:

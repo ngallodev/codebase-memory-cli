@@ -480,10 +480,12 @@ static int ensure_one_decorator_route(cbm_gbuf_t *gb, const cbm_gbuf_node_t *fun
 
 /* Phase 2a: Ensure all functions with route_path properties have Route+HANDLES edges. */
 static void ensure_decorator_routes(cbm_gbuf_t *gb) {
-    const char *labels[] = {"Function", "Method"};
+    /* Razor components/pages carry their route on the implicit Module. */
+    const char *labels[] = {"Function", "Method", "Module"};
+    const int label_count = (int)(sizeof(labels) / sizeof(labels[0]));
     int created = 0;
 
-    for (int li = 0; li < RN_STRIP_PASSES; li++) {
+    for (int li = 0; li < label_count; li++) {
         const cbm_gbuf_node_t **nodes = NULL;
         int count = 0;
         if (cbm_gbuf_find_by_label(gb, labels[li], &nodes, &count) != 0) {

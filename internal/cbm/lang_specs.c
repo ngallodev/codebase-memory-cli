@@ -917,8 +917,8 @@ static const CBMEmbeddedLangSpec astro_embedded_imports[] = {
     /* Astro component scripts live in the `---` frontmatter fence, which the
      * grammar keeps as an unparsed frontmatter_js_block. Re-parse that slice
      * with the JS grammar so `import X from './X.astro'` becomes a real edge. */
-    {"frontmatter", "frontmatter_js_block", CBM_LANG_JAVASCRIPT},
-    {"script_element", "raw_text", CBM_LANG_JAVASCRIPT},
+    {"frontmatter", "frontmatter_js_block", CBM_LANG_TYPESCRIPT},
+    {"script_element", "raw_text", CBM_LANG_TYPESCRIPT},
     {NULL, NULL, 0},
 };
 

@@ -50,6 +50,10 @@ static const ext_entry_t EXT_TABLE[] = {
 
     /* C# */
     {".cs", CBM_LANG_CSHARP},
+    /* Razor components and Pages use the C# grammar for their code blocks;
+     * surrounding markup is best-effort and may be reported as partial. */
+    {".razor", CBM_LANG_CSHARP},
+    {".cshtml", CBM_LANG_CSHARP},
 
     /* Clojure */
     {".clj", CBM_LANG_CLOJURE},

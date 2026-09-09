@@ -113,6 +113,10 @@ static const char *str_or_empty(const char *s) {
     return s ? s : "";
 }
 
+static int cmp_int(int a, int b) {
+    return a < b ? TLD_CMP_LESS : a > b ? TLD_CMP_GREATER : 0;
+}
+
 static int cmp_node_canonical(const cbm_gbuf_node_t *a, const cbm_gbuf_node_t *b) {
     int r = strcmp(str_or_empty(a ? a->qualified_name : NULL),
                    str_or_empty(b ? b->qualified_name : NULL));
@@ -123,12 +127,19 @@ static int cmp_node_canonical(const cbm_gbuf_node_t *a, const cbm_gbuf_node_t *b
     if (r != 0) {
         return r;
     }
-    int la = a ? a->start_line : 0;
-    int lb = b ? b->start_line : 0;
-    if (la != lb) {
-        return la < lb ? TLD_CMP_LESS : TLD_CMP_GREATER;
+    r = cmp_int(a ? a->start_line : 0, b ? b->start_line : 0);
+    if (r != 0) {
+        return r;
     }
-    return 0;
+    r = cmp_int(a ? a->end_line : 0, b ? b->end_line : 0);
+    if (r != 0) {
+        return r;
+    }
+    r = strcmp(str_or_empty(a ? a->name : NULL), str_or_empty(b ? b->name : NULL));
+    if (r != 0) {
+        return r;
+    }
+    return strcmp(str_or_empty(a ? a->label : NULL), str_or_empty(b ? b->label : NULL));
 }
 
 static int cmp_seed_canonical(const void *pa, const void *pb) {

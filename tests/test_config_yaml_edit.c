@@ -15,6 +15,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include "../src/foundation/win_utf8.h"
+#include <windows.h>
+#endif
+
 #ifndef _WIN32
 #include <sys/stat.h>
 #include <unistd.h>
@@ -128,6 +136,21 @@ static bool yaml_upsert_failed_unchanged(const char *path, const char *original)
     free(after);
     return unchanged;
 }
+
+#ifdef _WIN32
+static bool yaml_windows_create_dangling_symlink(const char *link_path,
+                                                 const char *target_path, DWORD *error_out) {
+    wchar_t *wide_link = cbm_utf8_to_wide(link_path);
+    wchar_t *wide_target = cbm_utf8_to_wide(target_path);
+    bool created = wide_link && wide_target && CreateSymbolicLinkW(wide_link, wide_target, 0) != 0;
+    if (!created && error_out) {
+        *error_out = GetLastError();
+    }
+    free(wide_link);
+    free(wide_target);
+    return created;
+}
+#endif
 
 typedef struct {
     const char *content;
@@ -465,6 +488,60 @@ TEST(config_yaml_edit_rejects_non_regular_path) {
     th_cleanup(fixture.dir);
     PASS();
 }
+
+#ifdef _WIN32
+/* A dangling symlink is a reparse point, not an absent config. The remover's
+ * OPEN_REPARSE_POINT probe must therefore continue to the reader, which fails
+ * closed, instead of returning the absent-target success result. */
+TEST(config_yaml_edit_windows_reparse_target_is_not_absent) {
+    yaml_fixture_t fixture;
+    ASSERT_EQ(yaml_fixture_init(&fixture, NULL), 0);
+    char missing[sizeof(fixture.path) + 32U];
+    ASSERT(snprintf(missing, sizeof(missing), "%s/missing.yaml", fixture.dir) > 0);
+    DWORD symlink_error = ERROR_SUCCESS;
+    if (!yaml_windows_create_dangling_symlink(fixture.path, missing, &symlink_error)) {
+        DWORD error = symlink_error;
+        th_cleanup(fixture.dir);
+        if (error == ERROR_PRIVILEGE_NOT_HELD || error == ERROR_ACCESS_DENIED) {
+            SKIP_PLATFORM("Windows symlink privilege or Developer Mode is unavailable");
+        }
+        FAIL("CreateSymbolicLinkW failed");
+    }
+
+    cbm_path_info_t link_info;
+    ASSERT_EQ(cbm_path_info_utf8(fixture.path, &link_info), 0);
+    ASSERT(link_info.is_symlink);
+    ASSERT_EQ(cbm_yaml_remove_mapping_entry(fixture.path, "hooks", "pre_llm_call"), -1);
+
+    char lock_path[sizeof(fixture.path) + 32U];
+    ASSERT(snprintf(lock_path, sizeof(lock_path), "%s.cbm-yaml.lock", fixture.path) > 0);
+    cbm_path_info_t lock_info;
+    ASSERT(cbm_path_info_utf8(lock_path, &lock_info) != 0);
+    ASSERT_EQ(cbm_unlink(fixture.path), 0);
+    th_cleanup(fixture.dir);
+    PASS();
+}
+
+/* CreateFileW without FILE_FLAG_BACKUP_SEMANTICS reports ACCESS_DENIED for a
+ * directory. This verifies that access-denied is not collapsed into the
+ * genuinely-absent success case and that failed removal leaves no sidecar. */
+TEST(config_yaml_edit_windows_access_denied_target_fails_closed) {
+    yaml_fixture_t fixture;
+    ASSERT_EQ(yaml_fixture_init(&fixture, NULL), 0);
+    ASSERT(cbm_mkdir_p(fixture.path, 0755));
+    ASSERT_EQ(cbm_yaml_remove_mapping_entry(fixture.path, "hooks", "pre_llm_call"), -1);
+
+    cbm_path_info_t target_info;
+    ASSERT_EQ(cbm_path_info_utf8(fixture.path, &target_info), 0);
+    ASSERT(target_info.is_directory);
+    char lock_path[sizeof(fixture.path) + 32U];
+    ASSERT(snprintf(lock_path, sizeof(lock_path), "%s.cbm-yaml.lock", fixture.path) > 0);
+    cbm_path_info_t lock_info;
+    ASSERT(cbm_path_info_utf8(lock_path, &lock_info) != 0);
+    th_cleanup(fixture.dir);
+    PASS();
+}
+#endif
 
 #ifndef _WIN32
 TEST(config_yaml_edit_rejects_symlinks_without_touching_target) {
@@ -2069,6 +2146,10 @@ SUITE(config_yaml_edit) {
     RUN_TEST(config_yaml_edit_rejects_unsafe_mode_lock_sidecar);
 #endif
     RUN_TEST(config_yaml_edit_rejects_non_regular_path);
+#ifdef _WIN32
+    RUN_TEST(config_yaml_edit_windows_reparse_target_is_not_absent);
+    RUN_TEST(config_yaml_edit_windows_access_denied_target_fails_closed);
+#endif
 #ifndef _WIN32
     RUN_TEST(config_yaml_edit_rejects_symlinks_without_touching_target);
     RUN_TEST(config_yaml_edit_rejects_dangling_symlink);

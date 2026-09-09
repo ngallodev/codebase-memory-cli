@@ -89,6 +89,11 @@ TEST(lang_ext_csharp) {
     ASSERT_EQ(cbm_language_for_extension(".cs"), CBM_LANG_CSHARP);
     PASS();
 }
+TEST(lang_ext_razor_and_cshtml) {
+    ASSERT_EQ(cbm_language_for_extension(".razor"), CBM_LANG_CSHARP);
+    ASSERT_EQ(cbm_language_for_extension(".cshtml"), CBM_LANG_CSHARP);
+    PASS();
+}
 TEST(lang_ext_php) {
     ASSERT_EQ(cbm_language_for_extension(".php"), CBM_LANG_PHP);
     PASS();
@@ -1263,6 +1268,7 @@ SUITE(language) {
     RUN_TEST(lang_ext_h);
     RUN_TEST(lang_ext_ixx);
     RUN_TEST(lang_ext_csharp);
+    RUN_TEST(lang_ext_razor_and_cshtml);
     RUN_TEST(lang_ext_php);
     RUN_TEST(lang_ext_lua);
     RUN_TEST(lang_ext_scala);
