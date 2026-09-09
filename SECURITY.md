@@ -1,8 +1,13 @@
-# Security Policy
+# Security Policy — Codebase Memory CLI
 
 ## Transparency & Disclaimer
 
-codebase-memory-mcp interacts deeply with your filesystem. It reads source files across your entire codebase, writes to agent configuration files, and spawns background processes. This is inherent to what it does — not a bug.
+Codebase Memory CLI interacts deeply with your filesystem. It reads source
+files across your codebase, writes to agent configuration files when explicitly
+requested, and may spawn local background processes for indexing. This is
+inherent to what it does — not a bug. It is a CLI-only fork and C port of
+Codebase Memory MCP, created for workplaces that prohibit third-party MCP
+servers.
 
 **If you are uncomfortable with these access patterns**, please audit the source code before running. The full source is available in this repository. Release archives produced by the current release pipeline are verifiably built from this source and can be independently verified via SLSA Build Level 3 provenance, Sigstore signatures, and SHA-256 checksums (see [Verification](#verification) below). Each archive contains a native executable and its authenticated release-owned runtime assets.
 
@@ -10,28 +15,16 @@ We are humans and can make mistakes. We take security seriously — it is Priori
 
 ## Runtime Network Behavior
 
-Indexing, graph queries, semantic search, and MCP tool handling run locally. The
-MCP server does not upload source code, repository paths, graph indexes, query
+Indexing, graph queries, semantic search, and CLI operation handling run locally.
+The CLI does not upload source code, repository paths, graph indexes, query
 contents, environment variables, usage metrics, or telemetry.
 
-The MCP server has one best-effort external runtime check: after MCP
-`initialize`, it starts a background update-check thread that requests release
-metadata from
-`https://api.github.com/repos/DeusData/codebase-memory-mcp/releases/latest`.
-That request is used only to show an update notice when a newer release exists.
-It sends no project data; only standard HTTPS metadata, such as the destination
-host and the normal `curl` request headers, are visible to GitHub and the
-network path.
+The CLI has no MCP runtime or MCP startup path. Explicit install and update
+commands may request release metadata from GitHub to locate or verify release
+assets. No project data is sent.
 
-The update check is non-blocking for MCP startup and tool calls. If the machine
-is offline, DNS fails, GitHub is unreachable, or `curl` exits with an error, the
-check is ignored. The request is also bounded with `curl --max-time 5`; a
-process shutting down immediately while the check is still running may wait for
-that bounded background thread to finish.
-
-Explicit install, package-manager, and `codebase-memory-mcp update` flows are
-separate user-initiated network operations that download release assets and
-checksums from GitHub.
+Network access is limited to explicit installation and update workflows that
+download release assets and checksums from GitHub.
 
 ## Help Us Stay Secure
 
@@ -56,7 +49,7 @@ can fix it before public disclosure:
 
 1. **Do NOT open a public issue, PR, or social-media post** for security
    vulnerabilities.
-2. **Preferred:** use GitHub's [private vulnerability reporting](https://github.com/DeusData/codebase-memory-mcp/security/advisories/new)
+2. **Preferred:** use GitHub's [private vulnerability reporting](https://github.com/ngallodev/codebase-memory-cli/security/advisories/new)
    (the repository's **Security → Report a vulnerability** button). This keeps
    everything in one place and starts a private advisory automatically.
 3. **Alternative:** email martin.vogel.tech@gmail.com.
@@ -81,7 +74,7 @@ can fix it before public disclosure:
 
 We follow **coordinated disclosure**: fixes are developed privately, validated
 across all supported platforms, released, and only then disclosed publicly via a
-[GitHub Security Advisory](https://github.com/DeusData/codebase-memory-mcp/security/advisories)
+[GitHub Security Advisory](https://github.com/ngallodev/codebase-memory-cli/security/advisories)
 with a **CVE** and credit to you. The full handling process — including how you
 can verify the fix before release — is documented in
 [`docs/SECURITY-DISCLOSURE.md`](docs/SECURITY-DISCLOSURE.md).
@@ -106,13 +99,12 @@ This project implements multiple layers of security verification. Every release 
   - Layer 4: Install output path + content validation
   - Layer 5: Smoke test hardening (clean shutdown, residual processes, version integrity)
   - Layer 6: Graph UI audit (external domains, CORS, server binding, eval/iframe)
-  - Layer 7: MCP robustness (23 adversarial JSON-RPC payloads)
+  - Layer 7: parser and CLI robustness tests
   - Layer 8: Vendored dependency integrity (SHA-256 checksums, dangerous call scan)
 - **All dangerous function calls** require a reviewed entry in `scripts/security-allowlist.txt`
 - **Time-bomb pattern detection** — scans for `time()`/`sleep()` near dangerous calls (could indicate delayed activation)
-- **MCP tool handler file read audit** — tracks file read count in `mcp.c` against an expected maximum (detects added file reads that could exfiltrate data through tool responses)
 - **CodeQL SAST** — static application security testing on every push (taint analysis, CWE detection, data flow tracking). Any open alert blocks the release.
-- **Fuzz testing** — random/mutated inputs to MCP server and Cypher parser (60 seconds per build). Catches crashes, segfaults, and memory errors that structured tests miss.
+- **Fuzz testing** — random/mutated inputs to the CLI parser and Cypher parser (60 seconds per build). Catches crashes, segfaults, and memory errors that structured tests miss.
 - **Native antivirus scanning** on every platform (any detection fails the build):
   - **Windows**: Windows Defender with ML heuristics — the same engine end users run
   - **Linux**: ClamAV with daily signature updates
@@ -159,8 +151,8 @@ Users can independently verify any release archive and the runtime set it contai
 ```bash
 # SLSA Build Level 3 provenance for release archives
 gh attestation verify <downloaded-file> \
-  --repo DeusData/codebase-memory-mcp \
-  --signer-workflow DeusData/codebase-memory-mcp/.github/workflows/_build.yml
+  --repo ngallodev/codebase-memory-cli \
+  --signer-workflow ngallodev/codebase-memory-cli/.github/workflows/_build.yml
 
 # Sigstore cosign (keyless signature)
 cosign verify-blob --bundle <file>.bundle <file>
@@ -289,7 +281,7 @@ Any other verdict, an incomplete scan, a missing sibling, or a provenance/hash
 mismatch blocks the complete release. The selected bytes are then packaged
 without stripping, signing, relinking, or any other content mutation, and the
 resulting archives—not rejected candidates—are what smoke and soak testing execute.
-After packaging, every archive and MCPB executable is extracted and its SHA-256
+After packaging, every archive and executable is extracted and its SHA-256
 must still equal the selected candidate. This identity check makes a second
 VirusTotal submission of the same bytes unnecessary.
 

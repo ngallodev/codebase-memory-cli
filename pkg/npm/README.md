@@ -1,6 +1,9 @@
 # codebase-memory-cli
 
-`codebase-memory-cli` is the npm distribution wrapper for Codebase Memory, a local CLI-first code-intelligence application designed for coding agents and humans.
+`codebase-memory-cli` is the npm distribution wrapper for Codebase Memory CLI,
+a local CLI-first fork and C port of Codebase Memory MCP. The fork removes the
+third-party MCP server surface for workplaces where such servers are not
+permitted.
 
 The package downloads and verifies the native runtime set for the current platform, then exposes the `codebase-memory-cli` executable on `PATH`.
 
@@ -50,7 +53,7 @@ Use `codebase-memory-cli install --plan` to inspect planned writes before applyi
 
 ## Documentation
 
-The source repository and full documentation remain at https://github.com/DeusData/codebase-memory-mcp.
+The source repository and full documentation are at https://github.com/ngallodev/codebase-memory-cli.
 
 ## License
 

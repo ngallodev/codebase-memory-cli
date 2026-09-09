@@ -1,12 +1,23 @@
-# Codebase Memory
+# Codebase Memory CLI
 
-Codebase Memory builds a persistent structural knowledge graph of a source repository and exposes it through a local command-line interface designed for coding agents and humans.
+Codebase Memory CLI builds a persistent structural knowledge graph of a source
+repository and exposes it through a local command-line interface for coding
+agents and humans.
+
+This repository is a fork and C port of
+[Codebase Memory MCP](https://github.com/DeusData/codebase-memory-mcp). The
+fork keeps the code-intelligence engine, but removes the MCP server and its
+third-party MCP integration surface. It exists for workplace environments
+where policy prohibits using third-party MCP servers while still allowing a
+local, auditable developer tool.
 
 The product executable is `codebase-memory-cli`. Running it with no command shows CLI help; there is no supported MCP stdio server entry point.
 
-> Migration status: application operations, daemon execution, supervised workers, UI dispatch, and store hosting are protocol-neutral. The physical MCP subsystem has been removed. Remaining MCP-era names are limited to compatibility-sensitive persisted paths/package history that are being retired deliberately. See [`docs/CLI_MIGRATION_STATUS.md`](docs/CLI_MIGRATION_STATUS.md).
+> The CLI is the supported product surface. Some cache and package paths retain
+> the historical `codebase-memory-mcp` name for compatibility; they do not
+> enable or start an MCP server.
 
-## What it does
+## Features
 
 Codebase Memory parses source with tree-sitter and optional language-server enrichment, then stores functions, classes, methods, call relationships, imports, routes, cross-service links, and other structural facts in a local graph-backed index.
 
@@ -21,6 +32,17 @@ Use it when you need to answer questions such as:
 - What projects have already been indexed?
 
 The graph is a discovery and structural-evidence layer, not a substitute for source verification. For material claims, especially negative or exhaustive claims, verify exact source and index coverage.
+
+It includes:
+
+- tree-sitter parsing for 162 languages;
+- hybrid LSP-style semantic enrichment for supported languages;
+- definitions, calls, imports, usages, routes, channels, and cross-service links;
+- architecture summaries, change-impact analysis, dead-code queries, ADRs, and Cypher queries;
+- BM25, semantic, structural, and graph-augmented source search;
+- cross-repository graph intelligence and optional 3D graph visualization;
+- a persistent local index with incremental updates and optional shared graph artifacts;
+- a coordination daemon, supervised workers, and filesystem watcher for reliable background indexing.
 
 ## Quick start
 
@@ -42,7 +64,8 @@ codebase-memory-cli search "ClaimValidator" --json
 codebase-memory-cli trace ClaimValidator.validate --direction inbound --json
 ```
 
-Canonical machine output does not expose the historical MCP `content:[{type:"text"}]` envelope. Operational failures return a non-zero exit status.
+Canonical machine output is ordinary CLI output or stable JSON. Operational
+failures return a non-zero exit status.
 
 ## Core commands
 
@@ -68,13 +91,14 @@ When the working directory does not identify the intended index unambiguously, p
 
 ### Compatibility interface
 
-The historical generic form remains temporarily available as a parity/migration surface:
+The generic operation form remains available for scripts that need the complete
+operation catalog:
 
 ```sh
 codebase-memory-cli cli search_graph --project my-project --name-pattern '.*Handler.*'
 ```
 
-It is not the canonical interface and will be retired after the protocol-neutral operation layer replaces the remaining private dispatcher dependency.
+The named commands above are preferred for normal use.
 
 ## Agent workflow
 
@@ -118,8 +142,8 @@ Use `install --plan` to inspect asset writes and `install-hooks --plan` to inspe
 ### From source
 
 ```sh
-git clone https://github.com/DeusData/codebase-memory-mcp.git
-cd codebase-memory-mcp
+git clone https://github.com/ngallodev/codebase-memory-cli.git
+cd codebase-memory-cli
 scripts/build.sh
 ./build/c/codebase-memory-cli --help
 ```
@@ -129,16 +153,20 @@ scripts/build.sh
 macOS/Linux:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/scripts/setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ngallodev/codebase-memory-cli/main/scripts/setup.sh | bash
 ```
 
 Windows PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/scripts/setup-windows.ps1 | iex
+irm https://raw.githubusercontent.com/ngallodev/codebase-memory-cli/main/scripts/setup-windows.ps1 | iex
 ```
 
-The setup scripts install the executable. They do not install hooks or write MCP client configuration. Afterward, run `codebase-memory-cli install --skip-binary` for CLI-first skills/instructions. Run `codebase-memory-cli install-hooks` separately only if you explicitly want CLI-owned agent hooks.
+The setup scripts install the executable. They do not install hooks or write
+MCP client configuration. Afterward, run `codebase-memory-cli install
+--skip-binary` for CLI skills and instructions. Run
+`codebase-memory-cli install-hooks` separately only if you explicitly want
+CLI-owned agent hooks.
 
 ## Human and machine output
 
@@ -170,7 +198,7 @@ The existing indexing engine is intentionally unchanged by the CLI-first migrati
 - hybrid LSP semantic enrichment for selected languages;
 - persistent local indexes;
 - call/import/definition and selected cross-service relationships;
-- change detection, architecture, Cypher, ADR, trace-ingestion, and other operations still available through the temporary compatibility interface while canonical named commands are expanded.
+- change detection, architecture, Cypher, ADR, trace ingestion, and other operations exposed through the canonical CLI and its compatibility form.
 
 The first vertical slice does **not** rewrite the graph schema, parser pipeline, store format, or existing indexes.
 
@@ -198,7 +226,7 @@ Important environment variables include:
 
 See [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) for the full reference.
 
-## Architecture during the CLI-first migration
+## Architecture
 
 The intended direction is:
 
@@ -208,7 +236,10 @@ agent skill ─┼──> CLI / hooks ──> protocol-neutral operations ──
 agent hooks ─┘
 ```
 
-The CLI, hooks, daemon, supervised workers, and UI now dispatch through the neutral operation/runtime layers. Index supervision, project mutation locks, version-cohort checks, process containment, memory limits, cancellation, store recovery, and secure local coordination remain part of the correctness kernel rather than protocol adapters.
+The CLI, hooks, daemon, supervised workers, watcher, and UI dispatch through
+the operation and runtime layers. Index supervision, project mutation locks,
+version-cohort checks, process containment, memory limits, cancellation, store
+recovery, and secure local coordination are part of the application itself.
 
 ## Build
 
@@ -244,8 +275,9 @@ See [`SECURITY.md`](SECURITY.md) and [`docs/SECURITY-DISCLOSURE.md`](docs/SECURI
 
 ## Migration documents
 
-- [`docs/CLI_FIRST_VERTICAL_SLICE_IMPLEMENTATION_PLAN.md`](docs/CLI_FIRST_VERTICAL_SLICE_IMPLEMENTATION_PLAN.md) — implementation-grade first-slice plan, critical review, checkpoints, and definition of done.
-- [`docs/CLI_ONLY_MIGRATION_PLAN.md`](docs/CLI_ONLY_MIGRATION_PLAN.md) — original high-level CLI-only direction retained as historical input.
+- [`docs/CLI_MIGRATION_STATUS.md`](docs/CLI_MIGRATION_STATUS.md) — current port and qualification status.
+- [`docs/RELEASE_QUALIFICATION_PLAN.md`](docs/RELEASE_QUALIFICATION_PLAN.md) — build, platform, benchmark, and release gates.
+- [`docs/CLI_ONLY_MIGRATION_PLAN.md`](docs/CLI_ONLY_MIGRATION_PLAN.md) — historical rationale and scope of the MCP removal.
 
 ## License
 

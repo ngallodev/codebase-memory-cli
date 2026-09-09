@@ -1,6 +1,6 @@
 # Measuring quality, latency, and agent savings
 
-This guide describes how to measure codebase-memory-mcp (CBM) on your own
+This guide describes how to measure Codebase Memory CLI (CBM) on your own
 repository without mixing three different questions:
 
 1. Does the agent give a better answer?
@@ -86,7 +86,7 @@ GRAPH_SHA=$(git -C "$GRAPH_REPO" rev-parse HEAD) || exit 1
 GRAPH_STATUS=$(git -C "$GRAPH_REPO" status --porcelain=v1 --untracked-files=all) || exit 1
 test "$GRAPH_SHA" = "$SHA" || exit 1
 test -z "$GRAPH_STATUS" || exit 1
-codebase-memory-cli cli index_repository \
+codebase-memory-cli index \
   --repo-path "$GRAPH_REPO" \
   --mode "$MODE" || exit 1
 GRAPH_SHA_AFTER=$(git -C "$GRAPH_REPO" rev-parse HEAD) || exit 1
@@ -99,8 +99,8 @@ Take `PROJECT_NAME` from the successful indexing response. A verbose status call
 is useful only as a root/current-HEAD cross-check:
 
 ```bash
-codebase-memory-cli cli list_projects
-codebase-memory-cli cli index_status --project PROJECT_NAME --verbose
+codebase-memory-cli projects
+codebase-memory-cli status --project PROJECT_NAME --verbose
 ```
 
 Confirm that `root_path` is `GRAPH_REPO`, `git.head_sha` is `SHA`, and the Git
@@ -113,7 +113,7 @@ Finally, run one or more representative queries whose expected symbols you
 have verified directly at the recorded SHA:
 
 ```bash
-codebase-memory-cli cli search_graph \
+codebase-memory-cli search \
   --project PROJECT_NAME \
   --name-pattern 'KNOWN_SYMBOL_PATTERN' \
   --limit 10
@@ -203,7 +203,7 @@ its counters to one workload.
 From a source checkout, the canonical endurance entry point is:
 
 ```bash
-scripts/soak-legs.sh build/c/codebase-memory-mcp 10
+scripts/soak-legs.sh build/c/codebase-memory-cli 10
 ```
 
 It runs the quick mixed workload and the read-only query-leak workload, checks
@@ -224,7 +224,7 @@ evidence, not as answer-quality or model-token evidence.
 ## 3. Measure token and tool-call savings
 
 Run the Graph and file-by-file conditions on the same frozen inputs described
-above. The MCP client or evaluation harness must capture agent usage because
+above. The agent or evaluation harness must capture model usage because
 CBM cannot know the final model input/output token count or the agent's total
 tool-call consumption.
 

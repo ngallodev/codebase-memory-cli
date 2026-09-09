@@ -1,10 +1,16 @@
-# Codebase Memory CLI Migration — Plan and Status
+# Codebase Memory CLI — Port and Status
+
+This repository is the CLI-only fork and C port of Codebase Memory MCP. The
+MCP server and third-party MCP integration surface were removed to meet
+workplace policies that prohibit third-party MCP servers; the local graph,
+indexing, daemon, watcher, and analysis capabilities remain.
 > **Planning re-baseline (CP61):** the CLI-first/MCP-removal architecture phase is closed unless qualification evidence exposes a concrete defect. Remaining work is release qualification: Linux consolidation, immutable GitHub RC artifacts, native Windows validation on `luigi.home.arpa`, frozen-corpus comparative benchmarking, agent usability, production skill, and release decision. See `docs/RELEASE_QUALIFICATION_PLAN.md`.
 
 **Updated:** 2026-09-03  
 **Current authoritative baseline:** latest complete consolidated source attached to the project sources page  
 **Checkpoint policy:** prior overlay/checkpoint archives are historical only and are not replayed or used to reconstruct repository state.  
-**Direction:** CLI-first code intelligence with a protocol-neutral operation API and coordination daemon; MCP is transitional compatibility only and must ultimately disappear.
+**Direction:** local CLI code intelligence with protocol-neutral operations and
+a coordination daemon. MCP is not a supported runtime or integration surface.
 
 Status markers: **COMPLETE**, **PARTIAL**, **REMAINING**, **BLOCKED/EXTERNAL**.
 

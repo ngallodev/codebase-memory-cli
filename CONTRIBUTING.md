@@ -1,4 +1,4 @@
-# Contributing to codebase-memory-mcp
+# Contributing to Codebase Memory CLI
 
 Contributions are welcome. This guide covers setup, testing, and PR guidelines.
 
@@ -9,8 +9,8 @@ Contributions are welcome. This guide covers setup, testing, and PR guidelines.
 **Prerequisites**: C compiler (gcc or clang), make, zlib, Git. Optional: Node.js 22+ (for graph UI).
 
 ```bash
-git clone https://github.com/DeusData/codebase-memory-mcp.git
-cd codebase-memory-mcp
+git clone https://github.com/ngallodev/codebase-memory-cli.git
+cd codebase-memory-cli
 git config core.hooksPath scripts/hooks  # activates pre-commit security checks
 scripts/build.sh
 ```
@@ -18,7 +18,7 @@ scripts/build.sh
 macOS: `xcode-select --install` provides clang.
 Linux: `sudo apt install build-essential zlib1g-dev` (Debian/Ubuntu) or `sudo dnf install gcc zlib-devel` (Fedora).
 
-The binary is output to `build/c/codebase-memory-mcp`.
+The binary is output to `build/c/codebase-memory-cli`.
 
 ## Run Tests
 
@@ -29,7 +29,7 @@ scripts/test.sh
 This builds with ASan + UBSan and runs the full C test suite. Key test files:
 - `tests/test_pipeline.c` — pipeline integration tests
 - `tests/test_httplink.c` — HTTP route extraction and linking
-- `tests/test_mcp.c` — MCP protocol and tool handler tests
+- `tests/test_cli.c` — CLI command and lifecycle tests
 - `tests/test_store_*.c` — SQLite graph store tests
 
 ## Run Linter
@@ -46,7 +46,7 @@ Runs clang-tidy, cppcheck, and clang-format. All must pass before committing (al
 make -f Makefile.cbm security
 ```
 
-Runs 8 security layers: static allow-list audit, binary string scan, UI audit, install audit, network egress test, MCP robustness (fuzz), vendored dependency integrity, and frontend integrity.
+Runs the repository's security layers: static allow-list audit, binary string scan, UI audit, install audit, network egress test, parser robustness, vendored dependency integrity, and frontend integrity.
 
 ## Project Structure
 
@@ -55,7 +55,7 @@ src/
   foundation/       Arena allocator, hash table, string utils, platform compat
   store/            SQLite graph storage (WAL mode, FTS5)
   cypher/           Cypher query → SQL translation
-  mcp/              MCP server (JSON-RPC 2.0 over stdio, 14 tools)
+  operations/       Protocol-neutral CLI operations
   pipeline/         Multi-pass indexing pipeline
     pass_*.c        Individual pipeline passes (definitions, calls, usages, etc.)
     httplink.c      HTTP route extraction (Go/Express/Laravel/Ktor/Python)
@@ -127,7 +127,7 @@ Examples: `fix(store): set busy_timeout before WAL`, `feat(cli): add --progress 
 
 The following changes will not be merged without prior design discussion in an issue:
 
-- **API surface changes** — adding, removing, renaming, or changing defaults of MCP tools
+- **CLI operation changes** — adding, removing, renaming, or changing defaults of supported operations
 - **New pipeline passes or indexing algorithms** — anything that changes what gets extracted or how
 - **Build system / Makefile changes** — beyond trivial fixes
 - **Project configuration** — CLAUDE.md, skill files, .mcp.json, CI workflows
@@ -160,7 +160,7 @@ If you add a new `system()`, `popen()`, `fork()`, or network call, it must be ju
 
 ## Good First Issues
 
-Check [issues labeled `good first issue`](https://github.com/DeusData/codebase-memory-mcp/labels/good%20first%20issue) for beginner-friendly tasks with clear scope and guidance.
+Check [issues labeled `good first issue`](https://github.com/ngallodev/codebase-memory-cli/labels/good%20first%20issue) for beginner-friendly tasks with clear scope and guidance.
 
 ## License and sign-off (DCO) — required on every commit
 

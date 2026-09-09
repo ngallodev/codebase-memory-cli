@@ -1,5 +1,10 @@
 # CLI-Only Migration Plan
 
+This plan records the port from Codebase Memory MCP to Codebase Memory CLI.
+The fork removes the MCP server and third-party MCP integration surface for
+workplace environments whose rules prohibit third-party MCP servers, while
+retaining the local indexing and code-intelligence engine.
+
 ## Goal
 
 Turn `codebase-memory-mcp` into a local command-line application and stop

@@ -3,7 +3,8 @@
 This document defines how maintainer responsibility, review routing, and
 operational authority work in this project.
 
-codebase-memory-mcp is currently a user-owned repository. Because GitHub teams
+codebase-memory-cli is currently a user-owned repository and a CLI-only fork of
+Codebase Memory MCP. Because GitHub teams
 are not available here, all delegated ownership is expressed with individual
 GitHub handles.
 
@@ -131,7 +132,7 @@ recorded in `.github/CODEOWNERS` and repository settings.
 These changes always require project-owner review, even if an area reviewer
 approves:
 
-- MCP tool behavior, tool outputs, or protocol capabilities.
+- CLI operation behavior, output formats, or protocol-facing compatibility.
 - New process execution, shell invocation, network access, or file access.
 - CI, release, package publishing, installer, or updater changes.
 - Vendored dependency changes, generated grammar changes, or license policy.
