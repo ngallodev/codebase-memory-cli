@@ -945,9 +945,7 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
         _Exit(worker_response_written ? 0 : SKIP_ONE);
     }
     FILE *stream = operation_result.is_error ? stderr : stdout;
-    if (operation_result.payload) {
-        (void)fprintf(stream, "%s\n", operation_result.payload);
-    }
+    (void)fprintf(stream, "%s\n", operation_result.payload);
     exit_code = operation_result.is_error ? SKIP_ONE : 0;
     exit_code = cbm_cli_exit_status_after_maintenance(exit_code, maintenance_cancelled);
     cbm_operation_result_dispose(&operation_result);

@@ -7086,9 +7086,9 @@ static void install_claude_code_config(const char *home, const char *binary_path
     printf("  integration: explicit CLI hooks\n");
     char settings_path[CLI_BUF_1K];
     snprintf(settings_path, sizeof(settings_path), "%s/settings.json", config_dir);
-    bool gate_ok = dry_run;
-    bool session_ok = dry_run;
-    bool subagent_ok = dry_run;
+    bool gate_ok;
+    bool session_ok;
+    bool subagent_ok;
     if (dry_run) {
         gate_ok = cbm_hook_script_write_would_succeed(home, binary_path, CMM_HOOK_GATE_SCRIPT);
         session_ok =
@@ -7227,107 +7227,10 @@ static void install_agent_skill(const char *label, const char *skills_dir, bool 
     printf("  skill: %s (%d installed)\n", skill_path, installed);
 }
 
-/* Derive tier siblings only from the exact shipped Verify basename. This keeps
- * vendor-specific suffixes such as .agent.md, .toml, and .json intact. */
-static int cbm_tiered_profile_path(const char *verify_path, cbm_graph_tier_t tier, char *output,
-                                   size_t output_size) {
-    static const char verify_basename[] = "codebase-memory";
-    if (!verify_path || !verify_path[0] || !output || output_size == 0U) {
-        return CLI_ERR;
-    }
-    const char *basename = strrchr(verify_path, '/');
-    const char *backslash = strrchr(verify_path, '\\');
-    if (backslash && (!basename || backslash > basename)) {
-        basename = backslash;
-    }
-    basename = basename ? basename + 1U : verify_path;
-    size_t verify_len = strlen(verify_basename);
-    if (strncmp(basename, verify_basename, verify_len) != 0 || basename[verify_len] != '.') {
-        return CLI_ERR;
-    }
-    const char *slug = cbm_graph_tier_slug(tier);
-    if (!slug) {
-        return CLI_ERR;
-    }
-    const char *suffix = basename + verify_len;
-    size_t directory_len = (size_t)(basename - verify_path);
-    size_t slug_len = strlen(slug);
-    size_t suffix_len = strlen(suffix);
-    if (directory_len >= output_size || slug_len > output_size - directory_len - 1U ||
-        suffix_len > output_size - directory_len - slug_len - 1U) {
-        return CLI_ERR;
-    }
-    memcpy(output, verify_path, directory_len);
-    memcpy(output + directory_len, slug, slug_len);
-    memcpy(output + directory_len + slug_len, suffix, suffix_len + 1U);
-    return CLI_OK;
-}
-
-static cbm_graph_access_t cbm_tiered_profile_access(cbm_graph_profile_dialect_t dialect) {
-    return cbm_graph_dialect_direct_capable(dialect) ? CBM_GRAPH_ACCESS_DIRECT
-                                                     : CBM_GRAPH_ACCESS_HANDOFF;
-}
-
-static cbm_graph_access_t cbm_tiered_profile_set_access(cbm_tiered_profile_set_t profiles) {
-    return !profiles.force_handoff && cbm_graph_dialect_direct_capable(profiles.dialect)
-               ? CBM_GRAPH_ACCESS_DIRECT
-               : CBM_GRAPH_ACCESS_HANDOFF;
-}
-
 static void uninstall_tiered_agent_profiles(cbm_tiered_profile_set_t profiles, bool dry_run) {
     /* CP78: pre-CLI profile filenames are shared/ambiguous; never claim them. */
     (void)profiles;
     (void)dry_run;
-    return;
-    cbm_graph_access_t access = cbm_tiered_profile_set_access(profiles);
-    for (int value = 0; value < (int)CBM_GRAPH_TIER_COUNT; value++) {
-        cbm_graph_tier_t tier = (cbm_graph_tier_t)value;
-        char path[CLI_BUF_1K];
-        if (cbm_tiered_profile_path(profiles.verify_path, tier, path, sizeof(path)) != CLI_OK) {
-            record_agent_config_error(true, profiles.label, "agent_path", profiles.verify_path);
-            continue;
-        }
-        if (dry_run) {
-            printf("  %s agent: would remove owned profile %s\n", profiles.label, path);
-            continue;
-        }
-        char *current =
-            cbm_render_graph_profile(profiles.dialect, tier, access, profiles.binary_path);
-        if (!current) {
-            record_agent_config_error(true, profiles.label, "agent_render", path);
-            continue;
-        }
-        cbm_graph_access_t alternate_access =
-            access == CBM_GRAPH_ACCESS_DIRECT ? CBM_GRAPH_ACCESS_HANDOFF : CBM_GRAPH_ACCESS_DIRECT;
-        char *alternate = cbm_render_graph_profile(profiles.dialect, tier, alternate_access,
-                                                   profiles.binary_path);
-        char *codex_rc1 =
-            profiles.dialect == CBM_GRAPH_DIALECT_CODEX && access == CBM_GRAPH_ACCESS_DIRECT
-                ? cbm_render_graph_profile_codex_rc1(tier)
-                : NULL;
-        const char *released[3];
-        size_t released_count = 0U;
-        if (alternate) {
-            released[released_count++] = alternate;
-        }
-        if (codex_rc1) {
-            released[released_count++] = codex_rc1;
-        }
-        if (tier == CBM_GRAPH_TIER_VERIFY && profiles.legacy_verify_content) {
-            released[released_count++] = profiles.legacy_verify_content;
-        }
-        int result = cbm_text_remove_owned_document_any(path, current, released, released_count);
-        free(codex_rc1);
-        free(alternate);
-        free(current);
-        if (result < CLI_OK) {
-            record_agent_config_error(true, profiles.label, "agent_uninstall", path);
-        } else if (result > CLI_OK) {
-            printf("  %s agent: preserved modified profile %s\n", profiles.label, path);
-        } else {
-            printf("  %s agent: removed owned profile %s\n", profiles.label, path);
-        }
-    }
 }
 
 static void uninstall_tiered_profile_prompts(const char *label, const char *verify_path,
@@ -7339,36 +7242,6 @@ static void uninstall_tiered_profile_prompts(const char *label, const char *veri
     (void)dialect;
     (void)legacy_verify_content;
     (void)dry_run;
-    return;
-    cbm_graph_access_t access = cbm_tiered_profile_access(dialect);
-    for (int value = 0; value < (int)CBM_GRAPH_TIER_COUNT; value++) {
-        cbm_graph_tier_t tier = (cbm_graph_tier_t)value;
-        char path[CLI_BUF_1K];
-        if (cbm_tiered_profile_path(verify_path, tier, path, sizeof(path)) != CLI_OK) {
-            record_agent_config_error(true, label, "prompt_path", verify_path);
-            continue;
-        }
-        if (dry_run) {
-            printf("  %s prompt: would remove owned profile %s\n", label, path);
-            continue;
-        }
-        char *current = cbm_render_graph_prompt(tier, access);
-        if (!current) {
-            record_agent_config_error(true, label, "prompt_render", path);
-            continue;
-        }
-        const char *released[] = {legacy_verify_content};
-        size_t released_count = tier == CBM_GRAPH_TIER_VERIFY && legacy_verify_content ? 1U : 0U;
-        int result = cbm_text_remove_owned_document_any(path, current, released, released_count);
-        free(current);
-        if (result < CLI_OK) {
-            record_agent_config_error(true, label, "prompt_uninstall", path);
-        } else if (result > CLI_OK) {
-            printf("  %s prompt: preserved modified profile %s\n", label, path);
-        } else {
-            printf("  %s prompt: removed owned profile %s\n", label, path);
-        }
-    }
 }
 
 static void install_copilot_durable_context(const char *home, const char *binary_path, bool force,
@@ -8169,11 +8042,8 @@ static void install_editor_agent_configs(const cbm_detected_agents_t *agents, co
         if (!dry_run && !g_install_plan) {
             cbm_mkdir_p(sd, CLI_OCTAL_PERM);
         }
-        bool direct_profiles_ready = install_generic_agent_config("Junie", NULL, dry_run);
+        install_generic_agent_config("Junie", NULL, dry_run);
         install_agent_skill("Junie", skills_dir, force, dry_run);
-        if (!direct_profiles_ready && !g_install_plan) {
-            printf("  subagents: installed parent-handoff profiles\n");
-        }
     }
 }
 
