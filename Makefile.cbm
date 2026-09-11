@@ -1109,6 +1109,10 @@ LLVM_BIN := $(shell brew --prefix llvm 2>/dev/null)/bin
 CLANG_TIDY ?= $(shell [ -x "$(LLVM_BIN)/clang-tidy" ] && echo "$(LLVM_BIN)/clang-tidy" || echo clang-tidy)
 CLANG_FORMAT ?= $(shell [ -x "$(LLVM_BIN)/clang-format" ] && echo "$(LLVM_BIN)/clang-format" || echo clang-format)
 CPPCHECK ?= cppcheck
+# Cppcheck is the long pole in the CI lint gate. Its own worker pool is safer
+# than partitioning LINT_SRCS across separate invocations because diagnostics,
+# suppressions, and include configuration remain identical in one run.
+CPPCHECK_JOBS ?= 8
 
 # macOS SDK sysroot (needed for Homebrew LLVM to find system headers)
 SYSROOT = $(shell xcrun --show-sdk-path 2>/dev/null)
@@ -1136,7 +1140,8 @@ lint-tidy-diff:
 # cppcheck: complementary analysis (config in .cppcheck)
 lint-cppcheck:
 	@echo "=== cppcheck ==="
-	@$(CPPCHECK) --enable=warning,style,performance,portability \
+	@$(CPPCHECK) -j $(CPPCHECK_JOBS) \
+		--enable=warning,style,performance,portability \
 		--std=c11 --language=c \
 		--suppressions-list=.cppcheck \
 		--error-exitcode=1 \
