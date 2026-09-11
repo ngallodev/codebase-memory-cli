@@ -65,8 +65,9 @@ The manifest currently selects from:
 - repeated `status`;
 - optional `cross_repo` indexing for the companion repositories.
 
-Each repeated read operation receives one unrecorded warm-up, followed by the configured number of
-measured runs. Daemon startup is kept outside steady-state read timings.
+Daemon startup is recorded as its own `startup` case. Indexing is recorded separately, and each
+repeated read operation receives one unrecorded warm-up followed by the configured number of
+measured runs. This separates cold startup, indexing, and warm action timings.
 
 A required warm-up or measured invocation failure fails that repository. Failed invocations remain
 in `timings.tsv` and are also written to `FAILURES.txt`; they are not silently removed from the

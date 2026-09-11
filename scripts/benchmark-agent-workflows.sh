@@ -92,9 +92,10 @@ repeat_case() {
 cleanup() { "$BINARY" daemon stop >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
-# Keep daemon startup out of steady-state read timings.
+# Record daemon startup separately; steady-state action timings begin afterward.
 "$BINARY" daemon stop >/dev/null 2>&1 || true
-if ! "$BINARY" daemon start >/dev/null; then
+run_once startup 1 "$BINARY" daemon start || true
+if ! awk -F '\t' 'NR>1 && $1=="startup" && $4==0 {ok=1} END{exit ok?0:1}' "$RESULTS_DIR/timings.tsv"; then
   echo "error: daemon start failed before benchmark workload" >&2
   exit 3
 fi

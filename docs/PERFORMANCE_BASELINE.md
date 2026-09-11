@@ -164,7 +164,7 @@ CBM_BENCH_REPEATS=7 \
 
 Each result directory contains:
 
-- `timings.tsv` — every recorded operation/run, elapsed milliseconds, and exit code;
+- `timings.tsv` — startup, indexing, warm action operation/run timings, and exit codes;
 - `summary.tsv` — successful-run min/median/max by operation;
 - `environment.txt` — binary/repository/harness/host metadata;
 - raw stdout/stderr for every recorded case;

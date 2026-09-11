@@ -46,8 +46,9 @@ function Invoke-Repeat([string]$Label,[string[]]$Args) {
 function Wants([string]$Name) { return $Operations -contains $Name }
 
 & $Binary daemon stop *> $null
-& $Binary daemon start *> $null
-if ($LASTEXITCODE -ne 0) { throw 'daemon start failed before benchmark workload' }
+[void](Invoke-CbmCase 'startup' 1 @('daemon','start'))
+$startup = @(Import-Csv $timings -Delimiter "`t" | Where-Object { $_.case -eq 'startup' -and $_.exit_code -eq '0' }).Count
+if ($startup -ne 1) { throw 'daemon start failed before benchmark workload' }
 try {
   if (-not (Wants 'index')) { throw 'benchmark operations must include index' }
   $indexRc=Invoke-CbmCase 'index' 1 @('index',$Repo,'--mode','full','--json')
