@@ -1,0 +1,35 @@
+{
+  "generation": "windows-corpus-1",
+  "repositories": [
+    {
+      "id": "codebase-memory-cli",
+      "commit": "275edc93ee82497b7f841094980d230b69292eb5",
+      "result": "PASS",
+      "results": "/var/tmp/cbm-linux-benchmark/results/20260911T054706Z/codebase-memory-cli"
+    },
+    {
+      "id": "specgen-aw",
+      "commit": "466debfec788c7aeeee858c6b51e98b1b9afe653",
+      "result": "PASS",
+      "results": "/var/tmp/cbm-linux-benchmark/results/20260911T054706Z/specgen-aw"
+    },
+    {
+      "id": "agent-workflow",
+      "commit": "e84925205301ff7169aff5a8cb14d10680c3739c",
+      "result": "PASS",
+      "results": "/var/tmp/cbm-linux-benchmark/results/20260911T054706Z/agent-workflow"
+    },
+    {
+      "id": "agent-workflow-spec-contracts",
+      "commit": "0b32e556ef33bd00c0111d30a8b9225eb5196fcd",
+      "result": "PASS",
+      "results": "/var/tmp/cbm-linux-benchmark/results/20260911T054706Z/agent-workflow-spec-contracts"
+    },
+    {
+      "id": "herdr",
+      "commit": "61ca85d5895bb530b59da85beeccdd767f4720d2",
+      "result": "PASS",
+      "results": "/var/tmp/cbm-linux-benchmark/results/20260911T054706Z/herdr"
+    }
+  ]
+}

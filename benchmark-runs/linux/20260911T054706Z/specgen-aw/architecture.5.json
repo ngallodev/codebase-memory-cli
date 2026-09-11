@@ -1,0 +1,64 @@
+project: var-tmp-cbm-linux-benchmark-repos-specgen-aw
+aspects_hint: "Summary view (default). More on request via aspects:[...] — structure, dependencies, routes, hotspots, boundaries, layers, clusters, file_tree — or [\"all\"] for everything."
+total_nodes: 3279
+total_edges: 4268
+node_labels: 12  (cols: label count)
+  Variable 2266
+  Section 446
+  File 178
+  Module 159
+  Function 113
+  Class 54
+  Folder 49
+  Method 8
+  Decorator 3
+  Branch 1
+  EnvVar 1
+  Project 1
+edge_types: 16  (cols: type count)
+  DEFINES 3401
+  CALLS 285
+  CONTAINS_FILE 178
+  IMPORTS 162
+  USAGE 85
+  CONFIGURES 45
+  CONTAINS_FOLDER 41
+  WRITES 35
+  SEMANTICALLY_RELATED 15
+  DECORATES 7
+  FILE_CHANGES_WITH 4
+  DEFINES_METHOD 3
+  TESTS 3
+  CALL_REFERENCE 2
+  HAS_BRANCH 1
+  SIMILAR_TO 1
+languages: 5  (cols: language files)
+  Python 29
+  HTML 20
+  YAML 3
+  TOML 2
+  Bash 2
+packages: 15  (cols: name nodes fan_in fan_out)
+  specgen 93 0 0
+  specgen-aw-local 34 0 0
+  sync-agent-workflow-dev 5 0 0
+  agent-workflow 4 0 0
+  release 4 0 0
+  str 3 0 0
+  list 3 0 0
+  project 3 0 0
+  tool 3 0 0
+  critical-seams 3 0 0
+  capture-agent-workflow-compat 3 0 0
+  render-docs-html 3 0 0
+  dict 2 0 0
+  pyproject 2 0 0
+  test_contract_bundle_adapter 2 0 0
+entry_points: 6  (cols: qn file)
+  var-tmp-cbm-linux-benchmark-repos-specgen-aw.scripts.build-release-archive.main scripts/build-release-archive.py
+  var-tmp-cbm-linux-benchmark-repos-specgen-aw.scripts.capture-agent-workflow-compat.main scripts/capture-agent-workflow-compat.py
+  var-tmp-cbm-linux-benchmark-repos-specgen-aw.scripts.render-docs-html.main scripts/render-docs-html.py
+  var-tmp-cbm-linux-benchmark-repos-specgen-aw.scripts.sync-agent-workflow-dev.main scripts/sync-agent-workflow-dev.py
+  var-tmp-cbm-linux-benchmark-repos-specgen-aw.scripts.verify-wheel-sources.main scripts/verify-wheel-sources.py
+  var-tmp-cbm-linux-benchmark-repos-specgen-aw.src.specgen.cli.main src/specgen/cli.py
+

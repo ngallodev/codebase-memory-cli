@@ -1,0 +1,2 @@
+daemon: started (permanent, pid 3757443)
+It survives idle periods and session ends; `codebase-memory-cli daemon stop` retires it.
