@@ -5,7 +5,7 @@ set -euo pipefail
 # Default: download pre-built binary from GitHub Release
 # --from-source: build from source (requires Go + C compiler)
 
-REPO="DeusData/codebase-memory-mcp"
+REPO="ngallodev/codebase-memory-cli"
 INSTALL_DIR="$HOME/.local/bin"
 BINARY_NAME="codebase-memory-cli"
 SOURCE_DIR="$HOME/.local/share/codebase-memory-cli"

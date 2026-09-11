@@ -32,7 +32,7 @@ def git_output(root: Path, *args: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--version", required=True, help="RC tag, e.g. v0.11.0-rc.1")
-    ap.add_argument("--repo", default="DeusData/codebase-memory-mcp")
+    ap.add_argument("--repo", default="ngallodev/codebase-memory-cli")
     ap.add_argument("--root", default=".")
     ap.add_argument("--output", default="qualification/rc-dispatch.json")
     ap.add_argument("--soak-level", choices=("full", "quick"), default="full")

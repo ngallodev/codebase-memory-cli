@@ -32,7 +32,7 @@ sbom = {
     "dataLicense": "CC0-1.0",
     "SPDXID": "SPDXRef-DOCUMENT",
     "name": f"codebase-memory-cli-{version}",
-    "documentNamespace": f"https://github.com/DeusData/codebase-memory-mcp/releases/{version}",
+    "documentNamespace": f"https://github.com/ngallodev/codebase-memory-cli/releases/{version}",
     "creationInfo": {
         "created": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "creators": ["Tool: codebase-memory-cli-release-pipeline"],
