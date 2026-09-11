@@ -1,9 +1,0 @@
-case	runs	min_ms	median_ms	max_ms
-architecture	5	230	236	280
-changes	5	1211	1245	1681
-index	1	13814	13814	13814
-outline	5	158	166	170
-search	5	2963	3038	3567
-snippet	5	2693	3439	3584
-startup	1	11106	11106	11106
-status	5	2773	3003	3580

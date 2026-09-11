@@ -57,6 +57,9 @@ BENCHMARK_REPORT.md
 TEST_PLAN.md
 CHANGELOG.md
 
+# Local benchmark evidence; retain locally, do not commit or publish.
+/benchmark-runs/
+
 # Soak test output
 soak-results/
 
