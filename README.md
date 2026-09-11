@@ -168,6 +168,21 @@ MCP client configuration. Afterward, run `codebase-memory-cli install
 `codebase-memory-cli install-hooks` separately only if you explicitly want
 CLI-owned agent hooks.
 
+To download the latest published Windows package, install its exact bytes, and
+run the five-repository benchmark in one command, review and run the launcher
+from the Windows benchmark runbook:
+
+```powershell
+$launcher = Join-Path $env:TEMP 'cbm-fetch-benchmark.ps1'
+curl.exe -fsSL https://raw.githubusercontent.com/ngallodev/codebase-memory-cli/main/scripts/qualification/fetch-install-run-windows-benchmark.ps1 -o $launcher
+pwsh.exe -NoProfile -File $launcher -ReleaseTag <exact-release-tag>
+```
+
+It verifies the package against `checksums.txt`, uses the matching source tag,
+installs the native executable, and stores timestamped benchmark evidence under
+`C:\cbm-benchmark`. See [`docs/WINDOWS_BENCHMARK_RUNBOOK.md`](docs/WINDOWS_BENCHMARK_RUNBOOK.md)
+for prerequisites and the full qualification path.
+
 ## Human and machine output
 
 Human-readable output is the default. `--json` is the stable machine-oriented surface for the canonical commands in this slice.

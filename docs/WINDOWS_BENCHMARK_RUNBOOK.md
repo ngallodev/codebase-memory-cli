@@ -42,6 +42,20 @@ Record the hash and ensure it matches the draft-release artifact/evidence.
 
 ## Preferred one-command RC qualification
 
+For a published release, a Windows machine can fetch the launcher from `main` and run the
+package-install plus corpus benchmark without building source locally. Review the downloaded
+script before executing it; pin `-ReleaseTag` for reproducible runs:
+
+```powershell
+$launcher = Join-Path $env:TEMP 'cbm-fetch-benchmark.ps1'
+curl.exe -fsSL https://raw.githubusercontent.com/ngallodev/codebase-memory-cli/main/scripts/qualification/fetch-install-run-windows-benchmark.ps1 -o $launcher
+pwsh.exe -NoProfile -File $launcher -ReleaseTag <exact-release-tag>
+```
+
+The launcher verifies `codebase-memory-cli-windows-amd64.zip` against `checksums.txt`, installs the
+exact package, clones the matching source tag, and runs the five-repository corpus. Evidence is
+kept under a timestamped directory below `C:\cbm-benchmark`.
+
 For the first CLI-first Windows RC, use the top-level orchestrator from a **clean checkout of the exact RC source/tag**. It acquires the draft Windows artifact when local paths are not supplied, verifies archive/executable identity, captures machine state, runs portable/recovery/installed-product qualification, executes the retained Windows guards against the supplied executable, freezes/runs the five-repository corpus, and creates promotion-compatible evidence.
 
 ```powershell
