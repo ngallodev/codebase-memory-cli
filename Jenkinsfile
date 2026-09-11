@@ -72,7 +72,7 @@ pipeline {
         }
         stage('Test') {
             steps {
-                sh 'if [ -n "${CBM_TEST_SUITES:-}" ]; then scripts/test.sh --suites "$CBM_TEST_SUITES"; else scripts/test.sh; fi'
+                sh 'if [ -n "${CBM_TEST_SUITES:-}" ]; then CBM_TEST_TIMINGS=1 scripts/test.sh --suites "$CBM_TEST_SUITES"; else CBM_TEST_TIMINGS=1 scripts/test.sh; fi'
             }
         }
         stage('Package wrappers') {
