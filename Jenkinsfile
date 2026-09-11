@@ -43,7 +43,9 @@ pipeline {
         }
         stage('License gate') {
             steps {
-                withCredentials([string(credentialsId: 'github-token', variable: 'GH_TOKEN')]) {
+                withCredentials([usernamePassword(credentialsId: 'github-https-token',
+                                                   usernameVariable: 'GITHUB_USER',
+                                                   passwordVariable: 'GH_TOKEN')]) {
                     sh '''
                         set -eu
                         export PATH="$WORKSPACE/.ci-venv/bin:$PATH"
