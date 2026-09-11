@@ -8,6 +8,7 @@ for required in \
   "stage('Lint')" \
   "stage('Memory lint')" \
   "stage('Security static')" \
+  "stage('Install Python CI tools')" \
   "stage('License gate')" \
   "stage('Package wrappers')" \
   "stage('Thread sanitizer')" \
@@ -21,3 +22,8 @@ for required in \
     exit 1
   }
 done
+
+grep -Fq 'requirements-ci.txt' "$root/scripts/ci/install-python-tools.sh" || {
+  echo "missing CI Python requirements contract" >&2
+  exit 1
+}

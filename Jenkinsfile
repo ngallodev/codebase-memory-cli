@@ -36,10 +36,16 @@ pipeline {
                 '''
             }
         }
+        stage('Install Python CI tools') {
+            steps {
+                sh 'CBM_CI_VENV="$WORKSPACE/.ci-venv" scripts/ci/install-python-tools.sh'
+            }
+        }
         stage('License gate') {
             steps {
                 sh '''
                     set -eu
+                    export PATH="$WORKSPACE/.ci-venv/bin:$PATH"
                     scripts/license-gate.sh --selftest
                     scripts/license-gate.sh
                     scripts/audit-license-provenance.py

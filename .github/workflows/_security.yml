@@ -28,7 +28,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install ScanCode Toolkit
-        run: pipx install scancode-toolkit
+        run: |
+          CBM_CI_VENV="$RUNNER_TEMP/cbm-ci-venv" scripts/ci/install-python-tools.sh
+          echo "$RUNNER_TEMP/cbm-ci-venv/bin" >> "$GITHUB_PATH"
       - name: "Gate self-test (a planted violation must be detected)"
         run: scripts/license-gate.sh --selftest
       - name: "License compliance gate (one finding fails)"

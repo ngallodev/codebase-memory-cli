@@ -1,0 +1,4 @@
+# Python tooling required by repository CI gates.
+# Keep this separate from pkg/pypi/requirements-publish.txt: these packages are
+# CI analyzers, not runtime or registry-publishing dependencies.
+scancode-toolkit==32.5.0
