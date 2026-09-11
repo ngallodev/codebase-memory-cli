@@ -72,7 +72,20 @@ pipeline {
         }
         stage('Test') {
             steps {
-                sh 'if [ -n "${CBM_TEST_SUITES:-}" ]; then CBM_TEST_TIMINGS=1 scripts/test.sh --suites "$CBM_TEST_SUITES"; else CBM_TEST_TIMINGS=1 scripts/test.sh; fi'
+                sh '''
+                    set -eu
+                    if [ -n "${CBM_TEST_SUITES:-}" ]; then
+                        # Explicit suite requests are the opt-in performance
+                        # path (for example cs_lsp_bench or py_lsp_scale).
+                        CBM_TEST_TIMINGS=1 scripts/test.sh --suites "$CBM_TEST_SUITES"
+                    else
+                        # Keep pure LSP ratio/scale benchmarks out of the
+                        # ordinary correctness gate. Incremental remains in
+                        # the default gate because it contains correctness
+                        # coverage, not just performance measurements.
+                        CBM_SKIP_PERF=1 CBM_TEST_TIMINGS=1 scripts/test.sh
+                    fi
+                '''
             }
         }
         stage('Package wrappers') {

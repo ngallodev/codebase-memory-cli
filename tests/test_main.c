@@ -1163,7 +1163,10 @@ int main(int argc, char **argv) {
     RUN_SELECTED_SUITE(grammar_probe_f);
     RUN_SELECTED_SUITE(grammar_probe_g);
 
-    RUN_SELECTED_SUITE_PERF(incremental);
+    /* Incremental indexing contains correctness coverage as well as timing
+     * checks; keep it in the default gate. The standalone LSP ratio/scale
+     * suites above are the only pure performance suites. */
+    RUN_SELECTED_SUITE(incremental);
 
     if (g_list_only) {
         fflush(stdout);
