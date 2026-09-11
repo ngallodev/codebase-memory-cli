@@ -12,7 +12,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$Repo = "DeusData/codebase-memory-mcp"
+$Repo = "ngallodev/codebase-memory-cli"
 $BinaryName = "codebase-memory-cli"
 $DefaultInstallDir = Join-Path $env:LOCALAPPDATA "codebase-memory-cli"
 if (-not $InstallDir) { $InstallDir = $DefaultInstallDir }
