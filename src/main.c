@@ -151,7 +151,7 @@ static void main_local_maintenance_context_destroy(main_local_maintenance_contex
 }
 
 static void main_local_maintenance_cancel_bind(main_local_maintenance_context_t *context,
-                                                atomic_int *cancel_flag) {
+                                               atomic_int *cancel_flag) {
     if (!context) {
         return;
     }
@@ -546,7 +546,8 @@ static const cbm_cli_command_alias_t CLI_COMMAND_ALIASES[] = {
     {"query", "query_graph", "--query", "QUERY", "Run a graph query"},
     {"architecture", "get_architecture", NULL, NULL, "Describe indexed architecture"},
     {"changes", "detect_changes", NULL, NULL, "Show changed files and impact"},
-    {"source-search", "search_code", "--pattern", "PATTERN", "Search source text with graph context"},
+    {"source-search", "search_code", "--pattern", "PATTERN",
+     "Search source text with graph context"},
     {"outline", "get_file_outline", "--file-path", "PATH", "List indexed symbols in a source file"},
     {"delete-project", "delete_project", "--project", "PROJECT", "Delete an indexed project"},
     {"compare", "compare_graphs", NULL, NULL, "Compare two indexed project snapshots"},
@@ -660,7 +661,8 @@ static bool cli_first_nonspace_is_brace(const char *s) {
     return *s == '{';
 }
 
-static char *main_local_cli_daemon_execute(const char *tool_name, const char *args_json, bool *is_error_out);
+static char *main_local_cli_daemon_execute(const char *tool_name, const char *args_json,
+                                           bool *is_error_out);
 
 /* Slice 1 product boundary: canonical read-only CLI commands execute in the
  * already-coordinated one-shot process instead of opening another daemon-backed
@@ -699,7 +701,10 @@ static char *main_canonical_cli_args_with_project(const char *tool_name, const c
         return NULL;
     }
     static const char *const project_keys[] = {
-        "project", "project_name", "project_id", "projectName",
+        "project",
+        "project_name",
+        "project_id",
+        "projectName",
     };
     for (size_t i = 0; i < sizeof(project_keys) / sizeof(project_keys[0]); i++) {
         if (yyjson_obj_get(root, project_keys[i])) {
@@ -818,8 +823,7 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
             return SKIP_ONE;
         }
         args_json = heap_args;
-    } else if (!canonical_mode &&
-               cbm_cli_args_from_stdin_allowed(tool_name, cli_isatty(0) != 0)) {
+    } else if (!canonical_mode && cbm_cli_args_from_stdin_allowed(tool_name, cli_isatty(0) != 0)) {
         /* Legacy `cli <tool>` retains its piped-JSON channel. Canonical named
          * commands never read stdin implicitly: automation commonly inherits
          * an open pipe with no writer, and a shell-native command such as
@@ -984,7 +988,8 @@ static int run_named_cli(const cbm_cli_command_alias_t *alias, int argc, char **
      * compatibility form. */
     bool has_positional = argc > 0 && argv && argv[0] && strncmp(argv[0], "--", 2) != 0;
     if (has_positional && !alias->positional_flag) {
-        (void)fprintf(stderr, "error: '%s' does not accept a positional argument; run '%s --help'\n",
+        (void)fprintf(stderr,
+                      "error: '%s' does not accept a positional argument; run '%s --help'\n",
                       alias->command, alias->command);
         return SKIP_ONE;
     }
@@ -1033,7 +1038,8 @@ static void print_help(void) {
     printf("  codebase-memory-cli projects --json\n");
     printf("\nAdministration:\n");
     printf("  codebase-memory-cli allow-root [--approve-sensitive] <path>\n");
-    printf("  codebase-memory-cli install [-y|-n] [--force] [--dry-run] [--dir=<path>] [--skip-config]\n");
+    printf("  codebase-memory-cli install [-y|-n] [--force] [--dry-run] [--dir=<path>] "
+           "[--skip-config]\n");
     printf("  codebase-memory-cli install-hooks [--dry-run] [--plan] [--clients=<list>]\n");
     printf("  codebase-memory-cli uninstall [-y|-n] [--dry-run]\n");
     printf("  codebase-memory-cli update [-y|-n]\n");
@@ -1047,7 +1053,8 @@ static void print_help(void) {
     printf("  Add --json to canonical commands for machine-readable output.\n");
     printf("  Progress and diagnostics are written to stderr.\n");
     printf("\nCompatibility:\n");
-    printf("  codebase-memory-cli cli <tool> ... remains temporarily available for migration/parity.\n");
+    printf("  codebase-memory-cli cli <tool> ... remains temporarily available for "
+           "migration/parity.\n");
 }
 
 /* ── Main ───────────────────────────────────────────────────────── */
@@ -1058,8 +1065,9 @@ static void print_help(void) {
  *
  * Enrollment lives here, in a command a person types, and deliberately nowhere
  * else: the whole point of the grant store is that neither an indexed repository
- * nor a tool caller can widen its own boundary. A confirmation delivered through an agent-controlled product surface could be
- * answered by the same agent that may have been influenced, so it would not be a human decision at all. */
+ * nor a tool caller can widen its own boundary. A confirmation delivered through an
+ * agent-controlled product surface could be answered by the same agent that may have been
+ * influenced, so it would not be a human decision at all. */
 static int main_run_allow_root(int argc, char **argv) {
     const char *path = NULL;
     bool approve_sensitive = false;
@@ -1391,7 +1399,6 @@ static cbm_daemon_ipc_endpoint_t *main_daemon_endpoint_new(void) {
     return cbm_daemon_bootstrap_endpoint_new(runtime_parent);
 }
 
-
 static bool main_doctor_db_name(const char *name) {
     if (!name) {
         return false;
@@ -1505,9 +1512,8 @@ static int main_run_doctor(int argc, char **argv) {
     bool daemon_probe_ok = false;
     cbm_daemon_ipc_endpoint_t *endpoint = identity_ok ? main_daemon_endpoint_new() : NULL;
     if (endpoint) {
-        daemon_probe_ok = cbm_daemon_runtime_request_status(endpoint, &identity,
-                                                            MAIN_CONNECT_TIMEOUT_MS,
-                                                            &daemon_status);
+        daemon_probe_ok = cbm_daemon_runtime_request_status(
+            endpoint, &identity, MAIN_CONNECT_TIMEOUT_MS, &daemon_status);
         daemon_running = daemon_probe_ok;
         cbm_daemon_ipc_endpoint_free(endpoint);
     }
@@ -1531,17 +1537,20 @@ static int main_run_doctor(int argc, char **argv) {
         yyjson_mut_val *event_counts = doc ? yyjson_mut_obj(doc) : NULL;
         if (!doc || !root || !build || !cache_obj || !daemon || !store || !config || !events ||
             !event_counts) {
-            if (doc) yyjson_mut_doc_free(doc);
+            if (doc)
+                yyjson_mut_doc_free(doc);
             (void)fprintf(stderr, "error: doctor result allocation failed\\n");
             return EXIT_FAILURE;
         }
         yyjson_mut_doc_set_root(doc, root);
-        yyjson_mut_obj_add_bool(doc, root, "ok", healthy && stores.transient == 0 && stores.corrupt == 0);
+        yyjson_mut_obj_add_bool(doc, root, "ok",
+                                healthy && stores.transient == 0 && stores.corrupt == 0);
         yyjson_mut_obj_add_strcpy(doc, root, "status", overall);
         yyjson_mut_obj_add_bool(doc, root, "deep", deep);
         yyjson_mut_obj_add_strcpy(doc, build, "version", CBM_VERSION);
         yyjson_mut_obj_add_bool(doc, build, "identity_ok", identity_ok);
-        yyjson_mut_obj_add_strcpy(doc, build, "identity_status", main_build_identity_status_name(identity_status));
+        yyjson_mut_obj_add_strcpy(doc, build, "identity_status",
+                                  main_build_identity_status_name(identity_status));
         yyjson_mut_obj_add_val(doc, root, "build", build);
         yyjson_mut_obj_add_strcpy(doc, cache_obj, "path", cache ? cache : "");
         yyjson_mut_obj_add_bool(doc, cache_obj, "present", cache_present);
@@ -1559,7 +1568,8 @@ static int main_run_doctor(int argc, char **argv) {
         yyjson_mut_obj_add_uint(doc, store, "databases", stores.discovered);
         yyjson_mut_obj_add_uint(doc, store, "readable", stores.readable);
         yyjson_mut_obj_add_uint(doc, store, "unreadable", stores.unreadable);
-        yyjson_mut_obj_add_uint(doc, store, deep ? "integrity_ok" : "schema_readable", stores.healthy);
+        yyjson_mut_obj_add_uint(doc, store, deep ? "integrity_ok" : "schema_readable",
+                                stores.healthy);
         yyjson_mut_obj_add_uint(doc, store, "transient", stores.transient);
         yyjson_mut_obj_add_uint(doc, store, "corrupt", stores.corrupt);
         yyjson_mut_obj_add_val(doc, root, "store", store);
@@ -1572,9 +1582,10 @@ static int main_run_doctor(int argc, char **argv) {
         yyjson_mut_obj_add_uint(doc, events, "malformed_records", reliability.malformed_records);
         yyjson_mut_obj_add_bool(doc, events, "truncated", reliability.truncated);
         for (int event = 0; event < CBM_RELIABILITY_EVENT_COUNT; ++event) {
-            if (reliability.counts[event] == 0) continue;
+            if (reliability.counts[event] == 0)
+                continue;
             yyjson_mut_obj_add_uint(doc, event_counts, cbm_reliability_event_name(event),
-                                   reliability.counts[event]);
+                                    reliability.counts[event]);
         }
         yyjson_mut_obj_add_val(doc, events, "counts", event_counts);
         yyjson_mut_obj_add_val(doc, root, "reliability_events", events);
@@ -1588,22 +1599,25 @@ static int main_run_doctor(int argc, char **argv) {
         free(encoded);
     } else {
         printf("Codebase Memory doctor: %s%s\\n", overall, deep ? " (deep)" : "");
-        printf("  build:  %s (%s)\\n", CBM_VERSION, main_build_identity_status_name(identity_status));
+        printf("  build:  %s (%s)\\n", CBM_VERSION,
+               main_build_identity_status_name(identity_status));
         printf("  cache:  %s [%s, %s]\\n", cache ? cache : "unresolved",
-               cache_present ? "present" : "missing", cache_secure ? "private" : "unsafe/unverified");
+               cache_present ? "present" : "missing",
+               cache_secure ? "private" : "unsafe/unverified");
         if (daemon_running) {
             printf("  daemon: reachable, pid=%u, clients=%u%s\\n", daemon_status.daemon_pid,
                    daemon_status.committed_clients, daemon_status.stopping ? ", stopping" : "");
         } else {
             printf("  daemon: not reachable (optional for direct reads)\\n");
         }
-        printf("  config: watcher=%s, ui=%s, ui_port=%d\n", watcher_enabled ? "enabled" : "disabled",
+        printf("  config: watcher=%s, ui=%s, ui_port=%d\n",
+               watcher_enabled ? "enabled" : "disabled",
                ui_config.ui_enabled ? "enabled" : "disabled", ui_config.ui_port);
-        printf("  store:  %zu database(s), %zu readable, %zu unreadable",
-               stores.discovered, stores.readable, stores.unreadable);
+        printf("  store:  %zu database(s), %zu readable, %zu unreadable", stores.discovered,
+               stores.readable, stores.unreadable);
         if (deep) {
-            printf(", %zu integrity-ok, %zu transient/busy, %zu corrupt",
-                   stores.healthy, stores.transient, stores.corrupt);
+            printf(", %zu integrity-ok, %zu transient/busy, %zu corrupt", stores.healthy,
+                   stores.transient, stores.corrupt);
         }
         printf("\\n");
         if (reliability.records > 0 || reliability.malformed_records > 0) {
@@ -1614,13 +1628,15 @@ static int main_run_doctor(int argc, char **argv) {
             }
             printf("\\n");
             for (int event = 0; event < CBM_RELIABILITY_EVENT_COUNT; ++event) {
-                if (reliability.counts[event] == 0) continue;
+                if (reliability.counts[event] == 0)
+                    continue;
                 printf("          %s=%" PRIu64 "\\n", cbm_reliability_event_name(event),
                        reliability.counts[event]);
             }
         }
         if (!deep) {
-            printf("  hint:   use 'codebase-memory-cli doctor --deep' for explicit integrity verification\\n");
+            printf("  hint:   use 'codebase-memory-cli doctor --deep' for explicit integrity "
+                   "verification\\n");
         }
     }
 
@@ -1878,10 +1894,11 @@ static cbm_daemon_bootstrap_status_t main_client_bootstrap_with_upgrade(
 }
 
 /* One-shot CLI commands execute through the shared daemon through the neutral
- * operation request path; hooks use their own narrow request type: an active daemon (any starter) is recycled, an absent
- * one is spawned for this command — with a hint that `daemon start` removes
+ * operation request path; hooks use their own narrow request type: an active daemon (any starter)
+ * is recycled, an absent one is spawned for this command — with a hint that `daemon start` removes
  * that per-command cost. Only supervised index workers stay in-process. */
-static char *main_local_cli_daemon_execute(const char *tool_name, const char *args_json, bool *is_error_out) {
+static char *main_local_cli_daemon_execute(const char *tool_name, const char *args_json,
+                                           bool *is_error_out) {
     if (is_error_out) {
         *is_error_out = false;
     }
@@ -1925,9 +1942,9 @@ static char *main_local_cli_daemon_execute(const char *tool_name, const char *ar
     char *result = NULL;
     uint8_t *response = NULL;
     uint32_t response_length = 0;
-    bool context_ok =
-        main_session_context(NULL, session_root, allowed_root, &allowed_root_ptr) &&
-        main_set_client_context(bootstrap.client, session_root, NULL, NULL, MAIN_CONNECT_TIMEOUT_MS);
+    bool context_ok = main_session_context(NULL, session_root, allowed_root, &allowed_root_ptr) &&
+                      main_set_client_context(bootstrap.client, session_root, NULL, NULL,
+                                              MAIN_CONNECT_TIMEOUT_MS);
     bool operation_error = false;
     if (context_ok &&
         cbm_daemon_application_client_operation_result(
@@ -1974,8 +1991,8 @@ static char *main_hook_cwd(const char *input_json) {
 }
 
 /* Hooks never spawn a daemon (a cold spawn livelocks against the fail-open
- * budget), so augmentation is absent until a daemon is already running. That state must be VISIBLE, not silent — but a notice per
- * tool call would nag, so a cache-scoped marker rate-limits it. */
+ * budget), so augmentation is absent until a daemon is already running. That state must be VISIBLE,
+ * not silent — but a notice per tool call would nag, so a cache-scoped marker rate-limits it. */
 static bool main_hook_absent_notice_due(void) {
     const char *cache_dir = cbm_resolve_cache_dir();
     if (!cache_dir) {
@@ -2046,8 +2063,8 @@ static int main_run_hook_frontend(cbm_daemon_runtime_client_t *client, const cha
         return 0;
     }
     char *hook_cwd = main_hook_cwd(input);
-    bool context_set =
-        main_set_client_context(client, hook_cwd, hook_event, hook_dialect, MAIN_HOOK_CONNECT_TIMEOUT_MS);
+    bool context_set = main_set_client_context(client, hook_cwd, hook_event, hook_dialect,
+                                               MAIN_HOOK_CONNECT_TIMEOUT_MS);
     free(hook_cwd);
     if (!context_set) {
         free(input);
@@ -2791,8 +2808,8 @@ int main(int argc, char **argv) {
     /* Hook augmentation is contractually fail-open and time-bounded. It is
      * daemon-backed but CONNECT-ONLY: a hook never spawns a daemon (a cold
      * spawn cannot fit the fail-open budget and livelocks against the
-     * last-client-exit teardown), it reuses whichever daemon a prior CLI operation or `daemon start` already brought up. Arm the deadline before
-     * hashing and IPC. */
+     * last-client-exit teardown), it reuses whichever daemon a prior CLI operation or `daemon
+     * start` already brought up. Arm the deadline before hashing and IPC. */
     if (role == CBM_DAEMON_PROCESS_HOOK_CLIENT) {
 #ifndef _WIN32
         cbm_hook_augment_arm_deadline();
@@ -3279,8 +3296,7 @@ int main(int argc, char **argv) {
 
     /* No public invocation is classified as a bootstrap-only client. Reaching
      * this tail therefore indicates internal role-classification drift. */
-    (void)fprintf(stderr,
-                  "codebase-memory-cli: internal client role has no CLI frontend\n");
+    (void)fprintf(stderr, "codebase-memory-cli: internal client role has no CLI frontend\n");
     (void)cbm_daemon_runtime_client_close(g_daemon_client, MAIN_CLOSE_TIMEOUT_MS);
     g_daemon_client = NULL;
     (void)main_version_cohort_close(&client_cohort_lease, &client_cohort_manager);

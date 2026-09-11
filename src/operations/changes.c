@@ -32,10 +32,12 @@ enum {
 #define CHANGES_PAIR_LEN 2
 
 static char *changes_strdup(const char *text) {
-    if (!text) return NULL;
+    if (!text)
+        return NULL;
     size_t len = strlen(text);
     char *copy = malloc(len + 1U);
-    if (copy) memcpy(copy, text, len + 1U);
+    if (copy)
+        memcpy(copy, text, len + 1U);
     return copy;
 }
 
@@ -58,7 +60,8 @@ static char *changes_string_arg(const char *args, const char *name) {
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
     char *result = value && yyjson_is_str(value) ? changes_strdup(yyjson_get_str(value)) : NULL;
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return result;
 }
 
@@ -66,7 +69,8 @@ static char *changes_project_arg(const char *args) {
     static const char *const names[] = {"project", "project_name", "project_id", "projectName"};
     for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); ++i) {
         char *value = changes_string_arg(args, names[i]);
-        if (value) return value;
+        if (value)
+            return value;
     }
     return NULL;
 }
@@ -76,7 +80,8 @@ static int changes_int_arg(const char *args, const char *name, int fallback) {
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
     int result = value && yyjson_is_int(value) ? (int)yyjson_get_sint(value) : fallback;
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return result;
 }
 
@@ -87,14 +92,16 @@ static int changes_clamp_depth(int depth, const char *tool) {
         char cap_buf[16];
         snprintf(req_buf, sizeof(req_buf), "%d", depth);
         snprintf(cap_buf, sizeof(cap_buf), "%d", cap);
-        cbm_log_warn("operation.depth_capped", "operation", tool, "requested", req_buf, "cap", cap_buf);
+        cbm_log_warn("operation.depth_capped", "operation", tool, "requested", req_buf, "cap",
+                     cap_buf);
         return cap;
     }
     return depth;
 }
 
 static bool changes_validate_search_path_arg(const char *s) {
-    if (!s) return false;
+    if (!s)
+        return false;
     for (const char *p = s; *p; ++p) {
         switch (*p) {
         case '\'':
@@ -136,18 +143,24 @@ static cbm_operation_result_t changes_error(const char *message) {
 
 static cbm_operation_result_t changes_project_error(const char *project) {
     if (!project) {
-        return changes_error("{\"error\":\"missing required argument: project\",\"hint\":\"Pass the project as the \\\"project\\\" argument. Run projects to see indexed projects.\"}");
+        return changes_error(
+            "{\"error\":\"missing required argument: project\",\"hint\":\"Pass the project as the "
+            "\\\"project\\\" argument. Run projects to see indexed projects.\"}");
     }
-    return changes_error("{\"error\":\"project not found or not indexed\",\"hint\":\"Run projects to see indexed projects.\"}");
+    return changes_error("{\"error\":\"project not found or not indexed\",\"hint\":\"Run projects "
+                         "to see indexed projects.\"}");
 }
 
 static cbm_store_t *changes_open_store_and_root(const char *project, char **root_path_out) {
     *root_path_out = NULL;
-    if (!project || !project[0]) return NULL;
+    if (!project || !project[0])
+        return NULL;
     cbm_store_t *store = cbm_store_open(project);
-    if (!store) return NULL;
+    if (!store)
+        return NULL;
     cbm_project_t info = {0};
-    if (cbm_store_get_project(store, project, &info) != CBM_STORE_OK || !info.root_path || !info.root_path[0]) {
+    if (cbm_store_get_project(store, project, &info) != CBM_STORE_OK || !info.root_path ||
+        !info.root_path[0]) {
         cbm_project_free_fields(&info);
         cbm_store_close(store);
         return NULL;
@@ -344,7 +357,7 @@ static void detect_emit_impacted_tree(cbm_sb_t *sb, cbm_traverse_result_t *tr, i
 }
 
 cbm_operation_result_t cbm_changes_operation_execute(const char *args,
-                                                        const cbm_operation_runtime_t *runtime) {
+                                                     const cbm_operation_runtime_t *runtime) {
     char *project = changes_project_arg(args);
     char *base_branch = changes_string_arg(args, "base_branch");
     char *since = changes_string_arg(args, "since");
@@ -433,7 +446,8 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
     char output_path[CBM_SZ_2K] = {0};
     cbm_proc_result_t git_result = {0};
     int git_run = cbm_operation_run_shell_command(runtime, cmd, output_path, &git_result);
-    bool git_cancelled = git_result.cancellation_requested || cbm_operation_runtime_cancelled(runtime);
+    bool git_cancelled =
+        git_result.cancellation_requested || cbm_operation_runtime_cancelled(runtime);
     if (git_cancelled) {
         (void)cbm_unlink(output_path);
         cbm_store_close(store);
@@ -550,7 +564,8 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
         cbm_proc_result_t hunk_result = {0};
         int hunk_run =
             cbm_operation_run_shell_command(runtime, hunk_cmd, hunk_output_path, &hunk_result);
-        bool hunk_cancelled = hunk_result.cancellation_requested || cbm_operation_runtime_cancelled(runtime);
+        bool hunk_cancelled =
+            hunk_result.cancellation_requested || cbm_operation_runtime_cancelled(runtime);
         FILE *hfp = (!hunk_cancelled && hunk_run == 0) ? cbm_fopen(hunk_output_path, "rb") : NULL;
         if (hfp) {
             (void)fseek(hfp, 0, SEEK_END);
@@ -589,7 +604,8 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
     char line[CBM_SZ_1K];
     while (fgets(line, sizeof(line), fp)) {
         size_t len = strlen(line);
-        while (len > 0 && (line[len - CHANGES_SKIP_ONE] == '\n' || line[len - CHANGES_SKIP_ONE] == '\r')) {
+        while (len > 0 &&
+               (line[len - CHANGES_SKIP_ONE] == '\n' || line[len - CHANGES_SKIP_ONE] == '\r')) {
             line[--len] = '\0';
         }
         if (len == 0) {
@@ -598,8 +614,8 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
         /* Strip the `git status --porcelain` 2-char code + space; for a rename
          * ("R  old -> new") keep the destination path. */
         char *path_line = line;
-        if (len > CHANGES_PAIR_LEN && line[CHANGES_PAIR_LEN] == ' ' && strchr(" MADRCU?!", line[0]) &&
-            strchr(" MADRCU?!", line[1])) {
+        if (len > CHANGES_PAIR_LEN && line[CHANGES_PAIR_LEN] == ' ' &&
+            strchr(" MADRCU?!", line[0]) && strchr(" MADRCU?!", line[1])) {
             path_line = line + CHANGES_PAIR_LEN + CHANGES_SKIP_ONE;
             char *arrow = strstr(path_line, " -> ");
             if (arrow) {
@@ -651,7 +667,8 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
         char mb_output_path[CBM_SZ_2K] = {0};
         cbm_proc_result_t mb_result = {0};
         int mb_run = cbm_operation_run_shell_command(runtime, mbcmd, mb_output_path, &mb_result);
-        bool mb_cancelled = mb_result.cancellation_requested || cbm_operation_runtime_cancelled(runtime);
+        bool mb_cancelled =
+            mb_result.cancellation_requested || cbm_operation_runtime_cancelled(runtime);
         bool mb_containment_failed = mb_run != 0 && mb_output_path[0] != '\0';
         FILE *mbfp =
             mb_run == 0 && mb_result.exit_code == 0 ? cbm_fopen(mb_output_path, "rb") : NULL;

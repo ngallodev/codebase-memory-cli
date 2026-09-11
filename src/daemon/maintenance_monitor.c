@@ -48,9 +48,8 @@ static void *maintenance_monitor_worker(void *opaque) {
                 (void)monitor->cancel(monitor->cancel_context);
             }
             uint64_t now = cbm_now_ms();
-            uint64_t deadline = now > UINT64_MAX - MAINTENANCE_GRACE_MS
-                                    ? UINT64_MAX
-                                    : now + MAINTENANCE_GRACE_MS;
+            uint64_t deadline =
+                now > UINT64_MAX - MAINTENANCE_GRACE_MS ? UINT64_MAX : now + MAINTENANCE_GRACE_MS;
             while (!atomic_load_explicit(&monitor->stopping, memory_order_acquire) &&
                    cbm_now_ms() < deadline) {
                 cbm_usleep(MAINTENANCE_POLL_MS * 1000U);

@@ -5,10 +5,11 @@
 
 #include <limits.h>
 
-bool cbm_auto_index_within_file_limit(const char *root_path, int file_limit,
-                                      int *file_count_out) {
-    if (file_count_out) *file_count_out = -1;
-    if (!root_path || !root_path[0] || file_limit < 0) return false;
+bool cbm_auto_index_within_file_limit(const char *root_path, int file_limit, int *file_count_out) {
+    if (file_count_out)
+        *file_count_out = -1;
+    if (!root_path || !root_path[0] || file_limit < 0)
+        return false;
     enum { AUTO_INDEX_COUNT_TIMEOUT_MS = 5000 };
     cbm_discover_opts_t options = {
         .mode = CBM_MODE_FULL,

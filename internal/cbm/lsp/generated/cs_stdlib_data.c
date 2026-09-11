@@ -23,113 +23,107 @@
 #include "../cs_lsp.h"
 #include <string.h>
 
-#define REG_TYPE(qn_, short_, is_iface_, parents_)               \
-    do {                                                          \
-        memset(&rt, 0, sizeof(rt));                              \
-        rt.qualified_name = (qn_);                                \
-        rt.short_name = (short_);                                 \
-        rt.is_interface = (is_iface_);                            \
-        rt.embedded_types = (parents_);                           \
-        cbm_registry_add_type(reg, rt);                           \
+#define REG_TYPE(qn_, short_, is_iface_, parents_) \
+    do {                                           \
+        memset(&rt, 0, sizeof(rt));                \
+        rt.qualified_name = (qn_);                 \
+        rt.short_name = (short_);                  \
+        rt.is_interface = (is_iface_);             \
+        rt.embedded_types = (parents_);            \
+        cbm_registry_add_type(reg, rt);            \
     } while (0)
 
 /* Helper for single-parent inline registration. The macro avoids the
  * preprocessor "comma in compound literal splits args" pitfall by taking
  * the parent QN as a single string. */
-#define REG_TYPE_P1(qn_, short_, is_iface_, p1_)                  \
+#define REG_TYPE_P1(qn_, short_, is_iface_, p1_)     \
+    do {                                             \
+        static const char *_p_arr[] = {(p1_), NULL}; \
+        memset(&rt, 0, sizeof(rt));                  \
+        rt.qualified_name = (qn_);                   \
+        rt.short_name = (short_);                    \
+        rt.is_interface = (is_iface_);               \
+        rt.embedded_types = _p_arr;                  \
+        cbm_registry_add_type(reg, rt);              \
+    } while (0)
+
+#define REG_GENERIC_TYPE_P1(qn_, short_, is_iface_, p1_, tparams_) \
     do {                                                           \
-        static const char *_p_arr[] = {(p1_), NULL};              \
+        static const char *_pg_arr[] = {(p1_), NULL};              \
         memset(&rt, 0, sizeof(rt));                                \
         rt.qualified_name = (qn_);                                 \
         rt.short_name = (short_);                                  \
         rt.is_interface = (is_iface_);                             \
-        rt.embedded_types = _p_arr;                                \
+        rt.embedded_types = _pg_arr;                               \
+        rt.type_param_names = (tparams_);                          \
         cbm_registry_add_type(reg, rt);                            \
     } while (0)
 
-#define REG_GENERIC_TYPE_P1(qn_, short_, is_iface_, p1_, tparams_) \
-    do {                                                            \
-        static const char *_pg_arr[] = {(p1_), NULL};              \
-        memset(&rt, 0, sizeof(rt));                                 \
-        rt.qualified_name = (qn_);                                  \
-        rt.short_name = (short_);                                   \
-        rt.is_interface = (is_iface_);                              \
-        rt.embedded_types = _pg_arr;                                \
-        rt.type_param_names = (tparams_);                           \
-        cbm_registry_add_type(reg, rt);                             \
-    } while (0)
-
 #define REG_GENERIC_TYPE(qn_, short_, is_iface_, parents_, tparams_) \
-    do {                                                              \
+    do {                                                             \
         memset(&rt, 0, sizeof(rt));                                  \
-        rt.qualified_name = (qn_);                                    \
-        rt.short_name = (short_);                                     \
-        rt.is_interface = (is_iface_);                                \
-        rt.embedded_types = (parents_);                               \
-        rt.type_param_names = (tparams_);                             \
-        cbm_registry_add_type(reg, rt);                               \
+        rt.qualified_name = (qn_);                                   \
+        rt.short_name = (short_);                                    \
+        rt.is_interface = (is_iface_);                               \
+        rt.embedded_types = (parents_);                              \
+        rt.type_param_names = (tparams_);                            \
+        cbm_registry_add_type(reg, rt);                              \
     } while (0)
 
-#define REG_METHOD(class_qn_, method_name_, ret_type_)              \
-    do {                                                             \
-        memset(&rf, 0, sizeof(rf));                                 \
-        rf.min_params = -1;                                          \
-        rf.qualified_name =                                          \
-            cbm_arena_sprintf(arena, "%s.%s", (class_qn_), (method_name_)); \
-        rf.short_name = (method_name_);                              \
-        rf.receiver_type = (class_qn_);                              \
-        {                                                            \
-            const CBMType **rets =                                   \
-                (const CBMType **)cbm_arena_alloc(arena, 2 * sizeof(*rets)); \
-            rets[0] = (ret_type_);                                   \
-            rets[1] = NULL;                                          \
-            rf.signature = cbm_type_func(arena, NULL, NULL, rets);   \
-        }                                                            \
-        cbm_registry_add_func(reg, rf);                              \
+#define REG_METHOD(class_qn_, method_name_, ret_type_)                                          \
+    do {                                                                                        \
+        memset(&rf, 0, sizeof(rf));                                                             \
+        rf.min_params = -1;                                                                     \
+        rf.qualified_name = cbm_arena_sprintf(arena, "%s.%s", (class_qn_), (method_name_));     \
+        rf.short_name = (method_name_);                                                         \
+        rf.receiver_type = (class_qn_);                                                         \
+        {                                                                                       \
+            const CBMType **rets = (const CBMType **)cbm_arena_alloc(arena, 2 * sizeof(*rets)); \
+            rets[0] = (ret_type_);                                                              \
+            rets[1] = NULL;                                                                     \
+            rf.signature = cbm_type_func(arena, NULL, NULL, rets);                              \
+        }                                                                                       \
+        cbm_registry_add_func(reg, rf);                                                         \
     } while (0)
 
-#define REG_STATIC(class_qn_, method_name_, ret_type_)              \
-    do {                                                             \
-        memset(&rf, 0, sizeof(rf));                                 \
-        rf.min_params = -1;                                          \
-        rf.qualified_name =                                          \
-            cbm_arena_sprintf(arena, "%s.%s", (class_qn_), (method_name_)); \
-        rf.short_name = (method_name_);                              \
-        rf.receiver_type = (class_qn_);                              \
-        {                                                            \
-            const CBMType **rets =                                   \
-                (const CBMType **)cbm_arena_alloc(arena, 2 * sizeof(*rets)); \
-            rets[0] = (ret_type_);                                   \
-            rets[1] = NULL;                                          \
-            rf.signature = cbm_type_func(arena, NULL, NULL, rets);   \
-        }                                                            \
-        cbm_registry_add_func(reg, rf);                              \
+#define REG_STATIC(class_qn_, method_name_, ret_type_)                                          \
+    do {                                                                                        \
+        memset(&rf, 0, sizeof(rf));                                                             \
+        rf.min_params = -1;                                                                     \
+        rf.qualified_name = cbm_arena_sprintf(arena, "%s.%s", (class_qn_), (method_name_));     \
+        rf.short_name = (method_name_);                                                         \
+        rf.receiver_type = (class_qn_);                                                         \
+        {                                                                                       \
+            const CBMType **rets = (const CBMType **)cbm_arena_alloc(arena, 2 * sizeof(*rets)); \
+            rets[0] = (ret_type_);                                                              \
+            rets[1] = NULL;                                                                     \
+            rf.signature = cbm_type_func(arena, NULL, NULL, rets);                              \
+        }                                                                                       \
+        cbm_registry_add_func(reg, rf);                                                         \
     } while (0)
 
 /* Extension method: register as a free static function whose first param's
  * NAME is "this" — cs_lookup_extension dispatches on this convention. */
-#define REG_EXTENSION(qn_, short_name_, recv_, ret_type_)            \
-    do {                                                             \
-        memset(&rf, 0, sizeof(rf));                                 \
-        rf.min_params = -1;                                          \
-        rf.qualified_name = (qn_);                                   \
-        rf.short_name = (short_name_);                               \
-        {                                                            \
-            const CBMType **rets =                                   \
-                (const CBMType **)cbm_arena_alloc(arena, 2 * sizeof(*rets)); \
-            rets[0] = (ret_type_);                                   \
-            rets[1] = NULL;                                          \
-            const char **pnames =                                    \
-                (const char **)cbm_arena_alloc(arena, 2 * sizeof(*pnames)); \
-            pnames[0] = "this";                                       \
-            pnames[1] = NULL;                                        \
-            const CBMType **ptypes =                                 \
-                (const CBMType **)cbm_arena_alloc(arena, 2 * sizeof(*ptypes)); \
-            ptypes[0] = (recv_);                                     \
-            ptypes[1] = NULL;                                        \
-            rf.signature = cbm_type_func(arena, pnames, ptypes, rets); \
-        }                                                            \
-        cbm_registry_add_func(reg, rf);                              \
+#define REG_EXTENSION(qn_, short_name_, recv_, ret_type_)                                       \
+    do {                                                                                        \
+        memset(&rf, 0, sizeof(rf));                                                             \
+        rf.min_params = -1;                                                                     \
+        rf.qualified_name = (qn_);                                                              \
+        rf.short_name = (short_name_);                                                          \
+        {                                                                                       \
+            const CBMType **rets = (const CBMType **)cbm_arena_alloc(arena, 2 * sizeof(*rets)); \
+            rets[0] = (ret_type_);                                                              \
+            rets[1] = NULL;                                                                     \
+            const char **pnames = (const char **)cbm_arena_alloc(arena, 2 * sizeof(*pnames));   \
+            pnames[0] = "this";                                                                 \
+            pnames[1] = NULL;                                                                   \
+            const CBMType **ptypes =                                                            \
+                (const CBMType **)cbm_arena_alloc(arena, 2 * sizeof(*ptypes));                  \
+            ptypes[0] = (recv_);                                                                \
+            ptypes[1] = NULL;                                                                   \
+            rf.signature = cbm_type_func(arena, pnames, ptypes, rets);                          \
+        }                                                                                       \
+        cbm_registry_add_func(reg, rf);                                                         \
     } while (0)
 
 #define OBJ() cbm_type_named(arena, "System.Object")
@@ -217,8 +211,7 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("System.String", "PadLeft", STR());
     REG_METHOD("System.String", "PadRight", STR());
     REG_METHOD("System.String", "Split",
-               cbm_type_template(arena, "System.Array",
-                                 (const CBMType *[]){STR(), NULL}, 1));
+               cbm_type_template(arena, "System.Array", (const CBMType *[]){STR(), NULL}, 1));
     REG_METHOD("System.String", "IndexOf", INT());
     REG_METHOD("System.String", "LastIndexOf", INT());
     REG_METHOD("System.String", "StartsWith", BOOL_T());
@@ -319,8 +312,7 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_TYPE("System.IO.File", "File", false, obj_parent);
     REG_STATIC("System.IO.File", "ReadAllText", STR());
     REG_STATIC("System.IO.File", "ReadAllLines",
-               cbm_type_template(arena, "System.Array",
-                                 (const CBMType *[]){STR(), NULL}, 1));
+               cbm_type_template(arena, "System.Array", (const CBMType *[]){STR(), NULL}, 1));
     REG_STATIC("System.IO.File", "ReadAllBytes",
                cbm_type_template(arena, "System.Array",
                                  (const CBMType *[]){cbm_type_named(arena, "System.Byte"), NULL},
@@ -366,11 +358,9 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_STATIC("System.IO.Directory", "Exists", BOOL_T());
     REG_STATIC("System.IO.Directory", "Delete", VOID_T());
     REG_STATIC("System.IO.Directory", "GetFiles",
-               cbm_type_template(arena, "System.Array",
-                                 (const CBMType *[]){STR(), NULL}, 1));
+               cbm_type_template(arena, "System.Array", (const CBMType *[]){STR(), NULL}, 1));
     REG_STATIC("System.IO.Directory", "GetDirectories",
-               cbm_type_template(arena, "System.Array",
-                                 (const CBMType *[]){STR(), NULL}, 1));
+               cbm_type_template(arena, "System.Array", (const CBMType *[]){STR(), NULL}, 1));
     REG_STATIC("System.IO.Directory", "EnumerateFiles",
                cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
                                  (const CBMType *[]){STR(), NULL}, 1));
@@ -429,23 +419,22 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
 
     static const char *ienumerable_parents[] = {"System.Collections.IEnumerable", NULL};
     REG_GENERIC_TYPE("System.Collections.Generic.IEnumerable", "IEnumerable", true,
-                      ienumerable_parents, single_t_params);
+                     ienumerable_parents, single_t_params);
     REG_METHOD("System.Collections.Generic.IEnumerable", "GetEnumerator",
                cbm_type_template(arena, "System.Collections.Generic.IEnumerator",
                                  (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
 
     static const char *ienumerator_parents[] = {NULL};
     REG_GENERIC_TYPE("System.Collections.Generic.IEnumerator", "IEnumerator", true,
-                      ienumerator_parents, single_t_params);
+                     ienumerator_parents, single_t_params);
     REG_METHOD("System.Collections.Generic.IEnumerator", "MoveNext", BOOL_T());
     REG_METHOD("System.Collections.Generic.IEnumerator", "Current",
                cbm_type_type_param(arena, "T"));
     REG_METHOD("System.Collections.Generic.IEnumerator", "Reset", VOID_T());
 
-    static const char *icollection_parents[] = {
-        "System.Collections.Generic.IEnumerable", NULL};
+    static const char *icollection_parents[] = {"System.Collections.Generic.IEnumerable", NULL};
     REG_GENERIC_TYPE("System.Collections.Generic.ICollection", "ICollection", true,
-                      icollection_parents, single_t_params);
+                     icollection_parents, single_t_params);
     REG_METHOD("System.Collections.Generic.ICollection", "Add", VOID_T());
     REG_METHOD("System.Collections.Generic.ICollection", "Remove", BOOL_T());
     REG_METHOD("System.Collections.Generic.ICollection", "Clear", VOID_T());
@@ -455,16 +444,15 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
 
     static const char *ilist_parents[] = {"System.Collections.Generic.ICollection", NULL};
     REG_GENERIC_TYPE("System.Collections.Generic.IList", "IList", true, ilist_parents,
-                      single_t_params);
+                     single_t_params);
     REG_METHOD("System.Collections.Generic.IList", "IndexOf", INT());
     REG_METHOD("System.Collections.Generic.IList", "Insert", VOID_T());
     REG_METHOD("System.Collections.Generic.IList", "RemoveAt", VOID_T());
 
     static const char *list_parents[] = {"System.Collections.Generic.IList",
-                                          "System.Collections.Generic.ICollection",
-                                          "System.Collections.Generic.IEnumerable", NULL};
-    REG_GENERIC_TYPE("System.Collections.Generic.List", "List", false, list_parents,
-                      list_t_params);
+                                         "System.Collections.Generic.ICollection",
+                                         "System.Collections.Generic.IEnumerable", NULL};
+    REG_GENERIC_TYPE("System.Collections.Generic.List", "List", false, list_parents, list_t_params);
     REG_METHOD("System.Collections.Generic.List", "Add", VOID_T());
     REG_METHOD("System.Collections.Generic.List", "AddRange", VOID_T());
     REG_METHOD("System.Collections.Generic.List", "Remove", BOOL_T());
@@ -497,26 +485,25 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
                                  (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
 
     static const char *idict_parents[] = {"System.Collections.Generic.ICollection", NULL};
-    REG_GENERIC_TYPE("System.Collections.Generic.IDictionary", "IDictionary", true,
-                      idict_parents, kv_t_params);
+    REG_GENERIC_TYPE("System.Collections.Generic.IDictionary", "IDictionary", true, idict_parents,
+                     kv_t_params);
     REG_METHOD("System.Collections.Generic.IDictionary", "Add", VOID_T());
     REG_METHOD("System.Collections.Generic.IDictionary", "Remove", BOOL_T());
     REG_METHOD("System.Collections.Generic.IDictionary", "ContainsKey", BOOL_T());
     REG_METHOD("System.Collections.Generic.IDictionary", "TryGetValue", BOOL_T());
     REG_METHOD("System.Collections.Generic.IDictionary", "Keys",
                cbm_type_template(arena, "System.Collections.Generic.ICollection",
-                                 (const CBMType *[]){cbm_type_type_param(arena, "TKey"), NULL},
-                                 1));
+                                 (const CBMType *[]){cbm_type_type_param(arena, "TKey"), NULL}, 1));
     REG_METHOD("System.Collections.Generic.IDictionary", "Values",
                cbm_type_template(arena, "System.Collections.Generic.ICollection",
                                  (const CBMType *[]){cbm_type_type_param(arena, "TValue"), NULL},
                                  1));
 
     static const char *dict_parents[] = {"System.Collections.Generic.IDictionary",
-                                          "System.Collections.Generic.ICollection",
-                                          "System.Collections.Generic.IEnumerable", NULL};
-    REG_GENERIC_TYPE("System.Collections.Generic.Dictionary", "Dictionary", false,
-                      dict_parents, kv_t_params);
+                                         "System.Collections.Generic.ICollection",
+                                         "System.Collections.Generic.IEnumerable", NULL};
+    REG_GENERIC_TYPE("System.Collections.Generic.Dictionary", "Dictionary", false, dict_parents,
+                     kv_t_params);
     REG_METHOD("System.Collections.Generic.Dictionary", "Add", VOID_T());
     REG_METHOD("System.Collections.Generic.Dictionary", "Remove", BOOL_T());
     REG_METHOD("System.Collections.Generic.Dictionary", "Clear", VOID_T());
@@ -528,8 +515,7 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("System.Collections.Generic.Dictionary", "Count", INT());
     REG_METHOD("System.Collections.Generic.Dictionary", "Keys",
                cbm_type_template(arena, "System.Collections.Generic.ICollection",
-                                 (const CBMType *[]){cbm_type_type_param(arena, "TKey"), NULL},
-                                 1));
+                                 (const CBMType *[]){cbm_type_type_param(arena, "TKey"), NULL}, 1));
     REG_METHOD("System.Collections.Generic.Dictionary", "Values",
                cbm_type_template(arena, "System.Collections.Generic.ICollection",
                                  (const CBMType *[]){cbm_type_type_param(arena, "TValue"), NULL},
@@ -537,7 +523,7 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
 
     static const char *hashset_parents[] = {"System.Collections.Generic.ICollection", NULL};
     REG_GENERIC_TYPE("System.Collections.Generic.HashSet", "HashSet", false, hashset_parents,
-                      single_t_params);
+                     single_t_params);
     REG_METHOD("System.Collections.Generic.HashSet", "Add", BOOL_T());
     REG_METHOD("System.Collections.Generic.HashSet", "Remove", BOOL_T());
     REG_METHOD("System.Collections.Generic.HashSet", "Contains", BOOL_T());
@@ -550,7 +536,7 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
 
     static const char *queue_parents[] = {"System.Collections.Generic.ICollection", NULL};
     REG_GENERIC_TYPE("System.Collections.Generic.Queue", "Queue", false, queue_parents,
-                      single_t_params);
+                     single_t_params);
     REG_METHOD("System.Collections.Generic.Queue", "Enqueue", VOID_T());
     REG_METHOD("System.Collections.Generic.Queue", "Dequeue", cbm_type_type_param(arena, "T"));
     REG_METHOD("System.Collections.Generic.Queue", "Peek", cbm_type_type_param(arena, "T"));
@@ -558,15 +544,15 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
 
     static const char *stack_parents[] = {"System.Collections.Generic.ICollection", NULL};
     REG_GENERIC_TYPE("System.Collections.Generic.Stack", "Stack", false, stack_parents,
-                      single_t_params);
+                     single_t_params);
     REG_METHOD("System.Collections.Generic.Stack", "Push", VOID_T());
     REG_METHOD("System.Collections.Generic.Stack", "Pop", cbm_type_type_param(arena, "T"));
     REG_METHOD("System.Collections.Generic.Stack", "Peek", cbm_type_type_param(arena, "T"));
     REG_METHOD("System.Collections.Generic.Stack", "Count", INT());
 
     static const char *kvp_parents[] = {NULL};
-    REG_GENERIC_TYPE("System.Collections.Generic.KeyValuePair", "KeyValuePair", false,
-                      kvp_parents, kv_t_params);
+    REG_GENERIC_TYPE("System.Collections.Generic.KeyValuePair", "KeyValuePair", false, kvp_parents,
+                     kv_t_params);
     REG_METHOD("System.Collections.Generic.KeyValuePair", "Key",
                cbm_type_type_param(arena, "TKey"));
     REG_METHOD("System.Collections.Generic.KeyValuePair", "Value",
@@ -576,9 +562,8 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_TYPE("System.Collections.IEnumerable", "IEnumerable", true, no_parents);
     REG_TYPE("System.Collections.IEnumerator", "IEnumerator", true, no_parents);
     REG_TYPE_P1("System.Collections.ICollection", "ICollection", true,
-                 "System.Collections.IEnumerable");
-    REG_TYPE_P1("System.Collections.IList", "IList", true,
-                 "System.Collections.ICollection");
+                "System.Collections.IEnumerable");
+    REG_TYPE_P1("System.Collections.IList", "IList", true, "System.Collections.ICollection");
 
     /* Array */
     REG_TYPE("System.Array", "Array", false, obj_parent);
@@ -604,8 +589,7 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("System.Span", "ToArray",
                cbm_type_template(arena, "System.Array",
                                  (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
-    REG_GENERIC_TYPE("System.ReadOnlySpan", "ReadOnlySpan", false, span_parents,
-                      single_t_params);
+    REG_GENERIC_TYPE("System.ReadOnlySpan", "ReadOnlySpan", false, span_parents, single_t_params);
     REG_METHOD("System.ReadOnlySpan", "Length", INT());
     REG_METHOD("System.ReadOnlySpan", "Slice",
                cbm_type_template(arena, "System.ReadOnlySpan",
@@ -613,7 +597,7 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
 
     REG_GENERIC_TYPE("System.Memory", "Memory", false, span_parents, single_t_params);
     REG_GENERIC_TYPE("System.ReadOnlyMemory", "ReadOnlyMemory", false, span_parents,
-                      single_t_params);
+                     single_t_params);
 
     REG_GENERIC_TYPE("System.Nullable", "Nullable", false, valuetype_parent, single_t_params);
     REG_METHOD("System.Nullable", "HasValue", BOOL_T());
@@ -647,21 +631,21 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_STATIC("System.Threading.Tasks.Task", "CompletedTask",
                cbm_type_named(arena, "System.Threading.Tasks.Task"));
 
-    REG_GENERIC_TYPE_P1("System.Threading.Tasks.Task", "Task", false,
-                         "System.Threading.Tasks.Task", single_t_params);
+    REG_GENERIC_TYPE_P1("System.Threading.Tasks.Task", "Task", false, "System.Threading.Tasks.Task",
+                        single_t_params);
     /* Same QN for generic — registry stores both. The Task<T>.Result uses
      * type param T. */
 
     REG_TYPE("System.Threading.Tasks.ValueTask", "ValueTask", false, obj_parent);
     REG_GENERIC_TYPE_P1("System.Threading.Tasks.ValueTask", "ValueTask", false,
-                         "System.Threading.Tasks.ValueTask", single_t_params);
+                        "System.Threading.Tasks.ValueTask", single_t_params);
 
     REG_TYPE("System.Threading.CancellationToken", "CancellationToken", false, valuetype_parent);
     REG_METHOD("System.Threading.CancellationToken", "IsCancellationRequested", BOOL_T());
     REG_METHOD("System.Threading.CancellationToken", "ThrowIfCancellationRequested", VOID_T());
     REG_METHOD("System.Threading.CancellationToken", "Register", UNK());
     REG_TYPE("System.Threading.CancellationTokenSource", "CancellationTokenSource", false,
-              obj_parent);
+             obj_parent);
     REG_METHOD("System.Threading.CancellationTokenSource", "Token",
                cbm_type_named(arena, "System.Threading.CancellationToken"));
     REG_METHOD("System.Threading.CancellationTokenSource", "Cancel", VOID_T());
@@ -670,11 +654,9 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_TYPE("System.Exception", "Exception", false, obj_parent);
     REG_METHOD("System.Exception", "Message", STR());
     REG_METHOD("System.Exception", "StackTrace", STR());
-    REG_METHOD("System.Exception", "InnerException",
-               cbm_type_named(arena, "System.Exception"));
+    REG_METHOD("System.Exception", "InnerException", cbm_type_named(arena, "System.Exception"));
     REG_METHOD("System.Exception", "ToString", STR());
-    REG_METHOD("System.Exception", "GetBaseException",
-               cbm_type_named(arena, "System.Exception"));
+    REG_METHOD("System.Exception", "GetBaseException", cbm_type_named(arena, "System.Exception"));
     REG_METHOD("System.Exception", "Source", STR());
 
     REG_TYPE("System.SystemException", "SystemException", false, exception_parent);
@@ -682,251 +664,198 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_TYPE("System.AggregateException", "AggregateException", false, exception_parent);
     REG_TYPE("System.ArgumentException", "ArgumentException", false, runtime_exception_parent);
     REG_TYPE_P1("System.ArgumentNullException", "ArgumentNullException", false,
-                 "System.ArgumentException");
+                "System.ArgumentException");
     REG_TYPE_P1("System.ArgumentOutOfRangeException", "ArgumentOutOfRangeException", false,
-                 "System.ArgumentException");
+                "System.ArgumentException");
     REG_TYPE("System.InvalidOperationException", "InvalidOperationException", false,
-              runtime_exception_parent);
+             runtime_exception_parent);
     REG_TYPE("System.NotImplementedException", "NotImplementedException", false,
-              runtime_exception_parent);
+             runtime_exception_parent);
     REG_TYPE("System.NotSupportedException", "NotSupportedException", false,
-              runtime_exception_parent);
+             runtime_exception_parent);
     REG_TYPE("System.NullReferenceException", "NullReferenceException", false,
-              runtime_exception_parent);
+             runtime_exception_parent);
     REG_TYPE("System.IndexOutOfRangeException", "IndexOutOfRangeException", false,
-              runtime_exception_parent);
+             runtime_exception_parent);
     REG_TYPE("System.OverflowException", "OverflowException", false, runtime_exception_parent);
     REG_TYPE_P1("System.DivideByZeroException", "DivideByZeroException", false,
-                 "System.ArithmeticException");
-    REG_TYPE("System.ArithmeticException", "ArithmeticException", false,
-              runtime_exception_parent);
+                "System.ArithmeticException");
+    REG_TYPE("System.ArithmeticException", "ArithmeticException", false, runtime_exception_parent);
     REG_TYPE("System.FormatException", "FormatException", false, runtime_exception_parent);
     REG_TYPE("System.IO.IOException", "IOException", false, runtime_exception_parent);
     REG_TYPE_P1("System.IO.FileNotFoundException", "FileNotFoundException", false,
-                 "System.IO.IOException");
+                "System.IO.IOException");
     REG_TYPE_P1("System.IO.DirectoryNotFoundException", "DirectoryNotFoundException", false,
-                 "System.IO.IOException");
+                "System.IO.IOException");
     REG_TYPE("System.UnauthorizedAccessException", "UnauthorizedAccessException", false,
-              runtime_exception_parent);
+             runtime_exception_parent);
     REG_TYPE("System.OperationCanceledException", "OperationCanceledException", false,
-              runtime_exception_parent);
+             runtime_exception_parent);
     REG_TYPE_P1("System.TaskCanceledException", "TaskCanceledException", false,
-                 "System.OperationCanceledException");
+                "System.OperationCanceledException");
 
     /* ── System.Linq.Enumerable extension methods ──────────────── */
     /* These dispatch on IEnumerable<T> via the cs_lookup_extension path.
      * We register them as free functions whose first param is named "this". */
     REG_TYPE("System.Linq.Enumerable", "Enumerable", false, obj_parent);
     REG_EXTENSION("System.Linq.Enumerable.Where", "Where",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.Select", "Select",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.SelectMany", "SelectMany",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.First", "First",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_type_param(arena, "T"));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_type_param(arena, "T"));
     REG_EXTENSION("System.Linq.Enumerable.FirstOrDefault", "FirstOrDefault",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_type_param(arena, "T"));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_type_param(arena, "T"));
     REG_EXTENSION("System.Linq.Enumerable.Last", "Last",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_type_param(arena, "T"));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_type_param(arena, "T"));
     REG_EXTENSION("System.Linq.Enumerable.LastOrDefault", "LastOrDefault",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_type_param(arena, "T"));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_type_param(arena, "T"));
     REG_EXTENSION("System.Linq.Enumerable.Single", "Single",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_type_param(arena, "T"));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_type_param(arena, "T"));
     REG_EXTENSION("System.Linq.Enumerable.SingleOrDefault", "SingleOrDefault",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_type_param(arena, "T"));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_type_param(arena, "T"));
     REG_EXTENSION("System.Linq.Enumerable.Count", "Count",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   INT());
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  INT());
     REG_EXTENSION("System.Linq.Enumerable.Any", "Any",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   BOOL_T());
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  BOOL_T());
     REG_EXTENSION("System.Linq.Enumerable.All", "All",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   BOOL_T());
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  BOOL_T());
     REG_EXTENSION("System.Linq.Enumerable.Sum", "Sum",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   DBL());
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  DBL());
     REG_EXTENSION("System.Linq.Enumerable.Average", "Average",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   DBL());
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  DBL());
     REG_EXTENSION("System.Linq.Enumerable.Min", "Min",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_type_param(arena, "T"));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_type_param(arena, "T"));
     REG_EXTENSION("System.Linq.Enumerable.Max", "Max",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_type_param(arena, "T"));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_type_param(arena, "T"));
     REG_EXTENSION("System.Linq.Enumerable.OrderBy", "OrderBy",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Linq.IOrderedEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Linq.IOrderedEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.OrderByDescending", "OrderByDescending",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Linq.IOrderedEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Linq.IOrderedEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.GroupBy", "GroupBy",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.Take", "Take",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.Skip", "Skip",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.ToList", "ToList",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.List",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.List",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.ToArray", "ToArray",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Array",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Array",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.ToDictionary", "ToDictionary",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.Dictionary",
-                                     (const CBMType *[]){UNK(), UNK(), NULL}, 2));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.Dictionary",
+                                    (const CBMType *[]){UNK(), UNK(), NULL}, 2));
     REG_EXTENSION("System.Linq.Enumerable.ToHashSet", "ToHashSet",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.HashSet",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.HashSet",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.Distinct", "Distinct",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.Reverse", "Reverse",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.Concat", "Concat",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.Zip", "Zip",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.Aggregate", "Aggregate",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_type_param(arena, "T"));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_type_param(arena, "T"));
     REG_EXTENSION("System.Linq.Enumerable.Contains", "Contains",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   BOOL_T());
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  BOOL_T());
     REG_EXTENSION("System.Linq.Enumerable.ElementAt", "ElementAt",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_type_param(arena, "T"));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_type_param(arena, "T"));
     REG_EXTENSION("System.Linq.Enumerable.ElementAtOrDefault", "ElementAtOrDefault",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_type_param(arena, "T"));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_type_param(arena, "T"));
     REG_EXTENSION("System.Linq.Enumerable.Cast", "Cast",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
     REG_EXTENSION("System.Linq.Enumerable.OfType", "OfType",
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1),
-                   cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
-                                     (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL},
-                                     1));
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1),
+                  cbm_type_template(arena, "System.Collections.Generic.IEnumerable",
+                                    (const CBMType *[]){cbm_type_type_param(arena, "T"), NULL}, 1));
 
     /* ── System.Json (System.Text.Json) ────────────────────────── */
     REG_TYPE("System.Text.Json.JsonSerializer", "JsonSerializer", false, obj_parent);
@@ -976,7 +905,7 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
                                  (const CBMType *[]){UNK(), NULL}, 1));
     REG_TYPE("System.Net.Http.HttpRequestMessage", "HttpRequestMessage", false, obj_parent);
     REG_TYPE_P1("System.Net.Http.StringContent", "StringContent", false,
-                 "System.Net.Http.HttpContent");
+                "System.Net.Http.HttpContent");
 
     /* ── Logging / DI (corpus-popular) ─────────────────────────── */
     REG_TYPE("Microsoft.Extensions.Logging.ILogger", "ILogger", true, no_parents);
@@ -991,11 +920,11 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
                cbm_type_named(arena, "System.IDisposable"));
     REG_METHOD("Microsoft.Extensions.Logging.ILogger", "IsEnabled", BOOL_T());
 
-    REG_TYPE("Microsoft.Extensions.DependencyInjection.IServiceProvider", "IServiceProvider",
-              true, no_parents);
+    REG_TYPE("Microsoft.Extensions.DependencyInjection.IServiceProvider", "IServiceProvider", true,
+             no_parents);
     REG_METHOD("Microsoft.Extensions.DependencyInjection.IServiceProvider", "GetService", OBJ());
     REG_TYPE("Microsoft.Extensions.DependencyInjection.IServiceCollection", "IServiceCollection",
-              true, no_parents);
+             true, no_parents);
 
     /* ── ASP.NET Core (compact set) ─────────────────────────────── */
     REG_TYPE("Microsoft.AspNetCore.Mvc.ControllerBase", "ControllerBase", false, obj_parent);
@@ -1010,12 +939,12 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("Microsoft.AspNetCore.Mvc.ControllerBase", "Json",
                cbm_type_named(arena, "Microsoft.AspNetCore.Mvc.JsonResult"));
     REG_TYPE_P1("Microsoft.AspNetCore.Mvc.Controller", "Controller", false,
-                 "Microsoft.AspNetCore.Mvc.ControllerBase");
+                "Microsoft.AspNetCore.Mvc.ControllerBase");
     REG_TYPE("Microsoft.AspNetCore.Mvc.OkObjectResult", "OkObjectResult", false, obj_parent);
     REG_TYPE("Microsoft.AspNetCore.Mvc.NotFoundObjectResult", "NotFoundObjectResult", false,
-              obj_parent);
+             obj_parent);
     REG_TYPE("Microsoft.AspNetCore.Mvc.BadRequestObjectResult", "BadRequestObjectResult", false,
-              obj_parent);
+             obj_parent);
     REG_TYPE("Microsoft.AspNetCore.Mvc.IActionResult", "IActionResult", true, no_parents);
     REG_TYPE("Microsoft.AspNetCore.Mvc.JsonResult", "JsonResult", false, obj_parent);
 
@@ -1028,7 +957,7 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("Microsoft.EntityFrameworkCore.DbContext", "Set", UNK());
     REG_METHOD("Microsoft.EntityFrameworkCore.DbContext", "Database", UNK());
     REG_GENERIC_TYPE("Microsoft.EntityFrameworkCore.DbSet", "DbSet", false, obj_parent,
-                      single_t_params);
+                     single_t_params);
     REG_METHOD("Microsoft.EntityFrameworkCore.DbSet", "Add", UNK());
     REG_METHOD("Microsoft.EntityFrameworkCore.DbSet", "Remove", UNK());
     REG_METHOD("Microsoft.EntityFrameworkCore.DbSet", "Update", UNK());
@@ -1053,20 +982,17 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
 
     /* ── System.Action / Func / Predicate ──────────────────────── */
     REG_TYPE_P1("System.Action", "Action", false, "System.Delegate");
-    REG_GENERIC_TYPE_P1("System.Action", "Action", false,
-                         "System.Delegate", single_t_params);
+    REG_GENERIC_TYPE_P1("System.Action", "Action", false, "System.Delegate", single_t_params);
     REG_METHOD("System.Action", "Invoke", VOID_T());
-    REG_GENERIC_TYPE_P1("System.Func", "Func", false,
-                         "System.Delegate", single_t_params);
+    REG_GENERIC_TYPE_P1("System.Func", "Func", false, "System.Delegate", single_t_params);
     REG_METHOD("System.Func", "Invoke", cbm_type_type_param(arena, "T"));
-    REG_GENERIC_TYPE_P1("System.Predicate", "Predicate", false,
-                         "System.Delegate", single_t_params);
+    REG_GENERIC_TYPE_P1("System.Predicate", "Predicate", false, "System.Delegate", single_t_params);
     REG_METHOD("System.Predicate", "Invoke", BOOL_T());
-    REG_GENERIC_TYPE_P1("System.Comparison", "Comparison", false,
-                         "System.Delegate", single_t_params);
+    REG_GENERIC_TYPE_P1("System.Comparison", "Comparison", false, "System.Delegate",
+                        single_t_params);
     REG_METHOD("System.Comparison", "Invoke", INT());
-    REG_GENERIC_TYPE_P1("System.EventHandler", "EventHandler", false,
-                         "System.Delegate", single_t_params);
+    REG_GENERIC_TYPE_P1("System.EventHandler", "EventHandler", false, "System.Delegate",
+                        single_t_params);
 
     /* ── System.Tuple / ValueTuple ─────────────────────────────── */
     REG_GENERIC_TYPE("System.Tuple", "Tuple", false, obj_parent, single_t_params);
@@ -1093,8 +1019,7 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
                cbm_type_named(arena, "System.Diagnostics.Stopwatch"));
     REG_METHOD("System.Diagnostics.Stopwatch", "Start", VOID_T());
     REG_METHOD("System.Diagnostics.Stopwatch", "Stop", VOID_T());
-    REG_METHOD("System.Diagnostics.Stopwatch", "Elapsed",
-               cbm_type_named(arena, "System.TimeSpan"));
+    REG_METHOD("System.Diagnostics.Stopwatch", "Elapsed", cbm_type_named(arena, "System.TimeSpan"));
     REG_METHOD("System.Diagnostics.Stopwatch", "ElapsedMilliseconds", LONG_T());
 
     /* xUnit (popular test framework, helpful for resolving test files) */
@@ -1106,8 +1031,7 @@ void cbm_csharp_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_STATIC("Xunit.Assert", "Null", VOID_T());
     REG_STATIC("Xunit.Assert", "NotNull", VOID_T());
     REG_STATIC("Xunit.Assert", "Throws", UNK());
-    REG_STATIC("Xunit.Assert", "ThrowsAsync",
-               cbm_type_named(arena, "System.Threading.Tasks.Task"));
+    REG_STATIC("Xunit.Assert", "ThrowsAsync", cbm_type_named(arena, "System.Threading.Tasks.Task"));
     REG_STATIC("Xunit.Assert", "Contains", VOID_T());
     REG_STATIC("Xunit.Assert", "DoesNotContain", VOID_T());
     REG_STATIC("Xunit.Assert", "Empty", VOID_T());

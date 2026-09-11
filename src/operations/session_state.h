@@ -14,8 +14,7 @@ cbm_operation_session_state_t *cbm_operation_session_state_new(void);
 void cbm_operation_session_state_free(cbm_operation_session_state_t *state);
 
 bool cbm_operation_session_state_set_context(cbm_operation_session_state_t *state,
-                                             const char *session_root,
-                                             const char *allowed_root,
+                                             const char *session_root, const char *allowed_root,
                                              bool allowed_root_policy_set);
 void cbm_operation_session_state_clear_context(cbm_operation_session_state_t *state);
 

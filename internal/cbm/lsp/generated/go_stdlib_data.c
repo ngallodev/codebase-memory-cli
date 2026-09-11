@@ -7,90 +7,100 @@
 
 // 2328 functions, 321 types from 34 packages
 
-void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
+void cbm_go_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     CBMRegisteredFunc rf;
     CBMRegisteredType rt;
 
-    static const char* context_Context_methods[] = {"Deadline", "Done", "Err", "Value", NULL};
-    static const char* crypto_Decapsulator_methods[] = {"Decapsulate", "Encapsulator", NULL};
-    static const char* crypto_Decrypter_methods[] = {"Decrypt", "Public", NULL};
-    static const char* crypto_Encapsulator_methods[] = {"Bytes", "Encapsulate", NULL};
-    static const char* crypto_MessageSigner_methods[] = {"SignMessage", NULL};
-    static const char* crypto_Signer_methods[] = {"Public", "Sign", NULL};
-    static const char* crypto_SignerOpts_methods[] = {"HashFunc", NULL};
-    static const char* database_sql_Result_methods[] = {"LastInsertId", "RowsAffected", NULL};
-    static const char* database_sql_Scanner_methods[] = {"Scan", NULL};
-    static const char* encoding_BinaryAppender_methods[] = {"AppendBinary", NULL};
-    static const char* encoding_BinaryMarshaler_methods[] = {"MarshalBinary", NULL};
-    static const char* encoding_BinaryUnmarshaler_methods[] = {"UnmarshalBinary", NULL};
-    static const char* encoding_TextAppender_methods[] = {"AppendText", NULL};
-    static const char* encoding_TextMarshaler_methods[] = {"MarshalText", NULL};
-    static const char* encoding_TextUnmarshaler_methods[] = {"UnmarshalText", NULL};
-    static const char* encoding_json_Marshaler_methods[] = {"MarshalJSON", NULL};
-    static const char* encoding_json_Unmarshaler_methods[] = {"UnmarshalJSON", NULL};
-    static const char* encoding_xml_Marshaler_methods[] = {"MarshalXML", NULL};
-    static const char* encoding_xml_MarshalerAttr_methods[] = {"MarshalXMLAttr", NULL};
-    static const char* encoding_xml_TokenReader_methods[] = {"Token", NULL};
-    static const char* encoding_xml_Unmarshaler_methods[] = {"UnmarshalXML", NULL};
-    static const char* encoding_xml_UnmarshalerAttr_methods[] = {"UnmarshalXMLAttr", NULL};
-    static const char* fmt_Formatter_methods[] = {"Format", NULL};
-    static const char* fmt_GoStringer_methods[] = {"GoString", NULL};
-    static const char* fmt_ScanState_methods[] = {"Read", "ReadRune", "SkipSpace", "Token", "UnreadRune", "Width", NULL};
-    static const char* fmt_Scanner_methods[] = {"Scan", NULL};
-    static const char* fmt_State_methods[] = {"Flag", "Precision", "Width", "Write", NULL};
-    static const char* fmt_Stringer_methods[] = {"String", NULL};
-    static const char* hash_Cloner_methods[] = {"Clone", NULL};
-    static const char* hash_Hash_methods[] = {"BlockSize", "Reset", "Size", "Sum", NULL};
-    static const char* hash_Hash32_methods[] = {"Sum32", NULL};
-    static const char* hash_Hash64_methods[] = {"Sum64", NULL};
-    static const char* hash_XOF_methods[] = {"BlockSize", "Reset", NULL};
-    static const char* io_ByteReader_methods[] = {"ReadByte", NULL};
-    static const char* io_ByteScanner_methods[] = {"UnreadByte", NULL};
-    static const char* io_ByteWriter_methods[] = {"WriteByte", NULL};
-    static const char* io_Closer_methods[] = {"Close", NULL};
-    static const char* io_Reader_methods[] = {"Read", NULL};
-    static const char* io_ReaderAt_methods[] = {"ReadAt", NULL};
-    static const char* io_ReaderFrom_methods[] = {"ReadFrom", NULL};
-    static const char* io_RuneReader_methods[] = {"ReadRune", NULL};
-    static const char* io_RuneScanner_methods[] = {"UnreadRune", NULL};
-    static const char* io_Seeker_methods[] = {"Seek", NULL};
-    static const char* io_StringWriter_methods[] = {"WriteString", NULL};
-    static const char* io_Writer_methods[] = {"Write", NULL};
-    static const char* io_WriterAt_methods[] = {"WriteAt", NULL};
-    static const char* io_WriterTo_methods[] = {"WriteTo", NULL};
-    static const char* io_fs_DirEntry_methods[] = {"Info", "IsDir", "Name", "Type", NULL};
-    static const char* io_fs_FS_methods[] = {"Open", NULL};
-    static const char* io_fs_File_methods[] = {"Close", "Read", "Stat", NULL};
-    static const char* io_fs_FileInfo_methods[] = {"IsDir", "ModTime", "Mode", "Name", "Size", "Sys", NULL};
-    static const char* io_fs_GlobFS_methods[] = {"Glob", NULL};
-    static const char* io_fs_ReadDirFS_methods[] = {"ReadDir", NULL};
-    static const char* io_fs_ReadDirFile_methods[] = {"ReadDir", NULL};
-    static const char* io_fs_ReadFileFS_methods[] = {"ReadFile", NULL};
-    static const char* io_fs_ReadLinkFS_methods[] = {"Lstat", "ReadLink", NULL};
-    static const char* io_fs_StatFS_methods[] = {"Stat", NULL};
-    static const char* io_fs_SubFS_methods[] = {"Sub", NULL};
-    static const char* log_slog_Handler_methods[] = {"Enabled", "Handle", "WithAttrs", "WithGroup", NULL};
-    static const char* log_slog_Leveler_methods[] = {"Level", NULL};
-    static const char* log_slog_LogValuer_methods[] = {"LogValue", NULL};
-    static const char* net_Addr_methods[] = {"Network", "String", NULL};
-    static const char* net_Conn_methods[] = {"Close", "LocalAddr", "Read", "RemoteAddr", "SetDeadline", "SetReadDeadline", "SetWriteDeadline", "Write", NULL};
-    static const char* net_Error_methods[] = {"Temporary", "Timeout", NULL};
-    static const char* net_Listener_methods[] = {"Accept", "Addr", "Close", NULL};
-    static const char* net_PacketConn_methods[] = {"Close", "LocalAddr", "ReadFrom", "SetDeadline", "SetReadDeadline", "SetWriteDeadline", "WriteTo", NULL};
-    static const char* net_http_CloseNotifier_methods[] = {"CloseNotify", NULL};
-    static const char* net_http_CookieJar_methods[] = {"Cookies", "SetCookies", NULL};
-    static const char* net_http_File_methods[] = {"Readdir", "Stat", NULL};
-    static const char* net_http_FileSystem_methods[] = {"Open", NULL};
-    static const char* net_http_Flusher_methods[] = {"Flush", NULL};
-    static const char* net_http_Handler_methods[] = {"ServeHTTP", NULL};
-    static const char* net_http_Hijacker_methods[] = {"Hijack", NULL};
-    static const char* net_http_Pusher_methods[] = {"Push", NULL};
-    static const char* net_http_ResponseWriter_methods[] = {"Header", "Write", "WriteHeader", NULL};
-    static const char* net_http_RoundTripper_methods[] = {"RoundTrip", NULL};
-    static const char* os_Signal_methods[] = {"Signal", "String", NULL};
-    static const char* sort_Interface_methods[] = {"Len", "Less", "Swap", NULL};
-    static const char* sync_Locker_methods[] = {"Lock", "Unlock", NULL};
-    static const char* testing_TB_methods[] = {"ArtifactDir", "Attr", "Chdir", "Cleanup", "Context", "Error", "Errorf", "Fail", "FailNow", "Failed", "Fatal", "Fatalf", "Helper", "Log", "Logf", "Name", "Output", "Setenv", "Skip", "SkipNow", "Skipf", "Skipped", "TempDir", NULL};
+    static const char *context_Context_methods[] = {"Deadline", "Done", "Err", "Value", NULL};
+    static const char *crypto_Decapsulator_methods[] = {"Decapsulate", "Encapsulator", NULL};
+    static const char *crypto_Decrypter_methods[] = {"Decrypt", "Public", NULL};
+    static const char *crypto_Encapsulator_methods[] = {"Bytes", "Encapsulate", NULL};
+    static const char *crypto_MessageSigner_methods[] = {"SignMessage", NULL};
+    static const char *crypto_Signer_methods[] = {"Public", "Sign", NULL};
+    static const char *crypto_SignerOpts_methods[] = {"HashFunc", NULL};
+    static const char *database_sql_Result_methods[] = {"LastInsertId", "RowsAffected", NULL};
+    static const char *database_sql_Scanner_methods[] = {"Scan", NULL};
+    static const char *encoding_BinaryAppender_methods[] = {"AppendBinary", NULL};
+    static const char *encoding_BinaryMarshaler_methods[] = {"MarshalBinary", NULL};
+    static const char *encoding_BinaryUnmarshaler_methods[] = {"UnmarshalBinary", NULL};
+    static const char *encoding_TextAppender_methods[] = {"AppendText", NULL};
+    static const char *encoding_TextMarshaler_methods[] = {"MarshalText", NULL};
+    static const char *encoding_TextUnmarshaler_methods[] = {"UnmarshalText", NULL};
+    static const char *encoding_json_Marshaler_methods[] = {"MarshalJSON", NULL};
+    static const char *encoding_json_Unmarshaler_methods[] = {"UnmarshalJSON", NULL};
+    static const char *encoding_xml_Marshaler_methods[] = {"MarshalXML", NULL};
+    static const char *encoding_xml_MarshalerAttr_methods[] = {"MarshalXMLAttr", NULL};
+    static const char *encoding_xml_TokenReader_methods[] = {"Token", NULL};
+    static const char *encoding_xml_Unmarshaler_methods[] = {"UnmarshalXML", NULL};
+    static const char *encoding_xml_UnmarshalerAttr_methods[] = {"UnmarshalXMLAttr", NULL};
+    static const char *fmt_Formatter_methods[] = {"Format", NULL};
+    static const char *fmt_GoStringer_methods[] = {"GoString", NULL};
+    static const char *fmt_ScanState_methods[] = {"Read",       "ReadRune", "SkipSpace", "Token",
+                                                  "UnreadRune", "Width",    NULL};
+    static const char *fmt_Scanner_methods[] = {"Scan", NULL};
+    static const char *fmt_State_methods[] = {"Flag", "Precision", "Width", "Write", NULL};
+    static const char *fmt_Stringer_methods[] = {"String", NULL};
+    static const char *hash_Cloner_methods[] = {"Clone", NULL};
+    static const char *hash_Hash_methods[] = {"BlockSize", "Reset", "Size", "Sum", NULL};
+    static const char *hash_Hash32_methods[] = {"Sum32", NULL};
+    static const char *hash_Hash64_methods[] = {"Sum64", NULL};
+    static const char *hash_XOF_methods[] = {"BlockSize", "Reset", NULL};
+    static const char *io_ByteReader_methods[] = {"ReadByte", NULL};
+    static const char *io_ByteScanner_methods[] = {"UnreadByte", NULL};
+    static const char *io_ByteWriter_methods[] = {"WriteByte", NULL};
+    static const char *io_Closer_methods[] = {"Close", NULL};
+    static const char *io_Reader_methods[] = {"Read", NULL};
+    static const char *io_ReaderAt_methods[] = {"ReadAt", NULL};
+    static const char *io_ReaderFrom_methods[] = {"ReadFrom", NULL};
+    static const char *io_RuneReader_methods[] = {"ReadRune", NULL};
+    static const char *io_RuneScanner_methods[] = {"UnreadRune", NULL};
+    static const char *io_Seeker_methods[] = {"Seek", NULL};
+    static const char *io_StringWriter_methods[] = {"WriteString", NULL};
+    static const char *io_Writer_methods[] = {"Write", NULL};
+    static const char *io_WriterAt_methods[] = {"WriteAt", NULL};
+    static const char *io_WriterTo_methods[] = {"WriteTo", NULL};
+    static const char *io_fs_DirEntry_methods[] = {"Info", "IsDir", "Name", "Type", NULL};
+    static const char *io_fs_FS_methods[] = {"Open", NULL};
+    static const char *io_fs_File_methods[] = {"Close", "Read", "Stat", NULL};
+    static const char *io_fs_FileInfo_methods[] = {"IsDir", "ModTime", "Mode", "Name",
+                                                   "Size",  "Sys",     NULL};
+    static const char *io_fs_GlobFS_methods[] = {"Glob", NULL};
+    static const char *io_fs_ReadDirFS_methods[] = {"ReadDir", NULL};
+    static const char *io_fs_ReadDirFile_methods[] = {"ReadDir", NULL};
+    static const char *io_fs_ReadFileFS_methods[] = {"ReadFile", NULL};
+    static const char *io_fs_ReadLinkFS_methods[] = {"Lstat", "ReadLink", NULL};
+    static const char *io_fs_StatFS_methods[] = {"Stat", NULL};
+    static const char *io_fs_SubFS_methods[] = {"Sub", NULL};
+    static const char *log_slog_Handler_methods[] = {"Enabled", "Handle", "WithAttrs", "WithGroup",
+                                                     NULL};
+    static const char *log_slog_Leveler_methods[] = {"Level", NULL};
+    static const char *log_slog_LogValuer_methods[] = {"LogValue", NULL};
+    static const char *net_Addr_methods[] = {"Network", "String", NULL};
+    static const char *net_Conn_methods[] = {
+        "Close",           "LocalAddr",        "Read",  "RemoteAddr", "SetDeadline",
+        "SetReadDeadline", "SetWriteDeadline", "Write", NULL};
+    static const char *net_Error_methods[] = {"Temporary", "Timeout", NULL};
+    static const char *net_Listener_methods[] = {"Accept", "Addr", "Close", NULL};
+    static const char *net_PacketConn_methods[] = {
+        "Close",           "LocalAddr",        "ReadFrom", "SetDeadline",
+        "SetReadDeadline", "SetWriteDeadline", "WriteTo",  NULL};
+    static const char *net_http_CloseNotifier_methods[] = {"CloseNotify", NULL};
+    static const char *net_http_CookieJar_methods[] = {"Cookies", "SetCookies", NULL};
+    static const char *net_http_File_methods[] = {"Readdir", "Stat", NULL};
+    static const char *net_http_FileSystem_methods[] = {"Open", NULL};
+    static const char *net_http_Flusher_methods[] = {"Flush", NULL};
+    static const char *net_http_Handler_methods[] = {"ServeHTTP", NULL};
+    static const char *net_http_Hijacker_methods[] = {"Hijack", NULL};
+    static const char *net_http_Pusher_methods[] = {"Push", NULL};
+    static const char *net_http_ResponseWriter_methods[] = {"Header", "Write", "WriteHeader", NULL};
+    static const char *net_http_RoundTripper_methods[] = {"RoundTrip", NULL};
+    static const char *os_Signal_methods[] = {"Signal", "String", NULL};
+    static const char *sort_Interface_methods[] = {"Len", "Less", "Swap", NULL};
+    static const char *sync_Locker_methods[] = {"Lock", "Unlock", NULL};
+    static const char *testing_TB_methods[] = {
+        "ArtifactDir", "Attr",   "Chdir", "Cleanup", "Context", "Error",   "Errorf",  "Fail",
+        "FailNow",     "Failed", "Fatal", "Fatalf",  "Helper",  "Log",     "Logf",    "Name",
+        "Output",      "Setenv", "Skip",  "SkipNow", "Skipf",   "Skipped", "TempDir", NULL};
 
     // Type: bufio.ReadWriter
     memset(&rt, 0, sizeof(rt));
@@ -2192,7 +2202,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Available";
     rf.receiver_type = "bufio.Writer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2205,7 +2215,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AvailableBuffer";
     rf.receiver_type = "bufio.Writer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2225,7 +2235,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Buffered";
     rf.receiver_type = "bufio.Writer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2238,7 +2248,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Buffered";
     rf.receiver_type = "bufio.Reader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2251,7 +2261,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Bytes";
     rf.receiver_type = "bufio.Scanner";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2264,7 +2274,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Discard";
     rf.receiver_type = "bufio.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -2278,7 +2288,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Err";
     rf.receiver_type = "bufio.Scanner";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2291,7 +2301,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Flush";
     rf.receiver_type = "bufio.Writer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2303,7 +2313,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bufio.NewReadWriter";
     rf.short_name = "NewReadWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "bufio.ReadWriter"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2315,7 +2325,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bufio.NewReader";
     rf.short_name = "NewReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "bufio.Reader"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2327,7 +2337,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bufio.NewReaderSize";
     rf.short_name = "NewReaderSize";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "bufio.Reader"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2339,7 +2349,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bufio.NewScanner";
     rf.short_name = "NewScanner";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "bufio.Scanner"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2351,7 +2361,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bufio.NewWriter";
     rf.short_name = "NewWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "bufio.Writer"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2363,7 +2373,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bufio.NewWriterSize";
     rf.short_name = "NewWriterSize";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "bufio.Writer"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2376,7 +2386,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Peek";
     rf.receiver_type = "bufio.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -2390,7 +2400,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "bufio.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -2404,7 +2414,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadByte";
     rf.receiver_type = "bufio.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "byte");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -2418,7 +2428,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadBytes";
     rf.receiver_type = "bufio.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -2432,7 +2442,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrom";
     rf.receiver_type = "bufio.Writer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -2446,7 +2456,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadLine";
     rf.receiver_type = "bufio.Reader";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -2461,7 +2471,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadRune";
     rf.receiver_type = "bufio.Reader";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -2476,7 +2486,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadSlice";
     rf.receiver_type = "bufio.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -2490,7 +2500,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadString";
     rf.receiver_type = "bufio.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -2518,7 +2528,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Scan";
     rf.receiver_type = "bufio.Scanner";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2530,7 +2540,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bufio.ScanBytes";
     rf.short_name = "ScanBytes";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -2544,7 +2554,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bufio.ScanLines";
     rf.short_name = "ScanLines";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -2558,7 +2568,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bufio.ScanRunes";
     rf.short_name = "ScanRunes";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -2572,7 +2582,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bufio.ScanWords";
     rf.short_name = "ScanWords";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -2587,7 +2597,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Size";
     rf.receiver_type = "bufio.Writer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2600,7 +2610,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Size";
     rf.receiver_type = "bufio.Reader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2620,7 +2630,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Text";
     rf.receiver_type = "bufio.Scanner";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2633,7 +2643,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnreadByte";
     rf.receiver_type = "bufio.Reader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2646,7 +2656,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnreadRune";
     rf.receiver_type = "bufio.Reader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2659,7 +2669,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "bufio.Writer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -2673,7 +2683,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteByte";
     rf.receiver_type = "bufio.Writer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2686,7 +2696,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteRune";
     rf.receiver_type = "bufio.Writer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -2700,7 +2710,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "bufio.Writer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -2714,7 +2724,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "bufio.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -2728,7 +2738,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Available";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2741,7 +2751,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AvailableBuffer";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2754,7 +2764,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Bytes";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2767,7 +2777,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Cap";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2779,7 +2789,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Clone";
     rf.short_name = "Clone";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2791,7 +2801,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Compare";
     rf.short_name = "Compare";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2803,7 +2813,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Contains";
     rf.short_name = "Contains";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2815,7 +2825,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.ContainsAny";
     rf.short_name = "ContainsAny";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2827,7 +2837,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.ContainsFunc";
     rf.short_name = "ContainsFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2839,7 +2849,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.ContainsRune";
     rf.short_name = "ContainsRune";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2851,7 +2861,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Count";
     rf.short_name = "Count";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2863,7 +2873,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Cut";
     rf.short_name = "Cut";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[2] = cbm_type_builtin(arena, "bool");
@@ -2877,7 +2887,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.CutPrefix";
     rf.short_name = "CutPrefix";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -2890,7 +2900,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.CutSuffix";
     rf.short_name = "CutSuffix";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -2903,7 +2913,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Equal";
     rf.short_name = "Equal";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2915,7 +2925,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.EqualFold";
     rf.short_name = "EqualFold";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2927,7 +2937,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Fields";
     rf.short_name = "Fields";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "bytes.[]byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2939,7 +2949,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.FieldsFunc";
     rf.short_name = "FieldsFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "bytes.[]byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2951,7 +2961,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.FieldsFuncSeq";
     rf.short_name = "FieldsFuncSeq";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2963,7 +2973,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.FieldsSeq";
     rf.short_name = "FieldsSeq";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2982,7 +2992,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.HasPrefix";
     rf.short_name = "HasPrefix";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -2994,7 +3004,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.HasSuffix";
     rf.short_name = "HasSuffix";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3006,7 +3016,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Index";
     rf.short_name = "Index";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3018,7 +3028,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.IndexAny";
     rf.short_name = "IndexAny";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3030,7 +3040,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.IndexByte";
     rf.short_name = "IndexByte";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3042,7 +3052,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.IndexFunc";
     rf.short_name = "IndexFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3054,7 +3064,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.IndexRune";
     rf.short_name = "IndexRune";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3066,7 +3076,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Join";
     rf.short_name = "Join";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3078,7 +3088,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.LastIndex";
     rf.short_name = "LastIndex";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3090,7 +3100,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.LastIndexAny";
     rf.short_name = "LastIndexAny";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3102,7 +3112,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.LastIndexByte";
     rf.short_name = "LastIndexByte";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3114,7 +3124,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.LastIndexFunc";
     rf.short_name = "LastIndexFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3127,7 +3137,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Len";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3140,7 +3150,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Len";
     rf.receiver_type = "bytes.Reader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3152,7 +3162,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Lines";
     rf.short_name = "Lines";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3164,7 +3174,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Map";
     rf.short_name = "Map";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3176,7 +3186,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.NewBuffer";
     rf.short_name = "NewBuffer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "bytes.Buffer"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3188,7 +3198,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.NewBufferString";
     rf.short_name = "NewBufferString";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "bytes.Buffer"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3200,7 +3210,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.NewReader";
     rf.short_name = "NewReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "bytes.Reader"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3213,7 +3223,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Next";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3226,7 +3236,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Peek";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3240,7 +3250,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3254,7 +3264,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "bytes.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3268,7 +3278,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadAt";
     rf.receiver_type = "bytes.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3282,7 +3292,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadByte";
     rf.receiver_type = "bytes.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "byte");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3296,7 +3306,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadByte";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "byte");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3310,7 +3320,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadBytes";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3324,7 +3334,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrom";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3338,7 +3348,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadRune";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -3353,7 +3363,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadRune";
     rf.receiver_type = "bytes.Reader";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -3368,7 +3378,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadString";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3381,7 +3391,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Repeat";
     rf.short_name = "Repeat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3393,7 +3403,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Replace";
     rf.short_name = "Replace";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3405,7 +3415,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.ReplaceAll";
     rf.short_name = "ReplaceAll";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3431,7 +3441,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Runes";
     rf.short_name = "Runes";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "rune"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3444,7 +3454,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Seek";
     rf.receiver_type = "bytes.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3458,7 +3468,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Size";
     rf.receiver_type = "bytes.Reader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3470,7 +3480,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Split";
     rf.short_name = "Split";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "bytes.[]byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3482,7 +3492,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.SplitAfter";
     rf.short_name = "SplitAfter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "bytes.[]byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3494,7 +3504,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.SplitAfterN";
     rf.short_name = "SplitAfterN";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "bytes.[]byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3506,7 +3516,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.SplitAfterSeq";
     rf.short_name = "SplitAfterSeq";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3518,7 +3528,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.SplitN";
     rf.short_name = "SplitN";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "bytes.[]byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3530,7 +3540,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.SplitSeq";
     rf.short_name = "SplitSeq";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3543,7 +3553,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3555,7 +3565,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Title";
     rf.short_name = "Title";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3567,7 +3577,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.ToLower";
     rf.short_name = "ToLower";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3579,7 +3589,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.ToLowerSpecial";
     rf.short_name = "ToLowerSpecial";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3591,7 +3601,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.ToTitle";
     rf.short_name = "ToTitle";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3603,7 +3613,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.ToTitleSpecial";
     rf.short_name = "ToTitleSpecial";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3615,7 +3625,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.ToUpper";
     rf.short_name = "ToUpper";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3627,7 +3637,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.ToUpperSpecial";
     rf.short_name = "ToUpperSpecial";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3639,7 +3649,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.ToValidUTF8";
     rf.short_name = "ToValidUTF8";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3651,7 +3661,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.Trim";
     rf.short_name = "Trim";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3663,7 +3673,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.TrimFunc";
     rf.short_name = "TrimFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3675,7 +3685,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.TrimLeft";
     rf.short_name = "TrimLeft";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3687,7 +3697,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.TrimLeftFunc";
     rf.short_name = "TrimLeftFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3699,7 +3709,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.TrimPrefix";
     rf.short_name = "TrimPrefix";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3711,7 +3721,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.TrimRight";
     rf.short_name = "TrimRight";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3723,7 +3733,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.TrimRightFunc";
     rf.short_name = "TrimRightFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3735,7 +3745,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.TrimSpace";
     rf.short_name = "TrimSpace";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3747,7 +3757,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "bytes.TrimSuffix";
     rf.short_name = "TrimSuffix";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3767,7 +3777,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnreadByte";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3780,7 +3790,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnreadByte";
     rf.receiver_type = "bytes.Reader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3793,7 +3803,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnreadRune";
     rf.receiver_type = "bytes.Reader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3806,7 +3816,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnreadRune";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3819,7 +3829,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3833,7 +3843,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteByte";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3846,7 +3856,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteRune";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3860,7 +3870,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3874,7 +3884,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "bytes.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3888,7 +3898,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "bytes.Buffer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -3901,7 +3911,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "context.AfterFunc";
     rf.short_name = "AfterFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "context.func()");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3913,7 +3923,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "context.Background";
     rf.short_name = "Background";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "context.Context");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3925,7 +3935,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "context.Cause";
     rf.short_name = "Cause";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3938,7 +3948,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Deadline";
     rf.receiver_type = "context.emptyCtx";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -3952,7 +3962,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Deadline";
     rf.receiver_type = "context.timerCtx";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -3966,7 +3976,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Deadline";
     rf.receiver_type = "context.withoutCancelCtx";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -3980,7 +3990,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Done";
     rf.receiver_type = "context.withoutCancelCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "context.chan any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -3993,7 +4003,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Done";
     rf.receiver_type = "context.emptyCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "context.chan any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4006,7 +4016,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Done";
     rf.receiver_type = "context.cancelCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "context.chan any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4019,7 +4029,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Err";
     rf.receiver_type = "context.emptyCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4032,7 +4042,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Err";
     rf.receiver_type = "context.cancelCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4045,7 +4055,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Err";
     rf.receiver_type = "context.withoutCancelCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4058,7 +4068,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "context.deadlineExceededError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4071,7 +4081,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "context.todoCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4084,7 +4094,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "context.withoutCancelCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4097,7 +4107,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "context.valueCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4110,7 +4120,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "context.backgroundCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4123,7 +4133,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "context.cancelCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4136,7 +4146,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "context.timerCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4148,7 +4158,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "context.TODO";
     rf.short_name = "TODO";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "context.Context");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4161,7 +4171,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "context.deadlineExceededError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4174,7 +4184,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "context.deadlineExceededError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4187,7 +4197,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "context.emptyCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4200,7 +4210,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "context.cancelCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4213,7 +4223,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "context.withoutCancelCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4226,7 +4236,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "context.valueCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4238,7 +4248,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "context.WithCancel";
     rf.short_name = "WithCancel";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "context.Context");
         ret[1] = cbm_type_named(arena, "context.CancelFunc");
         ret[2] = NULL;
@@ -4251,7 +4261,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "context.WithCancelCause";
     rf.short_name = "WithCancelCause";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "context.Context");
         ret[1] = cbm_type_named(arena, "context.CancelCauseFunc");
         ret[2] = NULL;
@@ -4264,7 +4274,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "context.WithDeadline";
     rf.short_name = "WithDeadline";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "context.Context");
         ret[1] = cbm_type_named(arena, "context.CancelFunc");
         ret[2] = NULL;
@@ -4277,7 +4287,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "context.WithDeadlineCause";
     rf.short_name = "WithDeadlineCause";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "context.Context");
         ret[1] = cbm_type_named(arena, "context.CancelFunc");
         ret[2] = NULL;
@@ -4290,7 +4300,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "context.WithTimeout";
     rf.short_name = "WithTimeout";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "context.Context");
         ret[1] = cbm_type_named(arena, "context.CancelFunc");
         ret[2] = NULL;
@@ -4303,7 +4313,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "context.WithTimeoutCause";
     rf.short_name = "WithTimeoutCause";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "context.Context");
         ret[1] = cbm_type_named(arena, "context.CancelFunc");
         ret[2] = NULL;
@@ -4316,7 +4326,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "context.WithValue";
     rf.short_name = "WithValue";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "context.Context");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4328,7 +4338,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "context.WithoutCancel";
     rf.short_name = "WithoutCancel";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "context.Context");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4341,7 +4351,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Available";
     rf.receiver_type = "crypto.Hash";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4354,7 +4364,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "HashFunc";
     rf.receiver_type = "crypto.Hash";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "crypto.Hash");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4367,7 +4377,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "New";
     rf.receiver_type = "crypto.Hash";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "hash.Hash");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4385,7 +4395,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "crypto.SignMessage";
     rf.short_name = "SignMessage";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4399,7 +4409,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Size";
     rf.receiver_type = "crypto.Hash";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4412,7 +4422,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "crypto.Hash";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4425,7 +4435,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Add";
     rf.receiver_type = "database/sql.connRequestSet";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "database/sql.connRequestDelHandle");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4438,7 +4448,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Begin";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Tx"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4452,7 +4462,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "BeginTx";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Tx"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4466,7 +4476,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "BeginTx";
     rf.receiver_type = "database/sql.Conn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Tx"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4480,7 +4490,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CheckNamedValue";
     rf.receiver_type = "database/sql.ccChecker";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4493,7 +4503,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "database/sql.driverStmt";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4506,7 +4516,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "database/sql.driverConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4519,7 +4529,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4532,7 +4542,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "database/sql.Rows";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4545,7 +4555,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "database/sql.Conn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4558,7 +4568,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "database/sql.Stmt";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4578,7 +4588,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ColumnTypes";
     rf.receiver_type = "database/sql.Rows";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "database/sql.*ColumnType"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4592,7 +4602,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Columns";
     rf.receiver_type = "database/sql.Rows";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4606,7 +4616,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Commit";
     rf.receiver_type = "database/sql.Tx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4619,7 +4629,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Conn";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Conn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4633,7 +4643,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Connect";
     rf.receiver_type = "database/sql.dsnConnector";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "driver.Conn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4647,7 +4657,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DatabaseTypeName";
     rf.receiver_type = "database/sql.ColumnType";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4660,7 +4670,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DecimalSize";
     rf.receiver_type = "database/sql.ColumnType";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "int64");
         ret[2] = cbm_type_builtin(arena, "bool");
@@ -4675,7 +4685,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Delete";
     rf.receiver_type = "database/sql.connRequestSet";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4688,7 +4698,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Driver";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "driver.Driver");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4701,7 +4711,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Driver";
     rf.receiver_type = "database/sql.dsnConnector";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "driver.Driver");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4713,7 +4723,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "database/sql.Drivers";
     rf.short_name = "Drivers";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4726,7 +4736,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Err";
     rf.receiver_type = "database/sql.Row";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4739,7 +4749,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Err";
     rf.receiver_type = "database/sql.Rows";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4752,7 +4762,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Exec";
     rf.receiver_type = "database/sql.Tx";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "database/sql.Result");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4766,7 +4776,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Exec";
     rf.receiver_type = "database/sql.Stmt";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "database/sql.Result");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4780,7 +4790,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Exec";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "database/sql.Result");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4794,7 +4804,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ExecContext";
     rf.receiver_type = "database/sql.Stmt";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "database/sql.Result");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4808,7 +4818,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ExecContext";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "database/sql.Result");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4822,7 +4832,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ExecContext";
     rf.receiver_type = "database/sql.Tx";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "database/sql.Result");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4836,7 +4846,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ExecContext";
     rf.receiver_type = "database/sql.Conn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "database/sql.Result");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4850,7 +4860,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LastInsertId";
     rf.receiver_type = "database/sql.driverResult";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4864,7 +4874,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Len";
     rf.receiver_type = "database/sql.connRequestSet";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4877,7 +4887,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Length";
     rf.receiver_type = "database/sql.ColumnType";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -4891,7 +4901,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Name";
     rf.receiver_type = "database/sql.ColumnType";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4903,7 +4913,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "database/sql.Named";
     rf.short_name = "Named";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "database/sql.NamedArg");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4916,7 +4926,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Next";
     rf.receiver_type = "database/sql.Rows";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4929,7 +4939,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "NextResultSet";
     rf.receiver_type = "database/sql.Rows";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4942,7 +4952,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Nullable";
     rf.receiver_type = "database/sql.ColumnType";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -4955,7 +4965,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "database/sql.Open";
     rf.short_name = "Open";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.DB"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -4968,7 +4978,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "database/sql.OpenDB";
     rf.short_name = "OpenDB";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.DB"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4981,7 +4991,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Ping";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -4994,7 +5004,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "PingContext";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5007,7 +5017,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "PingContext";
     rf.receiver_type = "database/sql.Conn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5020,7 +5030,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Prepare";
     rf.receiver_type = "database/sql.Tx";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Stmt"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5034,7 +5044,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Prepare";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Stmt"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5048,7 +5058,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "PrepareContext";
     rf.receiver_type = "database/sql.Tx";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Stmt"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5062,7 +5072,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "PrepareContext";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Stmt"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5076,7 +5086,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "PrepareContext";
     rf.receiver_type = "database/sql.Conn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Stmt"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5090,7 +5100,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Query";
     rf.receiver_type = "database/sql.Tx";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Rows"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5104,7 +5114,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Query";
     rf.receiver_type = "database/sql.Stmt";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Rows"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5118,7 +5128,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Query";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Rows"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5132,7 +5142,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "QueryContext";
     rf.receiver_type = "database/sql.Conn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Rows"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5146,7 +5156,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "QueryContext";
     rf.receiver_type = "database/sql.Tx";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Rows"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5160,7 +5170,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "QueryContext";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Rows"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5174,7 +5184,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "QueryContext";
     rf.receiver_type = "database/sql.Stmt";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Rows"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5188,7 +5198,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "QueryRow";
     rf.receiver_type = "database/sql.Tx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Row"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5201,7 +5211,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "QueryRow";
     rf.receiver_type = "database/sql.Stmt";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Row"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5214,7 +5224,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "QueryRow";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Row"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5227,7 +5237,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "QueryRowContext";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Row"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5240,7 +5250,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "QueryRowContext";
     rf.receiver_type = "database/sql.Stmt";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Row"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5253,7 +5263,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "QueryRowContext";
     rf.receiver_type = "database/sql.Tx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Row"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5266,7 +5276,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "QueryRowContext";
     rf.receiver_type = "database/sql.Conn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Row"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5279,7 +5289,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Raw";
     rf.receiver_type = "database/sql.Conn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5298,7 +5308,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Rollback";
     rf.receiver_type = "database/sql.Tx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5311,7 +5321,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RowsAffected";
     rf.receiver_type = "database/sql.driverResult";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5325,7 +5335,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Scan";
     rf.receiver_type = "database/sql.NullTime";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5338,7 +5348,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Scan";
     rf.receiver_type = "database/sql.any";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5351,7 +5361,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Scan";
     rf.receiver_type = "database/sql.NullByte";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5364,7 +5374,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Scan";
     rf.receiver_type = "database/sql.NullFloat64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5377,7 +5387,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Scan";
     rf.receiver_type = "database/sql.NullString";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5390,7 +5400,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Scan";
     rf.receiver_type = "database/sql.Rows";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5403,7 +5413,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Scan";
     rf.receiver_type = "database/sql.NullInt64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5416,7 +5426,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Scan";
     rf.receiver_type = "database/sql.NullBool";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5429,7 +5439,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Scan";
     rf.receiver_type = "database/sql.NullInt16";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5442,7 +5452,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Scan";
     rf.receiver_type = "database/sql.Row";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5455,7 +5465,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Scan";
     rf.receiver_type = "database/sql.NullInt32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5468,7 +5478,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ScanType";
     rf.receiver_type = "database/sql.ColumnType";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "reflect.Type");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5509,7 +5519,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Stats";
     rf.receiver_type = "database/sql.DB";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "database/sql.DBStats");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5522,7 +5532,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Stmt";
     rf.receiver_type = "database/sql.Tx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Stmt"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5535,7 +5545,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "StmtContext";
     rf.receiver_type = "database/sql.Tx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "database/sql.Stmt"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5548,7 +5558,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "database/sql.IsolationLevel";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5561,7 +5571,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "TakeRandom";
     rf.receiver_type = "database/sql.connRequestSet";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "database/sql.chan connRequest");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -5575,7 +5585,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "database/sql.NullBool";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "driver.Value");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5589,7 +5599,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "database/sql.NullString";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "driver.Value");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5603,7 +5613,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "database/sql.any";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "driver.Value");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5617,7 +5627,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "database/sql.NullInt64";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "driver.Value");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5631,7 +5641,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "database/sql.NullTime";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "driver.Value");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5645,7 +5655,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "database/sql.NullInt32";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "driver.Value");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5659,7 +5669,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "database/sql.NullByte";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "driver.Value");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5673,7 +5683,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "database/sql.NullInt16";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "driver.Value");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5687,7 +5697,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "database/sql.NullFloat64";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "driver.Value");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -5701,7 +5711,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Buffered";
     rf.receiver_type = "encoding/json.Decoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io.Reader");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5714,7 +5724,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Buffered";
     rf.receiver_type = "encoding/json.Decoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io.Reader");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5726,7 +5736,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.CallMethodsWithLegacySemantics";
     rf.short_name = "CallMethodsWithLegacySemantics";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/json.Options");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5738,7 +5748,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.Compact";
     rf.short_name = "Compact";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5750,7 +5760,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.Compact";
     rf.short_name = "Compact";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5763,7 +5773,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Contains";
     rf.receiver_type = "encoding/json.tagOptions";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5776,7 +5786,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Decode";
     rf.receiver_type = "encoding/json.Decoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5789,7 +5799,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Decode";
     rf.receiver_type = "encoding/json.Decoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5801,7 +5811,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.DefaultOptionsV1";
     rf.short_name = "DefaultOptionsV1";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/json.Options");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5828,7 +5838,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Encode";
     rf.receiver_type = "encoding/json.Encoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5841,7 +5851,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Encode";
     rf.receiver_type = "encoding/json.Encoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5854,7 +5864,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.UnsupportedValueError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5867,7 +5877,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.UnmarshalFieldError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5880,7 +5890,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.SyntaxError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5893,7 +5903,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.UnmarshalTypeError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5906,7 +5916,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.MarshalerError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5919,7 +5929,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.InvalidUTF8Error";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5932,7 +5942,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.UnsupportedTypeError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5945,7 +5955,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.InvalidUnmarshalError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5958,7 +5968,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.UnsupportedTypeError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5971,7 +5981,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.UnsupportedValueError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5984,7 +5994,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.InvalidUTF8Error";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -5997,7 +6007,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.MarshalerError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6010,7 +6020,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.InvalidUnmarshalError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6023,7 +6033,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.UnmarshalFieldError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6036,7 +6046,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.SyntaxError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6049,7 +6059,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/json.UnmarshalTypeError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6062,7 +6072,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Float64";
     rf.receiver_type = "encoding/json.Number";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -6076,7 +6086,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Float64";
     rf.receiver_type = "encoding/json.Number";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -6089,7 +6099,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.FormatByteArrayAsArray";
     rf.short_name = "FormatByteArrayAsArray";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/json.Options");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6101,7 +6111,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.FormatBytesWithLegacySemantics";
     rf.short_name = "FormatBytesWithLegacySemantics";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/json.Options");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6113,7 +6123,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.FormatDurationAsNano";
     rf.short_name = "FormatDurationAsNano";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/json.Options");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6137,7 +6147,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.Indent";
     rf.short_name = "Indent";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6149,7 +6159,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.Indent";
     rf.short_name = "Indent";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6162,7 +6172,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "InputOffset";
     rf.receiver_type = "encoding/json.Decoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6175,7 +6185,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "InputOffset";
     rf.receiver_type = "encoding/json.Decoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6188,7 +6198,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Int64";
     rf.receiver_type = "encoding/json.Number";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -6202,7 +6212,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Int64";
     rf.receiver_type = "encoding/json.Number";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -6215,7 +6225,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.Marshal";
     rf.short_name = "Marshal";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -6228,7 +6238,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.Marshal";
     rf.short_name = "Marshal";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -6241,7 +6251,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.MarshalIndent";
     rf.short_name = "MarshalIndent";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -6254,7 +6264,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.MarshalIndent";
     rf.short_name = "MarshalIndent";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -6268,7 +6278,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MarshalJSON";
     rf.receiver_type = "encoding/json.RawMessage";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -6282,7 +6292,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MarshalJSONTo";
     rf.receiver_type = "encoding/json.Number";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6294,7 +6304,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.MatchCaseSensitiveDelimiter";
     rf.short_name = "MatchCaseSensitiveDelimiter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/json.Options");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6306,7 +6316,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.MergeWithLegacySemantics";
     rf.short_name = "MergeWithLegacySemantics";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/json.Options");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6319,7 +6329,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "More";
     rf.receiver_type = "encoding/json.Decoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6332,7 +6342,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "More";
     rf.receiver_type = "encoding/json.Decoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6344,7 +6354,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.NewDecoder";
     rf.short_name = "NewDecoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "encoding/json.Decoder"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6356,7 +6366,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.NewDecoder";
     rf.short_name = "NewDecoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "encoding/json.Decoder"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6368,7 +6378,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.NewEncoder";
     rf.short_name = "NewEncoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "encoding/json.Encoder"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6380,7 +6390,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.NewEncoder";
     rf.short_name = "NewEncoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "encoding/json.Encoder"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6392,7 +6402,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.OmitEmptyWithLegacySemantics";
     rf.short_name = "OmitEmptyWithLegacySemantics";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/json.Options");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6404,7 +6414,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.ParseBytesWithLooseRFC4648";
     rf.short_name = "ParseBytesWithLooseRFC4648";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/json.Options");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6416,7 +6426,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.ParseTimeWithLooseRFC3339";
     rf.short_name = "ParseTimeWithLooseRFC3339";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/json.Options");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6428,7 +6438,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.ReportErrorsWithLegacySemantics";
     rf.short_name = "ReportErrorsWithLegacySemantics";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/json.Options");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6469,7 +6479,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "encoding/json.Number";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6482,7 +6492,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "encoding/json.Delim";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6495,7 +6505,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "encoding/json.Number";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6508,7 +6518,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "encoding/json.Delim";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6520,7 +6530,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.StringifyWithLegacySemantics";
     rf.short_name = "StringifyWithLegacySemantics";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/json.Options");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6533,7 +6543,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Token";
     rf.receiver_type = "encoding/json.Decoder";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "encoding/json.Token");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -6547,7 +6557,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Token";
     rf.receiver_type = "encoding/json.Decoder";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "encoding/json.Token");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -6560,7 +6570,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.Unmarshal";
     rf.short_name = "Unmarshal";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6572,7 +6582,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.Unmarshal";
     rf.short_name = "Unmarshal";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6584,7 +6594,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.UnmarshalArrayFromAnyLength";
     rf.short_name = "UnmarshalArrayFromAnyLength";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/json.Options");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6597,7 +6607,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnmarshalJSON";
     rf.receiver_type = "encoding/json.RawMessage";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6610,7 +6620,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnmarshalJSONFrom";
     rf.receiver_type = "encoding/json.Number";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6623,7 +6633,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "encoding/json.MarshalerError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6636,7 +6646,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "encoding/json.MarshalerError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6649,7 +6659,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "encoding/json.UnmarshalTypeError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6675,7 +6685,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.Valid";
     rf.short_name = "Valid";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6687,7 +6697,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/json.Valid";
     rf.short_name = "Valid";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6700,7 +6710,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "encoding/xml.Encoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6713,7 +6723,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "encoding/xml.printer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6726,7 +6736,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Copy";
     rf.receiver_type = "encoding/xml.ProcInst";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/xml.ProcInst");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6739,7 +6749,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Copy";
     rf.receiver_type = "encoding/xml.CharData";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/xml.CharData");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6752,7 +6762,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Copy";
     rf.receiver_type = "encoding/xml.Comment";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/xml.Comment");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6765,7 +6775,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Copy";
     rf.receiver_type = "encoding/xml.Directive";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/xml.Directive");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6778,7 +6788,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Copy";
     rf.receiver_type = "encoding/xml.StartElement";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/xml.StartElement");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6790,7 +6800,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/xml.CopyToken";
     rf.short_name = "CopyToken";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/xml.Token");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6803,7 +6813,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Decode";
     rf.receiver_type = "encoding/xml.Decoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6816,7 +6826,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DecodeElement";
     rf.receiver_type = "encoding/xml.Decoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6829,7 +6839,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Encode";
     rf.receiver_type = "encoding/xml.Encoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6842,7 +6852,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "EncodeElement";
     rf.receiver_type = "encoding/xml.Encoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6855,7 +6865,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "EncodeToken";
     rf.receiver_type = "encoding/xml.Encoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6868,7 +6878,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "End";
     rf.receiver_type = "encoding/xml.StartElement";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "encoding/xml.EndElement");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6881,7 +6891,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/xml.TagPathError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6894,7 +6904,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/xml.UnsupportedTypeError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6907,7 +6917,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/xml.UnmarshalError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6920,7 +6930,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "encoding/xml.SyntaxError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6945,7 +6955,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/xml.EscapeText";
     rf.short_name = "EscapeText";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6958,7 +6968,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Flush";
     rf.receiver_type = "encoding/xml.Encoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6978,7 +6988,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "InputOffset";
     rf.receiver_type = "encoding/xml.Decoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -6991,7 +7001,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "InputPos";
     rf.receiver_type = "encoding/xml.Decoder";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = NULL;
@@ -7004,7 +7014,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/xml.Marshal";
     rf.short_name = "Marshal";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7017,7 +7027,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/xml.MarshalIndent";
     rf.short_name = "MarshalIndent";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7030,7 +7040,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/xml.NewDecoder";
     rf.short_name = "NewDecoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "encoding/xml.Decoder"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7042,7 +7052,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/xml.NewEncoder";
     rf.short_name = "NewEncoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "encoding/xml.Encoder"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7054,7 +7064,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/xml.NewTokenDecoder";
     rf.short_name = "NewTokenDecoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "encoding/xml.Decoder"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7067,7 +7077,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RawToken";
     rf.receiver_type = "encoding/xml.Decoder";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "encoding/xml.Token");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7081,7 +7091,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Skip";
     rf.receiver_type = "encoding/xml.Decoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7094,7 +7104,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Token";
     rf.receiver_type = "encoding/xml.Decoder";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "encoding/xml.Token");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7107,7 +7117,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "encoding/xml.Unmarshal";
     rf.short_name = "Unmarshal";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7120,7 +7130,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "encoding/xml.printer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7134,7 +7144,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteByte";
     rf.receiver_type = "encoding/xml.printer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7147,7 +7157,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "encoding/xml.printer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7160,7 +7170,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "errors.As";
     rf.short_name = "As";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7172,7 +7182,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "errors.AsType";
     rf.short_name = "AsType";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "errors.E");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -7186,7 +7196,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "errors.joinError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7199,7 +7209,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "errors.errorString";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7211,7 +7221,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "errors.Is";
     rf.short_name = "Is";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7223,7 +7233,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "errors.Join";
     rf.short_name = "Join";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7235,7 +7245,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "errors.New";
     rf.short_name = "New";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7248,7 +7258,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "errors.joinError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "error"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7260,7 +7270,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "errors.Unwrap";
     rf.short_name = "Unwrap";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7272,7 +7282,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Append";
     rf.short_name = "Append";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7284,7 +7294,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Appendf";
     rf.short_name = "Appendf";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7296,7 +7306,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Appendln";
     rf.short_name = "Appendln";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7309,7 +7319,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "fmt.wrapError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7322,7 +7332,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "fmt.wrapErrors";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7334,7 +7344,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Errorf";
     rf.short_name = "Errorf";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7347,7 +7357,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Flag";
     rf.receiver_type = "fmt.pp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7359,7 +7369,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.FormatString";
     rf.short_name = "FormatString";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7371,7 +7381,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Fprint";
     rf.short_name = "Fprint";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7384,7 +7394,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Fprintf";
     rf.short_name = "Fprintf";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7397,7 +7407,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Fprintln";
     rf.short_name = "Fprintln";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7410,7 +7420,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Fscan";
     rf.short_name = "Fscan";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7423,7 +7433,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Fscanf";
     rf.short_name = "Fscanf";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7436,7 +7446,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Fscanln";
     rf.short_name = "Fscanln";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7450,7 +7460,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Precision";
     rf.receiver_type = "fmt.pp";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -7463,7 +7473,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Print";
     rf.short_name = "Print";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7476,7 +7486,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Printf";
     rf.short_name = "Printf";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7489,7 +7499,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Println";
     rf.short_name = "Println";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7503,7 +7513,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "fmt.stringReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7517,7 +7527,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "fmt.ss";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7531,7 +7541,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadRune";
     rf.receiver_type = "fmt.ss";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -7546,7 +7556,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadRune";
     rf.receiver_type = "fmt.readRune";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -7560,7 +7570,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Scan";
     rf.short_name = "Scan";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7573,7 +7583,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Scanf";
     rf.short_name = "Scanf";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7586,7 +7596,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Scanln";
     rf.short_name = "Scanln";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7606,7 +7616,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Sprint";
     rf.short_name = "Sprint";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7618,7 +7628,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Sprintf";
     rf.short_name = "Sprintf";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7630,7 +7640,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Sprintln";
     rf.short_name = "Sprintln";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7642,7 +7652,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Sscan";
     rf.short_name = "Sscan";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7655,7 +7665,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Sscanf";
     rf.short_name = "Sscanf";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7668,7 +7678,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "fmt.Sscanln";
     rf.short_name = "Sscanln";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7682,7 +7692,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Token";
     rf.receiver_type = "fmt.ss";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7696,7 +7706,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnreadRune";
     rf.receiver_type = "fmt.ss";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7709,7 +7719,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnreadRune";
     rf.receiver_type = "fmt.readRune";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7722,7 +7732,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "fmt.wrapErrors";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "error"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7735,7 +7745,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "fmt.wrapError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7748,7 +7758,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Width";
     rf.receiver_type = "fmt.ss";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -7762,7 +7772,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Width";
     rf.receiver_type = "fmt.pp";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -7776,7 +7786,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "fmt.pp";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7790,7 +7800,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "fmt.pp";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7804,7 +7814,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "io.PipeReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7817,7 +7827,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "io.PipeWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7830,7 +7840,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "io.nopCloser";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7843,7 +7853,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "io.nopCloserWriterTo";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7856,7 +7866,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CloseWithError";
     rf.receiver_type = "io.PipeWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7869,7 +7879,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CloseWithError";
     rf.receiver_type = "io.PipeReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7881,7 +7891,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.Copy";
     rf.short_name = "Copy";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7894,7 +7904,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.CopyBuffer";
     rf.short_name = "CopyBuffer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7907,7 +7917,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.CopyN";
     rf.short_name = "CopyN";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -7920,7 +7930,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.LimitReader";
     rf.short_name = "LimitReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io.Reader");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7933,7 +7943,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Load";
     rf.receiver_type = "io.onceError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7945,7 +7955,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.MultiReader";
     rf.short_name = "MultiReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io.Reader");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7957,7 +7967,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.MultiWriter";
     rf.short_name = "MultiWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io.Writer");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7969,7 +7979,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.NewOffsetWriter";
     rf.short_name = "NewOffsetWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "io.OffsetWriter"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7981,7 +7991,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.NewSectionReader";
     rf.short_name = "NewSectionReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "io.SectionReader"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -7993,7 +8003,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.NopCloser";
     rf.short_name = "NopCloser";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io.ReadCloser");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8006,7 +8016,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Outer";
     rf.receiver_type = "io.SectionReader";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_named(arena, "io.ReaderAt");
         ret[1] = cbm_type_builtin(arena, "int64");
         ret[2] = cbm_type_builtin(arena, "int64");
@@ -8020,7 +8030,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.Pipe";
     rf.short_name = "Pipe";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "io.PipeReader"));
         ret[1] = cbm_type_pointer(arena, cbm_type_named(arena, "io.PipeWriter"));
         ret[2] = NULL;
@@ -8034,7 +8044,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "io.PipeReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8048,7 +8058,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "io.SectionReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8062,7 +8072,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "io.eofReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8076,7 +8086,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "io.multiReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8090,7 +8100,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "io.teeReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8104,7 +8114,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "io.LimitedReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8117,7 +8127,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.ReadAll";
     rf.short_name = "ReadAll";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8131,7 +8141,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadAt";
     rf.receiver_type = "io.SectionReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8144,7 +8154,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.ReadAtLeast";
     rf.short_name = "ReadAtLeast";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8158,7 +8168,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrom";
     rf.receiver_type = "io.discard";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8171,7 +8181,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.ReadFull";
     rf.short_name = "ReadFull";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8185,7 +8195,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Seek";
     rf.receiver_type = "io.OffsetWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8199,7 +8209,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Seek";
     rf.receiver_type = "io.SectionReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8213,7 +8223,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Size";
     rf.receiver_type = "io.SectionReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8232,7 +8242,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.TeeReader";
     rf.short_name = "TeeReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io.Reader");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8245,7 +8255,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "io.PipeWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8259,7 +8269,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "io.discard";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8273,7 +8283,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "io.OffsetWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8287,7 +8297,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "io.multiWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8301,7 +8311,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteAt";
     rf.receiver_type = "io.OffsetWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8315,7 +8325,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "io.multiWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8328,7 +8338,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io.WriteString";
     rf.short_name = "WriteString";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8342,7 +8352,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "io.discard";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8356,7 +8366,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "io.multiReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8370,7 +8380,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "io.nopCloserWriterTo";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8384,7 +8394,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "io/fs.PathError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8396,7 +8406,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io/fs.FileInfoToDirEntry";
     rf.short_name = "FileInfoToDirEntry";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io/fs.DirEntry");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8408,7 +8418,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io/fs.FormatDirEntry";
     rf.short_name = "FormatDirEntry";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8420,7 +8430,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io/fs.FormatFileInfo";
     rf.short_name = "FormatFileInfo";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8433,7 +8443,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Glob";
     rf.receiver_type = "io/fs.subFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8446,7 +8456,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io/fs.Glob";
     rf.short_name = "Glob";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8460,7 +8470,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Info";
     rf.receiver_type = "io/fs.dirInfo";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "io/fs.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8474,7 +8484,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsDir";
     rf.receiver_type = "io/fs.dirInfo";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8487,7 +8497,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsDir";
     rf.receiver_type = "io/fs.FileMode";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8500,7 +8510,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsRegular";
     rf.receiver_type = "io/fs.FileMode";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8512,7 +8522,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io/fs.Lstat";
     rf.short_name = "Lstat";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "io/fs.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8526,7 +8536,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Lstat";
     rf.receiver_type = "io/fs.subFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "io/fs.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8540,7 +8550,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Name";
     rf.receiver_type = "io/fs.dirInfo";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8553,7 +8563,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Open";
     rf.receiver_type = "io/fs.subFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "io/fs.File");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8567,7 +8577,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Perm";
     rf.receiver_type = "io/fs.FileMode";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io/fs.FileMode");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8579,7 +8589,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io/fs.ReadDir";
     rf.short_name = "ReadDir";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "io/fs.DirEntry"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8593,7 +8603,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadDir";
     rf.receiver_type = "io/fs.subFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "io/fs.DirEntry"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8606,7 +8616,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io/fs.ReadFile";
     rf.short_name = "ReadFile";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8620,7 +8630,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFile";
     rf.receiver_type = "io/fs.subFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8634,7 +8644,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadLink";
     rf.receiver_type = "io/fs.subFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8647,7 +8657,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io/fs.ReadLink";
     rf.short_name = "ReadLink";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8660,7 +8670,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io/fs.Stat";
     rf.short_name = "Stat";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "io/fs.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8674,7 +8684,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "io/fs.FileMode";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8687,7 +8697,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "io/fs.dirInfo";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8699,7 +8709,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io/fs.Sub";
     rf.short_name = "Sub";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "io/fs.FS");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8713,7 +8723,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Sub";
     rf.receiver_type = "io/fs.subFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "io/fs.FS");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -8727,7 +8737,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "io/fs.PathError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8740,7 +8750,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Type";
     rf.receiver_type = "io/fs.FileMode";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io/fs.FileMode");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8753,7 +8763,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Type";
     rf.receiver_type = "io/fs.dirInfo";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io/fs.FileMode");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8766,7 +8776,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "io/fs.PathError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8778,7 +8788,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io/fs.ValidPath";
     rf.short_name = "ValidPath";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8790,7 +8800,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "io/fs.WalkDir";
     rf.short_name = "WalkDir";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8802,7 +8812,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log.Default";
     rf.short_name = "Default";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "log.Logger"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8854,7 +8864,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Flags";
     rf.receiver_type = "log.Logger";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8866,7 +8876,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log.Flags";
     rf.short_name = "Flags";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8878,7 +8888,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log.New";
     rf.short_name = "New";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "log.Logger"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8891,7 +8901,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Output";
     rf.receiver_type = "log.Logger";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8903,7 +8913,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log.Output";
     rf.short_name = "Output";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8955,7 +8965,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Prefix";
     rf.receiver_type = "log.Logger";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -8967,7 +8977,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log.Prefix";
     rf.short_name = "Prefix";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9058,7 +9068,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Writer";
     rf.receiver_type = "log.Logger";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io.Writer");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9070,7 +9080,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log.Writer";
     rf.short_name = "Writer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io.Writer");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9096,7 +9106,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.Any";
     rf.short_name = "Any";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Attr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9109,7 +9119,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Any";
     rf.receiver_type = "log/slog.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9121,7 +9131,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.AnyValue";
     rf.short_name = "AnyValue";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Value");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9134,7 +9144,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AppendText";
     rf.receiver_type = "log/slog.LevelVar";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -9148,7 +9158,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AppendText";
     rf.receiver_type = "log/slog.Level";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -9169,7 +9179,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Bool";
     rf.receiver_type = "log/slog.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9181,7 +9191,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.Bool";
     rf.short_name = "Bool";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Attr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9193,7 +9203,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.BoolValue";
     rf.short_name = "BoolValue";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Value");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9206,7 +9216,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Clone";
     rf.receiver_type = "log/slog.Record";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Record");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9244,7 +9254,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.Default";
     rf.short_name = "Default";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "log/slog.Logger"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9257,7 +9267,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Duration";
     rf.receiver_type = "log/slog.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Duration");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9269,7 +9279,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.Duration";
     rf.short_name = "Duration";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Attr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9281,7 +9291,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.DurationValue";
     rf.short_name = "DurationValue";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Value");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9294,7 +9304,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Enabled";
     rf.receiver_type = "log/slog.defaultHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9307,7 +9317,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Enabled";
     rf.receiver_type = "log/slog.JSONHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9320,7 +9330,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Enabled";
     rf.receiver_type = "log/slog.discardHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9333,7 +9343,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Enabled";
     rf.receiver_type = "log/slog.MultiHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9346,7 +9356,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Enabled";
     rf.receiver_type = "log/slog.TextHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9359,7 +9369,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Enabled";
     rf.receiver_type = "log/slog.Logger";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9372,7 +9382,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Equal";
     rf.receiver_type = "log/slog.Attr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9385,7 +9395,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Equal";
     rf.receiver_type = "log/slog.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9423,7 +9433,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.Float64";
     rf.short_name = "Float64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Attr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9436,7 +9446,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Float64";
     rf.receiver_type = "log/slog.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9448,7 +9458,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.Float64Value";
     rf.short_name = "Float64Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Value");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9461,7 +9471,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Group";
     rf.receiver_type = "log/slog.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "log/slog.Attr"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9473,7 +9483,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.Group";
     rf.short_name = "Group";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Attr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9485,7 +9495,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.GroupAttrs";
     rf.short_name = "GroupAttrs";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Attr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9497,7 +9507,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.GroupValue";
     rf.short_name = "GroupValue";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Value");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9510,7 +9520,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Handle";
     rf.receiver_type = "log/slog.JSONHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9523,7 +9533,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Handle";
     rf.receiver_type = "log/slog.defaultHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9536,7 +9546,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Handle";
     rf.receiver_type = "log/slog.TextHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9549,7 +9559,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Handle";
     rf.receiver_type = "log/slog.MultiHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9562,7 +9572,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Handle";
     rf.receiver_type = "log/slog.discardHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9575,7 +9585,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Handler";
     rf.receiver_type = "log/slog.Logger";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9613,7 +9623,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.Int";
     rf.short_name = "Int";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Attr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9625,7 +9635,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.Int64";
     rf.short_name = "Int64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Attr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9638,7 +9648,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Int64";
     rf.receiver_type = "log/slog.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9650,7 +9660,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.Int64Value";
     rf.short_name = "Int64Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Value");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9662,7 +9672,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.IntValue";
     rf.short_name = "IntValue";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Value");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9675,7 +9685,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Kind";
     rf.receiver_type = "log/slog.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Kind");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9688,7 +9698,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Level";
     rf.receiver_type = "log/slog.LevelVar";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Level");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9701,7 +9711,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Level";
     rf.receiver_type = "log/slog.Level";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Level");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9740,7 +9750,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LogValuer";
     rf.receiver_type = "log/slog.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.LogValuer");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9753,7 +9763,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MarshalJSON";
     rf.receiver_type = "log/slog.Level";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -9767,7 +9777,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MarshalText";
     rf.receiver_type = "log/slog.Level";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -9781,7 +9791,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MarshalText";
     rf.receiver_type = "log/slog.LevelVar";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -9794,7 +9804,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.New";
     rf.short_name = "New";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "log/slog.Logger"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9806,7 +9816,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.NewJSONHandler";
     rf.short_name = "NewJSONHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "log/slog.JSONHandler"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9818,7 +9828,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.NewLogLogger";
     rf.short_name = "NewLogLogger";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "log.Logger"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9830,7 +9840,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.NewMultiHandler";
     rf.short_name = "NewMultiHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "log/slog.MultiHandler"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9842,7 +9852,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.NewRecord";
     rf.short_name = "NewRecord";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Record");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9854,7 +9864,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.NewTextHandler";
     rf.short_name = "NewTextHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "log/slog.TextHandler"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9867,7 +9877,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "NumAttrs";
     rf.receiver_type = "log/slog.Record";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9880,7 +9890,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Resolve";
     rf.receiver_type = "log/slog.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Value");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9905,7 +9915,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.SetLogLoggerLevel";
     rf.short_name = "SetLogLoggerLevel";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Level");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9918,7 +9928,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Source";
     rf.receiver_type = "log/slog.Record";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "log/slog.Source"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9931,7 +9941,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "log/slog.Kind";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9944,7 +9954,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "log/slog.Level";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9956,7 +9966,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.String";
     rf.short_name = "String";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Attr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9969,7 +9979,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "log/slog.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9982,7 +9992,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "log/slog.Attr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -9995,7 +10005,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "log/slog.LevelVar";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10007,7 +10017,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.StringValue";
     rf.short_name = "StringValue";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Value");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10019,7 +10029,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.Time";
     rf.short_name = "Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Attr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10032,7 +10042,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Time";
     rf.receiver_type = "log/slog.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10044,7 +10054,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.TimeValue";
     rf.short_name = "TimeValue";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Value");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10056,7 +10066,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.Uint64";
     rf.short_name = "Uint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Attr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10069,7 +10079,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Uint64";
     rf.receiver_type = "log/slog.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10081,7 +10091,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.Uint64Value";
     rf.short_name = "Uint64Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Value");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10094,7 +10104,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnmarshalJSON";
     rf.receiver_type = "log/slog.Level";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10107,7 +10117,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnmarshalText";
     rf.receiver_type = "log/slog.LevelVar";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10120,7 +10130,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnmarshalText";
     rf.receiver_type = "log/slog.Level";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10159,7 +10169,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "With";
     rf.receiver_type = "log/slog.Logger";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "log/slog.Logger"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10171,7 +10181,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "log/slog.With";
     rf.short_name = "With";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "log/slog.Logger"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10184,7 +10194,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WithAttrs";
     rf.receiver_type = "log/slog.defaultHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10197,7 +10207,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WithAttrs";
     rf.receiver_type = "log/slog.discardHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10210,7 +10220,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WithAttrs";
     rf.receiver_type = "log/slog.MultiHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10223,7 +10233,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WithAttrs";
     rf.receiver_type = "log/slog.JSONHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10236,7 +10246,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WithAttrs";
     rf.receiver_type = "log/slog.TextHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10249,7 +10259,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WithGroup";
     rf.receiver_type = "log/slog.discardHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10262,7 +10272,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WithGroup";
     rf.receiver_type = "log/slog.MultiHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10275,7 +10285,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WithGroup";
     rf.receiver_type = "log/slog.defaultHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10288,7 +10298,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WithGroup";
     rf.receiver_type = "log/slog.Logger";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "log/slog.Logger"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10301,7 +10311,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WithGroup";
     rf.receiver_type = "log/slog.JSONHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10314,7 +10324,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WithGroup";
     rf.receiver_type = "log/slog.TextHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "log/slog.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10327,7 +10337,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "log/slog.handlerWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -10340,7 +10350,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Abs";
     rf.short_name = "Abs";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10352,7 +10362,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Acos";
     rf.short_name = "Acos";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10364,7 +10374,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Acosh";
     rf.short_name = "Acosh";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10376,7 +10386,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Asin";
     rf.short_name = "Asin";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10388,7 +10398,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Asinh";
     rf.short_name = "Asinh";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10400,7 +10410,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Atan";
     rf.short_name = "Atan";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10412,7 +10422,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Atan2";
     rf.short_name = "Atan2";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10424,7 +10434,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Atanh";
     rf.short_name = "Atanh";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10436,7 +10446,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Cbrt";
     rf.short_name = "Cbrt";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10448,7 +10458,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Ceil";
     rf.short_name = "Ceil";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10460,7 +10470,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Copysign";
     rf.short_name = "Copysign";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10472,7 +10482,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Cos";
     rf.short_name = "Cos";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10484,7 +10494,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Cosh";
     rf.short_name = "Cosh";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10496,7 +10506,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Dim";
     rf.short_name = "Dim";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10508,7 +10518,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Erf";
     rf.short_name = "Erf";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10520,7 +10530,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Erfc";
     rf.short_name = "Erfc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10532,7 +10542,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Erfcinv";
     rf.short_name = "Erfcinv";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10544,7 +10554,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Erfinv";
     rf.short_name = "Erfinv";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10556,7 +10566,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Exp";
     rf.short_name = "Exp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10568,7 +10578,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Exp2";
     rf.short_name = "Exp2";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10580,7 +10590,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Expm1";
     rf.short_name = "Expm1";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10592,7 +10602,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.FMA";
     rf.short_name = "FMA";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10604,7 +10614,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Float32bits";
     rf.short_name = "Float32bits";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10616,7 +10626,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Float32frombits";
     rf.short_name = "Float32frombits";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10628,7 +10638,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Float64bits";
     rf.short_name = "Float64bits";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10640,7 +10650,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Float64frombits";
     rf.short_name = "Float64frombits";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10652,7 +10662,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Floor";
     rf.short_name = "Floor";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10664,7 +10674,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Frexp";
     rf.short_name = "Frexp";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = NULL;
@@ -10677,7 +10687,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Gamma";
     rf.short_name = "Gamma";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10689,7 +10699,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Hypot";
     rf.short_name = "Hypot";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10701,7 +10711,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Ilogb";
     rf.short_name = "Ilogb";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10713,7 +10723,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Inf";
     rf.short_name = "Inf";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10725,7 +10735,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.IsInf";
     rf.short_name = "IsInf";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10737,7 +10747,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.IsNaN";
     rf.short_name = "IsNaN";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10749,7 +10759,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.J0";
     rf.short_name = "J0";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10761,7 +10771,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.J1";
     rf.short_name = "J1";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10773,7 +10783,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Jn";
     rf.short_name = "Jn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10785,7 +10795,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Ldexp";
     rf.short_name = "Ldexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10797,7 +10807,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Lgamma";
     rf.short_name = "Lgamma";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = NULL;
@@ -10810,7 +10820,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Log";
     rf.short_name = "Log";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10822,7 +10832,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Log10";
     rf.short_name = "Log10";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10834,7 +10844,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Log1p";
     rf.short_name = "Log1p";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10846,7 +10856,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Log2";
     rf.short_name = "Log2";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10858,7 +10868,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Logb";
     rf.short_name = "Logb";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10870,7 +10880,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Max";
     rf.short_name = "Max";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10882,7 +10892,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Min";
     rf.short_name = "Min";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10894,7 +10904,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Mod";
     rf.short_name = "Mod";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10906,7 +10916,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Modf";
     rf.short_name = "Modf";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = cbm_type_builtin(arena, "float64");
         ret[2] = NULL;
@@ -10919,7 +10929,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.NaN";
     rf.short_name = "NaN";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10931,7 +10941,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Nextafter";
     rf.short_name = "Nextafter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10943,7 +10953,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Nextafter32";
     rf.short_name = "Nextafter32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10955,7 +10965,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Pow";
     rf.short_name = "Pow";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10967,7 +10977,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Pow10";
     rf.short_name = "Pow10";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10979,7 +10989,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Remainder";
     rf.short_name = "Remainder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -10991,7 +11001,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Round";
     rf.short_name = "Round";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11003,7 +11013,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.RoundToEven";
     rf.short_name = "RoundToEven";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11015,7 +11025,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Signbit";
     rf.short_name = "Signbit";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11027,7 +11037,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Sin";
     rf.short_name = "Sin";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11039,7 +11049,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Sincos";
     rf.short_name = "Sincos";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = cbm_type_builtin(arena, "float64");
         ret[2] = NULL;
@@ -11052,7 +11062,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Sinh";
     rf.short_name = "Sinh";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11064,7 +11074,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Sqrt";
     rf.short_name = "Sqrt";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11076,7 +11086,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Tan";
     rf.short_name = "Tan";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11088,7 +11098,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Tanh";
     rf.short_name = "Tanh";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11100,7 +11110,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Trunc";
     rf.short_name = "Trunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11112,7 +11122,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Y0";
     rf.short_name = "Y0";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11124,7 +11134,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Y1";
     rf.short_name = "Y1";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11136,7 +11146,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "math.Yn";
     rf.short_name = "Yn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11148,7 +11158,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "mime.AddExtensionType";
     rf.short_name = "AddExtensionType";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11161,7 +11171,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Decode";
     rf.receiver_type = "mime.WordDecoder";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11175,7 +11185,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DecodeHeader";
     rf.receiver_type = "mime.WordDecoder";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11189,7 +11199,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Encode";
     rf.receiver_type = "mime.WordEncoder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11201,7 +11211,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "mime.ExtensionsByType";
     rf.short_name = "ExtensionsByType";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11214,7 +11224,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "mime.FormatMediaType";
     rf.short_name = "FormatMediaType";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11226,7 +11236,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "mime.ParseMediaType";
     rf.short_name = "ParseMediaType";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_named(arena, "mime.map[string]string");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -11240,7 +11250,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "mime.TypeByExtension";
     rf.short_name = "TypeByExtension";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11253,7 +11263,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Accept";
     rf.receiver_type = "net.UnixListener";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.Conn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11267,7 +11277,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Accept";
     rf.receiver_type = "net.TCPListener";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.Conn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11281,7 +11291,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AcceptTCP";
     rf.receiver_type = "net.TCPListener";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.TCPConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11295,7 +11305,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AcceptUnix";
     rf.receiver_type = "net.UnixListener";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.UnixConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11309,7 +11319,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Addr";
     rf.receiver_type = "net.TCPListener";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.Addr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11322,7 +11332,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Addr";
     rf.receiver_type = "net.UnixListener";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.Addr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11335,7 +11345,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AddrPort";
     rf.receiver_type = "net.TCPAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "netip.AddrPort");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11348,7 +11358,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AddrPort";
     rf.receiver_type = "net.UDPAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "netip.AddrPort");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11361,7 +11371,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Addrs";
     rf.receiver_type = "net.Interface";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net.Addr"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11375,7 +11385,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AppendText";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11389,7 +11399,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Bytes";
     rf.receiver_type = "net.udpHeader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11401,7 +11411,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.CIDRMask";
     rf.short_name = "CIDRMask";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.IPMask");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11414,7 +11424,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Classify";
     rf.receiver_type = "net.policyTable";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.policyTableEntry");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11427,7 +11437,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net.conn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11440,7 +11450,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net.UnixListener";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11453,7 +11463,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net.fakeNetFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11466,7 +11476,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net.pipe";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11479,7 +11489,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11492,7 +11502,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11505,7 +11515,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net.TCPListener";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11518,7 +11528,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11531,7 +11541,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CloseRead";
     rf.receiver_type = "net.UnixConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11544,7 +11554,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CloseRead";
     rf.receiver_type = "net.TCPConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11557,7 +11567,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CloseWrite";
     rf.receiver_type = "net.UnixConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11570,7 +11580,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CloseWrite";
     rf.receiver_type = "net.TCPConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11583,7 +11593,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Contains";
     rf.receiver_type = "net.IPNet";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11596,7 +11606,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Control";
     rf.receiver_type = "net.rawConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11609,7 +11619,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DefaultMask";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.IPMask");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11621,7 +11631,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.Dial";
     rf.short_name = "Dial";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.Conn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11635,7 +11645,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Dial";
     rf.receiver_type = "net.Dialer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.Conn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11649,7 +11659,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DialContext";
     rf.receiver_type = "net.Dialer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.Conn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11663,7 +11673,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DialIP";
     rf.receiver_type = "net.Dialer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.IPConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11676,7 +11686,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.DialIP";
     rf.short_name = "DialIP";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.IPConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11690,7 +11700,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DialTCP";
     rf.receiver_type = "net.Dialer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.TCPConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11703,7 +11713,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.DialTCP";
     rf.short_name = "DialTCP";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.TCPConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11716,7 +11726,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.DialTimeout";
     rf.short_name = "DialTimeout";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.Conn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11729,7 +11739,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.DialUDP";
     rf.short_name = "DialUDP";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.UDPConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11743,7 +11753,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DialUDP";
     rf.receiver_type = "net.Dialer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.UDPConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11757,7 +11767,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DialUnix";
     rf.receiver_type = "net.Dialer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.UnixConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11770,7 +11780,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.DialUnix";
     rf.short_name = "DialUnix";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.UnixConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11784,7 +11794,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Equal";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11797,7 +11807,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net.OpError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11810,7 +11820,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net.UnknownNetworkError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11823,7 +11833,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net.canceledError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11836,7 +11846,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net.temporaryError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11849,7 +11859,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net.notFoundError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11862,7 +11872,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net.ParseError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11875,7 +11885,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net.AddrError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11888,7 +11898,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net.DNSConfigError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11901,7 +11911,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net.addrinfoErrno";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11914,7 +11924,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net.DNSError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11927,7 +11937,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net.InvalidAddrError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11940,7 +11950,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net.timeoutError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -11953,7 +11963,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "File";
     rf.receiver_type = "net.TCPListener";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11967,7 +11977,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "File";
     rf.receiver_type = "net.conn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11981,7 +11991,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "File";
     rf.receiver_type = "net.UnixListener";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -11994,7 +12004,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.FileConn";
     rf.short_name = "FileConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.Conn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12007,7 +12017,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.FileListener";
     rf.short_name = "FileListener";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.Listener");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12020,7 +12030,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.FilePacketConn";
     rf.short_name = "FilePacketConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.PacketConn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12033,7 +12043,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.IPv4";
     rf.short_name = "IPv4";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.IP");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12045,7 +12055,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.IPv4Mask";
     rf.short_name = "IPv4Mask";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.IPMask");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12057,7 +12067,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.InterfaceAddrs";
     rf.short_name = "InterfaceAddrs";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net.Addr"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12070,7 +12080,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.InterfaceByIndex";
     rf.short_name = "InterfaceByIndex";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.Interface"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12083,7 +12093,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.InterfaceByName";
     rf.short_name = "InterfaceByName";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.Interface"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12096,7 +12106,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.Interfaces";
     rf.short_name = "Interfaces";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net.Interface"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12110,7 +12120,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Is";
     rf.receiver_type = "net.timeoutError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12123,7 +12133,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Is";
     rf.receiver_type = "net.canceledError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12136,7 +12146,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsGlobalUnicast";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12149,7 +12159,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsInterfaceLocalMulticast";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12162,7 +12172,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsLinkLocalMulticast";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12175,7 +12185,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsLinkLocalUnicast";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12188,7 +12198,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsLoopback";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12201,7 +12211,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsMulticast";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12214,7 +12224,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsPrivate";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12227,7 +12237,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsUnspecified";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12239,7 +12249,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.JoinHostPort";
     rf.short_name = "JoinHostPort";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12251,7 +12261,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.Listen";
     rf.short_name = "Listen";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.Listener");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12265,7 +12275,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Listen";
     rf.receiver_type = "net.ListenConfig";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.Listener");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12278,7 +12288,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.ListenIP";
     rf.short_name = "ListenIP";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.IPConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12291,7 +12301,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.ListenMulticastUDP";
     rf.short_name = "ListenMulticastUDP";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.UDPConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12304,7 +12314,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.ListenPacket";
     rf.short_name = "ListenPacket";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.PacketConn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12318,7 +12328,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ListenPacket";
     rf.receiver_type = "net.ListenConfig";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.PacketConn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12331,7 +12341,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.ListenTCP";
     rf.short_name = "ListenTCP";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.TCPListener"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12344,7 +12354,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.ListenUDP";
     rf.short_name = "ListenUDP";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.UDPConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12357,7 +12367,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.ListenUnix";
     rf.short_name = "ListenUnix";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.UnixListener"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12370,7 +12380,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.ListenUnixgram";
     rf.short_name = "ListenUnixgram";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.UnixConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12384,7 +12394,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LocalAddr";
     rf.receiver_type = "net.pipe";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.Addr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12397,7 +12407,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LocalAddr";
     rf.receiver_type = "net.conn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.Addr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12409,7 +12419,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.LookupAddr";
     rf.short_name = "LookupAddr";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12423,7 +12433,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LookupAddr";
     rf.receiver_type = "net.Resolver";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12437,7 +12447,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LookupCNAME";
     rf.receiver_type = "net.Resolver";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12450,7 +12460,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.LookupCNAME";
     rf.short_name = "LookupCNAME";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12463,7 +12473,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.LookupHost";
     rf.short_name = "LookupHost";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12477,7 +12487,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LookupHost";
     rf.receiver_type = "net.Resolver";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12490,7 +12500,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.LookupIP";
     rf.short_name = "LookupIP";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net.IP"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12504,7 +12514,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LookupIP";
     rf.receiver_type = "net.Resolver";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net.IP"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12518,7 +12528,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LookupIPAddr";
     rf.receiver_type = "net.Resolver";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net.IPAddr"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12531,7 +12541,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.LookupMX";
     rf.short_name = "LookupMX";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net.*MX"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12545,7 +12555,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LookupMX";
     rf.receiver_type = "net.Resolver";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net.*MX"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12558,7 +12568,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.LookupNS";
     rf.short_name = "LookupNS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net.*NS"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12572,7 +12582,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LookupNS";
     rf.receiver_type = "net.Resolver";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net.*NS"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12586,7 +12596,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LookupNetIP";
     rf.receiver_type = "net.Resolver";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "netip.Addr"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12599,7 +12609,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.LookupPort";
     rf.short_name = "LookupPort";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12613,7 +12623,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LookupPort";
     rf.receiver_type = "net.Resolver";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12627,7 +12637,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LookupSRV";
     rf.receiver_type = "net.Resolver";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_slice(arena, cbm_type_named(arena, "net.*SRV"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -12641,7 +12651,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.LookupSRV";
     rf.short_name = "LookupSRV";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_slice(arena, cbm_type_named(arena, "net.*SRV"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -12656,7 +12666,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LookupTXT";
     rf.receiver_type = "net.Resolver";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12669,7 +12679,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.LookupTXT";
     rf.short_name = "LookupTXT";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12683,7 +12693,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MarshalText";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12697,7 +12707,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Mask";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.IP");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12710,7 +12720,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MulticastAddrs";
     rf.receiver_type = "net.Interface";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net.Addr"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12724,7 +12734,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MultipathTCP";
     rf.receiver_type = "net.Dialer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12737,7 +12747,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MultipathTCP";
     rf.receiver_type = "net.ListenConfig";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12750,7 +12760,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MultipathTCP";
     rf.receiver_type = "net.TCPConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12764,7 +12774,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Network";
     rf.receiver_type = "net.addrPortUDPAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12777,7 +12787,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Network";
     rf.receiver_type = "net.IPNet";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12790,7 +12800,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Network";
     rf.receiver_type = "net.unknownAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12803,7 +12813,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Network";
     rf.receiver_type = "net.TCPAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12816,7 +12826,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Network";
     rf.receiver_type = "net.UDPAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12829,7 +12839,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Network";
     rf.receiver_type = "net.fileAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12842,7 +12852,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Network";
     rf.receiver_type = "net.UnixAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12855,7 +12865,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Network";
     rf.receiver_type = "net.IPAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12868,7 +12878,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Network";
     rf.receiver_type = "net.rawConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "poll.String");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12881,7 +12891,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Network";
     rf.receiver_type = "net.pipeAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12893,7 +12903,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.ParseCIDR";
     rf.short_name = "ParseCIDR";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_named(arena, "net.IP");
         ret[1] = cbm_type_pointer(arena, cbm_type_named(arena, "net.IPNet"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -12907,7 +12917,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.ParseIP";
     rf.short_name = "ParseIP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.IP");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12919,7 +12929,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.ParseMAC";
     rf.short_name = "ParseMAC";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.HardwareAddr");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12932,7 +12942,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.Pipe";
     rf.short_name = "Pipe";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.Conn");
         ret[1] = cbm_type_named(arena, "net.Conn");
         ret[2] = NULL;
@@ -12946,7 +12956,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "PollFD";
     rf.receiver_type = "net.rawConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "poll.FD"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12959,7 +12969,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -12973,7 +12983,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net.rawListener";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -12986,7 +12996,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -13000,7 +13010,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net.Buffers";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -13014,7 +13024,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -13028,7 +13038,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net.rawConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13041,7 +13051,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net.pipe";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -13055,7 +13065,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net.fakeNetFD";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -13069,7 +13079,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net.conn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -13083,7 +13093,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrom";
     rf.receiver_type = "net.IPConn";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_named(arena, "net.Addr");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -13098,7 +13108,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrom";
     rf.receiver_type = "net.UDPConn";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_named(arena, "net.Addr");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -13113,7 +13123,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrom";
     rf.receiver_type = "net.noReadFrom";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -13127,7 +13137,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrom";
     rf.receiver_type = "net.UnixConn";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_named(arena, "net.Addr");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -13142,7 +13152,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrom";
     rf.receiver_type = "net.TCPConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -13156,7 +13166,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFromIP";
     rf.receiver_type = "net.IPConn";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_pointer(arena, cbm_type_named(arena, "net.IPAddr"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -13171,7 +13181,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFromUDP";
     rf.receiver_type = "net.UDPConn";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_pointer(arena, cbm_type_named(arena, "net.UDPAddr"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -13186,7 +13196,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFromUDPAddrPort";
     rf.receiver_type = "net.UDPConn";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_named(arena, "netip.AddrPort");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -13201,7 +13211,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFromUnix";
     rf.receiver_type = "net.UnixConn";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_pointer(arena, cbm_type_named(arena, "net.UnixAddr"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -13216,7 +13226,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadMsgIP";
     rf.receiver_type = "net.IPConn";
     {
-        const CBMType* ret[6];
+        const CBMType *ret[6];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "int");
@@ -13233,7 +13243,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadMsgUDP";
     rf.receiver_type = "net.UDPConn";
     {
-        const CBMType* ret[6];
+        const CBMType *ret[6];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "int");
@@ -13250,7 +13260,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadMsgUDPAddrPort";
     rf.receiver_type = "net.UDPConn";
     {
-        const CBMType* ret[6];
+        const CBMType *ret[6];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "int");
@@ -13267,7 +13277,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadMsgUnix";
     rf.receiver_type = "net.UnixConn";
     {
-        const CBMType* ret[6];
+        const CBMType *ret[6];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "int");
@@ -13284,7 +13294,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RemoteAddr";
     rf.receiver_type = "net.pipe";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.Addr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13297,7 +13307,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RemoteAddr";
     rf.receiver_type = "net.conn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.Addr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13310,7 +13320,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Reset";
     rf.receiver_type = "net.deadlineTimer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13322,7 +13332,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.ResolveIPAddr";
     rf.short_name = "ResolveIPAddr";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.IPAddr"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -13335,7 +13345,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.ResolveTCPAddr";
     rf.short_name = "ResolveTCPAddr";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.TCPAddr"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -13348,7 +13358,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.ResolveUDPAddr";
     rf.short_name = "ResolveUDPAddr";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.UDPAddr"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -13361,7 +13371,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.ResolveUnixAddr";
     rf.short_name = "ResolveUnixAddr";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.UnixAddr"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -13375,7 +13385,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetDeadline";
     rf.receiver_type = "net.conn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13388,7 +13398,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetDeadline";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13401,7 +13411,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetDeadline";
     rf.receiver_type = "net.TCPListener";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13414,7 +13424,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetDeadline";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13427,7 +13437,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetDeadline";
     rf.receiver_type = "net.pipe";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13440,7 +13450,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetDeadline";
     rf.receiver_type = "net.fakeNetFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13453,7 +13463,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetDeadline";
     rf.receiver_type = "net.UnixListener";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13466,7 +13476,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetDeadline";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13479,7 +13489,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetKeepAlive";
     rf.receiver_type = "net.TCPConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13492,7 +13502,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetKeepAliveConfig";
     rf.receiver_type = "net.TCPConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13505,7 +13515,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetKeepAliveConfig";
     rf.receiver_type = "net.TCPConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13518,7 +13528,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetKeepAliveConfig";
     rf.receiver_type = "net.TCPConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13531,7 +13541,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetKeepAlivePeriod";
     rf.receiver_type = "net.TCPConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13544,7 +13554,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetLinger";
     rf.receiver_type = "net.TCPConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13571,7 +13581,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetNoDelay";
     rf.receiver_type = "net.TCPConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13584,7 +13594,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetReadBuffer";
     rf.receiver_type = "net.conn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13597,7 +13607,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetReadDeadline";
     rf.receiver_type = "net.fakeNetFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13610,7 +13620,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetReadDeadline";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13623,7 +13633,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetReadDeadline";
     rf.receiver_type = "net.pipe";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13636,7 +13646,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetReadDeadline";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13649,7 +13659,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetReadDeadline";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13662,7 +13672,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetReadDeadline";
     rf.receiver_type = "net.conn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13682,7 +13692,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetWriteBuffer";
     rf.receiver_type = "net.conn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13695,7 +13705,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetWriteDeadline";
     rf.receiver_type = "net.conn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13708,7 +13718,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetWriteDeadline";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13721,7 +13731,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetWriteDeadline";
     rf.receiver_type = "net.fakeNetFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13734,7 +13744,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetWriteDeadline";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13747,7 +13757,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetWriteDeadline";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13760,7 +13770,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetWriteDeadline";
     rf.receiver_type = "net.pipe";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13773,7 +13783,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Size";
     rf.receiver_type = "net.IPMask";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = NULL;
@@ -13786,7 +13796,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.SplitHostPort";
     rf.short_name = "SplitHostPort";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "string");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -13801,7 +13811,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net.HardwareAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13814,7 +13824,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13827,7 +13837,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net.IPAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13840,7 +13850,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net.pipeAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13853,7 +13863,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net.Flags";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13866,7 +13876,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net.hostLookupOrder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13879,7 +13889,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net.fileAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13892,7 +13902,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net.IPNet";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13905,7 +13915,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net.UnixAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13918,7 +13928,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net.IPMask";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13931,7 +13941,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net.unknownAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13944,7 +13954,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net.TCPAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13957,7 +13967,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net.UDPAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -13970,7 +13980,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SyscallConn";
     rf.receiver_type = "net.UDPConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "syscall.RawConn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -13984,7 +13994,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SyscallConn";
     rf.receiver_type = "net.UnixListener";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "syscall.RawConn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -13998,7 +14008,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SyscallConn";
     rf.receiver_type = "net.IPConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "syscall.RawConn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14012,7 +14022,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SyscallConn";
     rf.receiver_type = "net.TCPConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "syscall.RawConn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14026,7 +14036,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SyscallConn";
     rf.receiver_type = "net.UnixConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "syscall.RawConn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14040,7 +14050,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SyscallConn";
     rf.receiver_type = "net.TCPListener";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "syscall.RawConn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14053,7 +14063,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.TCPAddrFromAddrPort";
     rf.short_name = "TCPAddrFromAddrPort";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.TCPAddr"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14066,7 +14076,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "net.OpError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14079,7 +14089,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "net.DNSConfigError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14092,7 +14102,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "net.temporaryError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14105,7 +14115,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "net.addrinfoErrno";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14118,7 +14128,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "net.timeoutError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14131,7 +14141,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "net.ParseError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14144,7 +14154,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "net.InvalidAddrError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14157,7 +14167,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "net.AddrError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14170,7 +14180,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "net.DNSError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14183,7 +14193,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "net.UnknownNetworkError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14196,7 +14206,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "net.DNSConfigError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14209,7 +14219,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "net.timeoutError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14222,7 +14232,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "net.addrinfoErrno";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14235,7 +14245,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "net.temporaryError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14248,7 +14258,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "net.DNSError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14261,7 +14271,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "net.UnknownNetworkError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14274,7 +14284,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "net.InvalidAddrError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14287,7 +14297,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "net.ParseError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14300,7 +14310,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "net.AddrError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14313,7 +14323,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "net.OpError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14326,7 +14336,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "To16";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.IP");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14339,7 +14349,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "To4";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.IP");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14351,7 +14361,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net.UDPAddrFromAddrPort";
     rf.short_name = "UDPAddrFromAddrPort";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net.UDPAddr"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14364,7 +14374,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnmarshalText";
     rf.receiver_type = "net.IP";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14377,7 +14387,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "net.OpError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14390,7 +14400,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "net.DNSConfigError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14403,7 +14413,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "net.DNSError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14416,7 +14426,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "net.onlyValuesCtx";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14429,7 +14439,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net.rawConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14442,7 +14452,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14456,7 +14466,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net.pipe";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14470,7 +14480,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net.fakeNetFD";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14484,7 +14494,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14498,7 +14508,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net.netFD";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14512,7 +14522,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net.conn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14526,7 +14536,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net.rawListener";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14539,7 +14549,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteMsgIP";
     rf.receiver_type = "net.IPConn";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -14554,7 +14564,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteMsgUDP";
     rf.receiver_type = "net.UDPConn";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -14569,7 +14579,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteMsgUDPAddrPort";
     rf.receiver_type = "net.UDPConn";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -14584,7 +14594,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteMsgUnix";
     rf.receiver_type = "net.UnixConn";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -14599,7 +14609,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "net.UnixConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14613,7 +14623,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "net.UDPConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14627,7 +14637,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "net.TCPConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14641,7 +14651,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "net.noWriteTo";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14655,7 +14665,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "net.IPConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14669,7 +14679,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "net.Buffers";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14683,7 +14693,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteToIP";
     rf.receiver_type = "net.IPConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14697,7 +14707,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteToUDP";
     rf.receiver_type = "net.UDPConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14711,7 +14721,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteToUDPAddrPort";
     rf.receiver_type = "net.UDPConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14725,7 +14735,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteToUnix";
     rf.receiver_type = "net.UnixConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -14760,7 +14770,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AddTrustedOrigin";
     rf.receiver_type = "net/http.CrossOriginProtection";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14800,7 +14810,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.AllowQuerySemicolons";
     rf.short_name = "AllowQuerySemicolons";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14819,7 +14829,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "As";
     rf.receiver_type = "net/http.http2StreamError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14832,7 +14842,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Authenticate";
     rf.receiver_type = "net/http.socksUsernamePassword";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14845,7 +14855,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Available";
     rf.receiver_type = "net/http.ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14858,7 +14868,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Available";
     rf.receiver_type = "net/http.http2bufferedWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14871,7 +14881,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Available";
     rf.receiver_type = "net/http.http1ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14884,7 +14894,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Available";
     rf.receiver_type = "net/http.http2netHTTPClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14897,7 +14907,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "BaseContext";
     rf.receiver_type = "net/http.unencryptedHTTP2Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "context.Context");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14910,7 +14920,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "BaseContext";
     rf.receiver_type = "net/http.initALPNRequest";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "context.Context");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14923,7 +14933,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "BasicAuth";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "string");
         ret[2] = cbm_type_builtin(arena, "bool");
@@ -14938,7 +14948,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "BoundAddr";
     rf.receiver_type = "net/http.socksConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.Addr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14958,7 +14968,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CanTakeNewRequest";
     rf.receiver_type = "net/http.http2ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14977,7 +14987,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.CanonicalHeaderKey";
     rf.short_name = "CanonicalHeaderKey";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -14989,7 +14999,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.ChanCreate";
     rf.short_name = "ChanCreate";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Chan");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15002,7 +15012,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Check";
     rf.receiver_type = "net/http.CrossOriginProtection";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15015,7 +15025,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Clone";
     rf.receiver_type = "net/http.Header";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Header");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15028,7 +15038,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Clone";
     rf.receiver_type = "net/http.Transport";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Transport"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15041,7 +15051,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Clone";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Request"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15054,7 +15064,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.ioFile";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15067,7 +15077,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.maxBytesReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15080,7 +15090,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.streamReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15093,7 +15103,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.Server";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15106,7 +15116,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.expectContinueReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15119,7 +15129,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.onceCloseListener";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15132,7 +15142,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.noBody";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15145,7 +15155,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.loggingConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15158,7 +15168,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.body";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15171,7 +15181,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15184,7 +15194,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.http1ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15197,7 +15207,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.cancelTimerBody";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15210,7 +15220,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.http2netHTTPClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15223,7 +15233,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.gzipReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15236,7 +15246,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.http2gzipReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15249,7 +15259,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.http2missingBody";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15262,7 +15272,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.http2noBodyReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15275,7 +15285,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.arrayReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15288,7 +15298,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.http2transportResponseBody";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15301,7 +15311,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.bodyEOFSignal";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15314,7 +15324,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.http2ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15327,7 +15337,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.readTrackingBody";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15340,7 +15350,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "net/http.http2requestBody";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15360,7 +15370,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CloseConn";
     rf.receiver_type = "net/http.http2serverConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15401,7 +15411,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CloseNotify";
     rf.receiver_type = "net/http.http2responseWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.chan bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15414,7 +15424,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CloseNotify";
     rf.receiver_type = "net/http.response";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.chan bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15462,7 +15472,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CloseWrite";
     rf.receiver_type = "net/http.readWriteCloserBody";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15475,7 +15485,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Consume";
     rf.receiver_type = "net/http.http2FrameWriteRequest";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_named(arena, "net/http.http2FrameWriteRequest");
         ret[1] = cbm_type_named(arena, "net/http.http2FrameWriteRequest");
         ret[2] = cbm_type_builtin(arena, "int");
@@ -15490,7 +15500,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Context";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "context.Context");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15503,7 +15513,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Cookie";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Cookie"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -15517,7 +15527,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Cookies";
     rf.receiver_type = "net/http.Response";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net/http.*Cookie"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15530,7 +15540,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Cookies";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net/http.*Cookie"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15543,7 +15553,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CookiesNamed";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net/http.*Cookie"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15556,7 +15566,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Data";
     rf.receiver_type = "net/http.http2DataFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15569,7 +15579,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DataSize";
     rf.receiver_type = "net/http.http2FrameWriteRequest";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15588,7 +15598,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DebugData";
     rf.receiver_type = "net/http.http2GoAwayFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15607,7 +15617,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.DetectContentType";
     rf.short_name = "DetectContentType";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15620,7 +15630,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Dial";
     rf.receiver_type = "net/http.socksDialer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.Conn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -15634,7 +15644,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DialContext";
     rf.receiver_type = "net/http.socksDialer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.Conn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -15648,7 +15658,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DialWithConn";
     rf.receiver_type = "net/http.socksDialer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net.Addr");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -15662,7 +15672,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Do";
     rf.receiver_type = "net/http.Client";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -15676,7 +15686,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Done";
     rf.receiver_type = "net/http.http2pipe";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.chan any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15689,7 +15699,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "EnableFullDuplex";
     rf.receiver_type = "net/http.response";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15702,7 +15712,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "EnableFullDuplex";
     rf.receiver_type = "net/http.http2responseWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15715,7 +15725,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "EnableFullDuplex";
     rf.receiver_type = "net/http.ResponseController";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15728,7 +15738,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Err";
     rf.receiver_type = "net/http.http1ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15741,7 +15751,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Err";
     rf.receiver_type = "net/http.http2netHTTPClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15754,7 +15764,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Err";
     rf.receiver_type = "net/http.http2pipe";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15767,7 +15777,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Err";
     rf.receiver_type = "net/http.ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15780,7 +15790,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.unsupportedTEError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15793,7 +15803,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.http2ConnectionError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15806,7 +15816,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.tlsHandshakeTimeoutError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15819,7 +15829,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.timeoutError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15832,7 +15842,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.transportReadFromServerError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15845,7 +15855,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.ProtocolError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15858,7 +15868,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.http2noCachedConnError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15871,7 +15881,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.http2GoAwayError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15890,7 +15900,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.statusError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15903,7 +15913,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.http2StreamError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15916,7 +15926,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.http2goAwayFlowError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15929,7 +15939,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.http2connError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15942,7 +15952,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.http2pseudoHeaderError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15955,7 +15965,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.http2duplicatePseudoHeaderError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15968,7 +15978,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.http2headerFieldNameError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15981,7 +15991,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.http2headerFieldValueError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -15994,7 +16004,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.http2noCachedConnError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16007,7 +16017,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.http2httpError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16020,7 +16030,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/http.MaxBytesError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16033,7 +16043,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ErrorDetail";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16045,7 +16055,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.FS";
     rf.short_name = "FS";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.FileSystem");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16057,7 +16067,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.FileServer";
     rf.short_name = "FileServer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16069,7 +16079,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.FileServerFS";
     rf.short_name = "FileServerFS";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16088,7 +16098,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Flush";
     rf.receiver_type = "net/http.ResponseController";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16101,7 +16111,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Flush";
     rf.receiver_type = "net/http.http2serverConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16114,7 +16124,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Flush";
     rf.receiver_type = "net/http.http2bufferedWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16141,7 +16151,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FlushError";
     rf.receiver_type = "net/http.response";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16154,7 +16164,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FlushError";
     rf.receiver_type = "net/http.http2responseWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16167,7 +16177,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ForeachSetting";
     rf.receiver_type = "net/http.http2SettingsFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16180,7 +16190,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FormFile";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_named(arena, "multipart.File");
         ret[1] = cbm_type_pointer(arena, cbm_type_named(arena, "multipart.FileHeader"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -16195,7 +16205,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FormValue";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16208,7 +16218,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Framer";
     rf.receiver_type = "net/http.http2serverConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.http2Framer"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16221,7 +16231,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Get";
     rf.receiver_type = "net/http.Client";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -16234,7 +16244,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.Get";
     rf.short_name = "Get";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -16248,7 +16258,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Get";
     rf.receiver_type = "net/http.Header";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16261,7 +16271,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "GetClientConn";
     rf.receiver_type = "net/http.http2clientConnPool";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.http2ClientConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -16275,7 +16285,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "GetClientConn";
     rf.receiver_type = "net/http.http2noDialClientConnPool";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.http2ClientConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -16289,7 +16299,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "HTTP1";
     rf.receiver_type = "net/http.Protocols";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16302,7 +16312,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "HTTP2";
     rf.receiver_type = "net/http.Protocols";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16341,7 +16351,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Handler";
     rf.receiver_type = "net/http.CrossOriginProtection";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16354,7 +16364,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Handler";
     rf.receiver_type = "net/http.ServeMux";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net/http.Handler");
         ret[1] = cbm_type_builtin(arena, "string");
         ret[2] = NULL;
@@ -16368,7 +16378,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Has";
     rf.receiver_type = "net/http.http2Flags";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16381,7 +16391,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "HasDuplicates";
     rf.receiver_type = "net/http.http2SettingsFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16394,7 +16404,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "HasPriority";
     rf.receiver_type = "net/http.http2HeadersFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16406,7 +16416,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.Head";
     rf.short_name = "Head";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -16420,7 +16430,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Head";
     rf.receiver_type = "net/http.Client";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -16434,7 +16444,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Header";
     rf.receiver_type = "net/http.http2responseWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Header");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16447,7 +16457,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Header";
     rf.receiver_type = "net/http.populateResponse";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Header");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16460,7 +16470,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Header";
     rf.receiver_type = "net/http.response";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Header");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16473,7 +16483,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Header";
     rf.receiver_type = "net/http.timeoutWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Header");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16486,7 +16496,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Header";
     rf.receiver_type = "net/http.http2FrameHeader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.http2FrameHeader");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16499,7 +16509,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "HeaderBlockFragment";
     rf.receiver_type = "net/http.http2ContinuationFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16512,7 +16522,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "HeaderBlockFragment";
     rf.receiver_type = "net/http.http2PushPromiseFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16525,7 +16535,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "HeaderBlockFragment";
     rf.receiver_type = "net/http.http2HeadersFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16538,7 +16548,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "HeaderEncoder";
     rf.receiver_type = "net/http.http2serverConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "hpack.Encoder"));
         ret[1] = cbm_type_pointer(arena, cbm_type_named(arena, "bytes.Buffer"));
         ret[2] = NULL;
@@ -16552,7 +16562,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "HeadersEnded";
     rf.receiver_type = "net/http.http2PushPromiseFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16565,7 +16575,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "HeadersEnded";
     rf.receiver_type = "net/http.http2ContinuationFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16578,7 +16588,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "HeadersEnded";
     rf.receiver_type = "net/http.http2HeadersFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16597,7 +16607,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Hijack";
     rf.receiver_type = "net/http.response";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_named(arena, "net.Conn");
         ret[1] = cbm_type_pointer(arena, cbm_type_named(arena, "bufio.ReadWriter"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -16612,7 +16622,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Hijack";
     rf.receiver_type = "net/http.ResponseController";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_named(arena, "net.Conn");
         ret[1] = cbm_type_pointer(arena, cbm_type_named(arena, "bufio.ReadWriter"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -16627,7 +16637,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "InFlight";
     rf.receiver_type = "net/http.ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16640,7 +16650,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "InFlight";
     rf.receiver_type = "net/http.http1ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16653,7 +16663,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "InFlight";
     rf.receiver_type = "net/http.http2netHTTPClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16673,7 +16683,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Is";
     rf.receiver_type = "net/http.timeoutError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16686,7 +16696,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Is";
     rf.receiver_type = "net/http.ProtocolError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16699,7 +16709,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsAck";
     rf.receiver_type = "net/http.http2PingFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16712,7 +16722,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsAck";
     rf.receiver_type = "net/http.http2SettingsFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16739,7 +16749,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsZero";
     rf.receiver_type = "net/http.http2PriorityParam";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16752,7 +16762,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Keys";
     rf.receiver_type = "net/http.http2sorter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16765,7 +16775,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Len";
     rf.receiver_type = "net/http.http2sorter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16778,7 +16788,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Len";
     rf.receiver_type = "net/http.http2dataBuffer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16791,7 +16801,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Len";
     rf.receiver_type = "net/http.http2pipe";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16804,7 +16814,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Len";
     rf.receiver_type = "net/http.http2sortPriorityNodeSiblingsRFC7540";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16817,7 +16827,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Less";
     rf.receiver_type = "net/http.http2sortPriorityNodeSiblingsRFC7540";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16830,7 +16840,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Less";
     rf.receiver_type = "net/http.http2sorter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16843,7 +16853,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ListenAndServe";
     rf.receiver_type = "net/http.Server";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16855,7 +16865,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.ListenAndServe";
     rf.short_name = "ListenAndServe";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16867,7 +16877,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.ListenAndServeTLS";
     rf.short_name = "ListenAndServeTLS";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16880,7 +16890,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ListenAndServeTLS";
     rf.receiver_type = "net/http.Server";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16893,7 +16903,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Location";
     rf.receiver_type = "net/http.Response";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "url.URL"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -16926,7 +16936,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.MaxBytesHandler";
     rf.short_name = "MaxBytesHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16938,7 +16948,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.MaxBytesReader";
     rf.short_name = "MaxBytesReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io.ReadCloser");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16951,7 +16961,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MultipartReader";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "multipart.Reader"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -16965,7 +16975,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Network";
     rf.receiver_type = "net/http.socksAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -16978,7 +16988,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "NewClientConn";
     rf.receiver_type = "net/http.http2noDialH2RoundTripper";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net/http.RoundTripper");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -16992,7 +17002,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "NewClientConn";
     rf.receiver_type = "net/http.http2Transport";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.http2ClientConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17006,7 +17016,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "NewClientConn";
     rf.receiver_type = "net/http.Transport";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.ClientConn"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17019,7 +17029,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.NewCrossOriginProtection";
     rf.short_name = "NewCrossOriginProtection";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.CrossOriginProtection"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17031,7 +17041,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.NewFileTransport";
     rf.short_name = "NewFileTransport";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.RoundTripper");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17043,7 +17053,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.NewFileTransportFS";
     rf.short_name = "NewFileTransportFS";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.RoundTripper");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17055,7 +17065,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.NewRequest";
     rf.short_name = "NewRequest";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Request"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17068,7 +17078,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.NewRequestWithContext";
     rf.short_name = "NewRequestWithContext";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Request"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17081,7 +17091,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.NewResponseController";
     rf.short_name = "NewResponseController";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.ResponseController"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17093,7 +17103,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.NewServeMux";
     rf.short_name = "NewServeMux";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.ServeMux"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17111,7 +17121,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.NotFoundHandler";
     rf.short_name = "NotFoundHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17124,7 +17134,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "NumSettings";
     rf.receiver_type = "net/http.http2SettingsFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17137,7 +17147,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Open";
     rf.receiver_type = "net/http.Dir";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net/http.File");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17151,7 +17161,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Open";
     rf.receiver_type = "net/http.ioFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net/http.File");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17192,7 +17202,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.ParseCookie";
     rf.short_name = "ParseCookie";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "net/http.*Cookie"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17206,7 +17216,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ParseForm";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17218,7 +17228,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.ParseHTTPVersion";
     rf.short_name = "ParseHTTPVersion";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "bool");
@@ -17233,7 +17243,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ParseMultipartForm";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17245,7 +17255,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.ParseSetCookie";
     rf.short_name = "ParseSetCookie";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Cookie"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17258,7 +17268,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.ParseTime";
     rf.short_name = "ParseTime";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17272,7 +17282,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "PathValue";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17285,7 +17295,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Payload";
     rf.receiver_type = "net/http.http2UnknownFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17298,7 +17308,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Ping";
     rf.receiver_type = "net/http.http2ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17311,7 +17321,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Pop";
     rf.receiver_type = "net/http.http2roundRobinWriteScheduler";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net/http.http2FrameWriteRequest");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -17325,7 +17335,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Pop";
     rf.receiver_type = "net/http.http2randomWriteScheduler";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net/http.http2FrameWriteRequest");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -17339,7 +17349,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Pop";
     rf.receiver_type = "net/http.http2priorityWriteSchedulerRFC7540";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net/http.http2FrameWriteRequest");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -17353,7 +17363,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Pop";
     rf.receiver_type = "net/http.http2priorityWriteSchedulerRFC9218";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net/http.http2FrameWriteRequest");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -17366,7 +17376,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.Post";
     rf.short_name = "Post";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17380,7 +17390,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Post";
     rf.receiver_type = "net/http.Client";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17394,7 +17404,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "PostForm";
     rf.receiver_type = "net/http.Client";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17407,7 +17417,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.PostForm";
     rf.short_name = "PostForm";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17421,7 +17431,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "PostFormValue";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17434,7 +17444,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ProtoAtLeast";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17447,7 +17457,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ProtoAtLeast";
     rf.receiver_type = "net/http.Response";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17459,7 +17469,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.ProxyFromEnvironment";
     rf.short_name = "ProxyFromEnvironment";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "url.URL"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17472,7 +17482,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.ProxyURL";
     rf.short_name = "ProxyURL";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.func()");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17485,7 +17495,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "PseudoFields";
     rf.receiver_type = "net/http.http2MetaHeadersFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "hpack.HeaderField"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17498,7 +17508,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "PseudoValue";
     rf.receiver_type = "net/http.http2MetaHeadersFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17525,7 +17535,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Push";
     rf.receiver_type = "net/http.timeoutWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17552,7 +17562,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Push";
     rf.receiver_type = "net/http.http2responseWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -17565,7 +17575,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.noBody";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17579,7 +17589,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.http2dataBuffer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17593,7 +17603,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.expectContinueReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17607,7 +17617,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.finishAsyncByteRead";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17621,7 +17631,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.cancelTimerBody";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17635,7 +17645,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.arrayReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17649,7 +17659,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.http2transportResponseBody";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17663,7 +17673,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.persistConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17677,7 +17687,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.readWriteCloserBody";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17691,7 +17701,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.bodyLocked";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17705,7 +17715,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.connReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17719,7 +17729,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.body";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17733,7 +17743,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.streamReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17747,7 +17757,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.maxBytesReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17761,7 +17771,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.http2noBodyReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17775,7 +17785,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.readTrackingBody";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17789,7 +17799,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.http2pipe";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17803,7 +17813,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.byteReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17817,7 +17827,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.http2missingBody";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17831,7 +17841,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.bodyEOFSignal";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17845,7 +17855,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.ioFile";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17859,7 +17869,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.loggingConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17873,7 +17883,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.http2eofReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17887,7 +17897,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.gzipReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17901,7 +17911,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.http2gzipReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17915,7 +17925,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.errorReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17929,7 +17939,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.http2errorReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17943,7 +17953,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.eofReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17957,7 +17967,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "net/http.http2requestBody";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17971,7 +17981,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadByte";
     rf.receiver_type = "net/http.http2eofReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "byte");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17985,7 +17995,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadByte";
     rf.receiver_type = "net/http.eofReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "byte");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -17999,7 +18009,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadDir";
     rf.receiver_type = "net/http.ioFile";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "fs.DirEntry"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18013,7 +18023,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrame";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net/http.http2Frame");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18027,7 +18037,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrameForHeader";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net/http.http2Frame");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18041,7 +18051,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrameHeader";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net/http.http2FrameHeader");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18055,7 +18065,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrom";
     rf.receiver_type = "net/http.persistConnWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18069,7 +18079,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrom";
     rf.receiver_type = "net/http.response";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18082,7 +18092,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.ReadRequest";
     rf.short_name = "ReadRequest";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Request"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18095,7 +18105,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.ReadResponse";
     rf.short_name = "ReadResponse";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18109,7 +18119,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Readdir";
     rf.receiver_type = "net/http.ioFile";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "fs.FileInfo"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18128,7 +18138,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.RedirectHandler";
     rf.short_name = "RedirectHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18141,7 +18151,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Referer";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18168,7 +18178,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RegularFields";
     rf.receiver_type = "net/http.http2MetaHeadersFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "hpack.HeaderField"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18202,7 +18212,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Reserve";
     rf.receiver_type = "net/http.ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18215,7 +18225,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Reserve";
     rf.receiver_type = "net/http.http1ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18228,7 +18238,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Reserve";
     rf.receiver_type = "net/http.http2netHTTPClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18241,7 +18251,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReserveNewRequest";
     rf.receiver_type = "net/http.http2ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18254,7 +18264,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTrip";
     rf.receiver_type = "net/http.http2netHTTPClientConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18268,7 +18278,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTrip";
     rf.receiver_type = "net/http.http2noDialH2RoundTripper";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18282,7 +18292,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTrip";
     rf.receiver_type = "net/http.http2ClientConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18296,7 +18306,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTrip";
     rf.receiver_type = "net/http.Transport";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18310,7 +18320,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTrip";
     rf.receiver_type = "net/http.http2noDialH2RoundTripper";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18324,7 +18334,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTrip";
     rf.receiver_type = "net/http.fileTransport";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18338,7 +18348,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTrip";
     rf.receiver_type = "net/http.Transport";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18352,7 +18362,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTrip";
     rf.receiver_type = "net/http.http2Transport";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18366,7 +18376,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTrip";
     rf.receiver_type = "net/http.ClientConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18380,7 +18390,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTrip";
     rf.receiver_type = "net/http.http2Transport";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18394,7 +18404,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTrip";
     rf.receiver_type = "net/http.http2unencryptedTransport";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18408,7 +18418,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTrip";
     rf.receiver_type = "net/http.http1ClientConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18422,7 +18432,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTrip";
     rf.receiver_type = "net/http.http2erringRoundTripper";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18436,7 +18446,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTripErr";
     rf.receiver_type = "net/http.http2erringRoundTripper";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18449,7 +18459,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RoundTripOpt";
     rf.receiver_type = "net/http.http2Transport";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Response"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18463,7 +18473,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Seek";
     rf.receiver_type = "net/http.ioFile";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18477,7 +18487,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Serve";
     rf.receiver_type = "net/http.Server";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18489,7 +18499,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.Serve";
     rf.short_name = "Serve";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18611,7 +18621,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ServeTLS";
     rf.receiver_type = "net/http.Server";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18623,7 +18633,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.ServeTLS";
     rf.short_name = "ServeTLS";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18705,7 +18715,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetReadDeadline";
     rf.receiver_type = "net/http.http2responseWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18718,7 +18728,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetReadDeadline";
     rf.receiver_type = "net/http.response";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18731,7 +18741,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetReadDeadline";
     rf.receiver_type = "net/http.ResponseController";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18765,7 +18775,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetWriteDeadline";
     rf.receiver_type = "net/http.http2responseWriter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18778,7 +18788,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetWriteDeadline";
     rf.receiver_type = "net/http.ResponseController";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18791,7 +18801,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetWriteDeadline";
     rf.receiver_type = "net/http.response";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18804,7 +18814,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Setting";
     rf.receiver_type = "net/http.http2SettingsFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.http2Setting");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18817,7 +18827,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Shutdown";
     rf.receiver_type = "net/http.Server";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18830,7 +18840,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Shutdown";
     rf.receiver_type = "net/http.http2ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18850,7 +18860,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Stat";
     rf.receiver_type = "net/http.ioFile";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "fs.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -18864,7 +18874,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "State";
     rf.receiver_type = "net/http.http2ClientConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.http2ClientConnState");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18876,7 +18886,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.StatusText";
     rf.short_name = "StatusText";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18889,7 +18899,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "StreamEnded";
     rf.receiver_type = "net/http.http2DataFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18902,7 +18912,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "StreamEnded";
     rf.receiver_type = "net/http.http2HeadersFrame";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18915,7 +18925,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "StreamID";
     rf.receiver_type = "net/http.http2FrameWriteRequest";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18928,7 +18938,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.Protocols";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18941,7 +18951,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.Cookie";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18954,7 +18964,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.pattern";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18967,7 +18977,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.socksAddr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18980,7 +18990,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.Counter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -18993,7 +19003,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.http2SettingID";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19006,7 +19016,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.contextKey";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19019,7 +19029,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.socksCommand";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19032,7 +19042,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.socksReply";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19045,7 +19055,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.http2streamState";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19058,7 +19068,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.ConnState";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19071,7 +19081,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.http2ErrCode";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19084,7 +19094,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.http2FrameType";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19097,7 +19107,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.connectMethodKey";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19110,7 +19120,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.http2FrameHeader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19123,7 +19133,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.http2writeData";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19136,7 +19146,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.http2FrameWriteRequest";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19149,7 +19159,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/http.http2Setting";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19161,7 +19171,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.StripPrefix";
     rf.short_name = "StripPrefix";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19188,7 +19198,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "net/http.timeoutError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19201,7 +19211,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "net/http.http2httpError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19214,7 +19224,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "net/http.tlsHandshakeTimeoutError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19227,7 +19237,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "net/http.tlsHandshakeTimeoutError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19240,7 +19250,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "net/http.http2httpError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19253,7 +19263,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "net/http.timeoutError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19265,7 +19275,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/http.TimeoutHandler";
     rf.short_name = "TimeoutHandler";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/http.Handler");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19278,7 +19288,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnencryptedHTTP2";
     rf.receiver_type = "net/http.Protocols";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19291,7 +19301,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnencryptedNetConn";
     rf.receiver_type = "net/http.unencryptedNetConnInTLSConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net.Conn");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19311,7 +19321,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "net/http.nothingWrittenError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19324,7 +19334,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "net/http.transportReadFromServerError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19337,7 +19347,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UserAgent";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19350,7 +19360,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Valid";
     rf.receiver_type = "net/http.Cookie";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19363,7 +19373,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Valid";
     rf.receiver_type = "net/http.http2Setting";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19376,7 +19386,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Value";
     rf.receiver_type = "net/http.http2SettingsFrame";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "uint32");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -19390,7 +19400,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Values";
     rf.receiver_type = "net/http.Header";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19410,7 +19420,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WithContext";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/http.Request"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19423,7 +19433,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.bufioFlushWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19437,7 +19447,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.http2pipe";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19451,7 +19461,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.persistConnWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19465,7 +19475,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.http2dataBuffer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19479,7 +19489,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.populateResponse";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19493,7 +19503,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.Response";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19506,7 +19516,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.http2stickyErrWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19527,7 +19537,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.http2responseWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19541,7 +19551,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.chunkWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19555,7 +19565,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19568,7 +19578,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.http2chunkWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19582,7 +19592,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.Header";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19595,7 +19605,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.checkConnErrorWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19609,7 +19619,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.http2bufferedWriterTimeoutWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19623,7 +19633,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.http2bufferedWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19637,7 +19647,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.response";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19651,7 +19661,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.countingWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19665,7 +19675,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.timeoutWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19679,7 +19689,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "net/http.loggingConn";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19693,7 +19703,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteContinuation";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19706,7 +19716,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteData";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19719,7 +19729,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteDataPadded";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19732,7 +19742,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteGoAway";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19773,7 +19783,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteHeaders";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19786,7 +19796,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WritePing";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19799,7 +19809,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WritePriority";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19812,7 +19822,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteProxy";
     rf.receiver_type = "net/http.Request";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19825,7 +19835,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WritePushPromise";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19838,7 +19848,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteRSTStream";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19851,7 +19861,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteRawFrame";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19864,7 +19874,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteSettings";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19877,7 +19887,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteSettingsAck";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19890,7 +19900,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "net/http.http2responseWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19904,7 +19914,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "net/http.stringWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19918,7 +19928,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "net/http.response";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19932,7 +19942,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteSubset";
     rf.receiver_type = "net/http.Header";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19945,7 +19955,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "net/http.noBody";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -19959,7 +19969,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteWindowUpdate";
     rf.receiver_type = "net/http.http2Framer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -19979,7 +19989,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AppendBinary";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -20000,7 +20010,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Encode";
     rf.receiver_type = "net/url.Values";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20013,7 +20023,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/url.Error";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20026,7 +20036,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/url.InvalidHostError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20039,7 +20049,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "net/url.EscapeError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20052,7 +20062,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "EscapedFragment";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20065,7 +20075,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "EscapedPath";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20078,7 +20088,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Get";
     rf.receiver_type = "net/url.Values";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20091,7 +20101,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Has";
     rf.receiver_type = "net/url.Values";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20104,7 +20114,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Hostname";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20117,7 +20127,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsAbs";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20129,7 +20139,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/url.JoinPath";
     rf.short_name = "JoinPath";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -20143,7 +20153,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "JoinPath";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/url.URL"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20156,7 +20166,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MarshalBinary";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -20169,7 +20179,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/url.Parse";
     rf.short_name = "Parse";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/url.URL"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -20183,7 +20193,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Parse";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/url.URL"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -20196,7 +20206,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/url.ParseQuery";
     rf.short_name = "ParseQuery";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "net/url.Values");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -20209,7 +20219,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/url.ParseRequestURI";
     rf.short_name = "ParseRequestURI";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/url.URL"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -20223,7 +20233,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Password";
     rf.receiver_type = "net/url.Userinfo";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -20236,7 +20246,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/url.PathEscape";
     rf.short_name = "PathEscape";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20248,7 +20258,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/url.PathUnescape";
     rf.short_name = "PathUnescape";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -20262,7 +20272,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Port";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20275,7 +20285,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Query";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "net/url.Values");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20287,7 +20297,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/url.QueryEscape";
     rf.short_name = "QueryEscape";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20299,7 +20309,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/url.QueryUnescape";
     rf.short_name = "QueryUnescape";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -20313,7 +20323,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Redacted";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20326,7 +20336,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RequestURI";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20339,7 +20349,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ResolveReference";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/url.URL"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20359,7 +20369,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20372,7 +20382,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "net/url.Userinfo";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20385,7 +20395,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Temporary";
     rf.receiver_type = "net/url.Error";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20398,7 +20408,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "net/url.Error";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20411,7 +20421,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnmarshalBinary";
     rf.receiver_type = "net/url.URL";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20424,7 +20434,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "net/url.Error";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20436,7 +20446,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/url.User";
     rf.short_name = "User";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/url.Userinfo"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20448,7 +20458,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "net/url.UserPassword";
     rf.short_name = "UserPassword";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "net/url.Userinfo"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20461,7 +20471,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Username";
     rf.receiver_type = "net/url.Userinfo";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20474,7 +20484,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Chdir";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20487,7 +20497,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Chdir";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20499,7 +20509,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Chdir";
     rf.short_name = "Chdir";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20512,7 +20522,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Chmod";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20525,7 +20535,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Chmod";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20537,7 +20547,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Chmod";
     rf.short_name = "Chmod";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20550,7 +20560,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Chown";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20563,7 +20573,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Chown";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20575,7 +20585,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Chown";
     rf.short_name = "Chown";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20587,7 +20597,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Chown";
     rf.short_name = "Chown";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20600,7 +20610,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Chown";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20612,7 +20622,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Chtimes";
     rf.short_name = "Chtimes";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20625,7 +20635,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Chtimes";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20637,7 +20647,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Chtimes";
     rf.short_name = "Chtimes";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20656,7 +20666,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20669,7 +20679,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20682,7 +20692,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20695,7 +20705,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "os.root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20708,7 +20718,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Close";
     rf.receiver_type = "os.root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20721,7 +20731,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Control";
     rf.receiver_type = "os.rawConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20734,7 +20744,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Control";
     rf.receiver_type = "os.rawConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20746,7 +20756,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.CopyFS";
     rf.short_name = "CopyFS";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20758,7 +20768,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Create";
     rf.short_name = "Create";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -20772,7 +20782,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Create";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -20785,7 +20795,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.CreateTemp";
     rf.short_name = "CreateTemp";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -20798,7 +20808,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.DirFS";
     rf.short_name = "DirFS";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "fs.FS");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20810,7 +20820,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Environ";
     rf.short_name = "Environ";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20823,7 +20833,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "os.errSymlink";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20836,7 +20846,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "os.LinkError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20849,7 +20859,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "os.SyscallError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20861,7 +20871,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Executable";
     rf.short_name = "Executable";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -20881,7 +20891,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ExitCode";
     rf.receiver_type = "os.ProcessState";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20894,7 +20904,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ExitCode";
     rf.receiver_type = "os.ProcessState";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20907,7 +20917,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Exited";
     rf.receiver_type = "os.ProcessState";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20919,7 +20929,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Expand";
     rf.short_name = "Expand";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20931,7 +20941,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.ExpandEnv";
     rf.short_name = "ExpandEnv";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20944,7 +20954,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FS";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "fs.FS");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20957,7 +20967,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Fd";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uintptr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20969,7 +20979,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.FindProcess";
     rf.short_name = "FindProcess";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.Process"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -20982,7 +20992,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Getegid";
     rf.short_name = "Getegid";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -20994,7 +21004,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Getenv";
     rf.short_name = "Getenv";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21006,7 +21016,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Geteuid";
     rf.short_name = "Geteuid";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21018,7 +21028,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Getgid";
     rf.short_name = "Getgid";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21030,7 +21040,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Getgroups";
     rf.short_name = "Getgroups";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "int"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21043,7 +21053,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Getpagesize";
     rf.short_name = "Getpagesize";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21055,7 +21065,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Getpid";
     rf.short_name = "Getpid";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21067,7 +21077,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Getppid";
     rf.short_name = "Getppid";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21079,7 +21089,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Getuid";
     rf.short_name = "Getuid";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21091,7 +21101,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Getwd";
     rf.short_name = "Getwd";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21104,7 +21114,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Hostname";
     rf.short_name = "Hostname";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21118,7 +21128,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Info";
     rf.receiver_type = "os.dirEntry";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "os.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21132,7 +21142,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Info";
     rf.receiver_type = "os.unixDirent";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "os.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21146,7 +21156,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Info";
     rf.receiver_type = "os.dirEntry";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "os.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21160,7 +21170,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsDir";
     rf.receiver_type = "os.unixDirent";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21173,7 +21183,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsDir";
     rf.receiver_type = "os.dirEntry";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21186,7 +21196,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsDir";
     rf.receiver_type = "os.dirEntry";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21199,7 +21209,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsDir";
     rf.receiver_type = "os.fileStat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21211,7 +21221,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.IsExist";
     rf.short_name = "IsExist";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21223,7 +21233,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.IsNotExist";
     rf.short_name = "IsNotExist";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21235,7 +21245,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.IsPathSeparator";
     rf.short_name = "IsPathSeparator";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21247,7 +21257,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.IsPathSeparator";
     rf.short_name = "IsPathSeparator";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21259,7 +21269,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.IsPathSeparator";
     rf.short_name = "IsPathSeparator";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21271,7 +21281,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.IsPermission";
     rf.short_name = "IsPermission";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21283,7 +21293,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.IsTimeout";
     rf.short_name = "IsTimeout";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21296,7 +21306,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Kill";
     rf.receiver_type = "os.Process";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21309,7 +21319,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Lchown";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21321,7 +21331,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Lchown";
     rf.short_name = "Lchown";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21333,7 +21343,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Lchown";
     rf.short_name = "Lchown";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21345,7 +21355,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Link";
     rf.short_name = "Link";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21357,7 +21367,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Link";
     rf.short_name = "Link";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21369,7 +21379,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Link";
     rf.short_name = "Link";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21382,7 +21392,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Link";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21394,7 +21404,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.LookupEnv";
     rf.short_name = "LookupEnv";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -21408,7 +21418,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Lstat";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "os.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21422,7 +21432,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Lstat";
     rf.receiver_type = "os.dirFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "fs.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21435,7 +21445,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Lstat";
     rf.short_name = "Lstat";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "os.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21449,7 +21459,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Lstat";
     rf.receiver_type = "os.rootFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "os.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21463,7 +21473,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Mkdir";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21475,7 +21485,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Mkdir";
     rf.short_name = "Mkdir";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21487,7 +21497,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.MkdirAll";
     rf.short_name = "MkdirAll";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21500,7 +21510,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MkdirAll";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21512,7 +21522,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.MkdirTemp";
     rf.short_name = "MkdirTemp";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21526,7 +21536,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ModTime";
     rf.receiver_type = "os.fileStat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21539,7 +21549,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ModTime";
     rf.receiver_type = "os.fileStat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21552,7 +21562,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ModTime";
     rf.receiver_type = "os.fileStat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21565,7 +21575,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Mode";
     rf.receiver_type = "os.fileStat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "os.FileMode");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21578,7 +21588,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Mode";
     rf.receiver_type = "os.fileStat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "os.FileMode");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21591,7 +21601,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Mode";
     rf.receiver_type = "os.fileStat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "os.FileMode");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21604,7 +21614,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Name";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21617,7 +21627,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Name";
     rf.receiver_type = "os.unixDirent";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21630,7 +21640,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Name";
     rf.receiver_type = "os.root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21643,7 +21653,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Name";
     rf.receiver_type = "os.dirEntry";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21656,7 +21666,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Name";
     rf.receiver_type = "os.root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21669,7 +21679,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Name";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21682,7 +21692,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Name";
     rf.receiver_type = "os.dirEntry";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21695,7 +21705,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Name";
     rf.receiver_type = "os.fileStat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21707,7 +21717,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.NewFile";
     rf.short_name = "NewFile";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21719,7 +21729,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.NewSyscallError";
     rf.short_name = "NewSyscallError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21732,7 +21742,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Open";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21746,7 +21756,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Open";
     rf.receiver_type = "os.rootFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "fs.File");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21760,7 +21770,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Open";
     rf.receiver_type = "os.dirFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "fs.File");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21773,7 +21783,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Open";
     rf.short_name = "Open";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21787,7 +21797,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "OpenFile";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21800,7 +21810,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.OpenFile";
     rf.short_name = "OpenFile";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21813,7 +21823,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.OpenInRoot";
     rf.short_name = "OpenInRoot";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21827,7 +21837,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "OpenRoot";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.Root"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21840,7 +21850,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.OpenRoot";
     rf.short_name = "OpenRoot";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.Root"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -21854,7 +21864,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Pid";
     rf.receiver_type = "os.ProcessState";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21867,7 +21877,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Pid";
     rf.receiver_type = "os.ProcessState";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21879,7 +21889,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Pipe";
     rf.short_name = "Pipe";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -21893,7 +21903,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Pipe";
     rf.short_name = "Pipe";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -21907,7 +21917,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Pipe";
     rf.short_name = "Pipe";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -21921,7 +21931,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Pipe";
     rf.short_name = "Pipe";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -21935,7 +21945,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Pipe";
     rf.short_name = "Pipe";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[1] = cbm_type_pointer(arena, cbm_type_named(arena, "os.File"));
         ret[2] = cbm_type_builtin(arena, "error");
@@ -21950,7 +21960,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "PollFD";
     rf.receiver_type = "os.file";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "poll.FD"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21963,7 +21973,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "os.rawConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21976,7 +21986,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "os.rawConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -21989,7 +21999,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22003,7 +22013,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadAt";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22017,7 +22027,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadDir";
     rf.receiver_type = "os.rootFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "os.DirEntry"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22030,7 +22040,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.ReadDir";
     rf.short_name = "ReadDir";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "os.DirEntry"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22044,7 +22054,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadDir";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "os.DirEntry"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22058,7 +22068,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadDir";
     rf.receiver_type = "os.dirFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "os.DirEntry"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22072,7 +22082,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFile";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22085,7 +22095,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.ReadFile";
     rf.short_name = "ReadFile";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22099,7 +22109,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFile";
     rf.receiver_type = "os.rootFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22113,7 +22123,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFile";
     rf.receiver_type = "os.dirFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22127,7 +22137,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrom";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22141,7 +22151,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadFrom";
     rf.receiver_type = "os.noReadFrom";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22155,7 +22165,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadLink";
     rf.receiver_type = "os.rootFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22169,7 +22179,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadLink";
     rf.receiver_type = "os.dirFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22183,7 +22193,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Readdir";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "os.FileInfo"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22197,7 +22207,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Readdirnames";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22211,7 +22221,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Readlink";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22224,7 +22234,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Readlink";
     rf.short_name = "Readlink";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22238,7 +22248,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Release";
     rf.receiver_type = "os.Process";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22250,7 +22260,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Remove";
     rf.short_name = "Remove";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22263,7 +22273,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Remove";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22275,7 +22285,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Remove";
     rf.short_name = "Remove";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22287,7 +22297,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Remove";
     rf.short_name = "Remove";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22299,7 +22309,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.RemoveAll";
     rf.short_name = "RemoveAll";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22312,7 +22322,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RemoveAll";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22324,7 +22334,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Rename";
     rf.short_name = "Rename";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22337,7 +22347,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Rename";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22349,7 +22359,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.SameFile";
     rf.short_name = "SameFile";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22362,7 +22372,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Seek";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22376,7 +22386,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetDeadline";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22389,7 +22399,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetReadDeadline";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22402,7 +22412,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SetWriteDeadline";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22414,7 +22424,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Setenv";
     rf.short_name = "Setenv";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22427,7 +22437,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Signal";
     rf.receiver_type = "os.Process";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22440,7 +22450,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Size";
     rf.receiver_type = "os.fileStat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22453,7 +22463,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Size";
     rf.receiver_type = "os.fileStat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22466,7 +22476,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Size";
     rf.receiver_type = "os.fileStat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22478,7 +22488,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.StartProcess";
     rf.short_name = "StartProcess";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.Process"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22492,7 +22502,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Stat";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "os.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22506,7 +22516,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Stat";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "os.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22520,7 +22530,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Stat";
     rf.receiver_type = "os.rootFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "os.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22534,7 +22544,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Stat";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "os.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22547,7 +22557,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Stat";
     rf.short_name = "Stat";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "os.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22561,7 +22571,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Stat";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "os.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22575,7 +22585,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Stat";
     rf.receiver_type = "os.dirFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "fs.FileInfo");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22589,7 +22599,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "os.dirEntry";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22602,7 +22612,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "os.ProcessState";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22615,7 +22625,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "os.unixDirent";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22628,7 +22638,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "os.ProcessState";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22641,7 +22651,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "os.dirEntry";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22654,7 +22664,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Success";
     rf.receiver_type = "os.ProcessState";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22666,7 +22676,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Symlink";
     rf.short_name = "Symlink";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22678,7 +22688,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Symlink";
     rf.short_name = "Symlink";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22691,7 +22701,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Symlink";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22703,7 +22713,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Symlink";
     rf.short_name = "Symlink";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22716,7 +22726,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Sync";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22729,7 +22739,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Sync";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22742,7 +22752,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Sys";
     rf.receiver_type = "os.fileStat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22755,7 +22765,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Sys";
     rf.receiver_type = "os.fileStat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22768,7 +22778,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Sys";
     rf.receiver_type = "os.fileStat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22781,7 +22791,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Sys";
     rf.receiver_type = "os.ProcessState";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22794,7 +22804,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SysUsage";
     rf.receiver_type = "os.ProcessState";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22807,7 +22817,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SyscallConn";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "syscall.RawConn");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -22821,7 +22831,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SystemTime";
     rf.receiver_type = "os.ProcessState";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Duration");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22833,7 +22843,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.TempDir";
     rf.short_name = "TempDir";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22846,7 +22856,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Timeout";
     rf.receiver_type = "os.SyscallError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22859,7 +22869,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Truncate";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22872,7 +22882,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Truncate";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22884,7 +22894,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Truncate";
     rf.short_name = "Truncate";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22896,7 +22906,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Truncate";
     rf.short_name = "Truncate";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22908,7 +22918,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Truncate";
     rf.short_name = "Truncate";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22921,7 +22931,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Type";
     rf.receiver_type = "os.unixDirent";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "os.FileMode");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22934,7 +22944,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Type";
     rf.receiver_type = "os.dirEntry";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "os.FileMode");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22947,7 +22957,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Type";
     rf.receiver_type = "os.dirEntry";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "os.FileMode");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22959,7 +22969,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.Unsetenv";
     rf.short_name = "Unsetenv";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22972,7 +22982,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "os.SyscallError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22985,7 +22995,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "os.LinkError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -22997,7 +23007,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.UserCacheDir";
     rf.short_name = "UserCacheDir";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23010,7 +23020,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.UserConfigDir";
     rf.short_name = "UserConfigDir";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23023,7 +23033,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.UserHomeDir";
     rf.short_name = "UserHomeDir";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23037,7 +23047,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UserTime";
     rf.receiver_type = "os.ProcessState";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Duration");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23050,7 +23060,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Wait";
     rf.receiver_type = "os.Process";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os.ProcessState"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23064,7 +23074,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WithHandle";
     rf.receiver_type = "os.Process";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23077,7 +23087,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23091,7 +23101,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "os.rawConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23104,7 +23114,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "os.rawConn";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23117,7 +23127,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteAt";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23130,7 +23140,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os.WriteFile";
     rf.short_name = "WriteFile";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23143,7 +23153,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteFile";
     rf.receiver_type = "os.Root";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23156,7 +23166,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23170,7 +23180,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "os.noWriteTo";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23184,7 +23194,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "os.File";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23198,7 +23208,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Bytes";
     rf.receiver_type = "os/exec.prefixSuffixSaver";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23211,7 +23221,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CombinedOutput";
     rf.receiver_type = "os/exec.Cmd";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23224,7 +23234,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os/exec.Command";
     rf.short_name = "Command";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os/exec.Cmd"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23236,7 +23246,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os/exec.CommandContext";
     rf.short_name = "CommandContext";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "os/exec.Cmd"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23249,7 +23259,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Environ";
     rf.receiver_type = "os/exec.Cmd";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23262,7 +23272,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "os/exec.wrappedError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23275,7 +23285,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "os/exec.ExitError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23288,7 +23298,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "os/exec.Error";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23300,7 +23310,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "os/exec.LookPath";
     rf.short_name = "LookPath";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23314,7 +23324,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Output";
     rf.receiver_type = "os/exec.Cmd";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23328,7 +23338,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Run";
     rf.receiver_type = "os/exec.Cmd";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23341,7 +23351,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Start";
     rf.receiver_type = "os/exec.Cmd";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23354,7 +23364,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "StderrPipe";
     rf.receiver_type = "os/exec.Cmd";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "io.ReadCloser");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23368,7 +23378,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "StdinPipe";
     rf.receiver_type = "os/exec.Cmd";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "io.WriteCloser");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23382,7 +23392,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "StdoutPipe";
     rf.receiver_type = "os/exec.Cmd";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "io.ReadCloser");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23396,7 +23406,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "os/exec.Cmd";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23409,7 +23419,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "os/exec.wrappedError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23422,7 +23432,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "os/exec.Error";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23435,7 +23445,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Wait";
     rf.receiver_type = "os/exec.Cmd";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23448,7 +23458,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "os/exec.prefixSuffixSaver";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23461,7 +23471,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path.Base";
     rf.short_name = "Base";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23473,7 +23483,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path.Clean";
     rf.short_name = "Clean";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23485,7 +23495,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path.Dir";
     rf.short_name = "Dir";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23497,7 +23507,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path.Ext";
     rf.short_name = "Ext";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23509,7 +23519,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path.IsAbs";
     rf.short_name = "IsAbs";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23521,7 +23531,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path.Join";
     rf.short_name = "Join";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23533,7 +23543,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path.Match";
     rf.short_name = "Match";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23546,7 +23556,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path.Split";
     rf.short_name = "Split";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "string");
         ret[2] = NULL;
@@ -23559,7 +23569,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.Abs";
     rf.short_name = "Abs";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23572,7 +23582,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.Base";
     rf.short_name = "Base";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23584,7 +23594,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.Clean";
     rf.short_name = "Clean";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23596,7 +23606,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.Dir";
     rf.short_name = "Dir";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23608,7 +23618,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.EvalSymlinks";
     rf.short_name = "EvalSymlinks";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23621,7 +23631,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.Ext";
     rf.short_name = "Ext";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23633,7 +23643,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.FromSlash";
     rf.short_name = "FromSlash";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23645,7 +23655,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.Glob";
     rf.short_name = "Glob";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23658,7 +23668,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.HasPrefix";
     rf.short_name = "HasPrefix";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23670,7 +23680,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.HasPrefix";
     rf.short_name = "HasPrefix";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23682,7 +23692,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.HasPrefix";
     rf.short_name = "HasPrefix";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23694,7 +23704,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.IsAbs";
     rf.short_name = "IsAbs";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23706,7 +23716,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.IsLocal";
     rf.short_name = "IsLocal";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23718,7 +23728,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.Join";
     rf.short_name = "Join";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23730,7 +23740,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.Localize";
     rf.short_name = "Localize";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23743,7 +23753,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.Match";
     rf.short_name = "Match";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23756,7 +23766,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.Rel";
     rf.short_name = "Rel";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23769,7 +23779,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.Split";
     rf.short_name = "Split";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "string");
         ret[2] = NULL;
@@ -23782,7 +23792,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.SplitList";
     rf.short_name = "SplitList";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23794,7 +23804,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.ToSlash";
     rf.short_name = "ToSlash";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23806,7 +23816,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.VolumeName";
     rf.short_name = "VolumeName";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23818,7 +23828,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.Walk";
     rf.short_name = "Walk";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23830,7 +23840,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "path/filepath.WalkDir";
     rf.short_name = "WalkDir";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23843,7 +23853,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AppendText";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23856,7 +23866,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "regexp.Compile";
     rf.short_name = "Compile";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "regexp.Regexp"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23869,7 +23879,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "regexp.CompilePOSIX";
     rf.short_name = "CompilePOSIX";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "regexp.Regexp"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -23883,7 +23893,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Copy";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "regexp.Regexp"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23896,7 +23906,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Expand";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23909,7 +23919,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ExpandString";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23922,7 +23932,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Find";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23935,7 +23945,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindAll";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "regexp.[]byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23948,7 +23958,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindAllIndex";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "regexp.[]int"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23961,7 +23971,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindAllString";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23974,7 +23984,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindAllStringIndex";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "regexp.[]int"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -23987,7 +23997,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindAllStringSubmatch";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "regexp.[]string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24000,7 +24010,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindAllStringSubmatchIndex";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "regexp.[]int"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24013,7 +24023,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindAllSubmatch";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "regexp.[][]byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24026,7 +24036,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindAllSubmatchIndex";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "regexp.[]int"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24039,7 +24049,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindIndex";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "int"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24052,7 +24062,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindReaderIndex";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "int"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24065,7 +24075,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindReaderSubmatchIndex";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "int"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24078,7 +24088,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindString";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24091,7 +24101,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindStringIndex";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "int"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24104,7 +24114,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindStringSubmatch";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24117,7 +24127,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindStringSubmatchIndex";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "int"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24130,7 +24140,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindSubmatch";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "regexp.[]byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24143,7 +24153,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "FindSubmatchIndex";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "int"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24156,7 +24166,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LiteralPrefix";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -24177,7 +24187,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MarshalText";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -24191,7 +24201,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Match";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24203,7 +24213,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "regexp.Match";
     rf.short_name = "Match";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -24217,7 +24227,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MatchReader";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24229,7 +24239,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "regexp.MatchReader";
     rf.short_name = "MatchReader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -24243,7 +24253,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MatchString";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24255,7 +24265,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "regexp.MatchString";
     rf.short_name = "MatchString";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -24268,7 +24278,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "regexp.MustCompile";
     rf.short_name = "MustCompile";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "regexp.Regexp"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24280,7 +24290,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "regexp.MustCompilePOSIX";
     rf.short_name = "MustCompilePOSIX";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "regexp.Regexp"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24293,7 +24303,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "NumSubexp";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24305,7 +24315,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "regexp.QuoteMeta";
     rf.short_name = "QuoteMeta";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24318,7 +24328,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReplaceAll";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24331,7 +24341,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReplaceAllFunc";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24344,7 +24354,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReplaceAllLiteral";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24357,7 +24367,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReplaceAllLiteralString";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24370,7 +24380,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReplaceAllString";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24383,7 +24393,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReplaceAllStringFunc";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24396,7 +24406,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Split";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24409,7 +24419,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24422,7 +24432,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SubexpIndex";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24435,7 +24445,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "SubexpNames";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24448,7 +24458,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnmarshalText";
     rf.receiver_type = "regexp.Regexp";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24460,7 +24470,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sort.Find";
     rf.short_name = "Find";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -24479,7 +24489,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sort.Float64sAreSorted";
     rf.short_name = "Float64sAreSorted";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24497,7 +24507,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sort.IntsAreSorted";
     rf.short_name = "IntsAreSorted";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24509,7 +24519,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sort.IsSorted";
     rf.short_name = "IsSorted";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24522,7 +24532,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Len";
     rf.receiver_type = "sort.StringSlice";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24535,7 +24545,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Len";
     rf.receiver_type = "sort.Float64Slice";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24548,7 +24558,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Len";
     rf.receiver_type = "sort.IntSlice";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24561,7 +24571,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Less";
     rf.receiver_type = "sort.StringSlice";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24574,7 +24584,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Less";
     rf.receiver_type = "sort.Float64Slice";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24587,7 +24597,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Less";
     rf.receiver_type = "sort.IntSlice";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24600,7 +24610,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Less";
     rf.receiver_type = "sort.reverse";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24613,7 +24623,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Next";
     rf.receiver_type = "sort.xorshift";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24625,7 +24635,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sort.Reverse";
     rf.short_name = "Reverse";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "sort.Interface");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24638,7 +24648,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Search";
     rf.receiver_type = "sort.Float64Slice";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24651,7 +24661,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Search";
     rf.receiver_type = "sort.StringSlice";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24664,7 +24674,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Search";
     rf.receiver_type = "sort.IntSlice";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24676,7 +24686,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sort.Search";
     rf.short_name = "Search";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24688,7 +24698,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sort.SearchFloat64s";
     rf.short_name = "SearchFloat64s";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24700,7 +24710,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sort.SearchInts";
     rf.short_name = "SearchInts";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24712,7 +24722,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sort.SearchStrings";
     rf.short_name = "SearchStrings";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24730,7 +24740,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sort.SliceIsSorted";
     rf.short_name = "SliceIsSorted";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24787,7 +24797,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sort.StringsAreSorted";
     rf.short_name = "StringsAreSorted";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24820,7 +24830,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.AppendBool";
     rf.short_name = "AppendBool";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24832,7 +24842,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.AppendFloat";
     rf.short_name = "AppendFloat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24844,7 +24854,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.AppendInt";
     rf.short_name = "AppendInt";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24856,7 +24866,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.AppendQuote";
     rf.short_name = "AppendQuote";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24868,7 +24878,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.AppendQuoteRune";
     rf.short_name = "AppendQuoteRune";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24880,7 +24890,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.AppendQuoteRuneToASCII";
     rf.short_name = "AppendQuoteRuneToASCII";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24892,7 +24902,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.AppendQuoteRuneToGraphic";
     rf.short_name = "AppendQuoteRuneToGraphic";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24904,7 +24914,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.AppendQuoteToASCII";
     rf.short_name = "AppendQuoteToASCII";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24916,7 +24926,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.AppendQuoteToGraphic";
     rf.short_name = "AppendQuoteToGraphic";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24928,7 +24938,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.AppendUint";
     rf.short_name = "AppendUint";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24940,7 +24950,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.Atoi";
     rf.short_name = "Atoi";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -24953,7 +24963,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.CanBackquote";
     rf.short_name = "CanBackquote";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24966,7 +24976,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "strconv.NumError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24978,7 +24988,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.FormatBool";
     rf.short_name = "FormatBool";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -24990,7 +25000,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.FormatComplex";
     rf.short_name = "FormatComplex";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25002,7 +25012,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.FormatFloat";
     rf.short_name = "FormatFloat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25014,7 +25024,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.FormatInt";
     rf.short_name = "FormatInt";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25026,7 +25036,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.FormatUint";
     rf.short_name = "FormatUint";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25038,7 +25048,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.IsGraphic";
     rf.short_name = "IsGraphic";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25050,7 +25060,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.IsPrint";
     rf.short_name = "IsPrint";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25062,7 +25072,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.Itoa";
     rf.short_name = "Itoa";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25074,7 +25084,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.ParseBool";
     rf.short_name = "ParseBool";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -25087,7 +25097,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.ParseComplex";
     rf.short_name = "ParseComplex";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "complex128");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -25100,7 +25110,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.ParseFloat";
     rf.short_name = "ParseFloat";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -25113,7 +25123,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.ParseInt";
     rf.short_name = "ParseInt";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -25126,7 +25136,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.ParseUint";
     rf.short_name = "ParseUint";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -25139,7 +25149,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.Quote";
     rf.short_name = "Quote";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25151,7 +25161,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.QuoteRune";
     rf.short_name = "QuoteRune";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25163,7 +25173,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.QuoteRuneToASCII";
     rf.short_name = "QuoteRuneToASCII";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25175,7 +25185,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.QuoteRuneToGraphic";
     rf.short_name = "QuoteRuneToGraphic";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25187,7 +25197,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.QuoteToASCII";
     rf.short_name = "QuoteToASCII";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25199,7 +25209,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.QuoteToGraphic";
     rf.short_name = "QuoteToGraphic";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25211,7 +25221,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.QuotedPrefix";
     rf.short_name = "QuotedPrefix";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -25224,7 +25234,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.Unquote";
     rf.short_name = "Unquote";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -25237,7 +25247,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strconv.UnquoteChar";
     rf.short_name = "UnquoteChar";
     {
-        const CBMType* ret[5];
+        const CBMType *ret[5];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = cbm_type_builtin(arena, "string");
@@ -25253,7 +25263,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "strconv.NumError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25266,7 +25276,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Cap";
     rf.receiver_type = "strings.Builder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25278,7 +25288,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Clone";
     rf.short_name = "Clone";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25290,7 +25300,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Compare";
     rf.short_name = "Compare";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25302,7 +25312,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Contains";
     rf.short_name = "Contains";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25314,7 +25324,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.ContainsAny";
     rf.short_name = "ContainsAny";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25326,7 +25336,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.ContainsFunc";
     rf.short_name = "ContainsFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25338,7 +25348,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.ContainsRune";
     rf.short_name = "ContainsRune";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25350,7 +25360,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Count";
     rf.short_name = "Count";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25362,7 +25372,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Cut";
     rf.short_name = "Cut";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "string");
         ret[2] = cbm_type_builtin(arena, "bool");
@@ -25376,7 +25386,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.CutPrefix";
     rf.short_name = "CutPrefix";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -25389,7 +25399,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.CutSuffix";
     rf.short_name = "CutSuffix";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -25402,7 +25412,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.EqualFold";
     rf.short_name = "EqualFold";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25414,7 +25424,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Fields";
     rf.short_name = "Fields";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25426,7 +25436,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.FieldsFunc";
     rf.short_name = "FieldsFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25438,7 +25448,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.FieldsFuncSeq";
     rf.short_name = "FieldsFuncSeq";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25450,7 +25460,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.FieldsSeq";
     rf.short_name = "FieldsSeq";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25469,7 +25479,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.HasPrefix";
     rf.short_name = "HasPrefix";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25481,7 +25491,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.HasSuffix";
     rf.short_name = "HasSuffix";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25493,7 +25503,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Index";
     rf.short_name = "Index";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25505,7 +25515,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.IndexAny";
     rf.short_name = "IndexAny";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25517,7 +25527,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.IndexByte";
     rf.short_name = "IndexByte";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25529,7 +25539,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.IndexFunc";
     rf.short_name = "IndexFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25541,7 +25551,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.IndexRune";
     rf.short_name = "IndexRune";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25553,7 +25563,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Join";
     rf.short_name = "Join";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25565,7 +25575,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.LastIndex";
     rf.short_name = "LastIndex";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25577,7 +25587,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.LastIndexAny";
     rf.short_name = "LastIndexAny";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25589,7 +25599,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.LastIndexByte";
     rf.short_name = "LastIndexByte";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25601,7 +25611,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.LastIndexFunc";
     rf.short_name = "LastIndexFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25614,7 +25624,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Len";
     rf.receiver_type = "strings.Reader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25627,7 +25637,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Len";
     rf.receiver_type = "strings.Builder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25639,7 +25649,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Lines";
     rf.short_name = "Lines";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25651,7 +25661,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Map";
     rf.short_name = "Map";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25663,7 +25673,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.NewReader";
     rf.short_name = "NewReader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "strings.Reader"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25675,7 +25685,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.NewReplacer";
     rf.short_name = "NewReplacer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "strings.Replacer"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25688,7 +25698,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Read";
     rf.receiver_type = "strings.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -25702,7 +25712,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadAt";
     rf.receiver_type = "strings.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -25716,7 +25726,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadByte";
     rf.receiver_type = "strings.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "byte");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -25730,7 +25740,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadRune";
     rf.receiver_type = "strings.Reader";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "error");
@@ -25744,7 +25754,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Repeat";
     rf.short_name = "Repeat";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25757,7 +25767,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Replace";
     rf.receiver_type = "strings.singleStringReplacer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25769,7 +25779,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Replace";
     rf.short_name = "Replace";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25782,7 +25792,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Replace";
     rf.receiver_type = "strings.byteStringReplacer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25795,7 +25805,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Replace";
     rf.receiver_type = "strings.byteReplacer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25808,7 +25818,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Replace";
     rf.receiver_type = "strings.genericReplacer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25821,7 +25831,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Replace";
     rf.receiver_type = "strings.Replacer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25833,7 +25843,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.ReplaceAll";
     rf.short_name = "ReplaceAll";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25860,7 +25870,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Seek";
     rf.receiver_type = "strings.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -25874,7 +25884,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Size";
     rf.receiver_type = "strings.Reader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25886,7 +25896,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Split";
     rf.short_name = "Split";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25898,7 +25908,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.SplitAfter";
     rf.short_name = "SplitAfter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25910,7 +25920,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.SplitAfterN";
     rf.short_name = "SplitAfterN";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25922,7 +25932,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.SplitAfterSeq";
     rf.short_name = "SplitAfterSeq";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25934,7 +25944,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.SplitN";
     rf.short_name = "SplitN";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "string"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25946,7 +25956,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.SplitSeq";
     rf.short_name = "SplitSeq";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25959,7 +25969,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "strings.Builder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25971,7 +25981,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Title";
     rf.short_name = "Title";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25983,7 +25993,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.ToLower";
     rf.short_name = "ToLower";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -25995,7 +26005,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.ToLowerSpecial";
     rf.short_name = "ToLowerSpecial";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26007,7 +26017,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.ToTitle";
     rf.short_name = "ToTitle";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26019,7 +26029,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.ToTitleSpecial";
     rf.short_name = "ToTitleSpecial";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26031,7 +26041,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.ToUpper";
     rf.short_name = "ToUpper";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26043,7 +26053,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.ToUpperSpecial";
     rf.short_name = "ToUpperSpecial";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26055,7 +26065,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.ToValidUTF8";
     rf.short_name = "ToValidUTF8";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26067,7 +26077,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.Trim";
     rf.short_name = "Trim";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26079,7 +26089,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.TrimFunc";
     rf.short_name = "TrimFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26091,7 +26101,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.TrimLeft";
     rf.short_name = "TrimLeft";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26103,7 +26113,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.TrimLeftFunc";
     rf.short_name = "TrimLeftFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26115,7 +26125,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.TrimPrefix";
     rf.short_name = "TrimPrefix";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26127,7 +26137,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.TrimRight";
     rf.short_name = "TrimRight";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26139,7 +26149,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.TrimRightFunc";
     rf.short_name = "TrimRightFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26151,7 +26161,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.TrimSpace";
     rf.short_name = "TrimSpace";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26163,7 +26173,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "strings.TrimSuffix";
     rf.short_name = "TrimSuffix";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26176,7 +26186,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnreadByte";
     rf.receiver_type = "strings.Reader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26189,7 +26199,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnreadRune";
     rf.receiver_type = "strings.Reader";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26202,7 +26212,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "strings.appendSliceWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -26216,7 +26226,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "strings.Builder";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -26230,7 +26240,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteByte";
     rf.receiver_type = "strings.Builder";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26243,7 +26253,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteRune";
     rf.receiver_type = "strings.Builder";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -26257,7 +26267,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "strings.Replacer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -26271,7 +26281,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "strings.byteStringReplacer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -26285,7 +26295,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "strings.genericReplacer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -26299,7 +26309,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "strings.stringWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -26313,7 +26323,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "strings.singleStringReplacer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -26327,7 +26337,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "strings.Builder";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -26341,7 +26351,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "strings.appendSliceWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -26355,7 +26365,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteString";
     rf.receiver_type = "strings.byteReplacer";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -26369,7 +26379,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteTo";
     rf.receiver_type = "strings.Reader";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -26404,7 +26414,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CompareAndDelete";
     rf.receiver_type = "sync.Map";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26417,7 +26427,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CompareAndSwap";
     rf.receiver_type = "sync.Map";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26451,7 +26461,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Get";
     rf.receiver_type = "sync.Pool";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26471,7 +26481,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Load";
     rf.receiver_type = "sync.Map";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -26485,7 +26495,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LoadAndDelete";
     rf.receiver_type = "sync.Map";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -26499,7 +26509,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "LoadOrStore";
     rf.receiver_type = "sync.Map";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -26540,7 +26550,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync.NewCond";
     rf.short_name = "NewCond";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "sync.Cond"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26552,7 +26562,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync.OnceFunc";
     rf.short_name = "OnceFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "sync.func()");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26564,7 +26574,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync.OnceValue";
     rf.short_name = "OnceValue";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "sync.func()");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26576,7 +26586,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync.OnceValues";
     rf.short_name = "OnceValues";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "sync.func()");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26603,7 +26613,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RLocker";
     rf.receiver_type = "sync.RWMutex";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "sync.Locker");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26644,7 +26654,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Swap";
     rf.receiver_type = "sync.Map";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -26658,7 +26668,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "TryLock";
     rf.receiver_type = "sync.RWMutex";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26671,7 +26681,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "TryLock";
     rf.receiver_type = "sync.Mutex";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26684,7 +26694,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "TryRLock";
     rf.receiver_type = "sync.RWMutex";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26739,7 +26749,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Add";
     rf.receiver_type = "sync/atomic.Uintptr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uintptr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26752,7 +26762,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Add";
     rf.receiver_type = "sync/atomic.Uint32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26765,7 +26775,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Add";
     rf.receiver_type = "sync/atomic.Int32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26778,7 +26788,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Add";
     rf.receiver_type = "sync/atomic.Int64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26791,7 +26801,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Add";
     rf.receiver_type = "sync/atomic.Uint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26803,7 +26813,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.AddInt32";
     rf.short_name = "AddInt32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26815,7 +26825,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.AddInt64";
     rf.short_name = "AddInt64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26827,7 +26837,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.AddInt64";
     rf.short_name = "AddInt64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26839,7 +26849,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.AddUint32";
     rf.short_name = "AddUint32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26851,7 +26861,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.AddUint64";
     rf.short_name = "AddUint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26863,7 +26873,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.AddUint64";
     rf.short_name = "AddUint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26875,7 +26885,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.AddUintptr";
     rf.short_name = "AddUintptr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uintptr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26888,7 +26898,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "And";
     rf.receiver_type = "sync/atomic.Uintptr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uintptr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26901,7 +26911,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "And";
     rf.receiver_type = "sync/atomic.Int64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26914,7 +26924,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "And";
     rf.receiver_type = "sync/atomic.Int32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26927,7 +26937,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "And";
     rf.receiver_type = "sync/atomic.Uint32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26940,7 +26950,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "And";
     rf.receiver_type = "sync/atomic.Uint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26952,7 +26962,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.AndInt32";
     rf.short_name = "AndInt32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26964,7 +26974,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.AndInt64";
     rf.short_name = "AndInt64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26976,7 +26986,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.AndInt64";
     rf.short_name = "AndInt64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -26988,7 +26998,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.AndUint32";
     rf.short_name = "AndUint32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27000,7 +27010,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.AndUint64";
     rf.short_name = "AndUint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27012,7 +27022,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.AndUint64";
     rf.short_name = "AndUint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27024,7 +27034,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.AndUintptr";
     rf.short_name = "AndUintptr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uintptr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27037,7 +27047,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CompareAndSwap";
     rf.receiver_type = "sync/atomic.Uint32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27050,7 +27060,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CompareAndSwap";
     rf.receiver_type = "sync/atomic.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27063,7 +27073,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CompareAndSwap";
     rf.receiver_type = "sync/atomic.Uint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27076,7 +27086,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CompareAndSwap";
     rf.receiver_type = "sync/atomic.Int32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27089,7 +27099,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CompareAndSwap";
     rf.receiver_type = "sync/atomic.Bool";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27102,7 +27112,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CompareAndSwap";
     rf.receiver_type = "sync/atomic.Uintptr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27115,7 +27125,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CompareAndSwap";
     rf.receiver_type = "sync/atomic.any";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27128,7 +27138,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CompareAndSwap";
     rf.receiver_type = "sync/atomic.Int64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27140,7 +27150,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.CompareAndSwapInt32";
     rf.short_name = "CompareAndSwapInt32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27152,7 +27162,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.CompareAndSwapInt64";
     rf.short_name = "CompareAndSwapInt64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27164,7 +27174,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.CompareAndSwapInt64";
     rf.short_name = "CompareAndSwapInt64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27176,7 +27186,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.CompareAndSwapPointer";
     rf.short_name = "CompareAndSwapPointer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27188,7 +27198,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.CompareAndSwapUint32";
     rf.short_name = "CompareAndSwapUint32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27200,7 +27210,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.CompareAndSwapUint64";
     rf.short_name = "CompareAndSwapUint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27212,7 +27222,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.CompareAndSwapUint64";
     rf.short_name = "CompareAndSwapUint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27224,7 +27234,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.CompareAndSwapUintptr";
     rf.short_name = "CompareAndSwapUintptr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27237,7 +27247,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Load";
     rf.receiver_type = "sync/atomic.Uintptr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uintptr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27250,7 +27260,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Load";
     rf.receiver_type = "sync/atomic.Bool";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27263,7 +27273,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Load";
     rf.receiver_type = "sync/atomic.Uint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27276,7 +27286,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Load";
     rf.receiver_type = "sync/atomic.Int64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27289,7 +27299,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Load";
     rf.receiver_type = "sync/atomic.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27302,7 +27312,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Load";
     rf.receiver_type = "sync/atomic.Int32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27315,7 +27325,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Load";
     rf.receiver_type = "sync/atomic.any";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "sync/atomic.T"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27328,7 +27338,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Load";
     rf.receiver_type = "sync/atomic.Uint32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27340,7 +27350,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.LoadInt32";
     rf.short_name = "LoadInt32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27352,7 +27362,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.LoadInt64";
     rf.short_name = "LoadInt64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27364,7 +27374,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.LoadInt64";
     rf.short_name = "LoadInt64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27376,7 +27386,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.LoadPointer";
     rf.short_name = "LoadPointer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "unsafe.Pointer");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27388,7 +27398,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.LoadUint32";
     rf.short_name = "LoadUint32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27400,7 +27410,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.LoadUint64";
     rf.short_name = "LoadUint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27412,7 +27422,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.LoadUint64";
     rf.short_name = "LoadUint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27424,7 +27434,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.LoadUintptr";
     rf.short_name = "LoadUintptr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uintptr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27444,7 +27454,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Or";
     rf.receiver_type = "sync/atomic.Int32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27457,7 +27467,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Or";
     rf.receiver_type = "sync/atomic.Uint32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27470,7 +27480,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Or";
     rf.receiver_type = "sync/atomic.Int64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27483,7 +27493,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Or";
     rf.receiver_type = "sync/atomic.Uintptr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uintptr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27496,7 +27506,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Or";
     rf.receiver_type = "sync/atomic.Uint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27508,7 +27518,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.OrInt32";
     rf.short_name = "OrInt32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27520,7 +27530,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.OrInt64";
     rf.short_name = "OrInt64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27532,7 +27542,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.OrInt64";
     rf.short_name = "OrInt64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27544,7 +27554,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.OrUint32";
     rf.short_name = "OrUint32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27556,7 +27566,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.OrUint64";
     rf.short_name = "OrUint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27568,7 +27578,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.OrUint64";
     rf.short_name = "OrUint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27580,7 +27590,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.OrUintptr";
     rf.short_name = "OrUintptr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uintptr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27697,7 +27707,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Swap";
     rf.receiver_type = "sync/atomic.Uint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27710,7 +27720,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Swap";
     rf.receiver_type = "sync/atomic.Uint32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27723,7 +27733,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Swap";
     rf.receiver_type = "sync/atomic.Bool";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27736,7 +27746,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Swap";
     rf.receiver_type = "sync/atomic.Int64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27749,7 +27759,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Swap";
     rf.receiver_type = "sync/atomic.any";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "sync/atomic.T"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27762,7 +27772,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Swap";
     rf.receiver_type = "sync/atomic.Int32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27775,7 +27785,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Swap";
     rf.receiver_type = "sync/atomic.Uintptr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uintptr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27788,7 +27798,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Swap";
     rf.receiver_type = "sync/atomic.Value";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27800,7 +27810,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.SwapInt32";
     rf.short_name = "SwapInt32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27812,7 +27822,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.SwapInt64";
     rf.short_name = "SwapInt64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27824,7 +27834,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.SwapInt64";
     rf.short_name = "SwapInt64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27836,7 +27846,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.SwapPointer";
     rf.short_name = "SwapPointer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "unsafe.Pointer");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27848,7 +27858,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.SwapUint32";
     rf.short_name = "SwapUint32";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint32");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27860,7 +27870,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.SwapUint64";
     rf.short_name = "SwapUint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27872,7 +27882,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.SwapUint64";
     rf.short_name = "SwapUint64";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uint64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27884,7 +27894,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "sync/atomic.SwapUintptr";
     rf.short_name = "SwapUintptr";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "uintptr");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27911,7 +27921,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AllocedBytesPerOp";
     rf.receiver_type = "testing.BenchmarkResult";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27924,7 +27934,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AllocsPerOp";
     rf.receiver_type = "testing.BenchmarkResult";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27936,7 +27946,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "testing.AllocsPerRun";
     rf.short_name = "AllocsPerRun";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27949,7 +27959,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ArtifactDir";
     rf.receiver_type = "testing.common";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27968,7 +27978,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "testing.Benchmark";
     rf.short_name = "Benchmark";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "testing.BenchmarkResult");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -27995,7 +28005,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CheckCorpus";
     rf.receiver_type = "testing.matchStringOnly";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28015,7 +28025,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Context";
     rf.receiver_type = "testing.common";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "context.Context");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28028,7 +28038,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "CoordinateFuzzing";
     rf.receiver_type = "testing.matchStringOnly";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28040,7 +28050,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "testing.CoverMode";
     rf.short_name = "CoverMode";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28052,7 +28062,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "testing.Coverage";
     rf.short_name = "Coverage";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28065,7 +28075,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Deadline";
     rf.receiver_type = "testing.T";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -28079,7 +28089,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Elapsed";
     rf.receiver_type = "testing.B";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Duration");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28127,7 +28137,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Failed";
     rf.receiver_type = "testing.common";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28161,7 +28171,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Get";
     rf.receiver_type = "testing.chattyFlag";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "any");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28188,7 +28198,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ImportPath";
     rf.receiver_type = "testing.matchStringOnly";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28207,7 +28217,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "InitRuntimeCoverage";
     rf.receiver_type = "testing.matchStringOnly";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_named(arena, "testing.func()");
         ret[2] = cbm_type_named(arena, "testing.func()");
@@ -28222,7 +28232,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsBoolFlag";
     rf.receiver_type = "testing.chattyFlag";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28249,7 +28259,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Loop";
     rf.receiver_type = "testing.B";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28267,7 +28277,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "testing.MainStart";
     rf.short_name = "MainStart";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "testing.M"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28280,7 +28290,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MatchString";
     rf.receiver_type = "testing.matchStringOnly";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -28294,7 +28304,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MemString";
     rf.receiver_type = "testing.BenchmarkResult";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28307,7 +28317,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ModulePath";
     rf.receiver_type = "testing.matchStringOnly";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28320,7 +28330,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Name";
     rf.receiver_type = "testing.common";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28333,7 +28343,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Next";
     rf.receiver_type = "testing.PB";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28346,7 +28356,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "NsPerOp";
     rf.receiver_type = "testing.BenchmarkResult";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28359,7 +28369,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Output";
     rf.receiver_type = "testing.common";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "io.Writer");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28386,7 +28396,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ReadCorpus";
     rf.receiver_type = "testing.matchStringOnly";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "testing.corpusEntry"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -28434,7 +28444,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Run";
     rf.receiver_type = "testing.M";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28447,7 +28457,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Run";
     rf.receiver_type = "testing.T";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28460,7 +28470,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Run";
     rf.receiver_type = "testing.B";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28478,7 +28488,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "testing.RunExamples";
     rf.short_name = "RunExamples";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28491,7 +28501,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "RunFuzzWorker";
     rf.receiver_type = "testing.matchStringOnly";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28510,7 +28520,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "testing.RunTests";
     rf.short_name = "RunTests";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28523,7 +28533,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Set";
     rf.receiver_type = "testing.chattyFlag";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28536,7 +28546,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Set";
     rf.receiver_type = "testing.durationOrCountFlag";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28583,7 +28593,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "testing.Short";
     rf.short_name = "Short";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28617,7 +28627,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Skipped";
     rf.receiver_type = "testing.common";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28630,7 +28640,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Skipped";
     rf.receiver_type = "testing.F";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28650,7 +28660,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "StartCPUProfile";
     rf.receiver_type = "testing.matchStringOnly";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28684,7 +28694,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "StopTestLog";
     rf.receiver_type = "testing.matchStringOnly";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28704,7 +28714,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "testing.fuzzResult";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28717,7 +28727,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "testing.durationOrCountFlag";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28730,7 +28740,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "testing.BenchmarkResult";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28743,7 +28753,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "testing.chattyFlag";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28756,7 +28766,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "TempDir";
     rf.receiver_type = "testing.common";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28768,7 +28778,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "testing.Testing";
     rf.short_name = "Testing";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28787,7 +28797,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "testing.Verbose";
     rf.short_name = "Verbose";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28800,7 +28810,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "testing.outputWriter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -28814,7 +28824,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "testing.discard";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -28828,7 +28838,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Write";
     rf.receiver_type = "testing.indenter";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -28842,7 +28852,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "WriteProfileTo";
     rf.receiver_type = "testing.matchStringOnly";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28855,7 +28865,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AddParseTree";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -28869,7 +28879,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Clone";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -28883,7 +28893,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "DefinedTemplates";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28896,7 +28906,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Delims";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28909,7 +28919,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "text/template.ExecError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28922,7 +28932,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Execute";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28935,7 +28945,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ExecuteTemplate";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28948,7 +28958,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Funcs";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28966,7 +28976,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "text/template.HTMLEscapeString";
     rf.short_name = "HTMLEscapeString";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28978,7 +28988,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "text/template.HTMLEscaper";
     rf.short_name = "HTMLEscaper";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -28990,7 +29000,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "text/template.IsTrue";
     rf.short_name = "IsTrue";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = cbm_type_builtin(arena, "bool");
         ret[2] = NULL;
@@ -29009,7 +29019,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "text/template.JSEscapeString";
     rf.short_name = "JSEscapeString";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29021,7 +29031,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "text/template.JSEscaper";
     rf.short_name = "JSEscaper";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29034,7 +29044,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Lookup";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29046,7 +29056,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "text/template.Must";
     rf.short_name = "Must";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29059,7 +29069,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Name";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29071,7 +29081,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "text/template.New";
     rf.short_name = "New";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29084,7 +29094,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "New";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29097,7 +29107,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Option";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29110,7 +29120,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Parse";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29124,7 +29134,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ParseFS";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29137,7 +29147,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "text/template.ParseFS";
     rf.short_name = "ParseFS";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29151,7 +29161,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ParseFiles";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29164,7 +29174,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "text/template.ParseFiles";
     rf.short_name = "ParseFiles";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29178,7 +29188,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ParseGlob";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29191,7 +29201,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "text/template.ParseGlob";
     rf.short_name = "ParseGlob";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "text/template.Template"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29205,7 +29215,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Templates";
     rf.receiver_type = "text/template.Template";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_named(arena, "text/template.*Template"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29217,7 +29227,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "text/template.URLQueryEscaper";
     rf.short_name = "URLQueryEscaper";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29230,7 +29240,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unwrap";
     rf.receiver_type = "text/template.ExecError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29243,7 +29253,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Abs";
     rf.receiver_type = "time.Duration";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Duration");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29256,7 +29266,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Add";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29269,7 +29279,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AddDate";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29282,7 +29292,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "After";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29294,7 +29304,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.After";
     rf.short_name = "After";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.chan Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29306,7 +29316,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.AfterFunc";
     rf.short_name = "AfterFunc";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "time.Timer"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29319,7 +29329,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AppendBinary";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29333,7 +29343,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AppendFormat";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29346,7 +29356,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "AppendText";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29360,7 +29370,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Before";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29373,7 +29383,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Clock";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = cbm_type_builtin(arena, "int");
@@ -29388,7 +29398,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Compare";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29401,7 +29411,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Date";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[4];
+        const CBMType *ret[4];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_named(arena, "time.Month");
         ret[2] = cbm_type_builtin(arena, "int");
@@ -29415,7 +29425,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.Date";
     rf.short_name = "Date";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29428,7 +29438,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Day";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29441,7 +29451,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Equal";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29454,7 +29464,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "time.fileSizeError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29467,7 +29477,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "time.parseDurationError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29480,7 +29490,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Error";
     rf.receiver_type = "time.ParseError";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29492,7 +29502,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.FixedZone";
     rf.short_name = "FixedZone";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "time.Location"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29505,7 +29515,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Format";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29518,7 +29528,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "GoString";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29531,7 +29541,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "GobDecode";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29544,7 +29554,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "GobEncode";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29558,7 +29568,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Hour";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29571,7 +29581,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Hours";
     rf.receiver_type = "time.Duration";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29584,7 +29594,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ISOWeek";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = NULL;
@@ -29598,7 +29608,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "In";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29611,7 +29621,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsDST";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29624,7 +29634,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "IsZero";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29636,7 +29646,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.LoadLocation";
     rf.short_name = "LoadLocation";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "time.Location"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29649,7 +29659,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.LoadLocationFromTZData";
     rf.short_name = "LoadLocationFromTZData";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "time.Location"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29663,7 +29673,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Local";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29676,7 +29686,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Location";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "time.Location"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29689,7 +29699,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MarshalBinary";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29703,7 +29713,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MarshalJSON";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29717,7 +29727,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "MarshalText";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_slice(arena, cbm_type_builtin(arena, "byte"));
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29731,7 +29741,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Microseconds";
     rf.receiver_type = "time.Duration";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29744,7 +29754,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Milliseconds";
     rf.receiver_type = "time.Duration";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29757,7 +29767,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Minute";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29770,7 +29780,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Minutes";
     rf.receiver_type = "time.Duration";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29783,7 +29793,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Month";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Month");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29796,7 +29806,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Nanosecond";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29809,7 +29819,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Nanoseconds";
     rf.receiver_type = "time.Duration";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29821,7 +29831,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.NewTicker";
     rf.short_name = "NewTicker";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "time.Ticker"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29833,7 +29843,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.NewTimer";
     rf.short_name = "NewTimer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_pointer(arena, cbm_type_named(arena, "time.Timer"));
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29845,7 +29855,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.Now";
     rf.short_name = "Now";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29857,7 +29867,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.Parse";
     rf.short_name = "Parse";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29870,7 +29880,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.ParseDuration";
     rf.short_name = "ParseDuration";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "time.Duration");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29883,7 +29893,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.ParseInLocation";
     rf.short_name = "ParseInLocation";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = cbm_type_builtin(arena, "error");
         ret[2] = NULL;
@@ -29904,7 +29914,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Reset";
     rf.receiver_type = "time.Timer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29917,7 +29927,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Round";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29930,7 +29940,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Round";
     rf.receiver_type = "time.Duration";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Duration");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29943,7 +29953,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Second";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29956,7 +29966,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Seconds";
     rf.receiver_type = "time.Duration";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "float64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29968,7 +29978,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.Since";
     rf.short_name = "Since";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Duration");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -29987,7 +29997,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Stop";
     rf.receiver_type = "time.Timer";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30007,7 +30017,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "time.Duration";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30020,7 +30030,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "time.Location";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30033,7 +30043,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "time.Weekday";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30046,7 +30056,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30059,7 +30069,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "String";
     rf.receiver_type = "time.Month";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30072,7 +30082,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Sub";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Duration");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30084,7 +30094,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.Tick";
     rf.short_name = "Tick";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.chan Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30097,7 +30107,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Truncate";
     rf.receiver_type = "time.Duration";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Duration");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30110,7 +30120,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Truncate";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30123,7 +30133,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UTC";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30135,7 +30145,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.Unix";
     rf.short_name = "Unix";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30148,7 +30158,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Unix";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30160,7 +30170,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.UnixMicro";
     rf.short_name = "UnixMicro";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30173,7 +30183,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnixMicro";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30186,7 +30196,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnixMilli";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30198,7 +30208,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.UnixMilli";
     rf.short_name = "UnixMilli";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30211,7 +30221,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnixNano";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int64");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30224,7 +30234,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnmarshalBinary";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30237,7 +30247,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnmarshalJSON";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30250,7 +30260,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "UnmarshalText";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "error");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30262,7 +30272,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "time.Until";
     rf.short_name = "Until";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Duration");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30275,7 +30285,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Weekday";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_named(arena, "time.Weekday");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30288,7 +30298,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Year";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30301,7 +30311,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "YearDay";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "int");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30314,7 +30324,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "Zone";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_builtin(arena, "string");
         ret[1] = cbm_type_builtin(arena, "int");
         ret[2] = NULL;
@@ -30328,7 +30338,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ZoneBounds";
     rf.receiver_type = "time.Time";
     {
-        const CBMType* ret[3];
+        const CBMType *ret[3];
         ret[0] = cbm_type_named(arena, "time.Time");
         ret[1] = cbm_type_named(arena, "time.Time");
         ret[2] = NULL;
@@ -30341,7 +30351,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.In";
     rf.short_name = "In";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30353,7 +30363,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.Is";
     rf.short_name = "Is";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30365,7 +30375,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.IsControl";
     rf.short_name = "IsControl";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30377,7 +30387,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.IsDigit";
     rf.short_name = "IsDigit";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30389,7 +30399,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.IsGraphic";
     rf.short_name = "IsGraphic";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30401,7 +30411,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.IsLetter";
     rf.short_name = "IsLetter";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30413,7 +30423,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.IsLower";
     rf.short_name = "IsLower";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30425,7 +30435,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.IsMark";
     rf.short_name = "IsMark";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30437,7 +30447,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.IsNumber";
     rf.short_name = "IsNumber";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30449,7 +30459,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.IsOneOf";
     rf.short_name = "IsOneOf";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30461,7 +30471,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.IsPrint";
     rf.short_name = "IsPrint";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30473,7 +30483,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.IsPunct";
     rf.short_name = "IsPunct";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30485,7 +30495,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.IsSpace";
     rf.short_name = "IsSpace";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30497,7 +30507,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.IsSymbol";
     rf.short_name = "IsSymbol";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30509,7 +30519,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.IsTitle";
     rf.short_name = "IsTitle";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30521,7 +30531,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.IsUpper";
     rf.short_name = "IsUpper";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "bool");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30533,7 +30543,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.SimpleFold";
     rf.short_name = "SimpleFold";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30545,7 +30555,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.To";
     rf.short_name = "To";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30557,7 +30567,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.ToLower";
     rf.short_name = "ToLower";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30570,7 +30580,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ToLower";
     rf.receiver_type = "unicode.SpecialCase";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30582,7 +30592,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.ToTitle";
     rf.short_name = "ToTitle";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30595,7 +30605,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ToTitle";
     rf.receiver_type = "unicode.SpecialCase";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30607,7 +30617,7 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.qualified_name = "unicode.ToUpper";
     rf.short_name = "ToUpper";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
@@ -30620,11 +30630,10 @@ void cbm_go_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "ToUpper";
     rf.receiver_type = "unicode.SpecialCase";
     {
-        const CBMType* ret[2];
+        const CBMType *ret[2];
         ret[0] = cbm_type_builtin(arena, "rune");
         ret[1] = NULL;
         rf.signature = cbm_type_func(arena, NULL, NULL, ret);
     }
     cbm_registry_add_func(reg, rf);
-
 }

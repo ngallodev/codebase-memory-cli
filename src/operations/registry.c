@@ -8,20 +8,29 @@ static const cbm_operation_descriptor_t k_operations[] = {
     {CBM_OPERATION_COVERAGE, "coverage", "check_index_coverage", "Check index coverage", true,
      true},
     {CBM_OPERATION_SEARCH, "search", "search_graph", "Search indexed graph", true, true},
-    {CBM_OPERATION_SNIPPET, "snippet", "get_code_snippet", "Read an indexed source snippet",
-     true, true},
+    {CBM_OPERATION_SNIPPET, "snippet", "get_code_snippet", "Read an indexed source snippet", true,
+     true},
     {CBM_OPERATION_TRACE, "trace", "trace_path", "Trace indexed relationships", true, true},
-    {CBM_OPERATION_SCHEMA, "schema", "get_graph_schema", "Describe graph labels, relationships, and properties", true, true},
+    {CBM_OPERATION_SCHEMA, "schema", "get_graph_schema",
+     "Describe graph labels, relationships, and properties", true, true},
     {CBM_OPERATION_QUERY, "query", "query_graph", "Execute a graph query", true, true},
-    {CBM_OPERATION_ARCHITECTURE, "architecture", "get_architecture", "Describe indexed architecture", true, true},
-    {CBM_OPERATION_CHANGES, "changes", "detect_changes", "Map repository changes to their indexed impact", true, true},
-    {CBM_OPERATION_SOURCE_SEARCH, "source-search", "search_code", "Search indexed source text with graph enrichment", true, true},
-    {CBM_OPERATION_FILE_OUTLINE, "outline", "get_file_outline", "List indexed symbols in a source file", true, true},
-    {CBM_OPERATION_COMPARE, "compare", "compare_graphs", "Compare two indexed project snapshots", false, true},
-    {CBM_OPERATION_DELETE_PROJECT, "delete-project", "delete_project", "Delete an indexed project", true, false},
+    {CBM_OPERATION_ARCHITECTURE, "architecture", "get_architecture",
+     "Describe indexed architecture", true, true},
+    {CBM_OPERATION_CHANGES, "changes", "detect_changes",
+     "Map repository changes to their indexed impact", true, true},
+    {CBM_OPERATION_SOURCE_SEARCH, "source-search", "search_code",
+     "Search indexed source text with graph enrichment", true, true},
+    {CBM_OPERATION_FILE_OUTLINE, "outline", "get_file_outline",
+     "List indexed symbols in a source file", true, true},
+    {CBM_OPERATION_COMPARE, "compare", "compare_graphs", "Compare two indexed project snapshots",
+     false, true},
+    {CBM_OPERATION_DELETE_PROJECT, "delete-project", "delete_project", "Delete an indexed project",
+     true, false},
     {CBM_OPERATION_INDEX, "index", "index_repository", "Index a repository", false, false},
-    {CBM_OPERATION_INGEST_TRACES, "ingest-traces", "ingest_traces", "Accept runtime trace observations", false, true},
-    {CBM_OPERATION_MANAGE_ADR, "manage-adr", "manage_adr", "Read or update the project architecture decision record", true, false},
+    {CBM_OPERATION_INGEST_TRACES, "ingest-traces", "ingest_traces",
+     "Accept runtime trace observations", false, true},
+    {CBM_OPERATION_MANAGE_ADR, "manage-adr", "manage_adr",
+     "Read or update the project architecture decision record", true, false},
 };
 
 const cbm_operation_descriptor_t *cbm_operation_descriptor(cbm_operation_id_t id) {
@@ -38,7 +47,8 @@ const cbm_operation_descriptor_t *cbm_operation_find(const char *name) {
         return NULL;
     }
     for (size_t i = 0; i < sizeof(k_operations) / sizeof(k_operations[0]); ++i) {
-        if (strcmp(k_operations[i].name, name) == 0 || strcmp(k_operations[i].legacy_name, name) == 0) {
+        if (strcmp(k_operations[i].name, name) == 0 ||
+            strcmp(k_operations[i].legacy_name, name) == 0) {
             return &k_operations[i];
         }
     }

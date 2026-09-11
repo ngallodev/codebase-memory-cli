@@ -7918,16 +7918,14 @@ static bool cbm_path_is_razor(const char *rel_path) {
     return false;
 }
 
-static const char *razor_page_route_on_line(CBMArena *a, const char *line,
-                                             const char *line_end) {
+static const char *razor_page_route_on_line(CBMArena *a, const char *line, const char *line_end) {
     static const char directive[] = "@page";
     const size_t dlen = sizeof(directive) - 1U;
     const char *p = line;
     while (p < line_end && (*p == ' ' || *p == '\t')) {
         p++;
     }
-    if (p == line_end || (size_t)(line_end - p) <= dlen ||
-        strncmp(p, directive, dlen) != 0) {
+    if (p == line_end || (size_t)(line_end - p) <= dlen || strncmp(p, directive, dlen) != 0) {
         return NULL;
     }
     p += dlen;

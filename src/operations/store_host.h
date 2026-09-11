@@ -27,11 +27,9 @@ bool cbm_store_host_release_pristine_memory_store(cbm_store_host_t *host);
 void cbm_store_host_set_mutation_guard(cbm_store_host_t *host,
                                        cbm_store_host_mutation_begin_fn begin,
                                        cbm_store_host_mutation_try_begin_fn try_begin,
-                                       cbm_store_host_mutation_end_fn end,
-                                       void *context);
+                                       cbm_store_host_mutation_end_fn end, void *context);
 void cbm_store_host_set_quarantine_step_hook(cbm_store_host_t *host,
-                                             cbm_store_host_quarantine_step_fn hook,
-                                             void *context);
+                                             cbm_store_host_quarantine_step_fn hook, void *context);
 
 cbm_store_t *cbm_store_host_resolve(cbm_store_host_t *host, const char *project,
                                     bool mutation_already_held, bool nonblocking_recovery,
@@ -39,8 +37,8 @@ cbm_store_t *cbm_store_host_resolve(cbm_store_host_t *host, const char *project,
 void cbm_store_host_invalidate(cbm_store_host_t *host);
 char *cbm_store_host_error(const char *project);
 
-bool cbm_store_host_db_internal_project_name(const char *full_path, char *name_out,
-                                             size_t name_sz, cbm_store_t **out_store);
+bool cbm_store_host_db_internal_project_name(const char *full_path, char *name_out, size_t name_sz,
+                                             cbm_store_t **out_store);
 bool cbm_store_host_is_project_db_file(const char *name, size_t len);
 
 #endif

@@ -42,10 +42,12 @@ enum {
 #define SOURCE_SEARCH_SCAN_TIMEOUT_MS ((uint64_t)30000U)
 
 static char *source_strdup(const char *text) {
-    if (!text) return NULL;
+    if (!text)
+        return NULL;
     size_t len = strlen(text);
     char *copy = malloc(len + 1U);
-    if (copy) memcpy(copy, text, len + 1U);
+    if (copy)
+        memcpy(copy, text, len + 1U);
     return copy;
 }
 
@@ -59,7 +61,8 @@ static char *source_string_arg(const char *args, const char *name) {
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
     char *result = value && yyjson_is_str(value) ? source_strdup(yyjson_get_str(value)) : NULL;
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return result;
 }
 
@@ -67,7 +70,8 @@ static char *source_project_arg(const char *args) {
     static const char *const names[] = {"project", "project_name", "project_id", "projectName"};
     for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); ++i) {
         char *value = source_string_arg(args, names[i]);
-        if (value) return value;
+        if (value)
+            return value;
     }
     return NULL;
 }
@@ -77,7 +81,8 @@ static int source_int_arg(const char *args, const char *name, int fallback) {
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
     int result = value && yyjson_is_int(value) ? (int)yyjson_get_sint(value) : fallback;
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return result;
 }
 
@@ -86,7 +91,8 @@ static bool source_bool_arg(const char *args, const char *name, bool fallback) {
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
     bool result = value && yyjson_is_bool(value) ? yyjson_get_bool(value) : fallback;
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return result;
 }
 
@@ -100,18 +106,23 @@ static cbm_operation_result_t source_error(const char *message) {
 
 static cbm_operation_result_t source_project_error(const char *project) {
     if (!project) {
-        return source_error("{\"error\":\"missing required argument: project\",\"hint\":\"Pass the project argument. Run projects to see indexed projects.\"}");
+        return source_error("{\"error\":\"missing required argument: project\",\"hint\":\"Pass the "
+                            "project argument. Run projects to see indexed projects.\"}");
     }
-    return source_error("{\"error\":\"project not found or not indexed\",\"hint\":\"Run projects to see indexed projects.\"}");
+    return source_error("{\"error\":\"project not found or not indexed\",\"hint\":\"Run projects "
+                        "to see indexed projects.\"}");
 }
 
 static cbm_store_t *source_open_store_and_root(const char *project, char **root_path_out) {
     *root_path_out = NULL;
-    if (!project || !project[0]) return NULL;
+    if (!project || !project[0])
+        return NULL;
     cbm_store_t *store = cbm_store_open(project);
-    if (!store) return NULL;
+    if (!store)
+        return NULL;
     cbm_project_t info = {0};
-    if (cbm_store_get_project(store, project, &info) != CBM_STORE_OK || !info.root_path || !info.root_path[0]) {
+    if (cbm_store_get_project(store, project, &info) != CBM_STORE_OK || !info.root_path ||
+        !info.root_path[0]) {
         cbm_project_free_fields(&info);
         cbm_store_close(store);
         return NULL;
@@ -127,18 +138,24 @@ static cbm_store_t *source_open_store_and_root(const char *project, char **root_
 
 static char *source_read_file_lines(const char *path, int start, int end) {
     FILE *fp = cbm_fopen(path, "r");
-    if (!fp) return NULL;
+    if (!fp)
+        return NULL;
     size_t cap = CBM_SZ_4K;
     char *buf = malloc(cap);
-    if (!buf) { (void)fclose(fp); return NULL; }
+    if (!buf) {
+        (void)fclose(fp);
+        return NULL;
+    }
     size_t len = 0;
     buf[0] = '\0';
     char line[CBM_SZ_2K];
     int lineno = 0;
     while (fgets(line, sizeof(line), fp)) {
         lineno++;
-        if (lineno < start) continue;
-        if (lineno > end) break;
+        if (lineno < start)
+            continue;
+        if (lineno > end)
+            break;
         size_t ll = strlen(line);
         while (len + ll + 1U > cap) {
             cap *= 2U;
@@ -149,36 +166,68 @@ static char *source_read_file_lines(const char *path, int start, int end) {
         buf[len] = '\0';
     }
     (void)fclose(fp);
-    if (len == 0) { free(buf); return NULL; }
+    if (len == 0) {
+        free(buf);
+        return NULL;
+    }
     return buf;
 }
 
-static bool source_utf8_is_cont(unsigned char c) { return (c & 0xC0) == 0x80; }
+static bool source_utf8_is_cont(unsigned char c) {
+    return (c & 0xC0) == 0x80;
+}
 
 static char *source_sanitize_utf8_lossy(const char *s) {
     enum { REP_LEN = 3, THREE = 3, FOUR = 4, FOURTH = 3 };
-    if (!s) return NULL;
+    if (!s)
+        return NULL;
     size_t len = strlen(s);
-    if (len > (((size_t)-1) - 1U) / REP_LEN) return NULL;
+    if (len > (((size_t)-1) - 1U) / REP_LEN)
+        return NULL;
     char *out = malloc(len * REP_LEN + 1U);
-    if (!out) return NULL;
+    if (!out)
+        return NULL;
     const unsigned char *p = (const unsigned char *)s;
     const unsigned char *end = p + len;
     unsigned char *dst = (unsigned char *)out;
     while (p < end) {
         unsigned char c = *p;
         size_t n = 0;
-        if (c < 0x80) n = 1;
-        else if (c >= 0xC2 && c <= 0xDF && p + 1 < end && source_utf8_is_cont(p[1])) n = 2;
-        else if (c == 0xE0 && p + 2 < end && p[1] >= 0xA0 && p[1] <= 0xBF && source_utf8_is_cont(p[2])) n = THREE;
-        else if (c >= 0xE1 && c <= 0xEC && p + 2 < end && source_utf8_is_cont(p[1]) && source_utf8_is_cont(p[2])) n = THREE;
-        else if (c == 0xED && p + 2 < end && p[1] >= 0x80 && p[1] <= 0x9F && source_utf8_is_cont(p[2])) n = THREE;
-        else if (c >= 0xEE && c <= 0xEF && p + 2 < end && source_utf8_is_cont(p[1]) && source_utf8_is_cont(p[2])) n = THREE;
-        else if (c == 0xF0 && p + FOURTH < end && p[1] >= 0x90 && p[1] <= 0xBF && source_utf8_is_cont(p[2]) && source_utf8_is_cont(p[FOURTH])) n = FOUR;
-        else if (c >= 0xF1 && c <= 0xF3 && p + FOURTH < end && source_utf8_is_cont(p[1]) && source_utf8_is_cont(p[2]) && source_utf8_is_cont(p[FOURTH])) n = FOUR;
-        else if (c == 0xF4 && p + FOURTH < end && p[1] >= 0x80 && p[1] <= 0x8F && source_utf8_is_cont(p[2]) && source_utf8_is_cont(p[FOURTH])) n = FOUR;
-        if (n > 0) { memcpy(dst, p, n); dst += n; p += n; }
-        else { *dst++ = 0xEF; *dst++ = 0xBF; *dst++ = 0xBD; p++; }
+        if (c < 0x80)
+            n = 1;
+        else if (c >= 0xC2 && c <= 0xDF && p + 1 < end && source_utf8_is_cont(p[1]))
+            n = 2;
+        else if (c == 0xE0 && p + 2 < end && p[1] >= 0xA0 && p[1] <= 0xBF &&
+                 source_utf8_is_cont(p[2]))
+            n = THREE;
+        else if (c >= 0xE1 && c <= 0xEC && p + 2 < end && source_utf8_is_cont(p[1]) &&
+                 source_utf8_is_cont(p[2]))
+            n = THREE;
+        else if (c == 0xED && p + 2 < end && p[1] >= 0x80 && p[1] <= 0x9F &&
+                 source_utf8_is_cont(p[2]))
+            n = THREE;
+        else if (c >= 0xEE && c <= 0xEF && p + 2 < end && source_utf8_is_cont(p[1]) &&
+                 source_utf8_is_cont(p[2]))
+            n = THREE;
+        else if (c == 0xF0 && p + FOURTH < end && p[1] >= 0x90 && p[1] <= 0xBF &&
+                 source_utf8_is_cont(p[2]) && source_utf8_is_cont(p[FOURTH]))
+            n = FOUR;
+        else if (c >= 0xF1 && c <= 0xF3 && p + FOURTH < end && source_utf8_is_cont(p[1]) &&
+                 source_utf8_is_cont(p[2]) && source_utf8_is_cont(p[FOURTH]))
+            n = FOUR;
+        else if (c == 0xF4 && p + FOURTH < end && p[1] >= 0x80 && p[1] <= 0x8F &&
+                 source_utf8_is_cont(p[2]) && source_utf8_is_cont(p[FOURTH]))
+            n = FOUR;
+        if (n > 0) {
+            memcpy(dst, p, n);
+            dst += n;
+            p += n;
+        } else {
+            *dst++ = 0xEF;
+            *dst++ = 0xBF;
+            *dst++ = 0xBD;
+            p++;
+        }
     }
     *dst = '\0';
     return out;
@@ -782,7 +831,8 @@ static grep_match_t *collect_grep_matches(FILE *fp, const char *root_path, size_
 
     while (fgets(line, sizeof(line), fp) && gm_count < grep_limit) {
         size_t len = strlen(line);
-        while (len > 0 && (line[len - SOURCE_SKIP_ONE] == '\n' || line[len - SOURCE_SKIP_ONE] == '\r')) {
+        while (len > 0 &&
+               (line[len - SOURCE_SKIP_ONE] == '\n' || line[len - SOURCE_SKIP_ONE] == '\r')) {
             line[--len] = '\0';
         }
         if (len == 0) {
@@ -946,9 +996,9 @@ static void classify_all_grep_hits(grep_match_t *gm, int gm_count, cbm_store_t *
  * `fl` is the caller's already-open binary stream on the descriptor cbm_mkstemp
  * created inside the private scratch directory; this function never opens or
  * closes it, so the list is never reachable through a predictable pathname. */
-static bool write_scoped_filelist(cbm_store_t *pre_store, const char *project, const char *root_path,
-                                  FILE *fl, bool has_path_filter, cbm_regex_t *path_regex,
-                                  int *out_written) {
+static bool write_scoped_filelist(cbm_store_t *pre_store, const char *project,
+                                  const char *root_path, FILE *fl, bool has_path_filter,
+                                  cbm_regex_t *path_regex, int *out_written) {
     *out_written = 0;
     if (!pre_store) {
         return false;
@@ -1131,7 +1181,6 @@ typedef struct {
     FILE *filelist; /* held open for write_scoped_filelist; closed by the caller */
 } search_scratch_t;
 
-
 /* Create <scratch>/<basename>-XXXXXX exclusively and return a stream on the
  * descriptor. On failure `path_out` is emptied so cleanup skips it. */
 static FILE *search_scratch_file(const char *dir, const char *basename, char *path_out,
@@ -1229,12 +1278,13 @@ static bool compile_path_filter(const char *filter, cbm_regex_t *re) {
 }
 
 static char *search_code_timeout_payload(void) {
-    static const char fallback[] =
-        "{\"code\":\"request_timeout\",\"message\":\"search_code scan exceeded its execution deadline\"}";
+    static const char fallback[] = "{\"code\":\"request_timeout\",\"message\":\"search_code scan "
+                                   "exceeded its execution deadline\"}";
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
     if (!doc || !root) {
-        if (doc) yyjson_mut_doc_free(doc);
+        if (doc)
+            yyjson_mut_doc_free(doc);
         return source_strdup(fallback);
     }
     yyjson_mut_doc_set_root(doc, root);
@@ -1248,9 +1298,8 @@ static char *search_code_timeout_payload(void) {
 
 static cbm_operation_result_t search_code_scan_error(
     search_scratch_t *scratch, const char *output_path, bool has_path_filter,
-    cbm_regex_t *path_regex, cbm_store_t *store, char *root_path, char *pattern,
-    char *project, char *file_pattern, cbm_operation_command_cause_t cause,
-    const char *message) {
+    cbm_regex_t *path_regex, cbm_store_t *store, char *root_path, char *pattern, char *project,
+    char *file_pattern, cbm_operation_command_cause_t cause, const char *message) {
     if (output_path && output_path[0]) {
         (void)cbm_unlink(output_path);
     }
@@ -1258,7 +1307,8 @@ static cbm_operation_result_t search_code_scan_error(
     if (has_path_filter) {
         cbm_regfree(path_regex);
     }
-    if (store) cbm_store_close(store);
+    if (store)
+        cbm_store_close(store);
     free(root_path);
     free(pattern);
     free(project);
@@ -1270,8 +1320,8 @@ static cbm_operation_result_t search_code_scan_error(
     return source_error(message);
 }
 
-cbm_operation_result_t cbm_source_search_operation_execute(
-    const char *args, const cbm_operation_runtime_t *runtime) {
+cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
+                                                           const cbm_operation_runtime_t *runtime) {
     char *pattern = source_string_arg(args, "pattern");
     char *project = source_project_arg(args);
     char *file_pattern = source_string_arg(args, "file_pattern");
@@ -1454,7 +1504,8 @@ cbm_operation_result_t cbm_source_search_operation_execute(
      * search_scratch_close, which still unlinks the file itself. */
     (void)fclose(scratch.filelist);
     scratch.filelist = NULL;
-    scan_cancellation_latched = scan_cancellation_latched || cbm_operation_runtime_cancelled(runtime);
+    scan_cancellation_latched =
+        scan_cancellation_latched || cbm_operation_runtime_cancelled(runtime);
     scan_deadline_latched = scan_deadline_latched || cbm_now_ms() >= scan_deadline_ms;
     if (metrics.include_phase_timings) {
         metrics.scope_ms = cbm_now_ms() - scope_t0;
@@ -1487,39 +1538,40 @@ cbm_operation_result_t cbm_source_search_operation_execute(
             runtime, scan_command, output_path, scan_output_limit, scan_deadline_ms, true,
             scan_deadline_latched, !scoped, &scan_result);
         if (scan_cause == CBM_OPERATION_COMMAND_SUPERVISION_FAILURE) {
-            return search_code_scan_error(&scratch, output_path, has_path_filter, &path_regex, store,
-                                          root_path, pattern, project, file_pattern, scan_cause,
+            return search_code_scan_error(&scratch, output_path, has_path_filter, &path_regex,
+                                          store, root_path, pattern, project, file_pattern,
+                                          scan_cause,
                                           "search failed: process supervision could not quiesce");
         }
         if (scan_cause == CBM_OPERATION_COMMAND_CANCELLED) {
-            return search_code_scan_error(&scratch, output_path, has_path_filter, &path_regex, store,
-                                          root_path, pattern, project, file_pattern, scan_cause,
-                                          "search_code cancelled for this request");
+            return search_code_scan_error(&scratch, output_path, has_path_filter, &path_regex,
+                                          store, root_path, pattern, project, file_pattern,
+                                          scan_cause, "search_code cancelled for this request");
         }
         if (scan_cause == CBM_OPERATION_COMMAND_DEADLINE) {
-            return search_code_scan_error(&scratch, output_path, has_path_filter, &path_regex, store,
-                                          root_path, pattern, project, file_pattern, scan_cause,
-                                          NULL);
+            return search_code_scan_error(&scratch, output_path, has_path_filter, &path_regex,
+                                          store, root_path, pattern, project, file_pattern,
+                                          scan_cause, NULL);
         }
         if (scan_cause == CBM_OPERATION_COMMAND_OUTPUT_LIMIT) {
             char message[CBM_SZ_128];
             snprintf(message, sizeof(message),
                      "search failed: output exceeded the %zu-byte safety limit", scan_output_limit);
-            return search_code_scan_error(&scratch, output_path, has_path_filter, &path_regex, store,
-                                          root_path, pattern, project, file_pattern, scan_cause,
-                                          message);
+            return search_code_scan_error(&scratch, output_path, has_path_filter, &path_regex,
+                                          store, root_path, pattern, project, file_pattern,
+                                          scan_cause, message);
         }
         if (scan_cause == CBM_OPERATION_COMMAND_FAILURE ||
             scan_cause == CBM_OPERATION_COMMAND_CONTAINED_FAILURE) {
             return search_code_scan_error(
-                &scratch, output_path, has_path_filter, &path_regex, store, root_path, pattern, project,
-                file_pattern, scan_cause,
+                &scratch, output_path, has_path_filter, &path_regex, store, root_path, pattern,
+                project, file_pattern, scan_cause,
                 "search failed: the contained command could not complete");
         }
         FILE *fp = cbm_fopen(output_path, "rb");
         if (!fp) {
-            return search_code_scan_error(&scratch, output_path, has_path_filter, &path_regex, store,
-                                          root_path, pattern, project, file_pattern,
+            return search_code_scan_error(&scratch, output_path, has_path_filter, &path_regex,
+                                          store, root_path, pattern, project, file_pattern,
                                           CBM_OPERATION_COMMAND_FAILURE,
                                           "search failed: contained output could not be read");
         }
@@ -1602,12 +1654,15 @@ cbm_operation_result_t cbm_source_search_operation_execute(
         result = assemble_search_output_toon(sr, sr_count, raw, raw_count, gm_count, limit,
                                              pat_has_pipe && !use_regex, &metrics);
         result_error = result == NULL;
-        if (!result) result = source_strdup("out of memory");
+        if (!result)
+            result = source_strdup("out of memory");
     } else {
-        result = assemble_search_output(sr, sr_count, raw, raw_count, gm_count, limit, mode,
-                                        context_lines, root_path, pat_has_pipe && !use_regex, &metrics);
+        result =
+            assemble_search_output(sr, sr_count, raw, raw_count, gm_count, limit, mode,
+                                   context_lines, root_path, pat_has_pipe && !use_regex, &metrics);
         result_error = result == NULL;
-        if (!result) result = source_strdup("out of memory");
+        if (!result)
+            result = source_strdup("out of memory");
     }
     free(gm);
     free(sr);

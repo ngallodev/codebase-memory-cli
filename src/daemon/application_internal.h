@@ -36,5 +36,4 @@ int cbm_daemon_application_background_initializes_for_test(void);
  * that a request QUEUED rather than erroring or starting. */
 int cbm_daemon_application_busy_queue_waits_for_test(void);
 
-
 #endif /* CBM_DAEMON_APPLICATION_INTERNAL_H */

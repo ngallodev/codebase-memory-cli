@@ -181,12 +181,11 @@ cbm_daemon_process_role_t cbm_daemon_process_role(int argc, char *const argv[]) 
             }
             return CBM_DAEMON_PROCESS_LOCAL_CLI;
         }
-        for (size_t command = 0;
-             command < sizeof(cli_commands) / sizeof(cli_commands[0]); command++) {
+        for (size_t command = 0; command < sizeof(cli_commands) / sizeof(cli_commands[0]);
+             command++) {
             if (bootstrap_arg_is(argv[arg], cli_commands[command])) {
-                return bootstrap_has_help_after(argc, argv, arg + 1)
-                           ? CBM_DAEMON_PROCESS_STATELESS
-                           : CBM_DAEMON_PROCESS_LOCAL_CLI;
+                return bootstrap_has_help_after(argc, argv, arg + 1) ? CBM_DAEMON_PROCESS_STATELESS
+                                                                     : CBM_DAEMON_PROCESS_LOCAL_CLI;
             }
         }
         if (bootstrap_arg_is(argv[arg], "hook-augment")) {

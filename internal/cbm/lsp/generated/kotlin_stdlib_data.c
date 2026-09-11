@@ -24,41 +24,41 @@
 
 /* Convenience macros to compress the repetitive registration calls. */
 
-#define KT_TYPE_SIMPLE(qn_, short_)                                                                \
-    do {                                                                                           \
-        CBMRegisteredType rt = {0};                                                                \
-        rt.qualified_name = (qn_);                                                                 \
-        rt.short_name = (short_);                                                                  \
-        cbm_registry_add_type(reg, rt);                                                            \
+#define KT_TYPE_SIMPLE(qn_, short_)     \
+    do {                                \
+        CBMRegisteredType rt = {0};     \
+        rt.qualified_name = (qn_);      \
+        rt.short_name = (short_);       \
+        cbm_registry_add_type(reg, rt); \
     } while (0)
 
-#define KT_TYPE_WITH_METHODS(qn_, short_, methods_)                                                \
-    do {                                                                                           \
-        CBMRegisteredType rt = {0};                                                                \
-        rt.qualified_name = (qn_);                                                                 \
-        rt.short_name = (short_);                                                                  \
-        rt.method_names = (methods_);                                                              \
-        cbm_registry_add_type(reg, rt);                                                            \
+#define KT_TYPE_WITH_METHODS(qn_, short_, methods_) \
+    do {                                            \
+        CBMRegisteredType rt = {0};                 \
+        rt.qualified_name = (qn_);                  \
+        rt.short_name = (short_);                   \
+        rt.method_names = (methods_);               \
+        cbm_registry_add_type(reg, rt);             \
     } while (0)
 
-#define KT_FUNC0(qn_, short_, ret_qn_)                                                             \
-    do {                                                                                           \
-        CBMRegisteredFunc rf = {0};                                                                \
-        rf.qualified_name = (qn_);                                                                 \
-        rf.short_name = (short_);                                                                  \
-        rf.min_params = 0;                                                                         \
-        cbm_registry_add_func(reg, rf);                                                            \
-        (void)(ret_qn_);                                                                           \
+#define KT_FUNC0(qn_, short_, ret_qn_)  \
+    do {                                \
+        CBMRegisteredFunc rf = {0};     \
+        rf.qualified_name = (qn_);      \
+        rf.short_name = (short_);       \
+        rf.min_params = 0;              \
+        cbm_registry_add_func(reg, rf); \
+        (void)(ret_qn_);                \
     } while (0)
 
-#define KT_METHOD(class_qn_, method_qn_, short_)                                                   \
-    do {                                                                                           \
-        CBMRegisteredFunc rf = {0};                                                                \
-        rf.qualified_name = (method_qn_);                                                          \
-        rf.receiver_type = (class_qn_);                                                            \
-        rf.short_name = (short_);                                                                  \
-        rf.min_params = 0;                                                                         \
-        cbm_registry_add_func(reg, rf);                                                            \
+#define KT_METHOD(class_qn_, method_qn_, short_) \
+    do {                                         \
+        CBMRegisteredFunc rf = {0};              \
+        rf.qualified_name = (method_qn_);        \
+        rf.receiver_type = (class_qn_);          \
+        rf.short_name = (short_);                \
+        rf.min_params = 0;                       \
+        cbm_registry_add_func(reg, rf);          \
     } while (0)
 
 /* Default-imported package list, exposed to the LSP context for
@@ -90,139 +90,449 @@ const char *const *cbm_kotlin_default_import_packages(int *count_out) {
  * be attributed as a method call on a known type. */
 
 static const char *KT_ANY_METHODS[] = {
-    "equals", "hashCode", "toString", NULL,
+    "equals",
+    "hashCode",
+    "toString",
+    NULL,
 };
 
 static const char *KT_STRING_METHODS[] = {
-    "length", "isEmpty", "isNotEmpty", "isBlank", "isNotBlank", "compareTo", "contains",
-    "startsWith", "endsWith", "indexOf", "lastIndexOf", "substring", "replace", "split",
-    "trim", "trimStart", "trimEnd", "trimIndent", "trimMargin", "toUpperCase", "toLowerCase",
-    "uppercase", "lowercase", "uppercaseChar", "lowercaseChar", "capitalize", "decapitalize",
-    "reversed", "lines", "padStart", "padEnd", "repeat", "removePrefix", "removeSuffix",
-    "removeSurrounding", "toByteArray", "toCharArray", "toInt", "toIntOrNull", "toLong",
-    "toLongOrNull", "toDouble", "toDoubleOrNull", "toFloat", "toFloatOrNull", "toBoolean",
-    "format", "intern", "matches", "replaceFirst", "filter", "filterNot", "filterIndexed",
-    "map", "flatMap", "fold", "reduce", "forEach", "any", "all", "none", "count", "first",
-    "firstOrNull", "last", "lastOrNull", "single", "singleOrNull", "take", "takeLast",
-    "takeWhile", "drop", "dropLast", "dropWhile", "windowed", "chunked", "zip", "associate",
-    "associateBy", "associateWith", "groupBy", "partition", "joinToString", "iterator",
-    "subSequence", "get", "set", "plus", "minus", "times", "div", "rem", "compareTo",
-    "hashCode", "toString", "equals", NULL,
+    "length",       "isEmpty",      "isNotEmpty",     "isBlank",       "isNotBlank",
+    "compareTo",    "contains",     "startsWith",     "endsWith",      "indexOf",
+    "lastIndexOf",  "substring",    "replace",        "split",         "trim",
+    "trimStart",    "trimEnd",      "trimIndent",     "trimMargin",    "toUpperCase",
+    "toLowerCase",  "uppercase",    "lowercase",      "uppercaseChar", "lowercaseChar",
+    "capitalize",   "decapitalize", "reversed",       "lines",         "padStart",
+    "padEnd",       "repeat",       "removePrefix",   "removeSuffix",  "removeSurrounding",
+    "toByteArray",  "toCharArray",  "toInt",          "toIntOrNull",   "toLong",
+    "toLongOrNull", "toDouble",     "toDoubleOrNull", "toFloat",       "toFloatOrNull",
+    "toBoolean",    "format",       "intern",         "matches",       "replaceFirst",
+    "filter",       "filterNot",    "filterIndexed",  "map",           "flatMap",
+    "fold",         "reduce",       "forEach",        "any",           "all",
+    "none",         "count",        "first",          "firstOrNull",   "last",
+    "lastOrNull",   "single",       "singleOrNull",   "take",          "takeLast",
+    "takeWhile",    "drop",         "dropLast",       "dropWhile",     "windowed",
+    "chunked",      "zip",          "associate",      "associateBy",   "associateWith",
+    "groupBy",      "partition",    "joinToString",   "iterator",      "subSequence",
+    "get",          "set",          "plus",           "minus",         "times",
+    "div",          "rem",          "compareTo",      "hashCode",      "toString",
+    "equals",       NULL,
 };
 
 static const char *KT_LIST_METHODS[] = {
-    "size", "isEmpty", "contains", "containsAll", "iterator", "listIterator", "subList",
-    "indexOf", "lastIndexOf", "get", "first", "firstOrNull", "last", "lastOrNull", "single",
-    "singleOrNull", "elementAt", "elementAtOrNull", "elementAtOrElse", "find", "findLast",
-    "filter", "filterNot", "filterNotNull", "filterIndexed", "filterIsInstance", "map",
-    "mapNotNull", "mapIndexed", "mapIndexedNotNull", "flatMap", "flatten", "fold", "foldRight",
-    "foldIndexed", "reduce", "reduceRight", "reduceIndexed", "scan", "runningFold",
-    "runningReduce", "forEach", "forEachIndexed", "any", "all", "none", "count", "sum",
-    "sumBy", "sumOf", "max", "maxOrNull", "maxBy", "maxByOrNull", "maxOf", "maxOfOrNull",
-    "min", "minOrNull", "minBy", "minByOrNull", "minOf", "minOfOrNull", "average", "sorted",
-    "sortedBy", "sortedDescending", "sortedByDescending", "sortedWith", "reversed",
-    "shuffled", "distinct", "distinctBy", "intersect", "union", "subtract", "groupBy",
-    "groupingBy", "associate", "associateBy", "associateWith", "partition", "windowed",
-    "chunked", "zip", "zipWithNext", "joinToString", "joinTo", "take", "takeLast",
-    "takeWhile", "takeLastWhile", "drop", "dropLast", "dropWhile", "dropLastWhile",
-    "asSequence", "asIterable", "toList", "toMutableList", "toSet", "toMutableSet",
-    "toHashSet", "toSortedSet", "toTypedArray", "toCollection", "plus", "minus",
-    "ifEmpty", "stream", NULL,
+    "size",
+    "isEmpty",
+    "contains",
+    "containsAll",
+    "iterator",
+    "listIterator",
+    "subList",
+    "indexOf",
+    "lastIndexOf",
+    "get",
+    "first",
+    "firstOrNull",
+    "last",
+    "lastOrNull",
+    "single",
+    "singleOrNull",
+    "elementAt",
+    "elementAtOrNull",
+    "elementAtOrElse",
+    "find",
+    "findLast",
+    "filter",
+    "filterNot",
+    "filterNotNull",
+    "filterIndexed",
+    "filterIsInstance",
+    "map",
+    "mapNotNull",
+    "mapIndexed",
+    "mapIndexedNotNull",
+    "flatMap",
+    "flatten",
+    "fold",
+    "foldRight",
+    "foldIndexed",
+    "reduce",
+    "reduceRight",
+    "reduceIndexed",
+    "scan",
+    "runningFold",
+    "runningReduce",
+    "forEach",
+    "forEachIndexed",
+    "any",
+    "all",
+    "none",
+    "count",
+    "sum",
+    "sumBy",
+    "sumOf",
+    "max",
+    "maxOrNull",
+    "maxBy",
+    "maxByOrNull",
+    "maxOf",
+    "maxOfOrNull",
+    "min",
+    "minOrNull",
+    "minBy",
+    "minByOrNull",
+    "minOf",
+    "minOfOrNull",
+    "average",
+    "sorted",
+    "sortedBy",
+    "sortedDescending",
+    "sortedByDescending",
+    "sortedWith",
+    "reversed",
+    "shuffled",
+    "distinct",
+    "distinctBy",
+    "intersect",
+    "union",
+    "subtract",
+    "groupBy",
+    "groupingBy",
+    "associate",
+    "associateBy",
+    "associateWith",
+    "partition",
+    "windowed",
+    "chunked",
+    "zip",
+    "zipWithNext",
+    "joinToString",
+    "joinTo",
+    "take",
+    "takeLast",
+    "takeWhile",
+    "takeLastWhile",
+    "drop",
+    "dropLast",
+    "dropWhile",
+    "dropLastWhile",
+    "asSequence",
+    "asIterable",
+    "toList",
+    "toMutableList",
+    "toSet",
+    "toMutableSet",
+    "toHashSet",
+    "toSortedSet",
+    "toTypedArray",
+    "toCollection",
+    "plus",
+    "minus",
+    "ifEmpty",
+    "stream",
+    NULL,
 };
 
 static const char *KT_MUTABLE_LIST_METHODS[] = {
-    "add", "addAll", "remove", "removeAt", "removeAll", "removeFirst", "removeLast",
-    "removeIf", "retainAll", "clear", "set", "fill", "sort", "sortBy", "sortByDescending",
-    "sortWith", "reverse", "shuffle", "swap", "trimToSize",
+    "add",
+    "addAll",
+    "remove",
+    "removeAt",
+    "removeAll",
+    "removeFirst",
+    "removeLast",
+    "removeIf",
+    "retainAll",
+    "clear",
+    "set",
+    "fill",
+    "sort",
+    "sortBy",
+    "sortByDescending",
+    "sortWith",
+    "reverse",
+    "shuffle",
+    "swap",
+    "trimToSize",
     /* Plus all read-only methods (inherited): */
-    "size", "isEmpty", "contains", "containsAll", "iterator", "listIterator", "subList",
-    "indexOf", "lastIndexOf", "get", "first", "firstOrNull", "last", "lastOrNull", "single",
-    "singleOrNull", "find", "findLast", "elementAt", "elementAtOrNull", "elementAtOrElse",
-    "filter", "filterNot", "filterNotNull", "filterIndexed", "filterIsInstance", "map",
-    "mapNotNull", "mapIndexed", "flatMap", "flatten", "fold", "foldRight", "reduce",
-    "reduceRight", "forEach", "forEachIndexed", "any", "all", "none", "count", "sum",
-    "sumBy", "sumOf", "max", "maxOrNull", "maxBy", "min", "minOrNull", "minBy", "average",
-    "sorted", "sortedBy", "sortedDescending", "sortedByDescending", "sortedWith",
-    "reversed", "shuffled", "distinct", "distinctBy", "groupBy", "groupingBy", "associate",
-    "associateBy", "associateWith", "partition", "windowed", "chunked", "zip", "zipWithNext",
-    "joinToString", "joinTo", "take", "takeLast", "takeWhile", "drop", "dropLast",
-    "dropWhile", "asSequence", "asIterable", "toList", "toMutableList", "toSet",
-    "toMutableSet", "toHashSet", "toTypedArray", "toCollection", "ifEmpty", "stream", NULL,
+    "size",
+    "isEmpty",
+    "contains",
+    "containsAll",
+    "iterator",
+    "listIterator",
+    "subList",
+    "indexOf",
+    "lastIndexOf",
+    "get",
+    "first",
+    "firstOrNull",
+    "last",
+    "lastOrNull",
+    "single",
+    "singleOrNull",
+    "find",
+    "findLast",
+    "elementAt",
+    "elementAtOrNull",
+    "elementAtOrElse",
+    "filter",
+    "filterNot",
+    "filterNotNull",
+    "filterIndexed",
+    "filterIsInstance",
+    "map",
+    "mapNotNull",
+    "mapIndexed",
+    "flatMap",
+    "flatten",
+    "fold",
+    "foldRight",
+    "reduce",
+    "reduceRight",
+    "forEach",
+    "forEachIndexed",
+    "any",
+    "all",
+    "none",
+    "count",
+    "sum",
+    "sumBy",
+    "sumOf",
+    "max",
+    "maxOrNull",
+    "maxBy",
+    "min",
+    "minOrNull",
+    "minBy",
+    "average",
+    "sorted",
+    "sortedBy",
+    "sortedDescending",
+    "sortedByDescending",
+    "sortedWith",
+    "reversed",
+    "shuffled",
+    "distinct",
+    "distinctBy",
+    "groupBy",
+    "groupingBy",
+    "associate",
+    "associateBy",
+    "associateWith",
+    "partition",
+    "windowed",
+    "chunked",
+    "zip",
+    "zipWithNext",
+    "joinToString",
+    "joinTo",
+    "take",
+    "takeLast",
+    "takeWhile",
+    "drop",
+    "dropLast",
+    "dropWhile",
+    "asSequence",
+    "asIterable",
+    "toList",
+    "toMutableList",
+    "toSet",
+    "toMutableSet",
+    "toHashSet",
+    "toTypedArray",
+    "toCollection",
+    "ifEmpty",
+    "stream",
+    NULL,
 };
 
 static const char *KT_MAP_METHODS[] = {
-    "size", "isEmpty", "containsKey", "containsValue", "get", "getOrDefault", "getOrElse",
-    "getOrNull", "getValue", "keys", "values", "entries", "iterator", "forEach", "filter",
-    "filterKeys", "filterValues", "filterNot", "filterTo", "map", "mapKeys", "mapValues",
-    "mapNotNull", "any", "all", "none", "count", "max", "min", "maxBy", "minBy", "toList",
-    "toMap", "toMutableMap", "toSortedMap", "asSequence", "asIterable", "plus", "minus",
-    "ifEmpty", NULL,
+    "size",       "isEmpty",   "containsKey", "containsValue", "get",          "getOrDefault",
+    "getOrElse",  "getOrNull", "getValue",    "keys",          "values",       "entries",
+    "iterator",   "forEach",   "filter",      "filterKeys",    "filterValues", "filterNot",
+    "filterTo",   "map",       "mapKeys",     "mapValues",     "mapNotNull",   "any",
+    "all",        "none",      "count",       "max",           "min",          "maxBy",
+    "minBy",      "toList",    "toMap",       "toMutableMap",  "toSortedMap",  "asSequence",
+    "asIterable", "plus",      "minus",       "ifEmpty",       NULL,
 };
 
 static const char *KT_MUTABLE_MAP_METHODS[] = {
-    "put", "putAll", "putIfAbsent", "remove", "clear", "computeIfAbsent", "computeIfPresent",
-    "compute", "merge", "replace", "replaceAll", "getOrPut",
+    "put",
+    "putAll",
+    "putIfAbsent",
+    "remove",
+    "clear",
+    "computeIfAbsent",
+    "computeIfPresent",
+    "compute",
+    "merge",
+    "replace",
+    "replaceAll",
+    "getOrPut",
     /* Plus read-only methods: */
-    "size", "isEmpty", "containsKey", "containsValue", "get", "keys", "values", "entries",
-    "iterator", "forEach", "filter", "map", NULL,
+    "size",
+    "isEmpty",
+    "containsKey",
+    "containsValue",
+    "get",
+    "keys",
+    "values",
+    "entries",
+    "iterator",
+    "forEach",
+    "filter",
+    "map",
+    NULL,
 };
 
 static const char *KT_SET_METHODS[] = {
-    "size", "isEmpty", "contains", "containsAll", "iterator", "intersect", "union",
-    "subtract", "filter", "map", "fold", "reduce", "forEach", "any", "all", "none",
-    "count", "first", "last", "elementAt", NULL,
+    "size",     "isEmpty", "contains", "containsAll", "iterator", "intersect", "union",
+    "subtract", "filter",  "map",      "fold",        "reduce",   "forEach",   "any",
+    "all",      "none",    "count",    "first",       "last",     "elementAt", NULL,
 };
 
 static const char *KT_ITERATOR_METHODS[] = {
-    "hasNext", "next", "remove", "nextIndex", "previousIndex", "previous", "hasPrevious",
-    "set", "add", NULL,
+    "hasNext",  "next",        "remove", "nextIndex", "previousIndex",
+    "previous", "hasPrevious", "set",    "add",       NULL,
 };
 
 static const char *KT_SEQUENCE_METHODS[] = {
-    "iterator", "filter", "filterNot", "filterNotNull", "filterIndexed", "filterIsInstance",
-    "map", "mapNotNull", "mapIndexed", "flatMap", "flatten", "fold", "foldIndexed", "reduce",
-    "reduceIndexed", "forEach", "forEachIndexed", "any", "all", "none", "count", "sum",
-    "sumBy", "sumOf", "max", "maxOrNull", "min", "minOrNull", "first", "firstOrNull",
-    "last", "lastOrNull", "single", "singleOrNull", "find", "findLast", "elementAt",
-    "elementAtOrNull", "take", "takeWhile", "drop", "dropWhile", "windowed", "chunked",
-    "zip", "zipWithNext", "distinct", "distinctBy", "sorted", "sortedBy", "sortedDescending",
-    "sortedWith", "associate", "associateBy", "associateWith", "groupBy", "partition",
-    "joinToString", "toList", "toSet", "toMap", "toCollection", "asIterable", "constrainOnce",
+    "iterator",
+    "filter",
+    "filterNot",
+    "filterNotNull",
+    "filterIndexed",
+    "filterIsInstance",
+    "map",
+    "mapNotNull",
+    "mapIndexed",
+    "flatMap",
+    "flatten",
+    "fold",
+    "foldIndexed",
+    "reduce",
+    "reduceIndexed",
+    "forEach",
+    "forEachIndexed",
+    "any",
+    "all",
+    "none",
+    "count",
+    "sum",
+    "sumBy",
+    "sumOf",
+    "max",
+    "maxOrNull",
+    "min",
+    "minOrNull",
+    "first",
+    "firstOrNull",
+    "last",
+    "lastOrNull",
+    "single",
+    "singleOrNull",
+    "find",
+    "findLast",
+    "elementAt",
+    "elementAtOrNull",
+    "take",
+    "takeWhile",
+    "drop",
+    "dropWhile",
+    "windowed",
+    "chunked",
+    "zip",
+    "zipWithNext",
+    "distinct",
+    "distinctBy",
+    "sorted",
+    "sortedBy",
+    "sortedDescending",
+    "sortedWith",
+    "associate",
+    "associateBy",
+    "associateWith",
+    "groupBy",
+    "partition",
+    "joinToString",
+    "toList",
+    "toSet",
+    "toMap",
+    "toCollection",
+    "asIterable",
+    "constrainOnce",
     NULL,
 };
 
 static const char *KT_INT_RANGE_METHODS[] = {
-    "first", "last", "step", "isEmpty", "iterator", "contains", "reversed", "forEach",
-    "map", "filter", "sum", "count", "any", "all", "none", "elementAt", NULL,
+    "first",  "last", "step",  "isEmpty", "iterator", "contains", "reversed",  "forEach", "map",
+    "filter", "sum",  "count", "any",     "all",      "none",     "elementAt", NULL,
 };
 
 static const char *KT_PAIR_METHODS[] = {
-    "first", "second", "toString", "toList", "component1", "component2", "copy",
-    NULL,
+    "first", "second", "toString", "toList", "component1", "component2", "copy", NULL,
 };
 
 static const char *KT_TRIPLE_METHODS[] = {
-    "first", "second", "third", "toString", "toList", "component1", "component2",
-    "component3", "copy", NULL,
+    "first",      "second",     "third",      "toString", "toList",
+    "component1", "component2", "component3", "copy",     NULL,
 };
 
 static const char *KT_THROWABLE_METHODS[] = {
-    "message", "cause", "stackTrace", "stackTraceToString", "printStackTrace",
-    "addSuppressed", "getSuppressed", "fillInStackTrace", "initCause", "toString", NULL,
-};
-
-static const char *KT_EXCEPTION_METHODS[] = {
-    "message", "cause", "stackTrace", "stackTraceToString", "printStackTrace", "toString",
+    "message",
+    "cause",
+    "stackTrace",
+    "stackTraceToString",
+    "printStackTrace",
+    "addSuppressed",
+    "getSuppressed",
+    "fillInStackTrace",
+    "initCause",
+    "toString",
     NULL,
 };
 
+static const char *KT_EXCEPTION_METHODS[] = {
+    "message", "cause", "stackTrace", "stackTraceToString", "printStackTrace", "toString", NULL,
+};
+
 static const char *KT_NUMBER_METHODS[] = {
-    "toByte", "toShort", "toInt", "toLong", "toFloat", "toDouble", "toChar", "toString",
-    "compareTo", "equals", "hashCode",
+    "toByte",
+    "toShort",
+    "toInt",
+    "toLong",
+    "toFloat",
+    "toDouble",
+    "toChar",
+    "toString",
+    "compareTo",
+    "equals",
+    "hashCode",
     /* Operator conventions */
-    "plus", "minus", "times", "div", "rem", "mod", "inc", "dec", "unaryMinus", "unaryPlus",
-    "and", "or", "xor", "inv", "shl", "shr", "ushr",
-    "rangeTo", "rangeUntil", "downTo", "until", "coerceAtLeast", "coerceAtMost", "coerceIn",
+    "plus",
+    "minus",
+    "times",
+    "div",
+    "rem",
+    "mod",
+    "inc",
+    "dec",
+    "unaryMinus",
+    "unaryPlus",
+    "and",
+    "or",
+    "xor",
+    "inv",
+    "shl",
+    "shr",
+    "ushr",
+    "rangeTo",
+    "rangeUntil",
+    "downTo",
+    "until",
+    "coerceAtLeast",
+    "coerceAtMost",
+    "coerceIn",
     NULL,
 };
 
@@ -231,23 +541,44 @@ static const char *KT_BOOLEAN_METHODS[] = {
 };
 
 static const char *KT_CHAR_METHODS[] = {
-    "isDigit", "isLetter", "isLetterOrDigit", "isWhitespace", "isUpperCase", "isLowerCase",
-    "uppercase", "lowercase", "uppercaseChar", "lowercaseChar", "digitToInt", "code",
-    "compareTo", "toString", "equals", "hashCode", "plus", "minus", "rangeTo",
-    "isHighSurrogate", "isLowSurrogate", "isSurrogate", NULL,
+    "isDigit",
+    "isLetter",
+    "isLetterOrDigit",
+    "isWhitespace",
+    "isUpperCase",
+    "isLowerCase",
+    "uppercase",
+    "lowercase",
+    "uppercaseChar",
+    "lowercaseChar",
+    "digitToInt",
+    "code",
+    "compareTo",
+    "toString",
+    "equals",
+    "hashCode",
+    "plus",
+    "minus",
+    "rangeTo",
+    "isHighSurrogate",
+    "isLowSurrogate",
+    "isSurrogate",
+    NULL,
 };
 
 static const char *KT_ARRAY_METHODS[] = {
-    "size", "get", "set", "iterator", "isEmpty", "isNotEmpty", "contains", "indexOf",
-    "lastIndexOf", "first", "last", "filter", "map", "fold", "reduce", "forEach", "any",
-    "all", "none", "count", "sum", "max", "min", "joinToString", "asList", "asSequence",
-    "toList", "toMutableList", "toSet", "copyOf", "copyOfRange", "fill", "sort", "sorted",
-    "reversed", "reverse", "binarySearch", "plus", "component1", "component2", NULL,
+    "size",         "get",        "set",         "iterator",      "isEmpty",  "isNotEmpty",
+    "contains",     "indexOf",    "lastIndexOf", "first",         "last",     "filter",
+    "map",          "fold",       "reduce",      "forEach",       "any",      "all",
+    "none",         "count",      "sum",         "max",           "min",      "joinToString",
+    "asList",       "asSequence", "toList",      "toMutableList", "toSet",    "copyOf",
+    "copyOfRange",  "fill",       "sort",        "sorted",        "reversed", "reverse",
+    "binarySearch", "plus",       "component1",  "component2",    NULL,
 };
 
 static const char *KT_REGEX_METHODS[] = {
-    "matchEntire", "matches", "containsMatchIn", "find", "findAll", "replace",
-    "replaceFirst", "split", "splitToSequence", "toPattern", "pattern", NULL,
+    "matchEntire",  "matches", "containsMatchIn", "find",      "findAll", "replace",
+    "replaceFirst", "split",   "splitToSequence", "toPattern", "pattern", NULL,
 };
 
 static const char *KT_MATCH_RESULT_METHODS[] = {
@@ -255,15 +586,61 @@ static const char *KT_MATCH_RESULT_METHODS[] = {
 };
 
 static const char *KT_FILE_METHODS[] = {
-    "path", "name", "parent", "exists", "isFile", "isDirectory", "isAbsolute", "length",
-    "lastModified", "canRead", "canWrite", "delete", "deleteRecursively", "createNewFile",
-    "mkdir", "mkdirs", "renameTo", "list", "listFiles", "walk", "walkTopDown",
-    "walkBottomUp", "readText", "readLines", "readBytes", "writeText", "writeBytes",
-    "appendText", "appendBytes", "useLines", "forEachLine", "bufferedReader",
-    "bufferedWriter", "inputStream", "outputStream", "reader", "writer", "printWriter",
-    "absolutePath", "absoluteFile", "canonicalPath", "canonicalFile", "extension",
-    "nameWithoutExtension", "toPath", "toURI", "resolve", "resolveSibling", "relativeTo",
-    "copyTo", "copyRecursively", "endsWith", "startsWith", "normalize", NULL,
+    "path",
+    "name",
+    "parent",
+    "exists",
+    "isFile",
+    "isDirectory",
+    "isAbsolute",
+    "length",
+    "lastModified",
+    "canRead",
+    "canWrite",
+    "delete",
+    "deleteRecursively",
+    "createNewFile",
+    "mkdir",
+    "mkdirs",
+    "renameTo",
+    "list",
+    "listFiles",
+    "walk",
+    "walkTopDown",
+    "walkBottomUp",
+    "readText",
+    "readLines",
+    "readBytes",
+    "writeText",
+    "writeBytes",
+    "appendText",
+    "appendBytes",
+    "useLines",
+    "forEachLine",
+    "bufferedReader",
+    "bufferedWriter",
+    "inputStream",
+    "outputStream",
+    "reader",
+    "writer",
+    "printWriter",
+    "absolutePath",
+    "absoluteFile",
+    "canonicalPath",
+    "canonicalFile",
+    "extension",
+    "nameWithoutExtension",
+    "toPath",
+    "toURI",
+    "resolve",
+    "resolveSibling",
+    "relativeTo",
+    "copyTo",
+    "copyRecursively",
+    "endsWith",
+    "startsWith",
+    "normalize",
+    NULL,
 };
 
 static const char *KT_SCOPE_METHODS[] = {
@@ -271,13 +648,16 @@ static const char *KT_SCOPE_METHODS[] = {
 };
 
 static const char *KT_LAZY_METHODS[] = {
-    "value", "isInitialized", "getValue", NULL,
+    "value",
+    "isInitialized",
+    "getValue",
+    NULL,
 };
 
 static const char *KT_RESULT_METHODS[] = {
-    "getOrNull", "exceptionOrNull", "isSuccess", "isFailure", "getOrThrow", "getOrDefault",
-    "getOrElse", "fold", "map", "mapCatching", "recover", "recoverCatching", "onSuccess",
-    "onFailure", NULL,
+    "getOrNull",    "exceptionOrNull", "isSuccess", "isFailure", "getOrThrow",
+    "getOrDefault", "getOrElse",       "fold",      "map",       "mapCatching",
+    "recover",      "recoverCatching", "onSuccess", "onFailure", NULL,
 };
 
 /* ── Top-level builtin function registration. ──────────────────────
@@ -331,8 +711,7 @@ void cbm_kotlin_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     KT_TYPE_WITH_METHODS("kotlin.ClassCastException", "ClassCastException", KT_EXCEPTION_METHODS);
     KT_TYPE_WITH_METHODS("kotlin.UnsupportedOperationException", "UnsupportedOperationException",
                          KT_EXCEPTION_METHODS);
-    KT_TYPE_WITH_METHODS("kotlin.ArithmeticException", "ArithmeticException",
-                         KT_EXCEPTION_METHODS);
+    KT_TYPE_WITH_METHODS("kotlin.ArithmeticException", "ArithmeticException", KT_EXCEPTION_METHODS);
 
     /* Collections */
     KT_TYPE_WITH_METHODS("kotlin.collections.Iterable", "Iterable", KT_LIST_METHODS);
@@ -436,23 +815,20 @@ void cbm_kotlin_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
 
     /* kotlin.collections — top-level builders */
     KT_FUNC0("kotlin.collections.listOf", "listOf", "kotlin.collections.List");
-    KT_FUNC0("kotlin.collections.mutableListOf", "mutableListOf",
-             "kotlin.collections.MutableList");
+    KT_FUNC0("kotlin.collections.mutableListOf", "mutableListOf", "kotlin.collections.MutableList");
     KT_FUNC0("kotlin.collections.arrayListOf", "arrayListOf", "kotlin.collections.ArrayList");
     KT_FUNC0("kotlin.collections.emptyList", "emptyList", "kotlin.collections.List");
     KT_FUNC0("kotlin.collections.listOfNotNull", "listOfNotNull", "kotlin.collections.List");
     KT_FUNC0("kotlin.collections.setOf", "setOf", "kotlin.collections.Set");
     KT_FUNC0("kotlin.collections.mutableSetOf", "mutableSetOf", "kotlin.collections.MutableSet");
     KT_FUNC0("kotlin.collections.hashSetOf", "hashSetOf", "kotlin.collections.HashSet");
-    KT_FUNC0("kotlin.collections.linkedSetOf", "linkedSetOf",
-             "kotlin.collections.LinkedHashSet");
+    KT_FUNC0("kotlin.collections.linkedSetOf", "linkedSetOf", "kotlin.collections.LinkedHashSet");
     KT_FUNC0("kotlin.collections.emptySet", "emptySet", "kotlin.collections.Set");
     KT_FUNC0("kotlin.collections.sortedSetOf", "sortedSetOf", "kotlin.collections.Set");
     KT_FUNC0("kotlin.collections.mapOf", "mapOf", "kotlin.collections.Map");
     KT_FUNC0("kotlin.collections.mutableMapOf", "mutableMapOf", "kotlin.collections.MutableMap");
     KT_FUNC0("kotlin.collections.hashMapOf", "hashMapOf", "kotlin.collections.HashMap");
-    KT_FUNC0("kotlin.collections.linkedMapOf", "linkedMapOf",
-             "kotlin.collections.LinkedHashMap");
+    KT_FUNC0("kotlin.collections.linkedMapOf", "linkedMapOf", "kotlin.collections.LinkedHashMap");
     KT_FUNC0("kotlin.collections.emptyMap", "emptyMap", "kotlin.collections.Map");
     KT_FUNC0("kotlin.collections.sortedMapOf", "sortedMapOf", "kotlin.collections.Map");
     KT_FUNC0("kotlin.arrayOf", "arrayOf", "kotlin.Array");
@@ -470,8 +846,7 @@ void cbm_kotlin_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     /* kotlin.sequences */
     KT_FUNC0("kotlin.sequences.sequenceOf", "sequenceOf", "kotlin.sequences.Sequence");
     KT_FUNC0("kotlin.sequences.emptySequence", "emptySequence", "kotlin.sequences.Sequence");
-    KT_FUNC0("kotlin.sequences.generateSequence", "generateSequence",
-             "kotlin.sequences.Sequence");
+    KT_FUNC0("kotlin.sequences.generateSequence", "generateSequence", "kotlin.sequences.Sequence");
     KT_FUNC0("kotlin.sequences.sequence", "sequence", "kotlin.sequences.Sequence");
 
     /* kotlin.ranges */
@@ -500,18 +875,22 @@ void cbm_kotlin_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
      * receiver. Their full QN is kotlin.<name>. */
     {
         const char *names[] = {"let", "run", "apply", "also", "takeIf", "takeUnless", "use", NULL};
-        const char *qns[] = {"kotlin.let", "kotlin.run", "kotlin.apply", "kotlin.also",
-                             "kotlin.takeIf", "kotlin.takeUnless",
-                             "kotlin.io.use",  /* `use` lives in kotlin.io for Closeable */
+        const char *qns[] = {"kotlin.let",
+                             "kotlin.run",
+                             "kotlin.apply",
+                             "kotlin.also",
+                             "kotlin.takeIf",
+                             "kotlin.takeUnless",
+                             "kotlin.io.use", /* `use` lives in kotlin.io for Closeable */
                              NULL};
         for (int i = 0; names[i]; i++) {
             CBMRegisteredFunc rf = {0};
             rf.qualified_name = qns[i];
             rf.short_name = names[i];
             rf.receiver_type = "kotlin.Any";
-            rf.min_params = 1;  /* the lambda */
+            rf.min_params = 1; /* the lambda */
             cbm_registry_add_func(reg, rf);
         }
     }
-    (void)KT_SCOPE_METHODS;  /* reserved for future tightening */
+    (void)KT_SCOPE_METHODS; /* reserved for future tightening */
 }

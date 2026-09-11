@@ -19,28 +19,31 @@
 #include "../php_lsp.h"
 #include <string.h>
 
-#define REG_TYPE(qn_, short_, is_iface_, parents_) do { \
-    memset(&rt, 0, sizeof(rt));                          \
-    rt.qualified_name = (qn_);                           \
-    rt.short_name = (short_);                            \
-    rt.is_interface = (is_iface_);                       \
-    rt.embedded_types = (parents_);                      \
-    cbm_registry_add_type(reg, rt);                      \
-} while (0)
+#define REG_TYPE(qn_, short_, is_iface_, parents_) \
+    do {                                           \
+        memset(&rt, 0, sizeof(rt));                \
+        rt.qualified_name = (qn_);                 \
+        rt.short_name = (short_);                  \
+        rt.is_interface = (is_iface_);             \
+        rt.embedded_types = (parents_);            \
+        cbm_registry_add_type(reg, rt);            \
+    } while (0)
 
-#define REG_METHOD(class_qn_, method_name_, ret_type_) do {                        \
-    memset(&rf, 0, sizeof(rf));                                                    \
-    rf.min_params = -1;                                                            \
-    rf.qualified_name = cbm_arena_sprintf(arena, "%s.%s", (class_qn_), (method_name_)); \
-    rf.short_name = (method_name_);                                                \
-    rf.receiver_type = (class_qn_);                                                \
-    {                                                                              \
-        const CBMType **rets = (const CBMType **)cbm_arena_alloc(arena, 2 * sizeof(*rets)); \
-        rets[0] = (ret_type_); rets[1] = NULL;                                     \
-        rf.signature = cbm_type_func(arena, NULL, NULL, rets);                     \
-    }                                                                              \
-    cbm_registry_add_func(reg, rf);                                                \
-} while (0)
+#define REG_METHOD(class_qn_, method_name_, ret_type_)                                          \
+    do {                                                                                        \
+        memset(&rf, 0, sizeof(rf));                                                             \
+        rf.min_params = -1;                                                                     \
+        rf.qualified_name = cbm_arena_sprintf(arena, "%s.%s", (class_qn_), (method_name_));     \
+        rf.short_name = (method_name_);                                                         \
+        rf.receiver_type = (class_qn_);                                                         \
+        {                                                                                       \
+            const CBMType **rets = (const CBMType **)cbm_arena_alloc(arena, 2 * sizeof(*rets)); \
+            rets[0] = (ret_type_);                                                              \
+            rets[1] = NULL;                                                                     \
+            rf.signature = cbm_type_func(arena, NULL, NULL, rets);                              \
+        }                                                                                       \
+        cbm_registry_add_func(reg, rf);                                                         \
+    } while (0)
 
 #define MIXED cbm_type_unknown()
 
@@ -106,10 +109,10 @@ void cbm_php_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     static const char *generator_parents[] = {"Iterator", NULL};
     static const char *array_iterator_parents[] = {"Iterator", "Countable", "ArrayAccess",
                                                    "Serializable", NULL};
-    static const char *array_object_parents[] = {"IteratorAggregate", "Countable",
-                                                 "ArrayAccess", "Serializable", NULL};
-    static const char *spl_doubly_linked_list_parents[] = {"Iterator", "Countable",
-                                                           "ArrayAccess", "Serializable", NULL};
+    static const char *array_object_parents[] = {"IteratorAggregate", "Countable", "ArrayAccess",
+                                                 "Serializable", NULL};
+    static const char *spl_doubly_linked_list_parents[] = {"Iterator", "Countable", "ArrayAccess",
+                                                           "Serializable", NULL};
     static const char *spl_stack_parents[] = {"SplDoublyLinkedList", NULL};
     static const char *spl_queue_parents[] = {"SplDoublyLinkedList", NULL};
     static const char *spl_object_storage_parents[] = {"Countable", "Iterator", "Serializable",
@@ -153,13 +156,11 @@ void cbm_php_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     static const char *psr_response_parents[] = {NULL};
 
     REG_TYPE("Psr.Log.LoggerInterface", "LoggerInterface", true, psr_logger_parents);
-    REG_TYPE("Psr.Container.ContainerInterface", "ContainerInterface", true,
-             psr_container_parents);
+    REG_TYPE("Psr.Container.ContainerInterface", "ContainerInterface", true, psr_container_parents);
     REG_TYPE("Psr.Container.NotFoundExceptionInterface", "NotFoundExceptionInterface", true,
              psr_container_parents);
     REG_TYPE("Psr.Http.Message.RequestInterface", "RequestInterface", true, psr_request_parents);
-    REG_TYPE("Psr.Http.Message.ResponseInterface", "ResponseInterface", true,
-             psr_response_parents);
+    REG_TYPE("Psr.Http.Message.ResponseInterface", "ResponseInterface", true, psr_response_parents);
     REG_TYPE("Psr.Http.Message.ServerRequestInterface", "ServerRequestInterface", true,
              psr_request_parents);
     REG_TYPE("Psr.Http.Message.UriInterface", "UriInterface", true, psr_request_parents);
@@ -226,8 +227,7 @@ void cbm_php_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_TYPE("Illuminate.Database.Eloquent.Builder", "Builder", false, throwable_parents);
     REG_TYPE("Illuminate.Database.Query.Builder", "Builder", false, throwable_parents);
     REG_TYPE("Illuminate.Database.Eloquent.Model", "Model", false, throwable_parents);
-    REG_TYPE("Illuminate.Database.Eloquent.Collection", "Collection", false,
-             traversable_parents);
+    REG_TYPE("Illuminate.Database.Eloquent.Collection", "Collection", false, traversable_parents);
     REG_TYPE("Illuminate.Support.Collection", "Collection", false, traversable_parents);
 
     /* Eloquent Builder chain methods. */
@@ -349,8 +349,7 @@ void cbm_php_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
 
     /* ── Symfony HttpFoundation (used by Laravel + Symfony) ─────── */
     static const char *symfony_request_parents[] = {NULL};
-    REG_TYPE("Symfony.Component.HttpFoundation.Request", "Request", false,
-             symfony_request_parents);
+    REG_TYPE("Symfony.Component.HttpFoundation.Request", "Request", false, symfony_request_parents);
     REG_TYPE("Symfony.Component.HttpFoundation.Response", "Response", false,
              symfony_request_parents);
     REG_TYPE("Symfony.Component.HttpFoundation.HeaderBag", "HeaderBag", false,
@@ -505,10 +504,8 @@ void cbm_php_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_TYPE("Twig.Environment", "Environment", false, twig_parents);
     REG_TYPE("Twig.TemplateWrapper", "TemplateWrapper", false, twig_parents);
     REG_METHOD("Twig.Environment", "render", cbm_type_builtin(arena, "string"));
-    REG_METHOD("Twig.Environment", "load",
-               cbm_type_named(arena, "Twig.TemplateWrapper"));
-    REG_METHOD("Twig.Environment", "createTemplate",
-               cbm_type_named(arena, "Twig.TemplateWrapper"));
+    REG_METHOD("Twig.Environment", "load", cbm_type_named(arena, "Twig.TemplateWrapper"));
+    REG_METHOD("Twig.Environment", "createTemplate", cbm_type_named(arena, "Twig.TemplateWrapper"));
     REG_METHOD("Twig.TemplateWrapper", "render", cbm_type_builtin(arena, "string"));
     REG_METHOD("Twig.TemplateWrapper", "renderBlock", cbm_type_builtin(arena, "string"));
 
@@ -553,8 +550,7 @@ void cbm_php_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("Symfony.Contracts.Cache.ItemInterface", "get", MIXED);
     REG_METHOD("Psr.Cache.CacheItemPoolInterface", "getItem",
                cbm_type_named(arena, "Psr.Cache.CacheItemInterface"));
-    REG_METHOD("Psr.Cache.CacheItemPoolInterface", "save",
-               cbm_type_builtin(arena, "bool"));
+    REG_METHOD("Psr.Cache.CacheItemPoolInterface", "save", cbm_type_builtin(arena, "bool"));
     REG_METHOD("Psr.Cache.CacheItemInterface", "get", MIXED);
     REG_METHOD("Psr.Cache.CacheItemInterface", "set",
                cbm_type_named(arena, "Psr.Cache.CacheItemInterface"));
@@ -570,8 +566,7 @@ void cbm_php_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     static const char *mailer_parents[] = {NULL};
     REG_TYPE("Symfony.Component.Mailer.MailerInterface", "MailerInterface", true, mailer_parents);
     REG_TYPE("Symfony.Component.Mime.Email", "Email", false, mailer_parents);
-    REG_METHOD("Symfony.Component.Mailer.MailerInterface", "send",
-               cbm_type_builtin(arena, "void"));
+    REG_METHOD("Symfony.Component.Mailer.MailerInterface", "send", cbm_type_builtin(arena, "void"));
     {
         const char *e = "Symfony.Component.Mime.Email";
         const CBMType *self = cbm_type_named(arena, "Symfony.Component.Mime.Email");
@@ -587,19 +582,19 @@ void cbm_php_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
 
     /* ── Symfony Validator ─────────────────────────────────── */
     static const char *validator_parents[] = {NULL};
-    REG_TYPE("Symfony.Component.Validator.Validator.ValidatorInterface", "ValidatorInterface",
-             true, validator_parents);
+    REG_TYPE("Symfony.Component.Validator.Validator.ValidatorInterface", "ValidatorInterface", true,
+             validator_parents);
     REG_TYPE("Symfony.Component.Validator.ConstraintViolationListInterface",
              "ConstraintViolationListInterface", true, validator_parents);
-    REG_METHOD("Symfony.Component.Validator.Validator.ValidatorInterface", "validate",
-               cbm_type_named(arena,
-                              "Symfony.Component.Validator.ConstraintViolationListInterface"));
+    REG_METHOD(
+        "Symfony.Component.Validator.Validator.ValidatorInterface", "validate",
+        cbm_type_named(arena, "Symfony.Component.Validator.ConstraintViolationListInterface"));
     REG_METHOD("Symfony.Component.Validator.ConstraintViolationListInterface", "count",
                cbm_type_builtin(arena, "int"));
 
     /* ── Laravel HTTP Request / Response ──────────────────── */
     static const char *laravel_request_parents[] = {"Symfony.Component.HttpFoundation.Request",
-                                                     NULL};
+                                                    NULL};
     REG_TYPE("Illuminate.Http.Request", "Request", false, laravel_request_parents);
     REG_TYPE("Illuminate.Http.Response", "Response", false, laravel_request_parents);
     REG_TYPE("Illuminate.Http.JsonResponse", "JsonResponse", false, laravel_request_parents);
@@ -617,8 +612,7 @@ void cbm_php_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
 
     /* ── Laravel Auth ─────────────────────────────────────── */
     static const char *auth_parents[] = {NULL};
-    REG_TYPE("Illuminate.Contracts.Auth.Authenticatable", "Authenticatable", true,
-             auth_parents);
+    REG_TYPE("Illuminate.Contracts.Auth.Authenticatable", "Authenticatable", true, auth_parents);
     REG_TYPE("Illuminate.Contracts.Auth.Guard", "Guard", true, auth_parents);
     REG_METHOD("Illuminate.Contracts.Auth.Authenticatable", "getAuthIdentifier", MIXED);
     REG_METHOD("Illuminate.Contracts.Auth.Authenticatable", "getAuthPassword",
@@ -638,8 +632,7 @@ void cbm_php_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
 
     REG_TYPE("Illuminate.View.View", "View", false, session_parents);
     REG_METHOD("Illuminate.View.View", "render", cbm_type_builtin(arena, "string"));
-    REG_METHOD("Illuminate.View.View", "with",
-               cbm_type_named(arena, "Illuminate.View.View"));
+    REG_METHOD("Illuminate.View.View", "with", cbm_type_named(arena, "Illuminate.View.View"));
 
     /* ── ReactPHP / Promise ───────────────────────────────── */
     static const char *promise_parents[] = {NULL};
@@ -658,10 +651,8 @@ void cbm_php_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     static const char *monolog_parents[] = {"Psr.Log.LoggerInterface", NULL};
     REG_TYPE("Monolog.Logger", "Logger", false, monolog_parents);
     /* Logger inherits info/warning/error/etc. methods from PSR LoggerInterface. */
-    REG_METHOD("Monolog.Logger", "pushHandler",
-               cbm_type_named(arena, "Monolog.Logger"));
-    REG_METHOD("Monolog.Logger", "pushProcessor",
-               cbm_type_named(arena, "Monolog.Logger"));
+    REG_METHOD("Monolog.Logger", "pushHandler", cbm_type_named(arena, "Monolog.Logger"));
+    REG_METHOD("Monolog.Logger", "pushProcessor", cbm_type_named(arena, "Monolog.Logger"));
 
     /* ── Reflection API ──────────────────────────────────── */
     static const char *reflection_parents[] = {NULL};
@@ -671,8 +662,7 @@ void cbm_php_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_TYPE("ReflectionFunction", "ReflectionFunction", false, reflection_parents);
     REG_METHOD("ReflectionClass", "getName", cbm_type_builtin(arena, "string"));
     REG_METHOD("ReflectionClass", "getMethods", cbm_type_builtin(arena, "array"));
-    REG_METHOD("ReflectionClass", "getMethod",
-               cbm_type_named(arena, "ReflectionMethod"));
+    REG_METHOD("ReflectionClass", "getMethod", cbm_type_named(arena, "ReflectionMethod"));
     REG_METHOD("ReflectionClass", "newInstance", MIXED);
     REG_METHOD("ReflectionClass", "newInstanceArgs", MIXED);
     REG_METHOD("ReflectionMethod", "invoke", MIXED);

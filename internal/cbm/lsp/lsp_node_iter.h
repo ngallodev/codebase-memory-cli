@@ -21,12 +21,14 @@
 
 /* Collect `node`'s children into an arena array (source order) via one O(n)
  * cursor pass. Returns NULL and sets *out_n=0 for a childless node or on OOM. */
-static inline TSNode* cbm_lsp_collect_children(CBMArena* arena, TSNode node, uint32_t* out_n) {
+static inline TSNode *cbm_lsp_collect_children(CBMArena *arena, TSNode node, uint32_t *out_n) {
     uint32_t nc = ts_node_child_count(node);
     *out_n = 0;
-    if (nc == 0) return NULL;
-    TSNode* kids = (TSNode*)cbm_arena_alloc(arena, (size_t)nc * sizeof(TSNode));
-    if (!kids) return NULL;
+    if (nc == 0)
+        return NULL;
+    TSNode *kids = (TSNode *)cbm_arena_alloc(arena, (size_t)nc * sizeof(TSNode));
+    if (!kids)
+        return NULL;
     uint32_t kn = 0;
     TSTreeCursor cur = ts_tree_cursor_new(node);
     if (ts_tree_cursor_goto_first_child(&cur)) {

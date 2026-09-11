@@ -4,6 +4,6 @@
 #include "operations/operation.h"
 
 cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
-                                                  const cbm_operation_runtime_t *runtime);
+                                                 const cbm_operation_runtime_t *runtime);
 
 #endif

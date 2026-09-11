@@ -19,10 +19,12 @@ enum {
 };
 
 static char *dup_text(const char *text) {
-    if (!text) return NULL;
+    if (!text)
+        return NULL;
     size_t len = strlen(text);
     char *copy = malloc(len + 1U);
-    if (copy) memcpy(copy, text, len + 1U);
+    if (copy)
+        memcpy(copy, text, len + 1U);
     return copy;
 }
 
@@ -31,7 +33,8 @@ static char *string_arg(const char *args, const char *name) {
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
     char *copy = value && yyjson_is_str(value) ? dup_text(yyjson_get_str(value)) : NULL;
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return copy;
 }
 
@@ -40,12 +43,14 @@ static bool bool_arg(const char *args, const char *name) {
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
     bool result = value && yyjson_is_bool(value) && yyjson_get_bool(value);
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return result;
 }
 
 static cbm_operation_result_t json_result(yyjson_mut_doc *doc, bool error) {
-    if (!doc) return cbm_operation_result_copy("{\"error\":\"result allocation failed\"}", true);
+    if (!doc)
+        return cbm_operation_result_copy("{\"error\":\"result allocation failed\"}", true);
     char *json = yyjson_mut_write(doc, 0, NULL);
     yyjson_mut_doc_free(doc);
     return json ? cbm_operation_result_take(json, error)
@@ -56,12 +61,14 @@ static cbm_operation_result_t error_result(const char *message, const char *hint
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
     if (!doc || !root) {
-        if (doc) yyjson_mut_doc_free(doc);
+        if (doc)
+            yyjson_mut_doc_free(doc);
         return cbm_operation_result_copy(message ? message : "snippet failed", true);
     }
     yyjson_mut_doc_set_root(doc, root);
     yyjson_mut_obj_add_strcpy(doc, root, "error", message ? message : "snippet failed");
-    if (hint) yyjson_mut_obj_add_strcpy(doc, root, "hint", hint);
+    if (hint)
+        yyjson_mut_obj_add_strcpy(doc, root, "hint", hint);
     return json_result(doc, true);
 }
 
@@ -75,7 +82,8 @@ static long resolution_score(const cbm_node_t *node) {
         }
     }
     long span = (long)node->end_line - (long)node->start_line;
-    if (span < 0) span = 0;
+    if (span < 0)
+        span = 0;
     return rank * SNIPPET_RES_LABEL_WEIGHT + span;
 }
 
@@ -87,7 +95,8 @@ static bool real_callable(const cbm_node_t *node) {
 
 static int resolved_node(const cbm_node_t *nodes, int count, bool *ambiguous) {
     *ambiguous = false;
-    if (count <= 1) return 0;
+    if (count <= 1)
+        return 0;
     int best = 0;
     long score = resolution_score(&nodes[0]);
     for (int i = 1; i < count; ++i) {
@@ -100,8 +109,10 @@ static int resolved_node(const cbm_node_t *nodes, int count, bool *ambiguous) {
     int top_count = 0;
     int real_count = 0;
     for (int i = 0; i < count; ++i) {
-        if (resolution_score(&nodes[i]) == score) ++top_count;
-        if (real_callable(&nodes[i])) ++real_count;
+        if (resolution_score(&nodes[i]) == score)
+            ++top_count;
+        if (real_callable(&nodes[i]))
+            ++real_count;
     }
     *ambiguous = top_count > 1 || real_count > 1;
     return best;
@@ -109,7 +120,8 @@ static int resolved_node(const cbm_node_t *nodes, int count, bool *ambiguous) {
 
 static char *read_lines(const char *path, int start_line, int end_line) {
     FILE *file = cbm_fopen(path, "rb");
-    if (!file) return NULL;
+    if (!file)
+        return NULL;
     size_t capacity = 4096U;
     size_t length = 0U;
     char *buffer = malloc(capacity);
@@ -122,12 +134,15 @@ static char *read_lines(const char *path, int start_line, int end_line) {
     int line_number = 0;
     while (fgets(line, sizeof(line), file)) {
         ++line_number;
-        if (line_number < start_line) continue;
-        if (line_number > end_line) break;
+        if (line_number < start_line)
+            continue;
+        if (line_number > end_line)
+            break;
         size_t line_length = strlen(line);
         if (length + line_length + 1U > capacity) {
             size_t next = capacity;
-            while (length + line_length + 1U > next) next *= 2U;
+            while (length + line_length + 1U > next)
+                next *= 2U;
             char *grown = realloc(buffer, next);
             if (!grown) {
                 free(buffer);
@@ -149,12 +164,14 @@ static char *read_lines(const char *path, int start_line, int end_line) {
     return buffer;
 }
 
-static cbm_operation_result_t ambiguous_result(const char *input, const cbm_node_t *nodes, int count) {
+static cbm_operation_result_t ambiguous_result(const char *input, const cbm_node_t *nodes,
+                                               int count) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
     yyjson_mut_val *suggestions = doc ? yyjson_mut_arr(doc) : NULL;
     if (!doc || !root || !suggestions) {
-        if (doc) yyjson_mut_doc_free(doc);
+        if (doc)
+            yyjson_mut_doc_free(doc);
         return error_result("result allocation failed", NULL);
     }
     yyjson_mut_doc_set_root(doc, root);
@@ -171,8 +188,9 @@ static cbm_operation_result_t ambiguous_result(const char *input, const cbm_node
         yyjson_mut_arr_add_val(suggestions, item);
     }
     yyjson_mut_obj_add_val(doc, root, "suggestions", suggestions);
-    yyjson_mut_obj_add_str(doc, root, "hint",
-                           "Choose an exact qualified_name from suggestions, or narrow with search.");
+    yyjson_mut_obj_add_str(
+        doc, root, "hint",
+        "Choose an exact qualified_name from suggestions, or narrow with search.");
     return json_result(doc, false);
 }
 
@@ -206,7 +224,8 @@ static cbm_operation_result_t node_result(cbm_store_t *store, const char *projec
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
     if (!doc || !root) {
-        if (doc) yyjson_mut_doc_free(doc);
+        if (doc)
+            yyjson_mut_doc_free(doc);
         free(source);
         cbm_project_free_fields(&project_info);
         return error_result("result allocation failed", NULL);
@@ -221,7 +240,8 @@ static cbm_operation_result_t node_result(cbm_store_t *store, const char *projec
     yyjson_mut_obj_add_int(doc, root, "start_line", start_line);
     yyjson_mut_obj_add_int(doc, root, "end_line", end_line);
     yyjson_mut_obj_add_strcpy(doc, root, "source", source);
-    if (match) yyjson_mut_obj_add_strcpy(doc, root, "match", match);
+    if (match)
+        yyjson_mut_obj_add_strcpy(doc, root, "match", match);
 
     /* Preserve the coverage warning promised by the public snippet contract.
      * The graph may contain a callable from a file whose parse included
@@ -295,7 +315,8 @@ cbm_operation_result_t cbm_snippet_operation_execute(const char *args) {
 
     cbm_node_t exact = {0};
     if (cbm_store_find_node_by_qn(store, project, qualified_name, &exact) == CBM_STORE_OK) {
-        cbm_operation_result_t result = node_result(store, project, &exact, NULL, include_neighbors);
+        cbm_operation_result_t result =
+            node_result(store, project, &exact, NULL, include_neighbors);
         cbm_node_free_fields(&exact);
         cbm_store_close(store);
         free(project);
@@ -309,10 +330,9 @@ cbm_operation_result_t cbm_snippet_operation_execute(const char *args) {
     if (count > 0) {
         bool ambiguous = false;
         int selected = resolved_node(matches, count, &ambiguous);
-        cbm_operation_result_t result = ambiguous
-                                            ? ambiguous_result(qualified_name, matches, count)
-                                            : node_result(store, project, &matches[selected], "suffix",
-                                                          include_neighbors);
+        cbm_operation_result_t result = ambiguous ? ambiguous_result(qualified_name, matches, count)
+                                                  : node_result(store, project, &matches[selected],
+                                                                "suffix", include_neighbors);
         cbm_store_free_nodes(matches, count);
         cbm_store_close(store);
         free(project);
@@ -323,6 +343,7 @@ cbm_operation_result_t cbm_snippet_operation_execute(const char *args) {
     cbm_store_close(store);
     free(project);
     free(qualified_name);
-    return error_result("symbol not found",
-                        "Use 'codebase-memory-cli search <term>' first, then pass an exact qualified_name.");
+    return error_result(
+        "symbol not found",
+        "Use 'codebase-memory-cli search <term>' first, then pass an exact qualified_name.");
 }

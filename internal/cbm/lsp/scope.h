@@ -4,11 +4,11 @@
 #include "type_rep.h"
 #include "../arena.h"
 #include <stdatomic.h> /* relaxed cache for cbm_lsp_max_walk_depth */
-#include <stdlib.h>     /* getenv, atoi (cbm_lsp_max_walk_depth) */
+#include <stdlib.h>    /* getenv, atoi (cbm_lsp_max_walk_depth) */
 
 typedef struct {
-    const char* name;
-    const CBMType* type;
+    const char *name;
+    const CBMType *type;
     /* Exact callable value carried by this lexical binding, or NULL when the
      * binding is not proven to denote one callable.  This is deliberately
      * identity metadata rather than another CBMType kind: aliases need both
@@ -21,13 +21,13 @@ typedef struct {
 typedef struct CBMScopeChunk {
     CBMVarBinding bindings[CBM_SCOPE_CHUNK_BINDINGS];
     int used;
-    struct CBMScopeChunk* next;
+    struct CBMScopeChunk *next;
 } CBMScopeChunk;
 
 typedef struct CBMScope {
-    struct CBMScope* parent;
-    CBMScopeChunk* chunks;
-    CBMArena* arena;        // owning arena, propagated to children at push time
+    struct CBMScope *parent;
+    CBMScopeChunk *chunks;
+    CBMArena *arena; // owning arena, propagated to children at push time
 } CBMScope;
 
 // Bail-to-UNKNOWN depth for type-lookup chains: alias resolution, MRO walks,
@@ -56,7 +56,7 @@ static inline int cbm_lsp_max_walk_depth(void) {
     static _Atomic int cached = -1;
     int value = atomic_load_explicit(&cached, memory_order_relaxed);
     if (value < 0) {
-        const char* e = getenv("CBM_LSP_MAX_WALK_DEPTH");
+        const char *e = getenv("CBM_LSP_MAX_WALK_DEPTH");
         int v = (e && *e) ? atoi(e) : 0;
         value = (v > 0) ? v : CBM_LSP_MAX_WALK_DEPTH;
         atomic_store_explicit(&cached, value, memory_order_relaxed);
@@ -64,9 +64,9 @@ static inline int cbm_lsp_max_walk_depth(void) {
     return value;
 }
 
-CBMScope* cbm_scope_push(CBMArena* a, CBMScope* current);
-CBMScope* cbm_scope_pop(CBMScope* scope);
-void cbm_scope_bind(CBMScope* scope, const char* name, const CBMType* type);
+CBMScope *cbm_scope_push(CBMArena *a, CBMScope *current);
+CBMScope *cbm_scope_pop(CBMScope *scope);
+void cbm_scope_bind(CBMScope *scope, const char *name, const CBMType *type);
 /* Checked forms: false when the binding could not be recorded in THIS frame
  * (arena exhaustion). The void forms above discard that and return silently,
  * which lets a caller that then does a scope-CHAIN lookup see a PARENT binding
@@ -81,7 +81,7 @@ bool cbm_scope_bind_callable_checked(CBMScope *scope, const char *name, const CB
  * closed instead of leaking a stale alias target. */
 void cbm_scope_bind_callable(CBMScope *scope, const char *name, const CBMType *type,
                              const char *callable_qn);
-const CBMType* cbm_scope_lookup(const CBMScope* scope, const char* name);
+const CBMType *cbm_scope_lookup(const CBMScope *scope, const char *name);
 /* True when any lexical frame contains name, even when its type is UNKNOWN. */
 bool cbm_scope_contains(const CBMScope *scope, const char *name);
 /* Return the exact callable QN from the nearest binding.  A nearer ordinary

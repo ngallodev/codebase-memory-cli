@@ -2,6 +2,16 @@
 <flow-definition plugin="workflow-job">
   <description>Full codebase-memory-cli main build and test gate.</description>
   <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>CBM_RELEASE_VERSION</name>
+          <defaultValue></defaultValue>
+          <description>Optional v-prefixed release version passed to scripts/build.sh.</description>
+          <trim>true</trim>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
     <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty>
       <abortPrevious>false</abortPrevious>
     </org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty>

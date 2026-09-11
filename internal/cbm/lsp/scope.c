@@ -1,8 +1,8 @@
 #include "scope.h"
 #include <string.h>
 
-CBMScope* cbm_scope_push(CBMArena* a, CBMScope* current) {
-    CBMScope* scope = (CBMScope*)cbm_arena_alloc(a, sizeof(CBMScope));
+CBMScope *cbm_scope_push(CBMArena *a, CBMScope *current) {
+    CBMScope *scope = (CBMScope *)cbm_arena_alloc(a, sizeof(CBMScope));
     if (!scope) {
         return current;
     }
@@ -12,18 +12,18 @@ CBMScope* cbm_scope_push(CBMArena* a, CBMScope* current) {
     return scope;
 }
 
-CBMScope* cbm_scope_pop(CBMScope* scope) {
+CBMScope *cbm_scope_pop(CBMScope *scope) {
     if (!scope) {
         return NULL;
     }
     return scope->parent;
 }
 
-static CBMScopeChunk* alloc_chunk(CBMScope* scope) {
+static CBMScopeChunk *alloc_chunk(CBMScope *scope) {
     if (!scope->arena) {
         return NULL;
     }
-    CBMScopeChunk* c = (CBMScopeChunk*)cbm_arena_alloc(scope->arena, sizeof(CBMScopeChunk));
+    CBMScopeChunk *c = (CBMScopeChunk *)cbm_arena_alloc(scope->arena, sizeof(CBMScopeChunk));
     if (!c) {
         return NULL;
     }
@@ -47,7 +47,7 @@ static bool cbm_scope_bind_value(CBMScope *scope, const char *name, const CBMTyp
     if (!scope || !name) {
         return false;
     }
-    for (CBMScopeChunk* c = scope->chunks; c != NULL; c = c->next) {
+    for (CBMScopeChunk *c = scope->chunks; c != NULL; c = c->next) {
         for (int i = 0; i < c->used; i++) {
             if (c->bindings[i].name && strcmp(c->bindings[i].name, name) == 0) {
                 c->bindings[i].type = type;
@@ -56,7 +56,7 @@ static bool cbm_scope_bind_value(CBMScope *scope, const char *name, const CBMTyp
             }
         }
     }
-    CBMScopeChunk* head = scope->chunks;
+    CBMScopeChunk *head = scope->chunks;
     if (!head || head->used >= CBM_SCOPE_CHUNK_BINDINGS) {
         head = alloc_chunk(scope);
         if (!head) {
@@ -88,12 +88,12 @@ bool cbm_scope_bind_callable_checked(CBMScope *scope, const char *name, const CB
     return cbm_scope_bind_value(scope, name, type, callable_qn);
 }
 
-const CBMType* cbm_scope_lookup(const CBMScope* scope, const char* name) {
+const CBMType *cbm_scope_lookup(const CBMScope *scope, const char *name) {
     if (!name) {
         return cbm_type_unknown();
     }
-    for (const CBMScope* s = scope; s != NULL; s = s->parent) {
-        for (CBMScopeChunk* c = s->chunks; c != NULL; c = c->next) {
+    for (const CBMScope *s = scope; s != NULL; s = s->parent) {
+        for (CBMScopeChunk *c = s->chunks; c != NULL; c = c->next) {
             for (int i = 0; i < c->used; i++) {
                 if (c->bindings[i].name && strcmp(c->bindings[i].name, name) == 0) {
                     return c->bindings[i].type;

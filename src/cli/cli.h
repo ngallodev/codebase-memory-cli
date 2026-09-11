@@ -181,7 +181,8 @@ cbm_detected_agents_t cbm_detect_agents(const char *home_dir);
 
 /* Install or refresh every detected agent integration below home. */
 int cbm_install_agent_configs(const char *home, const char *binary_path, bool force, bool dry_run);
-int cbm_install_agent_hooks_for_testing(const char *home, const char *binary_path, bool force, bool dry_run);
+int cbm_install_agent_hooks_for_testing(const char *home, const char *binary_path, bool force,
+                                        bool dry_run);
 
 #ifdef CBM_CLI_ENABLE_TEST_API
 /* #1558: client-selector vocabulary, exposed so a test can prove every token

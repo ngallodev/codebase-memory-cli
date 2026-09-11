@@ -32,27 +32,25 @@
 #include "../java_lsp.h"
 #include <string.h>
 
-#define REG_TYPE(qn_, short_, is_iface_, parents_)            \
-    do {                                                      \
-        memset(&rt, 0, sizeof(rt));                           \
-        rt.qualified_name = (qn_);                            \
-        rt.short_name = (short_);                             \
-        rt.is_interface = (is_iface_);                        \
-        rt.embedded_types = (parents_);                       \
-        cbm_registry_add_type(reg, rt);                       \
+#define REG_TYPE(qn_, short_, is_iface_, parents_) \
+    do {                                           \
+        memset(&rt, 0, sizeof(rt));                \
+        rt.qualified_name = (qn_);                 \
+        rt.short_name = (short_);                  \
+        rt.is_interface = (is_iface_);             \
+        rt.embedded_types = (parents_);            \
+        cbm_registry_add_type(reg, rt);            \
     } while (0)
 
 #define REG_METHOD(class_qn_, method_name_, ret_type_)                                          \
     do {                                                                                        \
         memset(&rf, 0, sizeof(rf));                                                             \
         rf.min_params = -1;                                                                     \
-        rf.qualified_name =                                                                     \
-            cbm_arena_sprintf(arena, "%s.%s", (class_qn_), (method_name_));                     \
+        rf.qualified_name = cbm_arena_sprintf(arena, "%s.%s", (class_qn_), (method_name_));     \
         rf.short_name = (method_name_);                                                         \
         rf.receiver_type = (class_qn_);                                                         \
         {                                                                                       \
-            const CBMType **rets =                                                              \
-                (const CBMType **)cbm_arena_alloc(arena, 2 * sizeof(*rets));                    \
+            const CBMType **rets = (const CBMType **)cbm_arena_alloc(arena, 2 * sizeof(*rets)); \
             rets[0] = (ret_type_);                                                              \
             rets[1] = NULL;                                                                     \
             rf.signature = cbm_type_func(arena, NULL, NULL, rets);                              \
@@ -60,31 +58,28 @@
         cbm_registry_add_func(reg, rf);                                                         \
     } while (0)
 
-#define REG_CTOR(class_qn_, short_name_)                                              \
-    do {                                                                              \
-        memset(&rf, 0, sizeof(rf));                                                   \
-        rf.min_params = -1;                                                           \
-        rf.qualified_name =                                                           \
-            cbm_arena_sprintf(arena, "%s.%s", (class_qn_), (short_name_));            \
-        rf.short_name = (short_name_);                                                \
-        rf.receiver_type = (class_qn_);                                               \
-        {                                                                             \
-            const CBMType **rets =                                                    \
-                (const CBMType **)cbm_arena_alloc(arena, 2 * sizeof(*rets));          \
-            rets[0] = cbm_type_named(arena, (class_qn_));                             \
-            rets[1] = NULL;                                                           \
-            rf.signature = cbm_type_func(arena, NULL, NULL, rets);                    \
-        }                                                                             \
-        cbm_registry_add_func(reg, rf);                                               \
+#define REG_CTOR(class_qn_, short_name_)                                                        \
+    do {                                                                                        \
+        memset(&rf, 0, sizeof(rf));                                                             \
+        rf.min_params = -1;                                                                     \
+        rf.qualified_name = cbm_arena_sprintf(arena, "%s.%s", (class_qn_), (short_name_));      \
+        rf.short_name = (short_name_);                                                          \
+        rf.receiver_type = (class_qn_);                                                         \
+        {                                                                                       \
+            const CBMType **rets = (const CBMType **)cbm_arena_alloc(arena, 2 * sizeof(*rets)); \
+            rets[0] = cbm_type_named(arena, (class_qn_));                                       \
+            rets[1] = NULL;                                                                     \
+            rf.signature = cbm_type_func(arena, NULL, NULL, rets);                              \
+        }                                                                                       \
+        cbm_registry_add_func(reg, rf);                                                         \
     } while (0)
 
-#define REG_FIELD(class_qn_, name_, type_)                                            \
-    do {                                                                              \
-        const CBMRegisteredType *_existing =                                          \
-            cbm_registry_lookup_type(reg, (class_qn_));                               \
-        (void)_existing;                                                              \
-        /* Field append handled by REG_TYPE_FIELDS below. */                          \
-        /* Placeholder for future per-field appends. */                               \
+#define REG_FIELD(class_qn_, name_, type_)                                               \
+    do {                                                                                 \
+        const CBMRegisteredType *_existing = cbm_registry_lookup_type(reg, (class_qn_)); \
+        (void)_existing;                                                                 \
+        /* Field append handled by REG_TYPE_FIELDS below. */                             \
+        /* Placeholder for future per-field appends. */                                  \
     } while (0)
 
 void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
@@ -212,8 +207,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_TYPE("java.lang.UnsupportedOperationException", "UnsupportedOperationException", false,
              parents_runtime_exc_chain);
     REG_TYPE("java.lang.InterruptedException", "InterruptedException", false, parents_exception);
-    REG_TYPE("java.lang.SecurityException", "SecurityException", false,
-             parents_runtime_exc_chain);
+    REG_TYPE("java.lang.SecurityException", "SecurityException", false, parents_runtime_exc_chain);
     REG_TYPE("java.lang.NoSuchMethodException", "NoSuchMethodException", false, parents_exception);
     REG_TYPE("java.lang.NoSuchFieldException", "NoSuchFieldException", false, parents_exception);
 
@@ -263,8 +257,10 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.lang.String", "replaceFirst", cbm_type_named(arena, "java.lang.String"));
     REG_METHOD("java.lang.String", "split",
                cbm_type_slice(arena, cbm_type_named(arena, "java.lang.String")));
-    REG_METHOD("java.lang.String", "toCharArray", cbm_type_slice(arena, cbm_type_builtin(arena, "char")));
-    REG_METHOD("java.lang.String", "getBytes", cbm_type_slice(arena, cbm_type_builtin(arena, "byte")));
+    REG_METHOD("java.lang.String", "toCharArray",
+               cbm_type_slice(arena, cbm_type_builtin(arena, "char")));
+    REG_METHOD("java.lang.String", "getBytes",
+               cbm_type_slice(arena, cbm_type_builtin(arena, "byte")));
     REG_METHOD("java.lang.String", "intern", cbm_type_named(arena, "java.lang.String"));
     REG_METHOD("java.lang.String", "format", cbm_type_named(arena, "java.lang.String"));
     REG_METHOD("java.lang.String", "valueOf", cbm_type_named(arena, "java.lang.String"));
@@ -276,7 +272,8 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
                cbm_type_named(arena, "java.util.stream.IntStream"));
     REG_METHOD("java.lang.String", "hashCode", cbm_type_builtin(arena, "int"));
     REG_METHOD("java.lang.String", "toString", cbm_type_named(arena, "java.lang.String"));
-    REG_METHOD("java.lang.String", "toCharArray", cbm_type_slice(arena, cbm_type_builtin(arena, "char")));
+    REG_METHOD("java.lang.String", "toCharArray",
+               cbm_type_slice(arena, cbm_type_builtin(arena, "char")));
     REG_CTOR("java.lang.String", "String");
 
     /* ── StringBuilder / StringBuffer ─────────────────────────── */
@@ -292,20 +289,16 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
                cbm_type_named(arena, "java.lang.StringBuilder"));
     REG_METHOD("java.lang.StringBuilder", "reverse",
                cbm_type_named(arena, "java.lang.StringBuilder"));
-    REG_METHOD("java.lang.StringBuilder", "toString",
-               cbm_type_named(arena, "java.lang.String"));
+    REG_METHOD("java.lang.StringBuilder", "toString", cbm_type_named(arena, "java.lang.String"));
     REG_METHOD("java.lang.StringBuilder", "length", cbm_type_builtin(arena, "int"));
     REG_METHOD("java.lang.StringBuilder", "charAt", cbm_type_builtin(arena, "char"));
     REG_METHOD("java.lang.StringBuilder", "setLength", cbm_type_builtin(arena, "void"));
     REG_METHOD("java.lang.StringBuilder", "indexOf", cbm_type_builtin(arena, "int"));
-    REG_METHOD("java.lang.StringBuilder", "substring",
-               cbm_type_named(arena, "java.lang.String"));
+    REG_METHOD("java.lang.StringBuilder", "substring", cbm_type_named(arena, "java.lang.String"));
     REG_CTOR("java.lang.StringBuilder", "StringBuilder");
 
-    REG_METHOD("java.lang.StringBuffer", "append",
-               cbm_type_named(arena, "java.lang.StringBuffer"));
-    REG_METHOD("java.lang.StringBuffer", "toString",
-               cbm_type_named(arena, "java.lang.String"));
+    REG_METHOD("java.lang.StringBuffer", "append", cbm_type_named(arena, "java.lang.StringBuffer"));
+    REG_METHOD("java.lang.StringBuffer", "toString", cbm_type_named(arena, "java.lang.String"));
     REG_METHOD("java.lang.StringBuffer", "length", cbm_type_builtin(arena, "int"));
     REG_CTOR("java.lang.StringBuffer", "StringBuffer");
 
@@ -314,8 +307,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.lang.CharSequence", "charAt", cbm_type_builtin(arena, "char"));
     REG_METHOD("java.lang.CharSequence", "subSequence",
                cbm_type_named(arena, "java.lang.CharSequence"));
-    REG_METHOD("java.lang.CharSequence", "toString",
-               cbm_type_named(arena, "java.lang.String"));
+    REG_METHOD("java.lang.CharSequence", "toString", cbm_type_named(arena, "java.lang.String"));
 
     /* ── Number + boxed types ─────────────────────────────────── */
     REG_METHOD("java.lang.Number", "intValue", cbm_type_builtin(arena, "int"));
@@ -463,8 +455,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.lang.Throwable", "getLocalizedMessage",
                cbm_type_named(arena, "java.lang.String"));
     REG_METHOD("java.lang.Throwable", "getCause", cbm_type_named(arena, "java.lang.Throwable"));
-    REG_METHOD("java.lang.Throwable", "initCause",
-               cbm_type_named(arena, "java.lang.Throwable"));
+    REG_METHOD("java.lang.Throwable", "initCause", cbm_type_named(arena, "java.lang.Throwable"));
     REG_METHOD("java.lang.Throwable", "printStackTrace", cbm_type_builtin(arena, "void"));
     REG_METHOD("java.lang.Throwable", "toString", cbm_type_named(arena, "java.lang.String"));
     REG_METHOD("java.lang.Throwable", "getStackTrace",
@@ -511,8 +502,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_TYPE("java.util.OptionalDouble", "OptionalDouble", false, parents_object);
     REG_TYPE("java.util.Date", "Date", false, parents_object);
     REG_TYPE("java.util.Calendar", "Calendar", false, parents_object);
-    REG_TYPE("java.util.GregorianCalendar", "GregorianCalendar", false,
-             parents_gregorian_calendar);
+    REG_TYPE("java.util.GregorianCalendar", "GregorianCalendar", false, parents_gregorian_calendar);
     REG_TYPE("java.util.TimeZone", "TimeZone", false, parents_object);
     REG_TYPE("java.util.Locale", "Locale", false, parents_object);
     REG_TYPE("java.util.UUID", "UUID", false, parents_object);
@@ -539,8 +529,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.util.Collection", "removeAll", cbm_type_builtin(arena, "boolean"));
     REG_METHOD("java.util.Collection", "retainAll", cbm_type_builtin(arena, "boolean"));
     REG_METHOD("java.util.Collection", "clear", cbm_type_builtin(arena, "void"));
-    REG_METHOD("java.util.Collection", "stream",
-               cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.util.Collection", "stream", cbm_type_named(arena, "java.util.stream.Stream"));
     REG_METHOD("java.util.Collection", "parallelStream",
                cbm_type_named(arena, "java.util.stream.Stream"));
     REG_METHOD("java.util.Collection", "forEach", cbm_type_builtin(arena, "void"));
@@ -560,8 +549,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.util.List", "isEmpty", cbm_type_builtin(arena, "boolean"));
     REG_METHOD("java.util.List", "contains", cbm_type_builtin(arena, "boolean"));
     REG_METHOD("java.util.List", "iterator", cbm_type_named(arena, "java.util.Iterator"));
-    REG_METHOD("java.util.List", "stream",
-               cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.util.List", "stream", cbm_type_named(arena, "java.util.stream.Stream"));
     REG_METHOD("java.util.List", "forEach", cbm_type_builtin(arena, "void"));
 
     /* ── ArrayList ────────────────────────────────────────────── */
@@ -574,8 +562,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.util.ArrayList", "indexOf", cbm_type_builtin(arena, "int"));
     REG_METHOD("java.util.ArrayList", "iterator", cbm_type_named(arena, "java.util.Iterator"));
     REG_METHOD("java.util.ArrayList", "clear", cbm_type_builtin(arena, "void"));
-    REG_METHOD("java.util.ArrayList", "stream",
-               cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.util.ArrayList", "stream", cbm_type_named(arena, "java.util.stream.Stream"));
     REG_METHOD("java.util.ArrayList", "toArray",
                cbm_type_slice(arena, cbm_type_named(arena, "java.lang.Object")));
     REG_METHOD("java.util.ArrayList", "subList", cbm_type_named(arena, "java.util.List"));
@@ -608,8 +595,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.util.Set", "iterator", cbm_type_named(arena, "java.util.Iterator"));
     REG_METHOD("java.util.Set", "of", cbm_type_named(arena, "java.util.Set"));
     REG_METHOD("java.util.Set", "copyOf", cbm_type_named(arena, "java.util.Set"));
-    REG_METHOD("java.util.Set", "stream",
-               cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.util.Set", "stream", cbm_type_named(arena, "java.util.stream.Stream"));
     REG_METHOD("java.util.Set", "forEach", cbm_type_builtin(arena, "void"));
 
     REG_METHOD("java.util.HashSet", "add", cbm_type_builtin(arena, "boolean"));
@@ -619,8 +605,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.util.HashSet", "isEmpty", cbm_type_builtin(arena, "boolean"));
     REG_METHOD("java.util.HashSet", "iterator", cbm_type_named(arena, "java.util.Iterator"));
     REG_METHOD("java.util.HashSet", "clear", cbm_type_builtin(arena, "void"));
-    REG_METHOD("java.util.HashSet", "stream",
-               cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.util.HashSet", "stream", cbm_type_named(arena, "java.util.stream.Stream"));
     REG_CTOR("java.util.HashSet", "HashSet");
 
     REG_METHOD("java.util.TreeSet", "first", cbm_type_named(arena, "java.lang.Object"));
@@ -704,13 +689,11 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.util.Optional", "of", cbm_type_named(arena, "java.util.Optional"));
     REG_METHOD("java.util.Optional", "ofNullable", cbm_type_named(arena, "java.util.Optional"));
     REG_METHOD("java.util.Optional", "empty", cbm_type_named(arena, "java.util.Optional"));
-    REG_METHOD("java.util.Optional", "stream",
-               cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.util.Optional", "stream", cbm_type_named(arena, "java.util.stream.Stream"));
 
     /* ── Arrays / Collections / Objects helpers ───────────────── */
     REG_METHOD("java.util.Arrays", "asList", cbm_type_named(arena, "java.util.List"));
-    REG_METHOD("java.util.Arrays", "stream",
-               cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.util.Arrays", "stream", cbm_type_named(arena, "java.util.stream.Stream"));
     REG_METHOD("java.util.Arrays", "sort", cbm_type_builtin(arena, "void"));
     REG_METHOD("java.util.Arrays", "binarySearch", cbm_type_builtin(arena, "int"));
     REG_METHOD("java.util.Arrays", "fill", cbm_type_builtin(arena, "void"));
@@ -733,16 +716,12 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.util.Collections", "emptyList", cbm_type_named(arena, "java.util.List"));
     REG_METHOD("java.util.Collections", "emptySet", cbm_type_named(arena, "java.util.Set"));
     REG_METHOD("java.util.Collections", "emptyMap", cbm_type_named(arena, "java.util.Map"));
-    REG_METHOD("java.util.Collections", "singletonList",
-               cbm_type_named(arena, "java.util.List"));
-    REG_METHOD("java.util.Collections", "singleton",
-               cbm_type_named(arena, "java.util.Set"));
+    REG_METHOD("java.util.Collections", "singletonList", cbm_type_named(arena, "java.util.List"));
+    REG_METHOD("java.util.Collections", "singleton", cbm_type_named(arena, "java.util.Set"));
     REG_METHOD("java.util.Collections", "unmodifiableList",
                cbm_type_named(arena, "java.util.List"));
-    REG_METHOD("java.util.Collections", "unmodifiableSet",
-               cbm_type_named(arena, "java.util.Set"));
-    REG_METHOD("java.util.Collections", "unmodifiableMap",
-               cbm_type_named(arena, "java.util.Map"));
+    REG_METHOD("java.util.Collections", "unmodifiableSet", cbm_type_named(arena, "java.util.Set"));
+    REG_METHOD("java.util.Collections", "unmodifiableMap", cbm_type_named(arena, "java.util.Map"));
     REG_METHOD("java.util.Collections", "frequency", cbm_type_builtin(arena, "int"));
     REG_METHOD("java.util.Collections", "binarySearch", cbm_type_builtin(arena, "int"));
 
@@ -849,8 +828,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_TYPE("java.io.UncheckedIOException", "UncheckedIOException", false,
              parents_runtime_exc_chain);
     REG_TYPE("java.io.Serializable", "Serializable", true, no_parents);
-    REG_TYPE("java.io.Closeable", "Closeable", true,
-             parents_closeable);
+    REG_TYPE("java.io.Closeable", "Closeable", true, parents_closeable);
     REG_TYPE("java.io.Flushable", "Flushable", true, no_parents);
 
     REG_METHOD("java.io.PrintStream", "println", cbm_type_builtin(arena, "void"));
@@ -888,8 +866,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.io.Writer", "close", cbm_type_builtin(arena, "void"));
 
     REG_METHOD("java.io.BufferedReader", "readLine", cbm_type_named(arena, "java.lang.String"));
-    REG_METHOD("java.io.BufferedReader", "lines",
-               cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.io.BufferedReader", "lines", cbm_type_named(arena, "java.util.stream.Stream"));
     REG_METHOD("java.io.BufferedReader", "close", cbm_type_builtin(arena, "void"));
     REG_CTOR("java.io.BufferedReader", "BufferedReader");
 
@@ -933,12 +910,10 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.nio.file.Path", "getParent", cbm_type_named(arena, "java.nio.file.Path"));
     REG_METHOD("java.nio.file.Path", "getRoot", cbm_type_named(arena, "java.nio.file.Path"));
     REG_METHOD("java.nio.file.Path", "resolve", cbm_type_named(arena, "java.nio.file.Path"));
-    REG_METHOD("java.nio.file.Path", "resolveSibling",
-               cbm_type_named(arena, "java.nio.file.Path"));
+    REG_METHOD("java.nio.file.Path", "resolveSibling", cbm_type_named(arena, "java.nio.file.Path"));
     REG_METHOD("java.nio.file.Path", "relativize", cbm_type_named(arena, "java.nio.file.Path"));
     REG_METHOD("java.nio.file.Path", "normalize", cbm_type_named(arena, "java.nio.file.Path"));
-    REG_METHOD("java.nio.file.Path", "toAbsolutePath",
-               cbm_type_named(arena, "java.nio.file.Path"));
+    REG_METHOD("java.nio.file.Path", "toAbsolutePath", cbm_type_named(arena, "java.nio.file.Path"));
     REG_METHOD("java.nio.file.Path", "toString", cbm_type_named(arena, "java.lang.String"));
     REG_METHOD("java.nio.file.Path", "toFile", cbm_type_named(arena, "java.io.File"));
     REG_METHOD("java.nio.file.Path", "of", cbm_type_named(arena, "java.nio.file.Path"));
@@ -953,18 +928,14 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.nio.file.Files", "readAllLines", cbm_type_named(arena, "java.util.List"));
     REG_METHOD("java.nio.file.Files", "readAllBytes",
                cbm_type_slice(arena, cbm_type_builtin(arena, "byte")));
-    REG_METHOD("java.nio.file.Files", "lines",
-               cbm_type_named(arena, "java.util.stream.Stream"));
-    REG_METHOD("java.nio.file.Files", "list",
-               cbm_type_named(arena, "java.util.stream.Stream"));
-    REG_METHOD("java.nio.file.Files", "walk",
-               cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.nio.file.Files", "lines", cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.nio.file.Files", "list", cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.nio.file.Files", "walk", cbm_type_named(arena, "java.util.stream.Stream"));
     REG_METHOD("java.nio.file.Files", "createDirectory",
                cbm_type_named(arena, "java.nio.file.Path"));
     REG_METHOD("java.nio.file.Files", "createDirectories",
                cbm_type_named(arena, "java.nio.file.Path"));
-    REG_METHOD("java.nio.file.Files", "createFile",
-               cbm_type_named(arena, "java.nio.file.Path"));
+    REG_METHOD("java.nio.file.Files", "createFile", cbm_type_named(arena, "java.nio.file.Path"));
     REG_METHOD("java.nio.file.Files", "delete", cbm_type_builtin(arena, "void"));
     REG_METHOD("java.nio.file.Files", "deleteIfExists", cbm_type_builtin(arena, "boolean"));
     REG_METHOD("java.nio.file.Files", "copy", cbm_type_named(arena, "java.nio.file.Path"));
@@ -979,10 +950,8 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_TYPE("java.util.function.Consumer", "Consumer", true, no_parents);
     REG_TYPE("java.util.function.BiConsumer", "BiConsumer", true, no_parents);
     REG_TYPE("java.util.function.Supplier", "Supplier", true, no_parents);
-    REG_TYPE("java.util.function.UnaryOperator", "UnaryOperator", true,
-             parents_unary_operator);
-    REG_TYPE("java.util.function.BinaryOperator", "BinaryOperator", true,
-             parents_binary_operator);
+    REG_TYPE("java.util.function.UnaryOperator", "UnaryOperator", true, parents_unary_operator);
+    REG_TYPE("java.util.function.BinaryOperator", "BinaryOperator", true, parents_binary_operator);
     REG_TYPE("java.util.function.IntFunction", "IntFunction", true, no_parents);
     REG_TYPE("java.util.function.LongFunction", "LongFunction", true, no_parents);
     REG_TYPE("java.util.function.DoubleFunction", "DoubleFunction", true, no_parents);
@@ -1008,8 +977,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.util.function.Function", "identity",
                cbm_type_named(arena, "java.util.function.Function"));
 
-    REG_METHOD("java.util.function.BiFunction", "apply",
-               cbm_type_named(arena, "java.lang.Object"));
+    REG_METHOD("java.util.function.BiFunction", "apply", cbm_type_named(arena, "java.lang.Object"));
     REG_METHOD("java.util.function.BiFunction", "andThen",
                cbm_type_named(arena, "java.util.function.BiFunction"));
 
@@ -1044,8 +1012,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
 
     REG_METHOD("java.util.stream.Stream", "filter",
                cbm_type_named(arena, "java.util.stream.Stream"));
-    REG_METHOD("java.util.stream.Stream", "map",
-               cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.util.stream.Stream", "map", cbm_type_named(arena, "java.util.stream.Stream"));
     REG_METHOD("java.util.stream.Stream", "flatMap",
                cbm_type_named(arena, "java.util.stream.Stream"));
     REG_METHOD("java.util.stream.Stream", "mapToInt",
@@ -1060,10 +1027,8 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
                cbm_type_named(arena, "java.util.stream.Stream"));
     REG_METHOD("java.util.stream.Stream", "limit",
                cbm_type_named(arena, "java.util.stream.Stream"));
-    REG_METHOD("java.util.stream.Stream", "skip",
-               cbm_type_named(arena, "java.util.stream.Stream"));
-    REG_METHOD("java.util.stream.Stream", "peek",
-               cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.util.stream.Stream", "skip", cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.util.stream.Stream", "peek", cbm_type_named(arena, "java.util.stream.Stream"));
     REG_METHOD("java.util.stream.Stream", "forEach", cbm_type_builtin(arena, "void"));
     REG_METHOD("java.util.stream.Stream", "forEachOrdered", cbm_type_builtin(arena, "void"));
     REG_METHOD("java.util.stream.Stream", "toArray",
@@ -1075,14 +1040,11 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.util.stream.Stream", "anyMatch", cbm_type_builtin(arena, "boolean"));
     REG_METHOD("java.util.stream.Stream", "allMatch", cbm_type_builtin(arena, "boolean"));
     REG_METHOD("java.util.stream.Stream", "noneMatch", cbm_type_builtin(arena, "boolean"));
-    REG_METHOD("java.util.stream.Stream", "findFirst",
-               cbm_type_named(arena, "java.util.Optional"));
-    REG_METHOD("java.util.stream.Stream", "findAny",
-               cbm_type_named(arena, "java.util.Optional"));
+    REG_METHOD("java.util.stream.Stream", "findFirst", cbm_type_named(arena, "java.util.Optional"));
+    REG_METHOD("java.util.stream.Stream", "findAny", cbm_type_named(arena, "java.util.Optional"));
     REG_METHOD("java.util.stream.Stream", "min", cbm_type_named(arena, "java.util.Optional"));
     REG_METHOD("java.util.stream.Stream", "max", cbm_type_named(arena, "java.util.Optional"));
-    REG_METHOD("java.util.stream.Stream", "of",
-               cbm_type_named(arena, "java.util.stream.Stream"));
+    REG_METHOD("java.util.stream.Stream", "of", cbm_type_named(arena, "java.util.stream.Stream"));
     REG_METHOD("java.util.stream.Stream", "empty",
                cbm_type_named(arena, "java.util.stream.Stream"));
     REG_METHOD("java.util.stream.Stream", "concat",
@@ -1095,10 +1057,8 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.util.stream.IntStream", "sum", cbm_type_builtin(arena, "int"));
     REG_METHOD("java.util.stream.IntStream", "average",
                cbm_type_named(arena, "java.util.OptionalDouble"));
-    REG_METHOD("java.util.stream.IntStream", "max",
-               cbm_type_named(arena, "java.util.OptionalInt"));
-    REG_METHOD("java.util.stream.IntStream", "min",
-               cbm_type_named(arena, "java.util.OptionalInt"));
+    REG_METHOD("java.util.stream.IntStream", "max", cbm_type_named(arena, "java.util.OptionalInt"));
+    REG_METHOD("java.util.stream.IntStream", "min", cbm_type_named(arena, "java.util.OptionalInt"));
     REG_METHOD("java.util.stream.IntStream", "count", cbm_type_builtin(arena, "long"));
     REG_METHOD("java.util.stream.IntStream", "boxed",
                cbm_type_named(arena, "java.util.stream.Stream"));
@@ -1219,8 +1179,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
                cbm_type_builtin(arena, "int"));
     REG_CTOR("java.util.concurrent.atomic.AtomicInteger", "AtomicInteger");
 
-    REG_METHOD("java.util.concurrent.atomic.AtomicLong", "get",
-               cbm_type_builtin(arena, "long"));
+    REG_METHOD("java.util.concurrent.atomic.AtomicLong", "get", cbm_type_builtin(arena, "long"));
     REG_METHOD("java.util.concurrent.atomic.AtomicLong", "incrementAndGet",
                cbm_type_builtin(arena, "long"));
     REG_CTOR("java.util.concurrent.atomic.AtomicLong", "AtomicLong");
@@ -1233,8 +1192,7 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
                cbm_type_builtin(arena, "boolean"));
     REG_CTOR("java.util.concurrent.atomic.AtomicReference", "AtomicReference");
 
-    REG_METHOD("java.util.concurrent.locks.ReentrantLock", "lock",
-               cbm_type_builtin(arena, "void"));
+    REG_METHOD("java.util.concurrent.locks.ReentrantLock", "lock", cbm_type_builtin(arena, "void"));
     REG_METHOD("java.util.concurrent.locks.ReentrantLock", "unlock",
                cbm_type_builtin(arena, "void"));
     REG_METHOD("java.util.concurrent.locks.ReentrantLock", "tryLock",
@@ -1269,17 +1227,14 @@ void cbm_java_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     REG_METHOD("java.time.LocalDate", "getYear", cbm_type_builtin(arena, "int"));
     REG_METHOD("java.time.LocalDate", "getMonth", cbm_type_named(arena, "java.time.Month"));
     REG_METHOD("java.time.LocalDate", "getDayOfMonth", cbm_type_builtin(arena, "int"));
-    REG_METHOD("java.time.LocalDate", "getDayOfWeek",
-               cbm_type_named(arena, "java.time.DayOfWeek"));
+    REG_METHOD("java.time.LocalDate", "getDayOfWeek", cbm_type_named(arena, "java.time.DayOfWeek"));
     REG_METHOD("java.time.LocalDate", "isAfter", cbm_type_builtin(arena, "boolean"));
     REG_METHOD("java.time.LocalDate", "isBefore", cbm_type_builtin(arena, "boolean"));
     REG_METHOD("java.time.LocalDate", "format", cbm_type_named(arena, "java.lang.String"));
     REG_METHOD("java.time.LocalDate", "toString", cbm_type_named(arena, "java.lang.String"));
 
-    REG_METHOD("java.time.LocalDateTime", "now",
-               cbm_type_named(arena, "java.time.LocalDateTime"));
-    REG_METHOD("java.time.LocalDateTime", "of",
-               cbm_type_named(arena, "java.time.LocalDateTime"));
+    REG_METHOD("java.time.LocalDateTime", "now", cbm_type_named(arena, "java.time.LocalDateTime"));
+    REG_METHOD("java.time.LocalDateTime", "of", cbm_type_named(arena, "java.time.LocalDateTime"));
     REG_METHOD("java.time.LocalDateTime", "parse",
                cbm_type_named(arena, "java.time.LocalDateTime"));
     REG_METHOD("java.time.LocalDateTime", "plusHours",

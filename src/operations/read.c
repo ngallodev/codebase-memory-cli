@@ -124,7 +124,8 @@ static int string_ptr_cmp(const void *left, const void *right) {
 static bool primary_project_name(cbm_store_t *store, char *out, size_t out_size) {
     cbm_project_t *projects = NULL;
     int count = 0;
-    if (!store || !out || out_size == 0 || cbm_store_list_projects(store, &projects, &count) != CBM_STORE_OK) {
+    if (!store || !out || out_size == 0 ||
+        cbm_store_list_projects(store, &projects, &count) != CBM_STORE_OK) {
         return false;
     }
     int primary = -1;
@@ -206,8 +207,9 @@ static cbm_operation_result_t execute_projects(const char *args_json) {
     errno = 0;
     cbm_dir_t *dir = cache_dir ? cbm_opendir(cache_dir) : NULL;
     if (!dir && errno != ENOENT) {
-        return json_error("cannot read cache directory",
-                          "Check directory permissions or run 'codebase-memory-cli index .' first.");
+        return json_error(
+            "cannot read cache directory",
+            "Check directory permissions or run 'codebase-memory-cli index .' first.");
     }
 
     char **names = NULL;
@@ -290,7 +292,6 @@ static cbm_operation_result_t execute_projects(const char *args_json) {
     return json_doc_result(doc, false);
 }
 
-
 static void add_status_coverage(yyjson_mut_doc *doc, yyjson_mut_val *root, cbm_store_t *store,
                                 const char *project) {
     cbm_coverage_row_t *rows = NULL;
@@ -310,7 +311,8 @@ static void add_status_coverage(yyjson_mut_doc *doc, yyjson_mut_val *root, cbm_s
         if (strcmp(kind, "parse_partial") == 0) {
             if (partial_count < OP_COVERAGE_FILE_CAP) {
                 yyjson_mut_val *entry = yyjson_mut_obj(doc);
-                yyjson_mut_obj_add_strcpy(doc, entry, "path", rows[i].rel_path ? rows[i].rel_path : "");
+                yyjson_mut_obj_add_strcpy(doc, entry, "path",
+                                          rows[i].rel_path ? rows[i].rel_path : "");
                 yyjson_mut_obj_add_strcpy(doc, entry, "error_ranges",
                                           rows[i].detail ? rows[i].detail : "");
                 yyjson_mut_arr_add_val(partial_files, entry);
@@ -318,22 +320,27 @@ static void add_status_coverage(yyjson_mut_doc *doc, yyjson_mut_val *root, cbm_s
             ++partial_count;
         } else if (strcmp(kind, "not_indexed_dir") == 0) {
             if (excluded_dir_count < OP_COVERAGE_FILE_CAP) {
-                yyjson_mut_arr_add_strcpy(doc, excluded_dirs, rows[i].rel_path ? rows[i].rel_path : "");
+                yyjson_mut_arr_add_strcpy(doc, excluded_dirs,
+                                          rows[i].rel_path ? rows[i].rel_path : "");
             }
             ++excluded_dir_count;
         } else if (strcmp(kind, "not_indexed_file") == 0) {
             if (excluded_file_count < OP_COVERAGE_FILE_CAP) {
                 yyjson_mut_val *entry = yyjson_mut_obj(doc);
-                yyjson_mut_obj_add_strcpy(doc, entry, "path", rows[i].rel_path ? rows[i].rel_path : "");
-                yyjson_mut_obj_add_strcpy(doc, entry, "reason", rows[i].detail ? rows[i].detail : "");
+                yyjson_mut_obj_add_strcpy(doc, entry, "path",
+                                          rows[i].rel_path ? rows[i].rel_path : "");
+                yyjson_mut_obj_add_strcpy(doc, entry, "reason",
+                                          rows[i].detail ? rows[i].detail : "");
                 yyjson_mut_arr_add_val(excluded_files, entry);
             }
             ++excluded_file_count;
         } else {
             if (skipped_count < OP_COVERAGE_FILE_CAP) {
                 yyjson_mut_val *entry = yyjson_mut_obj(doc);
-                yyjson_mut_obj_add_strcpy(doc, entry, "path", rows[i].rel_path ? rows[i].rel_path : "");
-                yyjson_mut_obj_add_strcpy(doc, entry, "reason", rows[i].detail ? rows[i].detail : "");
+                yyjson_mut_obj_add_strcpy(doc, entry, "path",
+                                          rows[i].rel_path ? rows[i].rel_path : "");
+                yyjson_mut_obj_add_strcpy(doc, entry, "reason",
+                                          rows[i].detail ? rows[i].detail : "");
                 yyjson_mut_obj_add_strcpy(doc, entry, "phase", kind);
                 yyjson_mut_arr_add_val(skipped_files, entry);
             }
@@ -383,7 +390,8 @@ static cbm_operation_result_t execute_status(const char *args_json) {
         yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
         yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
         if (!doc || !root) {
-            if (doc) yyjson_mut_doc_free(doc);
+            if (doc)
+                yyjson_mut_doc_free(doc);
             return json_error("result allocation failed", NULL);
         }
         yyjson_mut_doc_set_root(doc, root);
@@ -406,7 +414,8 @@ static cbm_operation_result_t execute_status(const char *args_json) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
     if (!doc || !root) {
-        if (doc) yyjson_mut_doc_free(doc);
+        if (doc)
+            yyjson_mut_doc_free(doc);
         cbm_store_close(store);
         free(project);
         return json_error("result allocation failed", NULL);
@@ -425,8 +434,10 @@ static cbm_operation_result_t execute_status(const char *args_json) {
             cbm_git_context_t git = {0};
             if (cbm_git_context_resolve(root_path, &git) && git.is_git) {
                 yyjson_mut_val *git_obj = yyjson_mut_obj(doc);
-                if (git.branch) yyjson_mut_obj_add_strcpy(doc, git_obj, "branch", git.branch);
-                if (git.head_sha) yyjson_mut_obj_add_strcpy(doc, git_obj, "head_sha", git.head_sha);
+                if (git.branch)
+                    yyjson_mut_obj_add_strcpy(doc, git_obj, "branch", git.branch);
+                if (git.head_sha)
+                    yyjson_mut_obj_add_strcpy(doc, git_obj, "head_sha", git.head_sha);
                 yyjson_mut_obj_add_val(doc, root, "git", git_obj);
             }
             cbm_git_context_free(&git);
@@ -435,8 +446,9 @@ static cbm_operation_result_t execute_status(const char *args_json) {
     }
     add_status_coverage(doc, root, store, project);
     if (nodes == 0) {
-        yyjson_mut_obj_add_str(doc, root, "hint",
-                               "Project is empty. Re-run 'codebase-memory-cli index .' to populate.");
+        yyjson_mut_obj_add_str(
+            doc, root, "hint",
+            "Project is empty. Re-run 'codebase-memory-cli index .' to populate.");
     }
     cbm_store_close(store);
     free(project);

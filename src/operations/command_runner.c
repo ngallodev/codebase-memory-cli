@@ -30,8 +30,7 @@ static bool operation_command_output_path(char out[CBM_SZ_2K]) {
     int written;
     if (cache && cache[0]) {
         written = snprintf(directory, sizeof(directory), "%s/logs", cache);
-        if (written <= 0 || written >= (int)sizeof(directory) ||
-            !cbm_mkdir_p(directory, 0700)) {
+        if (written <= 0 || written >= (int)sizeof(directory) || !cbm_mkdir_p(directory, 0700)) {
             return false;
         }
     } else {
@@ -85,12 +84,10 @@ static bool operation_resolve_windows_cmd(char out[CBM_SZ_4K]) {
 
 static cbm_operation_command_cause_t operation_pre_spawn_cause(
     const cbm_operation_runtime_t *runtime, const char *output_path, size_t output_limit,
-    uint64_t deadline_ms, bool deadline_enabled, bool *cancellation_latched,
-    bool *deadline_latched, bool *output_limit_latched) {
-    *cancellation_latched =
-        *cancellation_latched || cbm_operation_runtime_cancelled(runtime);
-    *deadline_latched =
-        *deadline_latched || (deadline_enabled && cbm_now_ms() >= deadline_ms);
+    uint64_t deadline_ms, bool deadline_enabled, bool *cancellation_latched, bool *deadline_latched,
+    bool *output_limit_latched) {
+    *cancellation_latched = *cancellation_latched || cbm_operation_runtime_cancelled(runtime);
+    *deadline_latched = *deadline_latched || (deadline_enabled && cbm_now_ms() >= deadline_ms);
     if (!*output_limit_latched && output_limit > 0 && output_path && output_path[0]) {
         int64_t output_size = cbm_file_size(output_path);
         *output_limit_latched = output_size > 0 && (uint64_t)output_size > output_limit;
@@ -108,19 +105,18 @@ static cbm_operation_command_cause_t operation_pre_spawn_cause(
 }
 
 cbm_operation_command_cause_t cbm_operation_run_shell_command_bounded(
-    const cbm_operation_runtime_t *runtime, const char *command,
-    char output_path[CBM_SZ_2K], size_t output_limit, uint64_t deadline_ms,
-    bool deadline_enabled, bool deadline_latched, bool exit_one_is_no_match,
-    cbm_proc_result_t *result_out) {
+    const cbm_operation_runtime_t *runtime, const char *command, char output_path[CBM_SZ_2K],
+    size_t output_limit, uint64_t deadline_ms, bool deadline_enabled, bool deadline_latched,
+    bool exit_one_is_no_match, cbm_proc_result_t *result_out) {
     if (!command || !output_path || !result_out) {
         return CBM_OPERATION_COMMAND_FAILURE;
     }
     memset(result_out, 0, sizeof(*result_out));
     bool cancellation_latched = false;
     bool output_limit_latched = false;
-    cbm_operation_command_cause_t cause = operation_pre_spawn_cause(
-        runtime, NULL, output_limit, deadline_ms, deadline_enabled, &cancellation_latched,
-        &deadline_latched, &output_limit_latched);
+    cbm_operation_command_cause_t cause =
+        operation_pre_spawn_cause(runtime, NULL, output_limit, deadline_ms, deadline_enabled,
+                                  &cancellation_latched, &deadline_latched, &output_limit_latched);
     if (cause != CBM_OPERATION_COMMAND_SUCCESS) {
         result_out->tree_quiesced = true;
         return cause;
@@ -135,9 +131,9 @@ cbm_operation_command_cause_t cbm_operation_run_shell_command_bounded(
 
     bool command_rejected = runtime && runtime->command_allowed &&
                             !runtime->command_allowed(runtime->command_allowed_context, command);
-    cause = operation_pre_spawn_cause(runtime, output_path, output_limit, deadline_ms,
-                                      deadline_enabled, &cancellation_latched, &deadline_latched,
-                                      &output_limit_latched);
+    cause =
+        operation_pre_spawn_cause(runtime, output_path, output_limit, deadline_ms, deadline_enabled,
+                                  &cancellation_latched, &deadline_latched, &output_limit_latched);
     if (cause != CBM_OPERATION_COMMAND_SUCCESS || command_rejected) {
         result_out->tree_quiesced = true;
         return cause != CBM_OPERATION_COMMAND_SUCCESS ? cause : CBM_OPERATION_COMMAND_FAILURE;
@@ -172,9 +168,9 @@ cbm_operation_command_cause_t cbm_operation_run_shell_command_bounded(
         .delete_log_on_exit = false,
     };
 
-    cause = operation_pre_spawn_cause(runtime, output_path, output_limit, deadline_ms,
-                                      deadline_enabled, &cancellation_latched, &deadline_latched,
-                                      &output_limit_latched);
+    cause =
+        operation_pre_spawn_cause(runtime, output_path, output_limit, deadline_ms, deadline_enabled,
+                                  &cancellation_latched, &deadline_latched, &output_limit_latched);
     if (cause != CBM_OPERATION_COMMAND_SUCCESS) {
         result_out->tree_quiesced = true;
         return cause;
@@ -209,10 +205,8 @@ cbm_operation_command_cause_t cbm_operation_run_shell_command_bounded(
             }
         }
         state = cbm_subprocess_poll(process, result_out);
-        cancellation_latched =
-            cancellation_latched || cbm_operation_runtime_cancelled(runtime);
-        deadline_latched =
-            deadline_latched || (deadline_enabled && cbm_now_ms() >= deadline_ms);
+        cancellation_latched = cancellation_latched || cbm_operation_runtime_cancelled(runtime);
+        deadline_latched = deadline_latched || (deadline_enabled && cbm_now_ms() >= deadline_ms);
         if (!output_limit_latched && output_limit > 0) {
             int64_t output_size = cbm_file_size(output_path);
             output_limit_latched = output_size > 0 && (uint64_t)output_size > output_limit;
@@ -242,13 +236,11 @@ cbm_operation_command_cause_t cbm_operation_run_shell_command_bounded(
         return CBM_OPERATION_COMMAND_SUCCESS;
     }
     return result_out->outcome == CBM_PROC_CLEAN ? CBM_OPERATION_COMMAND_SUCCESS
-                                                  : CBM_OPERATION_COMMAND_CONTAINED_FAILURE;
+                                                 : CBM_OPERATION_COMMAND_CONTAINED_FAILURE;
 }
 
-int cbm_operation_run_shell_command(const cbm_operation_runtime_t *runtime,
-                                    const char *command,
-                                    char output_path[CBM_SZ_2K],
-                                    cbm_proc_result_t *result_out) {
+int cbm_operation_run_shell_command(const cbm_operation_runtime_t *runtime, const char *command,
+                                    char output_path[CBM_SZ_2K], cbm_proc_result_t *result_out) {
     cbm_operation_command_cause_t cause = cbm_operation_run_shell_command_bounded(
         runtime, command, output_path, 0, 0, false, false, false, result_out);
     return cause == CBM_OPERATION_COMMAND_FAILURE ||

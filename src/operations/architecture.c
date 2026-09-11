@@ -12,10 +12,12 @@
 #include <string.h>
 
 static char *architecture_copy_string(const char *text) {
-    if (!text) return NULL;
+    if (!text)
+        return NULL;
     size_t len = strlen(text);
     char *copy = malloc(len + 1U);
-    if (copy) memcpy(copy, text, len + 1U);
+    if (copy)
+        memcpy(copy, text, len + 1U);
     return copy;
 }
 
@@ -24,8 +26,10 @@ static char *architecture_string_arg(const char *args_json, const char *name) {
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
-    char *result = value && yyjson_is_str(value) ? architecture_copy_string(yyjson_get_str(value)) : NULL;
-    if (doc) yyjson_doc_free(doc);
+    char *result =
+        value && yyjson_is_str(value) ? architecture_copy_string(yyjson_get_str(value)) : NULL;
+    if (doc)
+        yyjson_doc_free(doc);
     return result;
 }
 
@@ -33,7 +37,8 @@ static char *architecture_project_arg(const char *args_json) {
     static const char *const names[] = {"project", "project_name", "project_id", "projectName"};
     for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); ++i) {
         char *value = architecture_string_arg(args_json, names[i]);
-        if (value) return value;
+        if (value)
+            return value;
     }
     return NULL;
 }
@@ -1134,4 +1139,3 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
     return json ? cbm_operation_result_take(json, false)
                 : architecture_error("result encoding failed");
 }
-

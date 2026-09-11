@@ -20,10 +20,12 @@
     "PATTERNS, TRADEOFFS, PHILOSOPHY."
 
 static char *adr_strdup(const char *text) {
-    if (!text) return NULL;
+    if (!text)
+        return NULL;
     size_t n = strlen(text);
     char *copy = malloc(n + 1U);
-    if (copy) memcpy(copy, text, n + 1U);
+    if (copy)
+        memcpy(copy, text, n + 1U);
     return copy;
 }
 
@@ -33,14 +35,17 @@ static char *adr_string_arg(const char *args, const char *key) {
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, key) : NULL;
     const char *text = yyjson_is_str(value) ? yyjson_get_str(value) : NULL;
     char *copy = text ? adr_strdup(text) : NULL;
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return copy;
 }
 
 static cbm_operation_result_t adr_take_doc(yyjson_mut_doc *doc, bool is_error) {
     char *json = doc ? yyjson_mut_write(doc, 0, NULL) : NULL;
-    if (doc) yyjson_mut_doc_free(doc);
-    if (!json) return cbm_operation_result_copy("{\"error\":\"result encoding failed\"}", true);
+    if (doc)
+        yyjson_mut_doc_free(doc);
+    if (!json)
+        return cbm_operation_result_copy("{\"error\":\"result encoding failed\"}", true);
     return cbm_operation_result_take(json, is_error);
 }
 
@@ -48,11 +53,13 @@ static cbm_operation_result_t adr_error(const char *status, const char *error) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
     if (!doc || !root) {
-        if (doc) yyjson_mut_doc_free(doc);
+        if (doc)
+            yyjson_mut_doc_free(doc);
         return cbm_operation_result_copy("{\"error\":\"result allocation failed\"}", true);
     }
     yyjson_mut_doc_set_root(doc, root);
-    if (status) yyjson_mut_obj_add_strcpy(doc, root, "status", status);
+    if (status)
+        yyjson_mut_obj_add_strcpy(doc, root, "status", status);
     yyjson_mut_obj_add_strcpy(doc, root, "error", error ? error : "ADR operation failed");
     return adr_take_doc(doc, true);
 }
@@ -78,30 +85,44 @@ static void adr_list_sections_from_content(yyjson_mut_doc *doc, yyjson_mut_val *
 }
 
 static char *adr_read_legacy_file(const char *root_path) {
-    if (!root_path) return NULL;
+    if (!root_path)
+        return NULL;
     char path[CBM_SZ_4K];
-    if (snprintf(path, sizeof(path), "%s/.codebase-memory/adr.md", root_path) >= (int)sizeof(path)) {
+    if (snprintf(path, sizeof(path), "%s/.codebase-memory/adr.md", root_path) >=
+        (int)sizeof(path)) {
         return NULL;
     }
     FILE *fp = cbm_fopen(path, "r");
-    if (!fp) return NULL;
+    if (!fp)
+        return NULL;
     (void)fseek(fp, 0, SEEK_END);
     long size = ftell(fp);
-    if (size <= 0) { (void)fclose(fp); return NULL; }
+    if (size <= 0) {
+        (void)fclose(fp);
+        return NULL;
+    }
     (void)fseek(fp, 0, SEEK_SET);
     char *buffer = malloc((size_t)size + 1U);
-    if (!buffer) { (void)fclose(fp); return NULL; }
+    if (!buffer) {
+        (void)fclose(fp);
+        return NULL;
+    }
     size_t read_size = fread(buffer, 1U, (size_t)size, fp);
     buffer[read_size] = '\0';
     (void)fclose(fp);
-    if (!buffer[0]) { free(buffer); return NULL; }
+    if (!buffer[0]) {
+        free(buffer);
+        return NULL;
+    }
     return buffer;
 }
 
 static char *adr_project_root(cbm_store_t *store, const char *project) {
-    if (!store || !project) return NULL;
+    if (!store || !project)
+        return NULL;
     cbm_project_t value = {0};
-    if (cbm_store_get_project(store, project, &value) != CBM_STORE_OK) return NULL;
+    if (cbm_store_get_project(store, project, &value) != CBM_STORE_OK)
+        return NULL;
     char *root = adr_strdup(value.root_path);
     cbm_project_free_fields(&value);
     return root;
@@ -109,12 +130,16 @@ static char *adr_project_root(cbm_store_t *store, const char *project) {
 
 static cbm_store_t *adr_open_store_for_write(const cbm_operation_runtime_t *runtime,
                                              cbm_store_t *resolved, cbm_store_t **owned_rw) {
-    if (!resolved || !owned_rw) return NULL;
+    if (!resolved || !owned_rw)
+        return NULL;
     const char *path = cbm_store_db_path(resolved);
-    if (!path) return resolved;
+    if (!path)
+        return resolved;
     char *copy = adr_strdup(path);
-    if (!copy) return NULL;
-    if (runtime && runtime->store_invalidate) runtime->store_invalidate(runtime->store_context);
+    if (!copy)
+        return NULL;
+    if (runtime && runtime->store_invalidate)
+        runtime->store_invalidate(runtime->store_context);
     *owned_rw = cbm_store_open_path(copy);
     free(copy);
     return *owned_rw;
@@ -129,7 +154,8 @@ typedef struct {
 } adr_section_updates_t;
 
 static void adr_updates_free(adr_section_updates_t *updates) {
-    if (!updates) return;
+    if (!updates)
+        return;
     for (int i = 0; i < updates->count; ++i) {
         free(updates->keys[i]);
         free(updates->values[i]);
@@ -141,23 +167,27 @@ static bool adr_collect_update(adr_section_updates_t *updates, yyjson_val *key, 
     const char *name = yyjson_get_str(key);
     if (!name || !name[0]) {
         updates->status = "invalid_section_updates";
-        updates->error = "'section_updates' keys must be non-empty section names. No ADR write was performed.";
+        updates->error =
+            "'section_updates' keys must be non-empty section names. No ADR write was performed.";
         return false;
     }
     if (!yyjson_is_str(value)) {
         updates->status = "invalid_section_updates";
-        updates->error = "'section_updates' values must be strings (the new body for that section). No ADR write was performed.";
+        updates->error = "'section_updates' values must be strings (the new body for that "
+                         "section). No ADR write was performed.";
         return false;
     }
     const char *body = yyjson_get_str(value);
     if (!body || !body[0]) {
         updates->status = "empty_section_content";
-        updates->error = "'section_updates' values must be non-empty; use mode='update' to remove a section. No ADR write was performed.";
+        updates->error = "'section_updates' values must be non-empty; use mode='update' to remove "
+                         "a section. No ADR write was performed.";
         return false;
     }
     if (updates->count >= PROPS_MAX) {
         updates->status = "too_many_sections";
-        updates->error = "'section_updates' carries more entries than an ADR can hold. No ADR write was performed.";
+        updates->error = "'section_updates' carries more entries than an ADR can hold. No ADR "
+                         "write was performed.";
         return false;
     }
     updates->keys[updates->count] = adr_strdup(name);
@@ -182,10 +212,12 @@ static adr_section_updates_t adr_parse_updates(const char *args) {
     yyjson_val *object = yyjson_is_obj(root) ? yyjson_obj_get(root, "section_updates") : NULL;
     if (!object) {
         updates.status = "missing_section_updates";
-        updates.error = "mode='set_sections' requires 'section_updates', an object mapping section name to its new body. No ADR write was performed.";
+        updates.error = "mode='set_sections' requires 'section_updates', an object mapping section "
+                        "name to its new body. No ADR write was performed.";
     } else if (!yyjson_is_obj(object) || yyjson_obj_size(object) == 0) {
         updates.status = "invalid_section_updates";
-        updates.error = "'section_updates' must be a non-empty object mapping section name to its new body. No ADR write was performed.";
+        updates.error = "'section_updates' must be a non-empty object mapping section name to its "
+                        "new body. No ADR write was performed.";
     } else {
         size_t index = 0, max = 0;
         yyjson_val *key = NULL, *value = NULL;
@@ -196,7 +228,8 @@ static adr_section_updates_t adr_parse_updates(const char *args) {
             }
         }
     }
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return updates;
 }
 
@@ -204,21 +237,26 @@ static bool adr_has_removed_sections_arg(const char *args) {
     yyjson_doc *doc = yyjson_read(args, strlen(args), 0);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     bool found = yyjson_is_obj(root) && yyjson_obj_get(root, "sections") != NULL;
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return found;
 }
 
 cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
-                                                  const cbm_operation_runtime_t *runtime) {
+                                                 const cbm_operation_runtime_t *runtime) {
     const char *args = args_json ? args_json : "{}";
     char *project = cbm_operation_project_arg(args);
     char *mode = adr_string_arg(args, "mode");
     char *content = adr_string_arg(args, "content");
-    if (!mode) mode = adr_strdup("get");
+    if (!mode)
+        mode = adr_strdup("get");
 
     if (adr_has_removed_sections_arg(args)) {
-        free(project); free(mode); free(content);
-        return adr_error("invalid_arguments", "The sections argument is not an update primitive and has been removed. No ADR write was performed.");
+        free(project);
+        free(mode);
+        free(content);
+        return adr_error("invalid_arguments", "The sections argument is not an update primitive "
+                                              "and has been removed. No ADR write was performed.");
     }
 
     bool set_sections = mode && strcmp(mode, "set_sections") == 0;
@@ -226,58 +264,81 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
     char section_error[CBM_SZ_256] = "";
     if (set_sections) {
         updates = adr_parse_updates(args);
-        if (!updates.status && cbm_adr_validate_section_keys((const char **)updates.keys, updates.count,
-                                                             section_error, (int)sizeof(section_error)) != CBM_STORE_OK) {
+        if (!updates.status &&
+            cbm_adr_validate_section_keys((const char **)updates.keys, updates.count, section_error,
+                                          (int)sizeof(section_error)) != CBM_STORE_OK) {
             adr_updates_free(&updates);
             updates.status = "invalid_section_name";
             updates.error = section_error;
         }
         if (updates.status) {
             cbm_operation_result_t result = adr_error(updates.status, updates.error);
-            adr_updates_free(&updates); free(project); free(mode); free(content);
+            adr_updates_free(&updates);
+            free(project);
+            free(mode);
+            free(content);
             return result;
         }
     }
 
-    bool write_request = (content && mode && (strcmp(mode, "update") == 0 || strcmp(mode, "store") == 0)) || set_sections;
+    bool write_request =
+        (content && mode && (strcmp(mode, "update") == 0 || strcmp(mode, "store") == 0)) ||
+        set_sections;
     if (!runtime || !runtime->store_resolve) {
-        adr_updates_free(&updates); free(project); free(mode); free(content);
-        return adr_error("store_unavailable", "project store resolution is unavailable for this execution path");
+        adr_updates_free(&updates);
+        free(project);
+        free(mode);
+        free(content);
+        return adr_error("store_unavailable",
+                         "project store resolution is unavailable for this execution path");
     }
 
     bool mutation_held = false;
     if (write_request && project) {
         if (!runtime->mutation_begin || !runtime->mutation_end ||
             !runtime->mutation_begin(runtime->mutation_context, project)) {
-            adr_updates_free(&updates); free(project); free(mode); free(content);
+            adr_updates_free(&updates);
+            free(project);
+            free(mode);
+            free(content);
             return adr_error("busy", "project operation cancelled or blocked by an active index");
         }
         mutation_held = true;
         if (runtime->cancelled && runtime->cancelled(runtime->cancelled_context)) {
             runtime->mutation_end(runtime->mutation_context, project);
-            adr_updates_free(&updates); free(project); free(mode); free(content);
+            adr_updates_free(&updates);
+            free(project);
+            free(mode);
+            free(content);
             return adr_error("cancelled", "project operation cancelled for this request");
         }
     }
 
     cbm_operation_store_recovery_status_t recovery = CBM_OPERATION_STORE_RECOVERY_NONE;
     cbm_store_t *resolved = runtime->store_resolve(runtime->store_context, project, mutation_held,
-                                                    !write_request, &recovery);
+                                                   !write_request, &recovery);
     if (!resolved) {
         cbm_operation_result_t result;
         if (recovery == CBM_OPERATION_STORE_RECOVERY_BUSY) {
             result = adr_error("busy", "project is busy; retry after indexing");
         } else if (recovery == CBM_OPERATION_STORE_RECOVERY_TRY_GUARD_UNAVAILABLE) {
-            result = adr_error("coordination_unavailable", "project recovery requires a nonblocking mutation guard");
+            result = adr_error("coordination_unavailable",
+                               "project recovery requires a nonblocking mutation guard");
         } else if (runtime->store_error) {
             char *error_json = runtime->store_error(runtime->store_context, project);
             result = cbm_operation_result_take(error_json, true);
-            if (!error_json) result = adr_error("not_found", "project not found or not indexed");
+            if (!error_json)
+                result = adr_error("not_found", "project not found or not indexed");
         } else {
-            result = adr_error("not_found", project ? "project not found or not indexed" : "missing required argument: project");
+            result = adr_error("not_found", project ? "project not found or not indexed"
+                                                    : "missing required argument: project");
         }
-        if (mutation_held) runtime->mutation_end(runtime->mutation_context, project);
-        adr_updates_free(&updates); free(project); free(mode); free(content);
+        if (mutation_held)
+            runtime->mutation_end(runtime->mutation_context, project);
+        adr_updates_free(&updates);
+        free(project);
+        free(mode);
+        free(content);
         return result;
     }
 
@@ -286,8 +347,12 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
     if (write_request) {
         store = adr_open_store_for_write(runtime, resolved, &owned_rw);
         if (!store) {
-            if (mutation_held) runtime->mutation_end(runtime->mutation_context, project);
-            adr_updates_free(&updates); free(project); free(mode); free(content);
+            if (mutation_held)
+                runtime->mutation_end(runtime->mutation_context, project);
+            adr_updates_free(&updates);
+            free(project);
+            free(mode);
+            free(content);
             return adr_error("open_failed", "failed to open writable ADR store");
         }
     }
@@ -303,15 +368,18 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
             runtime->mutation_try_begin(runtime->mutation_context, project)) {
             if (!runtime->cancelled || !runtime->cancelled(runtime->cancelled_context)) {
                 if (cbm_store_db_path(resolved)) {
-                    if (runtime->store_invalidate) runtime->store_invalidate(runtime->store_context);
-                    resolved = runtime->store_resolve(runtime->store_context, project, true, false, NULL);
+                    if (runtime->store_invalidate)
+                        runtime->store_invalidate(runtime->store_context);
+                    resolved =
+                        runtime->store_resolve(runtime->store_context, project, true, false, NULL);
                     store = resolved;
                 }
                 if (resolved) {
                     store = adr_open_store_for_write(runtime, resolved, &owned_rw);
                     if (store) {
                         have_adr = cbm_store_adr_get(store, project, &adr) == CBM_STORE_OK;
-                        if (!have_adr && cbm_store_adr_store(store, project, legacy) == CBM_STORE_OK) {
+                        if (!have_adr &&
+                            cbm_store_adr_store(store, project, legacy) == CBM_STORE_OK) {
                             have_adr = cbm_store_adr_get(store, project, &adr) == CBM_STORE_OK;
                         }
                     }
@@ -331,11 +399,20 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
     if (!doc || !root) {
-        if (doc) yyjson_mut_doc_free(doc);
-        if (have_adr) cbm_store_adr_free(&adr);
-        if (owned_rw) cbm_store_close(owned_rw);
-        if (mutation_held) runtime->mutation_end(runtime->mutation_context, project);
-        adr_updates_free(&updates); free(legacy_seed); free(legacy); free(project); free(mode); free(content);
+        if (doc)
+            yyjson_mut_doc_free(doc);
+        if (have_adr)
+            cbm_store_adr_free(&adr);
+        if (owned_rw)
+            cbm_store_close(owned_rw);
+        if (mutation_held)
+            runtime->mutation_end(runtime->mutation_context, project);
+        adr_updates_free(&updates);
+        free(legacy_seed);
+        free(legacy);
+        free(project);
+        free(mode);
+        free(content);
         return cbm_operation_result_copy("{\"error\":\"result allocation failed\"}", true);
     }
     yyjson_mut_doc_set_root(doc, root);
@@ -352,20 +429,25 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
             }
         }
         cbm_adr_t updated = {0};
-        int rc = base_present ? cbm_store_adr_update_sections(store, project,
-                         (const char **)updates.keys, (const char **)updates.values,
-                         updates.count, &updated) : CBM_STORE_ERR;
+        int rc = base_present
+                     ? cbm_store_adr_update_sections(store, project, (const char **)updates.keys,
+                                                     (const char **)updates.values, updates.count,
+                                                     &updated)
+                     : CBM_STORE_ERR;
         if (rc == CBM_STORE_OK) {
             yyjson_mut_obj_add_str(doc, root, "status", "sections_updated");
-            yyjson_mut_obj_add_str(doc, root, "semantics", "named_sections_replaced_rest_preserved");
+            yyjson_mut_obj_add_str(doc, root, "semantics",
+                                   "named_sections_replaced_rest_preserved");
             yyjson_mut_obj_add_uint(doc, root, "sections_written", (uint64_t)updates.count);
             yyjson_mut_obj_add_uint(doc, root, "content_length", (uint64_t)strlen(updated.content));
             cbm_store_adr_free(&updated);
         } else {
-            if (seeded_empty) (void)cbm_store_adr_delete(store, project);
+            if (seeded_empty)
+                (void)cbm_store_adr_delete(store, project);
             yyjson_mut_obj_add_str(doc, root, "status", "write_error");
             const char *store_error = cbm_store_error(store);
-            if (store_error && store_error[0]) yyjson_mut_obj_add_strcpy(doc, root, "error", store_error);
+            if (store_error && store_error[0])
+                yyjson_mut_obj_add_strcpy(doc, root, "error", store_error);
             is_error = true;
         }
     } else if (write_request) {
@@ -389,10 +471,17 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
     }
 
     cbm_operation_result_t result = adr_take_doc(doc, is_error);
-    if (have_adr) cbm_store_adr_free(&adr);
-    if (owned_rw) cbm_store_close(owned_rw);
-    if (mutation_held) runtime->mutation_end(runtime->mutation_context, project);
+    if (have_adr)
+        cbm_store_adr_free(&adr);
+    if (owned_rw)
+        cbm_store_close(owned_rw);
+    if (mutation_held)
+        runtime->mutation_end(runtime->mutation_context, project);
     adr_updates_free(&updates);
-    free(legacy_seed); free(legacy); free(project); free(mode); free(content);
+    free(legacy_seed);
+    free(legacy);
+    free(project);
+    free(mode);
+    free(content);
     return result;
 }

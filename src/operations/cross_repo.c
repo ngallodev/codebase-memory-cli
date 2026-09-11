@@ -14,10 +14,12 @@
 #define CROSS_REPO_MAX_TARGETS 4096
 
 static char *cross_repo_strdup(const char *text) {
-    if (!text) return NULL;
+    if (!text)
+        return NULL;
     size_t len = strlen(text);
     char *copy = malloc(len + 1U);
-    if (copy) memcpy(copy, text, len + 1U);
+    if (copy)
+        memcpy(copy, text, len + 1U);
     return copy;
 }
 
@@ -27,7 +29,8 @@ static char *cross_repo_string_arg(const char *args, const char *key) {
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, key) : NULL;
     const char *text = yyjson_is_str(value) ? yyjson_get_str(value) : NULL;
     char *copy = text ? cross_repo_strdup(text) : NULL;
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return copy;
 }
 
@@ -51,11 +54,13 @@ static int lock_key_compare_values(const char *left, const char *right) {
     while (*a && *b) {
         unsigned char af = lock_fold(*a);
         unsigned char bf = lock_fold(*b);
-        if (af != bf) return af < bf ? -1 : 1;
+        if (af != bf)
+            return af < bf ? -1 : 1;
         ++a;
         ++b;
     }
-    if (*a != *b) return *a ? 1 : -1;
+    if (*a != *b)
+        return *a ? 1 : -1;
     return strcmp(left, right);
 }
 
@@ -69,7 +74,8 @@ static bool lock_keys_equivalent(const char *left, const char *right) {
     const unsigned char *a = (const unsigned char *)left;
     const unsigned char *b = (const unsigned char *)right;
     while (*a && *b) {
-        if (lock_fold(*a) != lock_fold(*b)) return false;
+        if (lock_fold(*a) != lock_fold(*b))
+            return false;
         ++a;
         ++b;
     }
@@ -77,9 +83,10 @@ static bool lock_keys_equivalent(const char *left, const char *right) {
 }
 
 cbm_operation_result_t cbm_cross_repo_operation_execute(const char *repo_path,
-                                                         const char *args_json,
-                                                         const cbm_operation_runtime_t *runtime) {
-    if (!repo_path || !args_json) return cross_repo_error("cross-repository request is incomplete");
+                                                        const char *args_json,
+                                                        const cbm_operation_runtime_t *runtime) {
+    if (!repo_path || !args_json)
+        return cross_repo_error("cross-repository request is incomplete");
     if (!runtime || !runtime->mutation_begin || !runtime->mutation_end) {
         return cross_repo_error("cross-repository mutation coordination is unavailable");
     }
@@ -90,17 +97,21 @@ cbm_operation_result_t cbm_cross_repo_operation_execute(const char *repo_path,
         return cross_repo_error("invalid project name");
     }
     char *project = name_override && name_override[0] ? cross_repo_strdup(name_override)
-                                                       : cbm_project_name_from_path(repo_path);
+                                                      : cbm_project_name_from_path(repo_path);
     free(name_override);
-    if (!project) return cross_repo_error("cannot derive project name");
+    if (!project)
+        return cross_repo_error("cannot derive project name");
 
     yyjson_doc *jdoc = yyjson_read(args_json, strlen(args_json), 0);
     yyjson_val *jroot = jdoc ? yyjson_doc_get_root(jdoc) : NULL;
     yyjson_val *array = yyjson_is_obj(jroot) ? yyjson_obj_get(jroot, "target_projects") : NULL;
     if (!array || !yyjson_is_arr(array) || yyjson_arr_size(array) == 0) {
-        if (jdoc) yyjson_doc_free(jdoc);
+        if (jdoc)
+            yyjson_doc_free(jdoc);
         free(project);
-        return cross_repo_error("{\"error\":\"target_projects is required for cross-repo-intelligence mode. Use [\\\"*\\\"] for all projects. Run list_projects to see available.\"}");
+        return cross_repo_error(
+            "{\"error\":\"target_projects is required for cross-repo-intelligence mode. Use "
+            "[\\\"*\\\"] for all projects. Run list_projects to see available.\"}");
     }
 
     size_t target_count = yyjson_arr_size(array);
@@ -113,7 +124,10 @@ cbm_operation_result_t cbm_cross_repo_operation_execute(const char *repo_path,
     const char **targets = malloc((size_t)tp_count * sizeof(*targets));
     const char **lease_keys = malloc(((size_t)tp_count + 1U) * sizeof(*lease_keys));
     if (!targets || !lease_keys) {
-        free(targets); free(lease_keys); yyjson_doc_free(jdoc); free(project);
+        free(targets);
+        free(lease_keys);
+        yyjson_doc_free(jdoc);
+        free(project);
         return cross_repo_error("failed to allocate cross-repo project leases");
     }
 
@@ -133,11 +147,17 @@ cbm_operation_result_t cbm_cross_repo_operation_execute(const char *repo_path,
         all_projects = all_projects || strcmp(target, "*") == 0;
     }
     if (invalid_target || target_index != tp_count) {
-        free(targets); free(lease_keys); yyjson_doc_free(jdoc); free(project);
+        free(targets);
+        free(lease_keys);
+        yyjson_doc_free(jdoc);
+        free(project);
         return cross_repo_error("target_projects must contain valid project names or '*'");
     }
     if (all_projects && tp_count != 1) {
-        free(targets); free(lease_keys); yyjson_doc_free(jdoc); free(project);
+        free(targets);
+        free(lease_keys);
+        yyjson_doc_free(jdoc);
+        free(project);
         return cross_repo_error("target_projects wildcard '*' must be the only entry");
     }
     if (!all_projects) {
@@ -156,11 +176,13 @@ cbm_operation_result_t cbm_cross_repo_operation_execute(const char *repo_path,
         lease_keys[lease_count++] = "*";
     } else {
         lease_keys[lease_count++] = project;
-        for (int i = 0; i < tp_count; ++i) lease_keys[lease_count++] = targets[i];
+        for (int i = 0; i < tp_count; ++i)
+            lease_keys[lease_count++] = targets[i];
         qsort(lease_keys, (size_t)lease_count, sizeof(*lease_keys), lock_key_compare);
         int unique_count = 0;
         for (int i = 0; i < lease_count; ++i) {
-            if (unique_count == 0 || !lock_keys_equivalent(lease_keys[i], lease_keys[unique_count - 1])) {
+            if (unique_count == 0 ||
+                !lock_keys_equivalent(lease_keys[i], lease_keys[unique_count - 1])) {
                 lease_keys[unique_count++] = lease_keys[i];
             }
         }
@@ -179,22 +201,29 @@ cbm_operation_result_t cbm_cross_repo_operation_execute(const char *repo_path,
             --held_count;
             runtime->mutation_end(runtime->mutation_context, lease_keys[held_count]);
         }
-        free(targets); free(lease_keys); yyjson_doc_free(jdoc); free(project);
+        free(targets);
+        free(lease_keys);
+        yyjson_doc_free(jdoc);
+        free(project);
         return cross_repo_error("cross-repo operation cancelled or blocked by active indexing");
     }
 
     atomic_int local_cancel = ATOMIC_VAR_INIT(0);
     atomic_int *cancel_flag = runtime->cancel_flag ? runtime->cancel_flag : &local_cancel;
-    cbm_cross_repo_result_t result = cbm_cross_repo_match_cancellable(project, targets, tp_count, cancel_flag);
+    cbm_cross_repo_result_t result =
+        cbm_cross_repo_match_cancellable(project, targets, tp_count, cancel_flag);
     while (held_count > 0) {
         --held_count;
         runtime->mutation_end(runtime->mutation_context, lease_keys[held_count]);
     }
-    free(targets); free(lease_keys); yyjson_doc_free(jdoc);
+    free(targets);
+    free(lease_keys);
+    yyjson_doc_free(jdoc);
 
     if (result.failed) {
         free(project);
-        return cross_repo_error("cross-repo source or target project is missing, invalid, or not indexed");
+        return cross_repo_error(
+            "cross-repo source or target project is missing, invalid, or not indexed");
     }
 
     int total = result.http_edges + result.async_edges + result.channel_edges + result.grpc_edges +
@@ -202,7 +231,8 @@ cbm_operation_result_t cbm_cross_repo_operation_execute(const char *repo_path,
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
     if (!doc || !root) {
-        if (doc) yyjson_mut_doc_free(doc);
+        if (doc)
+            yyjson_mut_doc_free(doc);
         free(project);
         return cross_repo_error("result allocation failed");
     }
@@ -213,9 +243,10 @@ cbm_operation_result_t cbm_cross_repo_operation_execute(const char *repo_path,
     if (result.cancelled) {
         yyjson_mut_obj_add_bool(doc, root, "partial_results", result.partial_results);
         yyjson_mut_obj_add_str(doc, root, "message",
-            result.partial_results
-                ? "cross-repo operation cancelled with partial results; completed database writes were retained"
-                : "cross-repo operation cancelled before database writes");
+                               result.partial_results
+                                   ? "cross-repo operation cancelled with partial results; "
+                                     "completed database writes were retained"
+                                   : "cross-repo operation cancelled before database writes");
     }
     yyjson_mut_obj_add_int(doc, root, "projects_scanned", result.projects_scanned);
     yyjson_mut_obj_add_int(doc, root, "cross_http_calls", result.http_edges);
@@ -229,6 +260,7 @@ cbm_operation_result_t cbm_cross_repo_operation_execute(const char *repo_path,
     char *payload = yyjson_mut_write(doc, 0, NULL);
     yyjson_mut_doc_free(doc);
     free(project);
-    if (!payload) return cross_repo_error("result encoding failed");
+    if (!payload)
+        return cross_repo_error("result encoding failed");
     return cbm_operation_result_take(payload, result.cancelled);
 }

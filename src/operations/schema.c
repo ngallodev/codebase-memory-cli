@@ -9,23 +9,30 @@
 #include <sys/stat.h>
 
 static char *copy_string(const char *text) {
-    if (!text) return NULL;
+    if (!text)
+        return NULL;
     size_t len = strlen(text);
     char *copy = malloc(len + 1U);
-    if (copy) memcpy(copy, text, len + 1U);
+    if (copy)
+        memcpy(copy, text, len + 1U);
     return copy;
 }
 
 static char *project_arg(const char *args_json) {
-    yyjson_doc *doc = yyjson_read(args_json ? args_json : "{}", strlen(args_json ? args_json : "{}"), 0);
+    yyjson_doc *doc =
+        yyjson_read(args_json ? args_json : "{}", strlen(args_json ? args_json : "{}"), 0);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     static const char *const names[] = {"project", "project_name", "project_id", "projectName"};
     char *result = NULL;
     for (size_t i = 0; yyjson_is_obj(root) && i < sizeof(names) / sizeof(names[0]); ++i) {
         yyjson_val *value = yyjson_obj_get(root, names[i]);
-        if (yyjson_is_str(value)) { result = copy_string(yyjson_get_str(value)); break; }
+        if (yyjson_is_str(value)) {
+            result = copy_string(yyjson_get_str(value));
+            break;
+        }
     }
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return result;
 }
 
@@ -39,9 +46,11 @@ static bool project_has_adr(cbm_store_t *store, const char *project, const char 
         cbm_store_adr_free(&adr);
         return true;
     }
-    if (!root_path) return false;
+    if (!root_path)
+        return false;
     char path[4096];
-    if (snprintf(path, sizeof(path), "%s/.codebase-memory/adr.md", root_path) >= (int)sizeof(path)) return false;
+    if (snprintf(path, sizeof(path), "%s/.codebase-memory/adr.md", root_path) >= (int)sizeof(path))
+        return false;
     struct stat st;
     return stat(path, &st) == 0;
 }
@@ -68,7 +77,8 @@ cbm_operation_result_t cbm_schema_operation_execute(const char *args_json) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
     if (!doc || !root) {
-        if (doc) yyjson_mut_doc_free(doc);
+        if (doc)
+            yyjson_mut_doc_free(doc);
         cbm_store_schema_free(&schema);
         cbm_store_close(store);
         free(project);
@@ -109,8 +119,10 @@ cbm_operation_result_t cbm_schema_operation_execute(const char *args_json) {
         bool adr_present = project_has_adr(store, project, info.root_path);
         yyjson_mut_obj_add_bool(doc, root, "adr_present", adr_present);
         if (!adr_present) {
-            yyjson_mut_obj_add_str(doc, root, "adr_hint",
-                "No ADR found. Use manage_adr(mode='update') to persist architectural decisions across sessions. Run get_architecture(aspects=['all']) first.");
+            yyjson_mut_obj_add_str(
+                doc, root, "adr_hint",
+                "No ADR found. Use manage_adr(mode='update') to persist architectural decisions "
+                "across sessions. Run get_architecture(aspects=['all']) first.");
         }
         cbm_project_free_fields(&info);
     }

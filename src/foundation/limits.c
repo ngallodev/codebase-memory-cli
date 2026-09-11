@@ -54,4 +54,3 @@ int cbm_operation_max_depth(void) {
      * the public execution model migrates away from MCP. */
     return env_positive_int("CBM_MCP_MAX_DEPTH", 15);
 }
-

@@ -117,8 +117,7 @@ static inline void cbm_negmemo_insert(CBMNegMemo *m, CBMArena *arena, uint64_t k
         m->cap = CBM_NEGMEMO_INIT_CAP;
         m->count = 0;
     }
-    if ((int64_t)(m->count + 1) * CBM_NEGMEMO_LOAD_DEN >=
-        (int64_t)m->cap * CBM_NEGMEMO_LOAD_NUM) {
+    if ((int64_t)(m->count + 1) * CBM_NEGMEMO_LOAD_DEN >= (int64_t)m->cap * CBM_NEGMEMO_LOAD_NUM) {
         int new_cap = m->cap * CBM_NEGMEMO_GROW;
         uint64_t *ns = cbm_arena_alloc(arena, sizeof(uint64_t) * (size_t)new_cap);
         if (!ns) {
@@ -194,8 +193,7 @@ static inline void cbm_idxmemo_put_if_absent(CBMIdxMemo *m, CBMArena *arena, con
         return;
     }
     if (!m->slots) {
-        m->slots = cbm_arena_alloc(arena,
-                                   sizeof(struct cbm_idxmemo_slot) * CBM_NEGMEMO_INIT_CAP);
+        m->slots = cbm_arena_alloc(arena, sizeof(struct cbm_idxmemo_slot) * CBM_NEGMEMO_INIT_CAP);
         if (!m->slots) {
             return;
         }
@@ -203,8 +201,7 @@ static inline void cbm_idxmemo_put_if_absent(CBMIdxMemo *m, CBMArena *arena, con
         m->cap = CBM_NEGMEMO_INIT_CAP;
         m->count = 0;
     }
-    if ((int64_t)(m->count + 1) * CBM_NEGMEMO_LOAD_DEN >=
-        (int64_t)m->cap * CBM_NEGMEMO_LOAD_NUM) {
+    if ((int64_t)(m->count + 1) * CBM_NEGMEMO_LOAD_DEN >= (int64_t)m->cap * CBM_NEGMEMO_LOAD_NUM) {
         int new_cap = m->cap * CBM_NEGMEMO_GROW;
         struct cbm_idxmemo_slot *ns =
             cbm_arena_alloc(arena, sizeof(struct cbm_idxmemo_slot) * (size_t)new_cap);

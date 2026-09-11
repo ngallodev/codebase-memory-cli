@@ -16,14 +16,15 @@
 
 #define CBM_PYTHON_STDLIB_GENERATED 1
 
-void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
-    if (!reg || !arena) return;
+void cbm_python_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
+    if (!reg || !arena)
+        return;
 
     CBMRegisteredType rt;
     CBMRegisteredFunc rf;
 
     /* ===== module: _collections_abc ===== */
-    static const char* py_methods_1[] = { "isdisjoint", "mapping", NULL };
+    static const char *py_methods_1[] = {"isdisjoint", "mapping", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "_collections_abc.dict_keys";
     rt.short_name = "dict_keys";
@@ -39,7 +40,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "mapping";
     rf.receiver_type = "_collections_abc.dict_keys";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_2[] = { "mapping", NULL };
+    static const char *py_methods_2[] = {"mapping", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "_collections_abc.dict_values";
     rt.short_name = "dict_values";
@@ -50,7 +51,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "mapping";
     rf.receiver_type = "_collections_abc.dict_values";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_3[] = { "isdisjoint", "mapping", NULL };
+    static const char *py_methods_3[] = {"isdisjoint", "mapping", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "_collections_abc.dict_items";
     rt.short_name = "dict_items";
@@ -69,17 +70,17 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "_collections_abc.Buffer";
     rt.short_name = "Buffer";
-    static const char* py_bases_4[] = { "_collections_abc.Protocol", NULL };
+    static const char *py_bases_4[] = {"_collections_abc.Protocol", NULL};
     rt.embedded_types = py_bases_4;
     cbm_registry_add_type(reg, rt);
 
     /* ===== module: abc ===== */
-    static const char* py_methods_5[] = { "__new__", "register", NULL };
+    static const char *py_methods_5[] = {"__new__", "register", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "abc.ABCMeta";
     rt.short_name = "ABCMeta";
     rt.method_names = py_methods_5;
-    static const char* py_bases_6[] = { "abc.type", NULL };
+    static const char *py_bases_6[] = {"abc.type", NULL};
     rt.embedded_types = py_bases_6;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -92,7 +93,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "register";
     rf.receiver_type = "abc.ABCMeta";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_7[] = { "__init__", NULL };
+    static const char *py_methods_7[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "abc.abstractclassmethod";
     rt.short_name = "abstractclassmethod";
@@ -103,7 +104,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "abc.abstractclassmethod";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_8[] = { "__init__", NULL };
+    static const char *py_methods_8[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "abc.abstractstaticmethod";
     rt.short_name = "abstractstaticmethod";
@@ -117,7 +118,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "abc.abstractproperty";
     rt.short_name = "abstractproperty";
-    static const char* py_bases_9[] = { "abc.property", NULL };
+    static const char *py_bases_9[] = {"abc.property", NULL};
     rt.embedded_types = py_bases_9;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
@@ -138,12 +139,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: argparse ===== */
-    static const char* py_methods_10[] = { "__init__", NULL };
+    static const char *py_methods_10[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse.ArgumentError";
     rt.short_name = "ArgumentError";
     rt.method_names = py_methods_10;
-    static const char* py_bases_11[] = { "argparse.Exception", NULL };
+    static const char *py_bases_11[] = {"argparse.Exception", NULL};
     rt.embedded_types = py_bases_11;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -155,7 +156,14 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "argparse._AttributeHolder";
     rt.short_name = "_AttributeHolder";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_12[] = { "__init__", "register", "set_defaults", "get_default", "add_argument", "add_argument_group", "add_mutually_exclusive_group", NULL };
+    static const char *py_methods_12[] = {"__init__",
+                                          "register",
+                                          "set_defaults",
+                                          "get_default",
+                                          "add_argument",
+                                          "add_argument_group",
+                                          "add_mutually_exclusive_group",
+                                          NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._ActionsContainer";
     rt.short_name = "_ActionsContainer";
@@ -196,12 +204,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "add_mutually_exclusive_group";
     rf.receiver_type = "argparse._ActionsContainer";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_13[] = { "__call__", NULL };
+    static const char *py_methods_13[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._FormatterClass";
     rt.short_name = "_FormatterClass";
     rt.method_names = py_methods_13;
-    static const char* py_bases_14[] = { "argparse.Protocol", NULL };
+    static const char *py_bases_14[] = {"argparse.Protocol", NULL};
     rt.embedded_types = py_bases_14;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -209,12 +217,28 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "argparse._FormatterClass";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_15[] = { "__init__", "parse_args", "add_subparsers", "print_usage", "print_help", "format_usage", "format_help", "parse_known_args", "convert_arg_line_to_args", "exit", "error", "parse_intermixed_args", "parse_known_intermixed_args", "_parse_known_args", "_parse_optional", NULL };
+    static const char *py_methods_15[] = {"__init__",
+                                          "parse_args",
+                                          "add_subparsers",
+                                          "print_usage",
+                                          "print_help",
+                                          "format_usage",
+                                          "format_help",
+                                          "parse_known_args",
+                                          "convert_arg_line_to_args",
+                                          "exit",
+                                          "error",
+                                          "parse_intermixed_args",
+                                          "parse_known_intermixed_args",
+                                          "_parse_known_args",
+                                          "_parse_optional",
+                                          NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse.ArgumentParser";
     rt.short_name = "ArgumentParser";
     rt.method_names = py_methods_15;
-    static const char* py_bases_16[] = { "argparse._AttributeHolder", "argparse._ActionsContainer", NULL };
+    static const char *py_bases_16[] = {"argparse._AttributeHolder", "argparse._ActionsContainer",
+                                        NULL};
     rt.embedded_types = py_bases_16;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -292,7 +316,16 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "_parse_optional";
     rf.receiver_type = "argparse.ArgumentParser";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_17[] = { "__init__", "start_section", "end_section", "add_text", "add_usage", "add_argument", "add_arguments", "format_help", "_format_actions_usage", NULL };
+    static const char *py_methods_17[] = {"__init__",
+                                          "start_section",
+                                          "end_section",
+                                          "add_text",
+                                          "add_usage",
+                                          "add_argument",
+                                          "add_arguments",
+                                          "format_help",
+                                          "_format_actions_usage",
+                                          NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse.HelpFormatter";
     rt.short_name = "HelpFormatter";
@@ -346,33 +379,33 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse.RawDescriptionHelpFormatter";
     rt.short_name = "RawDescriptionHelpFormatter";
-    static const char* py_bases_18[] = { "argparse.HelpFormatter", NULL };
+    static const char *py_bases_18[] = {"argparse.HelpFormatter", NULL};
     rt.embedded_types = py_bases_18;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse.RawTextHelpFormatter";
     rt.short_name = "RawTextHelpFormatter";
-    static const char* py_bases_19[] = { "argparse.RawDescriptionHelpFormatter", NULL };
+    static const char *py_bases_19[] = {"argparse.RawDescriptionHelpFormatter", NULL};
     rt.embedded_types = py_bases_19;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse.ArgumentDefaultsHelpFormatter";
     rt.short_name = "ArgumentDefaultsHelpFormatter";
-    static const char* py_bases_20[] = { "argparse.HelpFormatter", NULL };
+    static const char *py_bases_20[] = {"argparse.HelpFormatter", NULL};
     rt.embedded_types = py_bases_20;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse.MetavarTypeHelpFormatter";
     rt.short_name = "MetavarTypeHelpFormatter";
-    static const char* py_bases_21[] = { "argparse.HelpFormatter", NULL };
+    static const char *py_bases_21[] = {"argparse.HelpFormatter", NULL};
     rt.embedded_types = py_bases_21;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_22[] = { "__init__", "__call__", "format_usage", NULL };
+    static const char *py_methods_22[] = {"__init__", "__call__", "format_usage", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse.Action";
     rt.short_name = "Action";
     rt.method_names = py_methods_22;
-    static const char* py_bases_23[] = { "argparse._AttributeHolder", NULL };
+    static const char *py_bases_23[] = {"argparse._AttributeHolder", NULL};
     rt.embedded_types = py_bases_23;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -390,12 +423,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "format_usage";
     rf.receiver_type = "argparse.Action";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_24[] = { "__init__", NULL };
+    static const char *py_methods_24[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse.BooleanOptionalAction";
     rt.short_name = "BooleanOptionalAction";
     rt.method_names = py_methods_24;
-    static const char* py_bases_25[] = { "argparse.Action", NULL };
+    static const char *py_bases_25[] = {"argparse.Action", NULL};
     rt.embedded_types = py_bases_25;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -403,12 +436,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "argparse.BooleanOptionalAction";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_26[] = { "__init__", NULL };
+    static const char *py_methods_26[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse.BooleanOptionalAction";
     rt.short_name = "BooleanOptionalAction";
     rt.method_names = py_methods_26;
-    static const char* py_bases_27[] = { "argparse.Action", NULL };
+    static const char *py_bases_27[] = {"argparse.Action", NULL};
     rt.embedded_types = py_bases_27;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -416,12 +449,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "argparse.BooleanOptionalAction";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_28[] = { "__init__", NULL };
+    static const char *py_methods_28[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse.Namespace";
     rt.short_name = "Namespace";
     rt.method_names = py_methods_28;
-    static const char* py_bases_29[] = { "argparse._AttributeHolder", NULL };
+    static const char *py_bases_29[] = {"argparse._AttributeHolder", NULL};
     rt.embedded_types = py_bases_29;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -429,7 +462,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "argparse.Namespace";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_30[] = { "__init__", "__call__", NULL };
+    static const char *py_methods_30[] = {"__init__", "__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse.FileType";
     rt.short_name = "FileType";
@@ -445,7 +478,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "argparse.FileType";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_31[] = { "__init__", "__call__", NULL };
+    static const char *py_methods_31[] = {"__init__", "__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse.FileType";
     rt.short_name = "FileType";
@@ -461,12 +494,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "argparse.FileType";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_32[] = { "__init__", NULL };
+    static const char *py_methods_32[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._ArgumentGroup";
     rt.short_name = "_ArgumentGroup";
     rt.method_names = py_methods_32;
-    static const char* py_bases_33[] = { "argparse._ActionsContainer", NULL };
+    static const char *py_bases_33[] = {"argparse._ActionsContainer", NULL};
     rt.embedded_types = py_bases_33;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -474,12 +507,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "argparse._ArgumentGroup";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_34[] = { "__init__", NULL };
+    static const char *py_methods_34[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._MutuallyExclusiveGroup";
     rt.short_name = "_MutuallyExclusiveGroup";
     rt.method_names = py_methods_34;
-    static const char* py_bases_35[] = { "argparse._ArgumentGroup", NULL };
+    static const char *py_bases_35[] = {"argparse._ArgumentGroup", NULL};
     rt.embedded_types = py_bases_35;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -490,15 +523,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._StoreAction";
     rt.short_name = "_StoreAction";
-    static const char* py_bases_36[] = { "argparse.Action", NULL };
+    static const char *py_bases_36[] = {"argparse.Action", NULL};
     rt.embedded_types = py_bases_36;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_37[] = { "__init__", NULL };
+    static const char *py_methods_37[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._StoreConstAction";
     rt.short_name = "_StoreConstAction";
     rt.method_names = py_methods_37;
-    static const char* py_bases_38[] = { "argparse.Action", NULL };
+    static const char *py_bases_38[] = {"argparse.Action", NULL};
     rt.embedded_types = py_bases_38;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -506,12 +539,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "argparse._StoreConstAction";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_39[] = { "__init__", NULL };
+    static const char *py_methods_39[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._StoreTrueAction";
     rt.short_name = "_StoreTrueAction";
     rt.method_names = py_methods_39;
-    static const char* py_bases_40[] = { "argparse._StoreConstAction", NULL };
+    static const char *py_bases_40[] = {"argparse._StoreConstAction", NULL};
     rt.embedded_types = py_bases_40;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -519,12 +552,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "argparse._StoreTrueAction";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_41[] = { "__init__", NULL };
+    static const char *py_methods_41[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._StoreFalseAction";
     rt.short_name = "_StoreFalseAction";
     rt.method_names = py_methods_41;
-    static const char* py_bases_42[] = { "argparse._StoreConstAction", NULL };
+    static const char *py_bases_42[] = {"argparse._StoreConstAction", NULL};
     rt.embedded_types = py_bases_42;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -535,21 +568,21 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._AppendAction";
     rt.short_name = "_AppendAction";
-    static const char* py_bases_43[] = { "argparse.Action", NULL };
+    static const char *py_bases_43[] = {"argparse.Action", NULL};
     rt.embedded_types = py_bases_43;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._ExtendAction";
     rt.short_name = "_ExtendAction";
-    static const char* py_bases_44[] = { "argparse._AppendAction", NULL };
+    static const char *py_bases_44[] = {"argparse._AppendAction", NULL};
     rt.embedded_types = py_bases_44;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_45[] = { "__init__", NULL };
+    static const char *py_methods_45[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._AppendConstAction";
     rt.short_name = "_AppendConstAction";
     rt.method_names = py_methods_45;
-    static const char* py_bases_46[] = { "argparse.Action", NULL };
+    static const char *py_bases_46[] = {"argparse.Action", NULL};
     rt.embedded_types = py_bases_46;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -557,12 +590,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "argparse._AppendConstAction";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_47[] = { "__init__", NULL };
+    static const char *py_methods_47[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._CountAction";
     rt.short_name = "_CountAction";
     rt.method_names = py_methods_47;
-    static const char* py_bases_48[] = { "argparse.Action", NULL };
+    static const char *py_bases_48[] = {"argparse.Action", NULL};
     rt.embedded_types = py_bases_48;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -570,12 +603,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "argparse._CountAction";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_49[] = { "__init__", NULL };
+    static const char *py_methods_49[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._HelpAction";
     rt.short_name = "_HelpAction";
     rt.method_names = py_methods_49;
-    static const char* py_bases_50[] = { "argparse.Action", NULL };
+    static const char *py_bases_50[] = {"argparse.Action", NULL};
     rt.embedded_types = py_bases_50;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -583,12 +616,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "argparse._HelpAction";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_51[] = { "__init__", NULL };
+    static const char *py_methods_51[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._VersionAction";
     rt.short_name = "_VersionAction";
     rt.method_names = py_methods_51;
-    static const char* py_bases_52[] = { "argparse.Action", NULL };
+    static const char *py_bases_52[] = {"argparse.Action", NULL};
     rt.embedded_types = py_bases_52;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -596,12 +629,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "argparse._VersionAction";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_53[] = { "__init__", "add_parser", NULL };
+    static const char *py_methods_53[] = {"__init__", "add_parser", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse._SubParsersAction";
     rt.short_name = "_SubParsersAction";
     rt.method_names = py_methods_53;
-    static const char* py_bases_54[] = { "argparse.Action", NULL };
+    static const char *py_bases_54[] = {"argparse.Action", NULL};
     rt.embedded_types = py_bases_54;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -617,12 +650,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "argparse.ArgumentTypeError";
     rt.short_name = "ArgumentTypeError";
-    static const char* py_bases_55[] = { "argparse.Exception", NULL };
+    static const char *py_bases_55[] = {"argparse.Exception", NULL};
     rt.embedded_types = py_bases_55;
     cbm_registry_add_type(reg, rt);
 
     /* ===== module: asyncio ===== */
-    static const char* py_methods_56[] = { "__init__", "check_returncode", NULL };
+    static const char *py_methods_56[] = {"__init__", "check_returncode", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.CompletedProcess";
     rt.short_name = "CompletedProcess";
@@ -641,15 +674,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.SubprocessError";
     rt.short_name = "SubprocessError";
-    static const char* py_bases_57[] = { "subprocess.Exception", NULL };
+    static const char *py_bases_57[] = {"subprocess.Exception", NULL};
     rt.embedded_types = py_bases_57;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_58[] = { "__init__", NULL };
+    static const char *py_methods_58[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.TimeoutExpired";
     rt.short_name = "TimeoutExpired";
     rt.method_names = py_methods_58;
-    static const char* py_bases_59[] = { "subprocess.SubprocessError", NULL };
+    static const char *py_bases_59[] = {"subprocess.SubprocessError", NULL};
     rt.embedded_types = py_bases_59;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -657,12 +690,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "asyncio.TimeoutExpired";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_60[] = { "__init__", NULL };
+    static const char *py_methods_60[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.CalledProcessError";
     rt.short_name = "CalledProcessError";
     rt.method_names = py_methods_60;
-    static const char* py_bases_61[] = { "subprocess.SubprocessError", NULL };
+    static const char *py_bases_61[] = {"subprocess.SubprocessError", NULL};
     rt.embedded_types = py_bases_61;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -670,7 +703,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "asyncio.CalledProcessError";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_62[] = { "__init__", "poll", "wait", "communicate", "send_signal", "terminate", "kill", "__enter__", "__exit__", NULL };
+    static const char *py_methods_62[] = {"__init__",    "poll",      "wait", "communicate",
+                                          "send_signal", "terminate", "kill", "__enter__",
+                                          "__exit__",    NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.Popen";
     rt.short_name = "Popen";
@@ -721,7 +756,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__exit__";
     rf.receiver_type = "asyncio.Popen";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_63[] = { "__init__", "copy", NULL };
+    static const char *py_methods_63[] = {"__init__", "copy", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.STARTUPINFO";
     rt.short_name = "STARTUPINFO";
@@ -767,12 +802,22 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.base_events ===== */
-    static const char* py_methods_64[] = { "__init__", "close_clients", "abort_clients", "get_loop", "is_serving", "start_serving", "serve_forever", "sockets", "close", "wait_closed", NULL };
+    static const char *py_methods_64[] = {"__init__",
+                                          "close_clients",
+                                          "abort_clients",
+                                          "get_loop",
+                                          "is_serving",
+                                          "start_serving",
+                                          "serve_forever",
+                                          "sockets",
+                                          "close",
+                                          "wait_closed",
+                                          NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.base_events.Server";
     rt.short_name = "Server";
     rt.method_names = py_methods_64;
-    static const char* py_bases_65[] = { "asyncio.base_events.AbstractServer", NULL };
+    static const char *py_bases_65[] = {"asyncio.base_events.AbstractServer", NULL};
     rt.embedded_types = py_bases_65;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -825,12 +870,64 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "wait_closed";
     rf.receiver_type = "asyncio.base_events.Server";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_66[] = { "run_forever", "run_until_complete", "stop", "is_running", "is_closed", "close", "shutdown_asyncgens", "call_soon", "call_later", "call_at", "time", "create_future", "create_task", "set_task_factory", "get_task_factory", "call_soon_threadsafe", "run_in_executor", "set_default_executor", "getaddrinfo", "getnameinfo", "create_connection", "create_server", "start_tls", "connect_accepted_socket", "sock_sendfile", "sendfile", "create_datagram_endpoint", "connect_read_pipe", "connect_write_pipe", "subprocess_shell", "subprocess_exec", "add_reader", "remove_reader", "add_writer", "remove_writer", "sock_recv", "sock_recv_into", "sock_sendall", "sock_connect", "sock_accept", "sock_recvfrom", "sock_recvfrom_into", "sock_sendto", "add_signal_handler", "remove_signal_handler", "set_exception_handler", "get_exception_handler", "default_exception_handler", "call_exception_handler", "get_debug", "set_debug", "shutdown_default_executor", NULL };
+    static const char *py_methods_66[] = {"run_forever",
+                                          "run_until_complete",
+                                          "stop",
+                                          "is_running",
+                                          "is_closed",
+                                          "close",
+                                          "shutdown_asyncgens",
+                                          "call_soon",
+                                          "call_later",
+                                          "call_at",
+                                          "time",
+                                          "create_future",
+                                          "create_task",
+                                          "set_task_factory",
+                                          "get_task_factory",
+                                          "call_soon_threadsafe",
+                                          "run_in_executor",
+                                          "set_default_executor",
+                                          "getaddrinfo",
+                                          "getnameinfo",
+                                          "create_connection",
+                                          "create_server",
+                                          "start_tls",
+                                          "connect_accepted_socket",
+                                          "sock_sendfile",
+                                          "sendfile",
+                                          "create_datagram_endpoint",
+                                          "connect_read_pipe",
+                                          "connect_write_pipe",
+                                          "subprocess_shell",
+                                          "subprocess_exec",
+                                          "add_reader",
+                                          "remove_reader",
+                                          "add_writer",
+                                          "remove_writer",
+                                          "sock_recv",
+                                          "sock_recv_into",
+                                          "sock_sendall",
+                                          "sock_connect",
+                                          "sock_accept",
+                                          "sock_recvfrom",
+                                          "sock_recvfrom_into",
+                                          "sock_sendto",
+                                          "add_signal_handler",
+                                          "remove_signal_handler",
+                                          "set_exception_handler",
+                                          "get_exception_handler",
+                                          "default_exception_handler",
+                                          "call_exception_handler",
+                                          "get_debug",
+                                          "set_debug",
+                                          "shutdown_default_executor",
+                                          NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.base_events.BaseEventLoop";
     rt.short_name = "BaseEventLoop";
     rt.method_names = py_methods_66;
-    static const char* py_bases_67[] = { "asyncio.base_events.AbstractEventLoop", NULL };
+    static const char *py_bases_67[] = {"asyncio.base_events.AbstractEventLoop", NULL};
     rt.embedded_types = py_bases_67;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1101,12 +1198,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.base_subprocess ===== */
-    static const char* py_methods_68[] = { "__init__", "get_pid", "get_pipe_transport", "send_signal", NULL };
+    static const char *py_methods_68[] = {"__init__", "get_pid", "get_pipe_transport",
+                                          "send_signal", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.base_subprocess.BaseSubprocessTransport";
     rt.short_name = "BaseSubprocessTransport";
     rt.method_names = py_methods_68;
-    static const char* py_bases_69[] = { "transports.SubprocessTransport", NULL };
+    static const char *py_bases_69[] = {"transports.SubprocessTransport", NULL};
     rt.embedded_types = py_bases_69;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1129,12 +1227,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "send_signal";
     rf.receiver_type = "asyncio.base_subprocess.BaseSubprocessTransport";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_70[] = { "__init__", NULL };
+    static const char *py_methods_70[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.base_subprocess.WriteSubprocessPipeProto";
     rt.short_name = "WriteSubprocessPipeProto";
     rt.method_names = py_methods_70;
-    static const char* py_bases_71[] = { "protocols.BaseProtocol", NULL };
+    static const char *py_bases_71[] = {"protocols.BaseProtocol", NULL};
     rt.embedded_types = py_bases_71;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1145,7 +1243,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.base_subprocess.ReadSubprocessPipeProto";
     rt.short_name = "ReadSubprocessPipeProto";
-    static const char* py_bases_72[] = { "asyncio.base_subprocess.WriteSubprocessPipeProto", "protocols.Protocol", NULL };
+    static const char *py_bases_72[] = {"asyncio.base_subprocess.WriteSubprocessPipeProto",
+                                        "protocols.Protocol", NULL};
     rt.embedded_types = py_bases_72;
     cbm_registry_add_type(reg, rt);
 
@@ -1153,7 +1252,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.constants._SendfileMode";
     rt.short_name = "_SendfileMode";
-    static const char* py_bases_73[] = { "enum.Enum", NULL };
+    static const char *py_bases_73[] = {"enum.Enum", NULL};
     rt.embedded_types = py_bases_73;
     cbm_registry_add_type(reg, rt);
 
@@ -1172,12 +1271,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.events ===== */
-    static const char* py_methods_74[] = { "__call__", NULL };
+    static const char *py_methods_74[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.events._TaskFactory";
     rt.short_name = "_TaskFactory";
     rt.method_names = py_methods_74;
-    static const char* py_bases_75[] = { "asyncio.events.Protocol", NULL };
+    static const char *py_bases_75[] = {"asyncio.events.Protocol", NULL};
     rt.embedded_types = py_bases_75;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1185,7 +1284,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "asyncio.events._TaskFactory";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_76[] = { "__init__", "cancel", "cancelled", "get_context", NULL };
+    static const char *py_methods_76[] = {"__init__", "cancel", "cancelled", "get_context", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.events.Handle";
     rt.short_name = "Handle";
@@ -1211,12 +1310,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "get_context";
     rf.receiver_type = "asyncio.events.Handle";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_77[] = { "__init__", "when", NULL };
+    static const char *py_methods_77[] = {"__init__", "when", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.events.TimerHandle";
     rt.short_name = "TimerHandle";
     rt.method_names = py_methods_77;
-    static const char* py_bases_78[] = { "asyncio.events.Handle", NULL };
+    static const char *py_bases_78[] = {"asyncio.events.Handle", NULL};
     rt.embedded_types = py_bases_78;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1229,7 +1328,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "when";
     rf.receiver_type = "asyncio.events.TimerHandle";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_79[] = { "close", "close_clients", "abort_clients", "get_loop", "is_serving", "start_serving", "serve_forever", "wait_closed", NULL };
+    static const char *py_methods_79[] = {"close",         "close_clients", "abort_clients",
+                                          "get_loop",      "is_serving",    "start_serving",
+                                          "serve_forever", "wait_closed",   NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.events.AbstractServer";
     rt.short_name = "AbstractServer";
@@ -1275,7 +1376,61 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "wait_closed";
     rf.receiver_type = "asyncio.events.AbstractServer";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_80[] = { "run_forever", "run_until_complete", "stop", "is_running", "is_closed", "close", "shutdown_asyncgens", "call_soon", "call_later", "call_at", "time", "create_future", "create_task", "set_task_factory", "get_task_factory", "call_soon_threadsafe", "run_in_executor", "set_default_executor", "getaddrinfo", "getnameinfo", "create_connection", "create_server", "start_tls", "create_unix_server", "connect_accepted_socket", "create_unix_connection", "sock_sendfile", "sendfile", "create_datagram_endpoint", "connect_read_pipe", "connect_write_pipe", "subprocess_shell", "subprocess_exec", "add_reader", "remove_reader", "add_writer", "remove_writer", "sock_recv", "sock_recv_into", "sock_sendall", "sock_connect", "sock_accept", "sock_recvfrom", "sock_recvfrom_into", "sock_sendto", "add_signal_handler", "remove_signal_handler", "set_exception_handler", "get_exception_handler", "default_exception_handler", "call_exception_handler", "get_debug", "set_debug", "shutdown_default_executor", NULL };
+    static const char *py_methods_80[] = {"run_forever",
+                                          "run_until_complete",
+                                          "stop",
+                                          "is_running",
+                                          "is_closed",
+                                          "close",
+                                          "shutdown_asyncgens",
+                                          "call_soon",
+                                          "call_later",
+                                          "call_at",
+                                          "time",
+                                          "create_future",
+                                          "create_task",
+                                          "set_task_factory",
+                                          "get_task_factory",
+                                          "call_soon_threadsafe",
+                                          "run_in_executor",
+                                          "set_default_executor",
+                                          "getaddrinfo",
+                                          "getnameinfo",
+                                          "create_connection",
+                                          "create_server",
+                                          "start_tls",
+                                          "create_unix_server",
+                                          "connect_accepted_socket",
+                                          "create_unix_connection",
+                                          "sock_sendfile",
+                                          "sendfile",
+                                          "create_datagram_endpoint",
+                                          "connect_read_pipe",
+                                          "connect_write_pipe",
+                                          "subprocess_shell",
+                                          "subprocess_exec",
+                                          "add_reader",
+                                          "remove_reader",
+                                          "add_writer",
+                                          "remove_writer",
+                                          "sock_recv",
+                                          "sock_recv_into",
+                                          "sock_sendall",
+                                          "sock_connect",
+                                          "sock_accept",
+                                          "sock_recvfrom",
+                                          "sock_recvfrom_into",
+                                          "sock_sendto",
+                                          "add_signal_handler",
+                                          "remove_signal_handler",
+                                          "set_exception_handler",
+                                          "get_exception_handler",
+                                          "default_exception_handler",
+                                          "call_exception_handler",
+                                          "get_debug",
+                                          "set_debug",
+                                          "shutdown_default_executor",
+                                          NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.events.AbstractEventLoop";
     rt.short_name = "AbstractEventLoop";
@@ -1551,7 +1706,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "shutdown_default_executor";
     rf.receiver_type = "asyncio.events.AbstractEventLoop";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_81[] = { "get_event_loop", "set_event_loop", "new_event_loop", NULL };
+    static const char *py_methods_81[] = {"get_event_loop", "set_event_loop", "new_event_loop",
+                                          NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.events._AbstractEventLoopPolicy";
     rt.short_name = "_AbstractEventLoopPolicy";
@@ -1572,7 +1728,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "new_event_loop";
     rf.receiver_type = "asyncio.events._AbstractEventLoopPolicy";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_82[] = { "get_event_loop", "set_event_loop", "new_event_loop", "get_child_watcher", "set_child_watcher", NULL };
+    static const char *py_methods_82[] = {"get_event_loop",    "set_event_loop",
+                                          "new_event_loop",    "get_child_watcher",
+                                          "set_child_watcher", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.events._AbstractEventLoopPolicy";
     rt.short_name = "_AbstractEventLoopPolicy";
@@ -1603,12 +1761,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "set_child_watcher";
     rf.receiver_type = "asyncio.events._AbstractEventLoopPolicy";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_83[] = { "get_event_loop", "set_event_loop", "new_event_loop", NULL };
+    static const char *py_methods_83[] = {"get_event_loop", "set_event_loop", "new_event_loop",
+                                          NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.events._BaseDefaultEventLoopPolicy";
     rt.short_name = "_BaseDefaultEventLoopPolicy";
     rt.method_names = py_methods_83;
-    static const char* py_bases_84[] = { "asyncio.events._AbstractEventLoopPolicy", NULL };
+    static const char *py_bases_84[] = {"asyncio.events._AbstractEventLoopPolicy", NULL};
     rt.embedded_types = py_bases_84;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1626,12 +1785,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "new_event_loop";
     rf.receiver_type = "asyncio.events._BaseDefaultEventLoopPolicy";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_85[] = { "get_event_loop", "set_event_loop", "new_event_loop", NULL };
+    static const char *py_methods_85[] = {"get_event_loop", "set_event_loop", "new_event_loop",
+                                          NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.events.BaseDefaultEventLoopPolicy";
     rt.short_name = "BaseDefaultEventLoopPolicy";
     rt.method_names = py_methods_85;
-    static const char* py_bases_86[] = { "asyncio.events._AbstractEventLoopPolicy", NULL };
+    static const char *py_bases_86[] = {"asyncio.events._AbstractEventLoopPolicy", NULL};
     rt.embedded_types = py_bases_86;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1678,33 +1838,33 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.exceptions.CancelledError";
     rt.short_name = "CancelledError";
-    static const char* py_bases_87[] = { "asyncio.exceptions.BaseException", NULL };
+    static const char *py_bases_87[] = {"asyncio.exceptions.BaseException", NULL};
     rt.embedded_types = py_bases_87;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.exceptions.TimeoutError";
     rt.short_name = "TimeoutError";
-    static const char* py_bases_88[] = { "asyncio.exceptions.Exception", NULL };
+    static const char *py_bases_88[] = {"asyncio.exceptions.Exception", NULL};
     rt.embedded_types = py_bases_88;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.exceptions.InvalidStateError";
     rt.short_name = "InvalidStateError";
-    static const char* py_bases_89[] = { "asyncio.exceptions.Exception", NULL };
+    static const char *py_bases_89[] = {"asyncio.exceptions.Exception", NULL};
     rt.embedded_types = py_bases_89;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.exceptions.SendfileNotAvailableError";
     rt.short_name = "SendfileNotAvailableError";
-    static const char* py_bases_90[] = { "asyncio.exceptions.RuntimeError", NULL };
+    static const char *py_bases_90[] = {"asyncio.exceptions.RuntimeError", NULL};
     rt.embedded_types = py_bases_90;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_91[] = { "__init__", NULL };
+    static const char *py_methods_91[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.exceptions.IncompleteReadError";
     rt.short_name = "IncompleteReadError";
     rt.method_names = py_methods_91;
-    static const char* py_bases_92[] = { "asyncio.exceptions.EOFError", NULL };
+    static const char *py_bases_92[] = {"asyncio.exceptions.EOFError", NULL};
     rt.embedded_types = py_bases_92;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1712,12 +1872,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "asyncio.exceptions.IncompleteReadError";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_93[] = { "__init__", NULL };
+    static const char *py_methods_93[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.exceptions.LimitOverrunError";
     rt.short_name = "LimitOverrunError";
     rt.method_names = py_methods_93;
-    static const char* py_bases_94[] = { "asyncio.exceptions.Exception", NULL };
+    static const char *py_bases_94[] = {"asyncio.exceptions.Exception", NULL};
     rt.embedded_types = py_bases_94;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1728,7 +1888,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.exceptions.BrokenBarrierError";
     rt.short_name = "BrokenBarrierError";
-    static const char* py_bases_95[] = { "asyncio.exceptions.RuntimeError", NULL };
+    static const char *py_bases_95[] = {"asyncio.exceptions.RuntimeError", NULL};
     rt.embedded_types = py_bases_95;
     cbm_registry_add_type(reg, rt);
 
@@ -1775,12 +1935,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "asyncio.locks._ContextManagerMixin";
     rt.short_name = "_ContextManagerMixin";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_96[] = { "__init__", "locked", "acquire", "release", NULL };
+    static const char *py_methods_96[] = {"__init__", "locked", "acquire", "release", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.locks.Lock";
     rt.short_name = "Lock";
     rt.method_names = py_methods_96;
-    static const char* py_bases_97[] = { "asyncio.locks._ContextManagerMixin", "asyncio.locks._LoopBoundMixin", NULL };
+    static const char *py_bases_97[] = {"asyncio.locks._ContextManagerMixin",
+                                        "asyncio.locks._LoopBoundMixin", NULL};
     rt.embedded_types = py_bases_97;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1803,12 +1964,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "release";
     rf.receiver_type = "asyncio.locks.Lock";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_98[] = { "__init__", "is_set", "set", "clear", "wait", NULL };
+    static const char *py_methods_98[] = {"__init__", "is_set", "set", "clear", "wait", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.locks.Event";
     rt.short_name = "Event";
     rt.method_names = py_methods_98;
-    static const char* py_bases_99[] = { "asyncio.locks._LoopBoundMixin", NULL };
+    static const char *py_bases_99[] = {"asyncio.locks._LoopBoundMixin", NULL};
     rt.embedded_types = py_bases_99;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1836,12 +1997,14 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "wait";
     rf.receiver_type = "asyncio.locks.Event";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_100[] = { "__init__", "locked", "acquire", "release", "wait", "wait_for", "notify", "notify_all", NULL };
+    static const char *py_methods_100[] = {"__init__", "locked", "acquire",    "release", "wait",
+                                           "wait_for", "notify", "notify_all", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.locks.Condition";
     rt.short_name = "Condition";
     rt.method_names = py_methods_100;
-    static const char* py_bases_101[] = { "asyncio.locks._ContextManagerMixin", "asyncio.locks._LoopBoundMixin", NULL };
+    static const char *py_bases_101[] = {"asyncio.locks._ContextManagerMixin",
+                                         "asyncio.locks._LoopBoundMixin", NULL};
     rt.embedded_types = py_bases_101;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1884,12 +2047,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "notify_all";
     rf.receiver_type = "asyncio.locks.Condition";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_102[] = { "__init__", "locked", "acquire", "release", NULL };
+    static const char *py_methods_102[] = {"__init__", "locked", "acquire", "release", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.locks.Semaphore";
     rt.short_name = "Semaphore";
     rt.method_names = py_methods_102;
-    static const char* py_bases_103[] = { "asyncio.locks._ContextManagerMixin", "asyncio.locks._LoopBoundMixin", NULL };
+    static const char *py_bases_103[] = {"asyncio.locks._ContextManagerMixin",
+                                         "asyncio.locks._LoopBoundMixin", NULL};
     rt.embedded_types = py_bases_103;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1915,21 +2079,22 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.locks.BoundedSemaphore";
     rt.short_name = "BoundedSemaphore";
-    static const char* py_bases_104[] = { "asyncio.locks.Semaphore", NULL };
+    static const char *py_bases_104[] = {"asyncio.locks.Semaphore", NULL};
     rt.embedded_types = py_bases_104;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.locks._BarrierState";
     rt.short_name = "_BarrierState";
-    static const char* py_bases_105[] = { "enum.Enum", NULL };
+    static const char *py_bases_105[] = {"enum.Enum", NULL};
     rt.embedded_types = py_bases_105;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_106[] = { "__init__", "wait", "abort", "reset", "parties", "n_waiting", "broken", NULL };
+    static const char *py_methods_106[] = {"__init__", "wait",      "abort",  "reset",
+                                           "parties",  "n_waiting", "broken", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.locks.Barrier";
     rt.short_name = "Barrier";
     rt.method_names = py_methods_106;
-    static const char* py_bases_107[] = { "asyncio.locks._LoopBoundMixin", NULL };
+    static const char *py_bases_107[] = {"asyncio.locks._LoopBoundMixin", NULL};
     rt.embedded_types = py_bases_107;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1969,7 +2134,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.mixins ===== */
-    static const char* py_methods_108[] = { "__init__", NULL };
+    static const char *py_methods_108[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.mixins._LoopBoundMixin";
     rt.short_name = "_LoopBoundMixin";
@@ -1982,12 +2147,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.proactor_events ===== */
-    static const char* py_methods_109[] = { "__init__", NULL };
+    static const char *py_methods_109[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.proactor_events._ProactorBasePipeTransport";
     rt.short_name = "_ProactorBasePipeTransport";
     rt.method_names = py_methods_109;
-    static const char* py_bases_110[] = { "transports._FlowControlMixin", "transports.BaseTransport", NULL };
+    static const char *py_bases_110[] = {"transports._FlowControlMixin", "transports.BaseTransport",
+                                         NULL};
     rt.embedded_types = py_bases_110;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -1995,12 +2161,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "asyncio.proactor_events._ProactorBasePipeTransport";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_111[] = { "__init__", NULL };
+    static const char *py_methods_111[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.proactor_events._ProactorReadPipeTransport";
     rt.short_name = "_ProactorReadPipeTransport";
     rt.method_names = py_methods_111;
-    static const char* py_bases_112[] = { "asyncio.proactor_events._ProactorBasePipeTransport", "transports.ReadTransport", NULL };
+    static const char *py_bases_112[] = {"asyncio.proactor_events._ProactorBasePipeTransport",
+                                         "transports.ReadTransport", NULL};
     rt.embedded_types = py_bases_112;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2011,27 +2178,33 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.proactor_events._ProactorBaseWritePipeTransport";
     rt.short_name = "_ProactorBaseWritePipeTransport";
-    static const char* py_bases_113[] = { "asyncio.proactor_events._ProactorBasePipeTransport", "transports.WriteTransport", NULL };
+    static const char *py_bases_113[] = {"asyncio.proactor_events._ProactorBasePipeTransport",
+                                         "transports.WriteTransport", NULL};
     rt.embedded_types = py_bases_113;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.proactor_events._ProactorWritePipeTransport";
     rt.short_name = "_ProactorWritePipeTransport";
-    static const char* py_bases_114[] = { "asyncio.proactor_events._ProactorBaseWritePipeTransport", NULL };
+    static const char *py_bases_114[] = {"asyncio.proactor_events._ProactorBaseWritePipeTransport",
+                                         NULL};
     rt.embedded_types = py_bases_114;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.proactor_events._ProactorDuplexPipeTransport";
     rt.short_name = "_ProactorDuplexPipeTransport";
-    static const char* py_bases_115[] = { "asyncio.proactor_events._ProactorReadPipeTransport", "asyncio.proactor_events._ProactorBaseWritePipeTransport", "transports.Transport", NULL };
+    static const char *py_bases_115[] = {"asyncio.proactor_events._ProactorReadPipeTransport",
+                                         "asyncio.proactor_events._ProactorBaseWritePipeTransport",
+                                         "transports.Transport", NULL};
     rt.embedded_types = py_bases_115;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_116[] = { "__init__", "can_write_eof", NULL };
+    static const char *py_methods_116[] = {"__init__", "can_write_eof", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.proactor_events._ProactorSocketTransport";
     rt.short_name = "_ProactorSocketTransport";
     rt.method_names = py_methods_116;
-    static const char* py_bases_117[] = { "asyncio.proactor_events._ProactorReadPipeTransport", "asyncio.proactor_events._ProactorBaseWritePipeTransport", "transports.Transport", NULL };
+    static const char *py_bases_117[] = {"asyncio.proactor_events._ProactorReadPipeTransport",
+                                         "asyncio.proactor_events._ProactorBaseWritePipeTransport",
+                                         "transports.Transport", NULL};
     rt.embedded_types = py_bases_117;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2044,12 +2217,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "can_write_eof";
     rf.receiver_type = "asyncio.proactor_events._ProactorSocketTransport";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_118[] = { "__init__", "sock_recv", NULL };
+    static const char *py_methods_118[] = {"__init__", "sock_recv", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.proactor_events.BaseProactorEventLoop";
     rt.short_name = "BaseProactorEventLoop";
     rt.method_names = py_methods_118;
-    static const char* py_bases_119[] = { "base_events.BaseEventLoop", NULL };
+    static const char *py_bases_119[] = {"base_events.BaseEventLoop", NULL};
     rt.embedded_types = py_bases_119;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2064,7 +2237,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.protocols ===== */
-    static const char* py_methods_120[] = { "connection_made", "connection_lost", "pause_writing", "resume_writing", NULL };
+    static const char *py_methods_120[] = {"connection_made", "connection_lost", "pause_writing",
+                                           "resume_writing", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.protocols.BaseProtocol";
     rt.short_name = "BaseProtocol";
@@ -2090,12 +2264,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "resume_writing";
     rf.receiver_type = "asyncio.protocols.BaseProtocol";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_121[] = { "data_received", "eof_received", NULL };
+    static const char *py_methods_121[] = {"data_received", "eof_received", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.protocols.Protocol";
     rt.short_name = "Protocol";
     rt.method_names = py_methods_121;
-    static const char* py_bases_122[] = { "asyncio.protocols.BaseProtocol", NULL };
+    static const char *py_bases_122[] = {"asyncio.protocols.BaseProtocol", NULL};
     rt.embedded_types = py_bases_122;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2108,12 +2282,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "eof_received";
     rf.receiver_type = "asyncio.protocols.Protocol";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_123[] = { "get_buffer", "buffer_updated", "eof_received", NULL };
+    static const char *py_methods_123[] = {"get_buffer", "buffer_updated", "eof_received", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.protocols.BufferedProtocol";
     rt.short_name = "BufferedProtocol";
     rt.method_names = py_methods_123;
-    static const char* py_bases_124[] = { "asyncio.protocols.BaseProtocol", NULL };
+    static const char *py_bases_124[] = {"asyncio.protocols.BaseProtocol", NULL};
     rt.embedded_types = py_bases_124;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2131,12 +2305,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "eof_received";
     rf.receiver_type = "asyncio.protocols.BufferedProtocol";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_125[] = { "connection_made", "datagram_received", "error_received", NULL };
+    static const char *py_methods_125[] = {"connection_made", "datagram_received", "error_received",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.protocols.DatagramProtocol";
     rt.short_name = "DatagramProtocol";
     rt.method_names = py_methods_125;
-    static const char* py_bases_126[] = { "asyncio.protocols.BaseProtocol", NULL };
+    static const char *py_bases_126[] = {"asyncio.protocols.BaseProtocol", NULL};
     rt.embedded_types = py_bases_126;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2154,12 +2329,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "error_received";
     rf.receiver_type = "asyncio.protocols.DatagramProtocol";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_127[] = { "pipe_data_received", "pipe_connection_lost", "process_exited", NULL };
+    static const char *py_methods_127[] = {"pipe_data_received", "pipe_connection_lost",
+                                           "process_exited", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.protocols.SubprocessProtocol";
     rt.short_name = "SubprocessProtocol";
     rt.method_names = py_methods_127;
-    static const char* py_bases_128[] = { "asyncio.protocols.BaseProtocol", NULL };
+    static const char *py_bases_128[] = {"asyncio.protocols.BaseProtocol", NULL};
     rt.embedded_types = py_bases_128;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2182,27 +2358,29 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.queues.QueueEmpty";
     rt.short_name = "QueueEmpty";
-    static const char* py_bases_129[] = { "asyncio.queues.Exception", NULL };
+    static const char *py_bases_129[] = {"asyncio.queues.Exception", NULL};
     rt.embedded_types = py_bases_129;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.queues.QueueFull";
     rt.short_name = "QueueFull";
-    static const char* py_bases_130[] = { "asyncio.queues.Exception", NULL };
+    static const char *py_bases_130[] = {"asyncio.queues.Exception", NULL};
     rt.embedded_types = py_bases_130;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.queues.QueueShutDown";
     rt.short_name = "QueueShutDown";
-    static const char* py_bases_131[] = { "asyncio.queues.Exception", NULL };
+    static const char *py_bases_131[] = {"asyncio.queues.Exception", NULL};
     rt.embedded_types = py_bases_131;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_132[] = { "__init__", "qsize", "maxsize", "empty", "full", "put", "put_nowait", "get", "get_nowait", "join", "task_done", "shutdown", NULL };
+    static const char *py_methods_132[] = {
+        "__init__", "qsize",      "maxsize", "empty",     "full",     "put", "put_nowait",
+        "get",      "get_nowait", "join",    "task_done", "shutdown", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.queues.Queue";
     rt.short_name = "Queue";
     rt.method_names = py_methods_132;
-    static const char* py_bases_133[] = { "asyncio.queues._LoopBoundMixin", NULL };
+    static const char *py_bases_133[] = {"asyncio.queues._LoopBoundMixin", NULL};
     rt.embedded_types = py_bases_133;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2275,7 +2453,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_type(reg, rt);
 
     /* ===== module: asyncio.runners ===== */
-    static const char* py_methods_134[] = { "__init__", "__enter__", "__exit__", "close", "get_loop", "run", NULL };
+    static const char *py_methods_134[] = {"__init__", "__enter__", "__exit__", "close",
+                                           "get_loop", "run",       NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.runners.Runner";
     rt.short_name = "Runner";
@@ -2317,12 +2496,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.selector_events ===== */
-    static const char* py_methods_135[] = { "__init__", "sock_recv", NULL };
+    static const char *py_methods_135[] = {"__init__", "sock_recv", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.selector_events.BaseSelectorEventLoop";
     rt.short_name = "BaseSelectorEventLoop";
     rt.method_names = py_methods_135;
-    static const char* py_bases_136[] = { "base_events.BaseEventLoop", NULL };
+    static const char *py_bases_136[] = {"base_events.BaseEventLoop", NULL};
     rt.embedded_types = py_bases_136;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2340,16 +2519,18 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.sslproto.SSLProtocolState";
     rt.short_name = "SSLProtocolState";
-    static const char* py_bases_137[] = { "asyncio.sslproto.Enum", NULL };
+    static const char *py_bases_137[] = {"asyncio.sslproto.Enum", NULL};
     rt.embedded_types = py_bases_137;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.sslproto.AppProtocolState";
     rt.short_name = "AppProtocolState";
-    static const char* py_bases_138[] = { "asyncio.sslproto.Enum", NULL };
+    static const char *py_bases_138[] = {"asyncio.sslproto.Enum", NULL};
     rt.embedded_types = py_bases_138;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_139[] = { "__init__", "context", "ssl_object", "need_ssldata", "wrapped", "do_handshake", "shutdown", "feed_eof", "feed_ssldata", "feed_appdata", NULL };
+    static const char *py_methods_139[] = {
+        "__init__", "context",  "ssl_object",   "need_ssldata", "wrapped", "do_handshake",
+        "shutdown", "feed_eof", "feed_ssldata", "feed_appdata", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.sslproto._SSLPipe";
     rt.short_name = "_SSLPipe";
@@ -2405,12 +2586,21 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "feed_appdata";
     rf.receiver_type = "asyncio.sslproto._SSLPipe";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_140[] = { "__init__", "get_extra_info", "write", "can_write_eof", "get_write_buffer_limits", "get_read_buffer_limits", "set_read_buffer_limits", "get_read_buffer_size", NULL };
+    static const char *py_methods_140[] = {"__init__",
+                                           "get_extra_info",
+                                           "write",
+                                           "can_write_eof",
+                                           "get_write_buffer_limits",
+                                           "get_read_buffer_limits",
+                                           "set_read_buffer_limits",
+                                           "get_read_buffer_size",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.sslproto._SSLProtocolTransport";
     rt.short_name = "_SSLProtocolTransport";
     rt.method_names = py_methods_140;
-    static const char* py_bases_141[] = { "transports._FlowControlMixin", "transports.Transport", NULL };
+    static const char *py_bases_141[] = {"transports._FlowControlMixin", "transports.Transport",
+                                         NULL};
     rt.embedded_types = py_bases_141;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2453,12 +2643,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "get_read_buffer_size";
     rf.receiver_type = "asyncio.sslproto._SSLProtocolTransport";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_142[] = { "__init__", "connection_lost", "eof_received", "_write_appdata", "_abort", "get_buffer", "_finalize", "_process_write_backlog", NULL };
+    static const char *py_methods_142[] = {
+        "__init__", "connection_lost", "eof_received", "_write_appdata",
+        "_abort",   "get_buffer",      "_finalize",    "_process_write_backlog",
+        NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.sslproto.SSLProtocol";
     rt.short_name = "SSLProtocol";
     rt.method_names = py_methods_142;
-    static const char* py_bases_143[] = { "asyncio.sslproto._SSLProtocolBase", NULL };
+    static const char *py_bases_143[] = {"asyncio.sslproto._SSLProtocolBase", NULL};
     rt.embedded_types = py_bases_143;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2516,15 +2709,16 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.streams._ReaduntilBuffer";
     rt.short_name = "_ReaduntilBuffer";
-    static const char* py_bases_144[] = { "asyncio.streams.ReadableBuffer", "asyncio.streams.Sized", "asyncio.streams.Protocol", NULL };
+    static const char *py_bases_144[] = {"asyncio.streams.ReadableBuffer", "asyncio.streams.Sized",
+                                         "asyncio.streams.Protocol", NULL};
     rt.embedded_types = py_bases_144;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_145[] = { "__init__", NULL };
+    static const char *py_methods_145[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.streams.FlowControlMixin";
     rt.short_name = "FlowControlMixin";
     rt.method_names = py_methods_145;
-    static const char* py_bases_146[] = { "protocols.Protocol", NULL };
+    static const char *py_bases_146[] = {"protocols.Protocol", NULL};
     rt.embedded_types = py_bases_146;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2532,12 +2726,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "asyncio.streams.FlowControlMixin";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_147[] = { "__init__", NULL };
+    static const char *py_methods_147[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.streams.StreamReaderProtocol";
     rt.short_name = "StreamReaderProtocol";
     rt.method_names = py_methods_147;
-    static const char* py_bases_148[] = { "asyncio.streams.FlowControlMixin", "protocols.Protocol", NULL };
+    static const char *py_bases_148[] = {"asyncio.streams.FlowControlMixin", "protocols.Protocol",
+                                         NULL};
     rt.embedded_types = py_bases_148;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2545,7 +2740,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "asyncio.streams.StreamReaderProtocol";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_149[] = { "__init__", "transport", "write", "writelines", "write_eof", "can_write_eof", "close", "is_closing", "wait_closed", "get_extra_info", "drain", "start_tls", "__del__", NULL };
+    static const char *py_methods_149[] = {
+        "__init__",      "transport", "write",      "writelines",  "write_eof",
+        "can_write_eof", "close",     "is_closing", "wait_closed", "get_extra_info",
+        "drain",         "start_tls", "__del__",    NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.streams.StreamWriter";
     rt.short_name = "StreamWriter";
@@ -2616,7 +2814,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__del__";
     rf.receiver_type = "asyncio.streams.StreamWriter";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_150[] = { "__init__", "exception", "set_exception", "set_transport", "feed_eof", "at_eof", "feed_data", "readline", "readuntil", "read", "readexactly", NULL };
+    static const char *py_methods_150[] = {
+        "__init__",  "exception", "set_exception", "set_transport", "feed_eof",    "at_eof",
+        "feed_data", "readline",  "readuntil",     "read",          "readexactly", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.streams.StreamReader";
     rt.short_name = "StreamReader";
@@ -2695,12 +2895,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.subprocess ===== */
-    static const char* py_methods_151[] = { "__init__", "pipe_data_received", NULL };
+    static const char *py_methods_151[] = {"__init__", "pipe_data_received", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.subprocess.SubprocessStreamProtocol";
     rt.short_name = "SubprocessStreamProtocol";
     rt.method_names = py_methods_151;
-    static const char* py_bases_152[] = { "streams.FlowControlMixin", "protocols.SubprocessProtocol", NULL };
+    static const char *py_bases_152[] = {"streams.FlowControlMixin", "protocols.SubprocessProtocol",
+                                         NULL};
     rt.embedded_types = py_bases_152;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2713,7 +2914,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "pipe_data_received";
     rf.receiver_type = "asyncio.subprocess.SubprocessStreamProtocol";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_153[] = { "__init__", "returncode", "wait", "send_signal", "terminate", "kill", "communicate", NULL };
+    static const char *py_methods_153[] = {"__init__",  "returncode", "wait",        "send_signal",
+                                           "terminate", "kill",       "communicate", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.subprocess.Process";
     rt.short_name = "Process";
@@ -2764,7 +2966,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.taskgroups ===== */
-    static const char* py_methods_154[] = { "create_task", NULL };
+    static const char *py_methods_154[] = {"create_task", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.taskgroups.TaskGroup";
     rt.short_name = "TaskGroup";
@@ -2781,7 +2983,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "asyncio.tasks._SyncAndAsyncIterator";
     rt.short_name = "_SyncAndAsyncIterator";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_155[] = { "__call__", NULL };
+    static const char *py_methods_155[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.tasks._CustomTaskConstructor";
     rt.short_name = "_CustomTaskConstructor";
@@ -2792,7 +2994,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "asyncio.tasks._CustomTaskConstructor";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_156[] = { "__call__", NULL };
+    static const char *py_methods_156[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.tasks._EagerTaskFactoryType";
     rt.short_name = "_EagerTaskFactoryType";
@@ -2863,7 +3065,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.timeouts ===== */
-    static const char* py_methods_157[] = { "__init__", "when", "reschedule", "expired", NULL };
+    static const char *py_methods_157[] = {"__init__", "when", "reschedule", "expired", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.timeouts.Timeout";
     rt.short_name = "Timeout";
@@ -2902,39 +3104,39 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.tools._AwaitedInfo";
     rt.short_name = "_AwaitedInfo";
-    static const char* py_bases_158[] = { "asyncio.tools.NamedTuple", NULL };
+    static const char *py_bases_158[] = {"asyncio.tools.NamedTuple", NULL};
     rt.embedded_types = py_bases_158;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.tools._TaskInfo";
     rt.short_name = "_TaskInfo";
-    static const char* py_bases_159[] = { "asyncio.tools.NamedTuple", NULL };
+    static const char *py_bases_159[] = {"asyncio.tools.NamedTuple", NULL};
     rt.embedded_types = py_bases_159;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.tools._CoroInfo";
     rt.short_name = "_CoroInfo";
-    static const char* py_bases_160[] = { "asyncio.tools.NamedTuple", NULL };
+    static const char *py_bases_160[] = {"asyncio.tools.NamedTuple", NULL};
     rt.embedded_types = py_bases_160;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.tools._FrameInfo";
     rt.short_name = "_FrameInfo";
-    static const char* py_bases_161[] = { "asyncio.tools.NamedTuple", NULL };
+    static const char *py_bases_161[] = {"asyncio.tools.NamedTuple", NULL};
     rt.embedded_types = py_bases_161;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.tools.NodeType";
     rt.short_name = "NodeType";
-    static const char* py_bases_162[] = { "asyncio.tools.Enum", NULL };
+    static const char *py_bases_162[] = {"asyncio.tools.Enum", NULL};
     rt.embedded_types = py_bases_162;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_163[] = { "__init__", NULL };
+    static const char *py_methods_163[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.tools.CycleFoundException";
     rt.short_name = "CycleFoundException";
     rt.method_names = py_methods_163;
-    static const char* py_bases_164[] = { "asyncio.tools.Exception", NULL };
+    static const char *py_bases_164[] = {"asyncio.tools.Exception", NULL};
     rt.embedded_types = py_bases_164;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -2968,7 +3170,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.transports ===== */
-    static const char* py_methods_165[] = { "__init__", "get_extra_info", "is_closing", "close", "set_protocol", "get_protocol", NULL };
+    static const char *py_methods_165[] = {"__init__",     "get_extra_info", "is_closing", "close",
+                                           "set_protocol", "get_protocol",   NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.transports.BaseTransport";
     rt.short_name = "BaseTransport";
@@ -3004,12 +3207,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "get_protocol";
     rf.receiver_type = "asyncio.transports.BaseTransport";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_166[] = { "is_reading", "pause_reading", "resume_reading", NULL };
+    static const char *py_methods_166[] = {"is_reading", "pause_reading", "resume_reading", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.transports.ReadTransport";
     rt.short_name = "ReadTransport";
     rt.method_names = py_methods_166;
-    static const char* py_bases_167[] = { "asyncio.transports.BaseTransport", NULL };
+    static const char *py_bases_167[] = {"asyncio.transports.BaseTransport", NULL};
     rt.embedded_types = py_bases_167;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3027,12 +3230,20 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "resume_reading";
     rf.receiver_type = "asyncio.transports.ReadTransport";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_168[] = { "set_write_buffer_limits", "get_write_buffer_size", "get_write_buffer_limits", "write", "writelines", "write_eof", "can_write_eof", "abort", NULL };
+    static const char *py_methods_168[] = {"set_write_buffer_limits",
+                                           "get_write_buffer_size",
+                                           "get_write_buffer_limits",
+                                           "write",
+                                           "writelines",
+                                           "write_eof",
+                                           "can_write_eof",
+                                           "abort",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.transports.WriteTransport";
     rt.short_name = "WriteTransport";
     rt.method_names = py_methods_168;
-    static const char* py_bases_169[] = { "asyncio.transports.BaseTransport", NULL };
+    static const char *py_bases_169[] = {"asyncio.transports.BaseTransport", NULL};
     rt.embedded_types = py_bases_169;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3078,15 +3289,16 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.transports.Transport";
     rt.short_name = "Transport";
-    static const char* py_bases_170[] = { "asyncio.transports.ReadTransport", "asyncio.transports.WriteTransport", NULL };
+    static const char *py_bases_170[] = {"asyncio.transports.ReadTransport",
+                                         "asyncio.transports.WriteTransport", NULL};
     rt.embedded_types = py_bases_170;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_171[] = { "sendto", "abort", NULL };
+    static const char *py_methods_171[] = {"sendto", "abort", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.transports.DatagramTransport";
     rt.short_name = "DatagramTransport";
     rt.method_names = py_methods_171;
-    static const char* py_bases_172[] = { "asyncio.transports.BaseTransport", NULL };
+    static const char *py_bases_172[] = {"asyncio.transports.BaseTransport", NULL};
     rt.embedded_types = py_bases_172;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3099,12 +3311,14 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "abort";
     rf.receiver_type = "asyncio.transports.DatagramTransport";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_173[] = { "get_pid", "get_returncode", "get_pipe_transport", "send_signal", "terminate", "kill", NULL };
+    static const char *py_methods_173[] = {"get_pid",     "get_returncode", "get_pipe_transport",
+                                           "send_signal", "terminate",      "kill",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.transports.SubprocessTransport";
     rt.short_name = "SubprocessTransport";
     rt.method_names = py_methods_173;
-    static const char* py_bases_174[] = { "asyncio.transports.BaseTransport", NULL };
+    static const char *py_bases_174[] = {"asyncio.transports.BaseTransport", NULL};
     rt.embedded_types = py_bases_174;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3137,12 +3351,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "kill";
     rf.receiver_type = "asyncio.transports.SubprocessTransport";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_175[] = { "__init__", NULL };
+    static const char *py_methods_175[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.transports._FlowControlMixin";
     rt.short_name = "_FlowControlMixin";
     rt.method_names = py_methods_175;
-    static const char* py_bases_176[] = { "asyncio.transports.Transport", NULL };
+    static const char *py_bases_176[] = {"asyncio.transports.Transport", NULL};
     rt.embedded_types = py_bases_176;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3152,7 +3366,46 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.trsock ===== */
-    static const char* py_methods_177[] = { "__init__", "family", "type", "proto", "fileno", "dup", "get_inheritable", "shutdown", "getsockopt", "setsockopt", "getpeername", "getsockname", "getsockbyname", "settimeout", "gettimeout", "setblocking", "_na", "accept", "connect", "connect_ex", "bind", "listen", "makefile", "sendfile", "close", "detach", "sendmsg", "sendto", "send", "sendall", "set_inheritable", "recv_into", "recvfrom_into", "recvmsg_into", "recvmsg", "recvfrom", "recv", "__enter__", "__exit__", NULL };
+    static const char *py_methods_177[] = {"__init__",
+                                           "family",
+                                           "type",
+                                           "proto",
+                                           "fileno",
+                                           "dup",
+                                           "get_inheritable",
+                                           "shutdown",
+                                           "getsockopt",
+                                           "setsockopt",
+                                           "getpeername",
+                                           "getsockname",
+                                           "getsockbyname",
+                                           "settimeout",
+                                           "gettimeout",
+                                           "setblocking",
+                                           "_na",
+                                           "accept",
+                                           "connect",
+                                           "connect_ex",
+                                           "bind",
+                                           "listen",
+                                           "makefile",
+                                           "sendfile",
+                                           "close",
+                                           "detach",
+                                           "sendmsg",
+                                           "sendto",
+                                           "send",
+                                           "sendall",
+                                           "set_inheritable",
+                                           "recv_into",
+                                           "recvfrom_into",
+                                           "recvmsg_into",
+                                           "recvmsg",
+                                           "recvfrom",
+                                           "recv",
+                                           "__enter__",
+                                           "__exit__",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.trsock.TransportSocket";
     rt.short_name = "TransportSocket";
@@ -3355,7 +3608,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.unix_events ===== */
-    static const char* py_methods_178[] = { "add_child_handler", "remove_child_handler", "attach_loop", "close", "__enter__", "__exit__", "is_active", NULL };
+    static const char *py_methods_178[] = {"add_child_handler", "remove_child_handler",
+                                           "attach_loop",       "close",
+                                           "__enter__",         "__exit__",
+                                           "is_active",         NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events.AbstractChildWatcher";
     rt.short_name = "AbstractChildWatcher";
@@ -3396,7 +3652,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "is_active";
     rf.receiver_type = "asyncio.unix_events.AbstractChildWatcher";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_179[] = { "add_child_handler", "remove_child_handler", "attach_loop", "close", "__enter__", "__exit__", "is_active", NULL };
+    static const char *py_methods_179[] = {"add_child_handler", "remove_child_handler",
+                                           "attach_loop",       "close",
+                                           "__enter__",         "__exit__",
+                                           "is_active",         NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events.AbstractChildWatcher";
     rt.short_name = "AbstractChildWatcher";
@@ -3437,12 +3696,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "is_active";
     rf.receiver_type = "asyncio.unix_events.AbstractChildWatcher";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_180[] = { "close", "is_active", "attach_loop", NULL };
+    static const char *py_methods_180[] = {"close", "is_active", "attach_loop", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events.BaseChildWatcher";
     rt.short_name = "BaseChildWatcher";
     rt.method_names = py_methods_180;
-    static const char* py_bases_181[] = { "asyncio.unix_events.AbstractChildWatcher", NULL };
+    static const char *py_bases_181[] = {"asyncio.unix_events.AbstractChildWatcher", NULL};
     rt.embedded_types = py_bases_181;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3460,12 +3719,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "attach_loop";
     rf.receiver_type = "asyncio.unix_events.BaseChildWatcher";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_182[] = { "__enter__", "__exit__", "add_child_handler", "remove_child_handler", NULL };
+    static const char *py_methods_182[] = {"__enter__", "__exit__", "add_child_handler",
+                                           "remove_child_handler", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events.SafeChildWatcher";
     rt.short_name = "SafeChildWatcher";
     rt.method_names = py_methods_182;
-    static const char* py_bases_183[] = { "asyncio.unix_events.BaseChildWatcher", NULL };
+    static const char *py_bases_183[] = {"asyncio.unix_events.BaseChildWatcher", NULL};
     rt.embedded_types = py_bases_183;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3488,12 +3748,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "remove_child_handler";
     rf.receiver_type = "asyncio.unix_events.SafeChildWatcher";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_184[] = { "__enter__", "__exit__", "add_child_handler", "remove_child_handler", NULL };
+    static const char *py_methods_184[] = {"__enter__", "__exit__", "add_child_handler",
+                                           "remove_child_handler", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events.FastChildWatcher";
     rt.short_name = "FastChildWatcher";
     rt.method_names = py_methods_184;
-    static const char* py_bases_185[] = { "asyncio.unix_events.BaseChildWatcher", NULL };
+    static const char *py_bases_185[] = {"asyncio.unix_events.BaseChildWatcher", NULL};
     rt.embedded_types = py_bases_185;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3516,12 +3777,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "remove_child_handler";
     rf.receiver_type = "asyncio.unix_events.FastChildWatcher";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_186[] = { "close", "is_active", "attach_loop", NULL };
+    static const char *py_methods_186[] = {"close", "is_active", "attach_loop", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events.BaseChildWatcher";
     rt.short_name = "BaseChildWatcher";
     rt.method_names = py_methods_186;
-    static const char* py_bases_187[] = { "asyncio.unix_events.AbstractChildWatcher", NULL };
+    static const char *py_bases_187[] = {"asyncio.unix_events.AbstractChildWatcher", NULL};
     rt.embedded_types = py_bases_187;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3539,12 +3800,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "attach_loop";
     rf.receiver_type = "asyncio.unix_events.BaseChildWatcher";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_188[] = { "__enter__", "__exit__", "add_child_handler", "remove_child_handler", NULL };
+    static const char *py_methods_188[] = {"__enter__", "__exit__", "add_child_handler",
+                                           "remove_child_handler", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events.SafeChildWatcher";
     rt.short_name = "SafeChildWatcher";
     rt.method_names = py_methods_188;
-    static const char* py_bases_189[] = { "asyncio.unix_events.BaseChildWatcher", NULL };
+    static const char *py_bases_189[] = {"asyncio.unix_events.BaseChildWatcher", NULL};
     rt.embedded_types = py_bases_189;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3567,12 +3829,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "remove_child_handler";
     rf.receiver_type = "asyncio.unix_events.SafeChildWatcher";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_190[] = { "__enter__", "__exit__", "add_child_handler", "remove_child_handler", NULL };
+    static const char *py_methods_190[] = {"__enter__", "__exit__", "add_child_handler",
+                                           "remove_child_handler", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events.FastChildWatcher";
     rt.short_name = "FastChildWatcher";
     rt.method_names = py_methods_190;
-    static const char* py_bases_191[] = { "asyncio.unix_events.BaseChildWatcher", NULL };
+    static const char *py_bases_191[] = {"asyncio.unix_events.BaseChildWatcher", NULL};
     rt.embedded_types = py_bases_191;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3595,12 +3858,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "remove_child_handler";
     rf.receiver_type = "asyncio.unix_events.FastChildWatcher";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_192[] = { "create_unix_server", NULL };
+    static const char *py_methods_192[] = {"create_unix_server", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events._UnixSelectorEventLoop";
     rt.short_name = "_UnixSelectorEventLoop";
     rt.method_names = py_methods_192;
-    static const char* py_bases_193[] = { "asyncio.unix_events.BaseSelectorEventLoop", NULL };
+    static const char *py_bases_193[] = {"asyncio.unix_events.BaseSelectorEventLoop", NULL};
     rt.embedded_types = py_bases_193;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3611,15 +3874,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events._UnixDefaultEventLoopPolicy";
     rt.short_name = "_UnixDefaultEventLoopPolicy";
-    static const char* py_bases_194[] = { "events._BaseDefaultEventLoopPolicy", NULL };
+    static const char *py_bases_194[] = {"events._BaseDefaultEventLoopPolicy", NULL};
     rt.embedded_types = py_bases_194;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_195[] = { "get_child_watcher", "set_child_watcher", NULL };
+    static const char *py_methods_195[] = {"get_child_watcher", "set_child_watcher", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events._UnixDefaultEventLoopPolicy";
     rt.short_name = "_UnixDefaultEventLoopPolicy";
     rt.method_names = py_methods_195;
-    static const char* py_bases_196[] = { "events.BaseDefaultEventLoopPolicy", NULL };
+    static const char *py_bases_196[] = {"events.BaseDefaultEventLoopPolicy", NULL};
     rt.embedded_types = py_bases_196;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3632,12 +3895,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "set_child_watcher";
     rf.receiver_type = "asyncio.unix_events._UnixDefaultEventLoopPolicy";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_197[] = { "is_active", "close", "__enter__", "__exit__", "add_child_handler", "remove_child_handler", "attach_loop", NULL };
+    static const char *py_methods_197[] = {"is_active",         "close",
+                                           "__enter__",         "__exit__",
+                                           "add_child_handler", "remove_child_handler",
+                                           "attach_loop",       NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events.MultiLoopChildWatcher";
     rt.short_name = "MultiLoopChildWatcher";
     rt.method_names = py_methods_197;
-    static const char* py_bases_198[] = { "asyncio.unix_events.AbstractChildWatcher", NULL };
+    static const char *py_bases_198[] = {"asyncio.unix_events.AbstractChildWatcher", NULL};
     rt.embedded_types = py_bases_198;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3675,12 +3941,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "attach_loop";
     rf.receiver_type = "asyncio.unix_events.MultiLoopChildWatcher";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_199[] = { "is_active", "close", "__enter__", "__exit__", "add_child_handler", "remove_child_handler", "attach_loop", NULL };
+    static const char *py_methods_199[] = {"is_active",         "close",
+                                           "__enter__",         "__exit__",
+                                           "add_child_handler", "remove_child_handler",
+                                           "attach_loop",       NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events.ThreadedChildWatcher";
     rt.short_name = "ThreadedChildWatcher";
     rt.method_names = py_methods_199;
-    static const char* py_bases_200[] = { "asyncio.unix_events.AbstractChildWatcher", NULL };
+    static const char *py_bases_200[] = {"asyncio.unix_events.AbstractChildWatcher", NULL};
     rt.embedded_types = py_bases_200;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3718,12 +3987,19 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "attach_loop";
     rf.receiver_type = "asyncio.unix_events.ThreadedChildWatcher";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_201[] = { "__enter__", "__exit__", "is_active", "close", "attach_loop", "add_child_handler", "remove_child_handler", NULL };
+    static const char *py_methods_201[] = {"__enter__",
+                                           "__exit__",
+                                           "is_active",
+                                           "close",
+                                           "attach_loop",
+                                           "add_child_handler",
+                                           "remove_child_handler",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events.PidfdChildWatcher";
     rt.short_name = "PidfdChildWatcher";
     rt.method_names = py_methods_201;
-    static const char* py_bases_202[] = { "asyncio.unix_events.AbstractChildWatcher", NULL };
+    static const char *py_bases_202[] = {"asyncio.unix_events.AbstractChildWatcher", NULL};
     rt.embedded_types = py_bases_202;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3761,12 +4037,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "remove_child_handler";
     rf.receiver_type = "asyncio.unix_events.PidfdChildWatcher";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_203[] = { "is_active", "close", "__enter__", "__exit__", "add_child_handler", "remove_child_handler", "attach_loop", NULL };
+    static const char *py_methods_203[] = {"is_active",         "close",
+                                           "__enter__",         "__exit__",
+                                           "add_child_handler", "remove_child_handler",
+                                           "attach_loop",       NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events.MultiLoopChildWatcher";
     rt.short_name = "MultiLoopChildWatcher";
     rt.method_names = py_methods_203;
-    static const char* py_bases_204[] = { "asyncio.unix_events.AbstractChildWatcher", NULL };
+    static const char *py_bases_204[] = {"asyncio.unix_events.AbstractChildWatcher", NULL};
     rt.embedded_types = py_bases_204;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3804,12 +4083,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "attach_loop";
     rf.receiver_type = "asyncio.unix_events.MultiLoopChildWatcher";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_205[] = { "is_active", "close", "__enter__", "__exit__", "add_child_handler", "remove_child_handler", "attach_loop", NULL };
+    static const char *py_methods_205[] = {"is_active",         "close",
+                                           "__enter__",         "__exit__",
+                                           "add_child_handler", "remove_child_handler",
+                                           "attach_loop",       NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events.ThreadedChildWatcher";
     rt.short_name = "ThreadedChildWatcher";
     rt.method_names = py_methods_205;
-    static const char* py_bases_206[] = { "asyncio.unix_events.AbstractChildWatcher", NULL };
+    static const char *py_bases_206[] = {"asyncio.unix_events.AbstractChildWatcher", NULL};
     rt.embedded_types = py_bases_206;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3847,12 +4129,19 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "attach_loop";
     rf.receiver_type = "asyncio.unix_events.ThreadedChildWatcher";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_207[] = { "__enter__", "__exit__", "is_active", "close", "attach_loop", "add_child_handler", "remove_child_handler", NULL };
+    static const char *py_methods_207[] = {"__enter__",
+                                           "__exit__",
+                                           "is_active",
+                                           "close",
+                                           "attach_loop",
+                                           "add_child_handler",
+                                           "remove_child_handler",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.unix_events.PidfdChildWatcher";
     rt.short_name = "PidfdChildWatcher";
     rt.method_names = py_methods_207;
-    static const char* py_bases_208[] = { "asyncio.unix_events.AbstractChildWatcher", NULL };
+    static const char *py_bases_208[] = {"asyncio.unix_events.AbstractChildWatcher", NULL};
     rt.embedded_types = py_bases_208;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3892,7 +4181,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.windows_events ===== */
-    static const char* py_methods_209[] = { "__init__", "closed", "close", NULL };
+    static const char *py_methods_209[] = {"__init__", "closed", "close", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.windows_events.PipeServer";
     rt.short_name = "PipeServer";
@@ -3916,15 +4205,16 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.windows_events._WindowsSelectorEventLoop";
     rt.short_name = "_WindowsSelectorEventLoop";
-    static const char* py_bases_210[] = { "selector_events.BaseSelectorEventLoop", NULL };
+    static const char *py_bases_210[] = {"selector_events.BaseSelectorEventLoop", NULL};
     rt.embedded_types = py_bases_210;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_211[] = { "__init__", "create_pipe_connection", "start_serving_pipe", NULL };
+    static const char *py_methods_211[] = {"__init__", "create_pipe_connection",
+                                           "start_serving_pipe", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.windows_events.ProactorEventLoop";
     rt.short_name = "ProactorEventLoop";
     rt.method_names = py_methods_211;
-    static const char* py_bases_212[] = { "proactor_events.BaseProactorEventLoop", NULL };
+    static const char *py_bases_212[] = {"proactor_events.BaseProactorEventLoop", NULL};
     rt.embedded_types = py_bases_212;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -3942,7 +4232,23 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "start_serving_pipe";
     rf.receiver_type = "asyncio.windows_events.ProactorEventLoop";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_213[] = { "__init__", "set_loop", "select", "recv", "recv_into", "recvfrom", "sendto", "send", "accept", "connect", "sendfile", "accept_pipe", "connect_pipe", "wait_for_handle", "close", "recvfrom_into", NULL };
+    static const char *py_methods_213[] = {"__init__",
+                                           "set_loop",
+                                           "select",
+                                           "recv",
+                                           "recv_into",
+                                           "recvfrom",
+                                           "sendto",
+                                           "send",
+                                           "accept",
+                                           "connect",
+                                           "sendfile",
+                                           "accept_pipe",
+                                           "connect_pipe",
+                                           "wait_for_handle",
+                                           "close",
+                                           "recvfrom_into",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.windows_events.IocpProactor";
     rt.short_name = "IocpProactor";
@@ -4031,21 +4337,21 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.windows_events._WindowsSelectorEventLoopPolicy";
     rt.short_name = "_WindowsSelectorEventLoopPolicy";
-    static const char* py_bases_214[] = { "events._BaseDefaultEventLoopPolicy", NULL };
+    static const char *py_bases_214[] = {"events._BaseDefaultEventLoopPolicy", NULL};
     rt.embedded_types = py_bases_214;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.windows_events._WindowsProactorEventLoopPolicy";
     rt.short_name = "_WindowsProactorEventLoopPolicy";
-    static const char* py_bases_215[] = { "events._BaseDefaultEventLoopPolicy", NULL };
+    static const char *py_bases_215[] = {"events._BaseDefaultEventLoopPolicy", NULL};
     rt.embedded_types = py_bases_215;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_216[] = { "get_child_watcher", "set_child_watcher", NULL };
+    static const char *py_methods_216[] = {"get_child_watcher", "set_child_watcher", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.windows_events.WindowsSelectorEventLoopPolicy";
     rt.short_name = "WindowsSelectorEventLoopPolicy";
     rt.method_names = py_methods_216;
-    static const char* py_bases_217[] = { "events.BaseDefaultEventLoopPolicy", NULL };
+    static const char *py_bases_217[] = {"events.BaseDefaultEventLoopPolicy", NULL};
     rt.embedded_types = py_bases_217;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -4058,12 +4364,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "set_child_watcher";
     rf.receiver_type = "asyncio.windows_events.WindowsSelectorEventLoopPolicy";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_218[] = { "get_child_watcher", "set_child_watcher", NULL };
+    static const char *py_methods_218[] = {"get_child_watcher", "set_child_watcher", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.windows_events.WindowsProactorEventLoopPolicy";
     rt.short_name = "WindowsProactorEventLoopPolicy";
     rt.method_names = py_methods_218;
-    static const char* py_bases_219[] = { "events.BaseDefaultEventLoopPolicy", NULL };
+    static const char *py_bases_219[] = {"events.BaseDefaultEventLoopPolicy", NULL};
     rt.embedded_types = py_bases_219;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -4078,7 +4384,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: asyncio.windows_utils ===== */
-    static const char* py_methods_220[] = { "__init__", "__enter__", "__exit__", "handle", "fileno", "close", NULL };
+    static const char *py_methods_220[] = {"__init__", "__enter__", "__exit__", "handle",
+                                           "fileno",   "close",     NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.windows_utils.PipeHandle";
     rt.short_name = "PipeHandle";
@@ -4114,7 +4421,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "close";
     rf.receiver_type = "asyncio.windows_utils.PipeHandle";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_221[] = { "__init__", NULL };
+    static const char *py_methods_221[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "asyncio.windows_utils.Popen";
     rt.short_name = "Popen";
@@ -4131,7 +4438,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: builtins ===== */
-    static const char* py_methods_222[] = { "__init__", "__getstate__", NULL };
+    static const char *py_methods_222[] = {"__init__", "__getstate__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.object";
     rt.short_name = "object";
@@ -4147,7 +4454,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__getstate__";
     rf.receiver_type = "builtins.object";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_223[] = { "__init__", "__call__", "__class_getitem__", NULL };
+    static const char *py_methods_223[] = {"__init__", "__call__", "__class_getitem__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.staticmethod";
     rt.short_name = "staticmethod";
@@ -4168,7 +4475,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__class_getitem__";
     rf.receiver_type = "builtins.staticmethod";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_224[] = { "__init__", "__class_getitem__", NULL };
+    static const char *py_methods_224[] = {"__init__", "__class_getitem__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.classmethod";
     rt.short_name = "classmethod";
@@ -4184,7 +4491,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__class_getitem__";
     rf.receiver_type = "builtins.classmethod";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_225[] = { "__init__", "__call__", "mro", NULL };
+    static const char *py_methods_225[] = {"__init__", "__call__", "mro", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.type";
     rt.short_name = "type";
@@ -4205,7 +4512,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "mro";
     rf.receiver_type = "builtins.type";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_226[] = { "__init__", NULL };
+    static const char *py_methods_226[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.super";
     rt.short_name = "super";
@@ -4216,7 +4523,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "builtins.super";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_227[] = { "as_integer_ratio", "real", "imag", "numerator", "denominator", "conjugate", "bit_length", "bit_count", "to_bytes", "from_bytes", "is_integer", "__round__", NULL };
+    static const char *py_methods_227[] = {
+        "as_integer_ratio", "real",       "imag",      "numerator", "denominator",
+        "conjugate",        "bit_length", "bit_count", "to_bytes",  "from_bytes",
+        "is_integer",       "__round__",  NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.int";
     rt.short_name = "int";
@@ -4282,7 +4592,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__round__";
     rf.receiver_type = "builtins.int";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_228[] = { "as_integer_ratio", "hex", "is_integer", "fromhex", "real", "imag", "conjugate", "from_number", NULL };
+    static const char *py_methods_228[] = {"as_integer_ratio", "hex",         "is_integer",
+                                           "fromhex",          "real",        "imag",
+                                           "conjugate",        "from_number", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.float";
     rt.short_name = "float";
@@ -4328,7 +4640,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "from_number";
     rf.receiver_type = "builtins.float";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_229[] = { "real", "imag", "conjugate", "__complex__", "from_number", NULL };
+    static const char *py_methods_229[] = {"real",        "imag",        "conjugate",
+                                           "__complex__", "from_number", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.complex";
     rt.short_name = "complex";
@@ -4362,16 +4675,24 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins._FormatMapMapping";
     rt.short_name = "_FormatMapMapping";
-    static const char* py_bases_230[] = { "builtins.Protocol", NULL };
+    static const char *py_bases_230[] = {"builtins.Protocol", NULL};
     rt.embedded_types = py_bases_230;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins._TranslateTable";
     rt.short_name = "_TranslateTable";
-    static const char* py_bases_231[] = { "builtins.Protocol", NULL };
+    static const char *py_bases_231[] = {"builtins.Protocol", NULL};
     rt.embedded_types = py_bases_231;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_232[] = { "capitalize", "casefold", "center", "count", "encode", "endswith", "expandtabs", "find", "format", "format_map", "index", "isalnum", "isalpha", "isascii", "isdecimal", "isdigit", "isidentifier", "islower", "isnumeric", "isprintable", "isspace", "istitle", "isupper", "join", "ljust", "lower", "lstrip", "partition", "replace", "removeprefix", "removesuffix", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "split", "splitlines", "startswith", "strip", "swapcase", "title", "translate", "upper", "zfill", "maketrans", NULL };
+    static const char *py_methods_232[] = {
+        "capitalize",   "casefold",    "center",     "count",      "encode",       "endswith",
+        "expandtabs",   "find",        "format",     "format_map", "index",        "isalnum",
+        "isalpha",      "isascii",     "isdecimal",  "isdigit",    "isidentifier", "islower",
+        "isnumeric",    "isprintable", "isspace",    "istitle",    "isupper",      "join",
+        "ljust",        "lower",       "lstrip",     "partition",  "replace",      "removeprefix",
+        "removesuffix", "rfind",       "rindex",     "rjust",      "rpartition",   "rsplit",
+        "rstrip",       "split",       "splitlines", "startswith", "strip",        "swapcase",
+        "title",        "translate",   "upper",      "zfill",      "maketrans",    NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.str";
     rt.short_name = "str";
@@ -4612,7 +4933,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "maketrans";
     rf.receiver_type = "builtins.str";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_233[] = { "capitalize", "center", "count", "decode", "endswith", "expandtabs", "find", "hex", "index", "isalnum", "isalpha", "isascii", "isdigit", "islower", "isspace", "istitle", "isupper", "join", "ljust", "lower", "lstrip", "partition", "replace", "removeprefix", "removesuffix", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "split", "splitlines", "startswith", "strip", "swapcase", "title", "translate", "upper", "zfill", "fromhex", "maketrans", "__bytes__", NULL };
+    static const char *py_methods_233[] = {
+        "capitalize",   "center",    "count",      "decode",     "endswith",   "expandtabs",
+        "find",         "hex",       "index",      "isalnum",    "isalpha",    "isascii",
+        "isdigit",      "islower",   "isspace",    "istitle",    "isupper",    "join",
+        "ljust",        "lower",     "lstrip",     "partition",  "replace",    "removeprefix",
+        "removesuffix", "rfind",     "rindex",     "rjust",      "rpartition", "rsplit",
+        "rstrip",       "split",     "splitlines", "startswith", "strip",      "swapcase",
+        "title",        "translate", "upper",      "zfill",      "fromhex",    "maketrans",
+        "__bytes__",    NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.bytes";
     rt.short_name = "bytes";
@@ -4833,7 +5162,16 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__bytes__";
     rf.receiver_type = "builtins.bytes";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_234[] = { "__init__", "append", "capitalize", "center", "count", "copy", "decode", "endswith", "expandtabs", "extend", "find", "hex", "index", "insert", "isalnum", "isalpha", "isascii", "isdigit", "islower", "isspace", "istitle", "isupper", "join", "ljust", "lower", "lstrip", "partition", "pop", "remove", "removeprefix", "removesuffix", "replace", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "split", "splitlines", "startswith", "strip", "swapcase", "title", "translate", "take_bytes", "upper", "zfill", "fromhex", "maketrans", "resize", NULL };
+    static const char *py_methods_234[] = {
+        "__init__",     "append",    "capitalize", "center",     "count",      "copy",
+        "decode",       "endswith",  "expandtabs", "extend",     "find",       "hex",
+        "index",        "insert",    "isalnum",    "isalpha",    "isascii",    "isdigit",
+        "islower",      "isspace",   "istitle",    "isupper",    "join",       "ljust",
+        "lower",        "lstrip",    "partition",  "pop",        "remove",     "removeprefix",
+        "removesuffix", "replace",   "rfind",      "rindex",     "rjust",      "rpartition",
+        "rsplit",       "rstrip",    "split",      "splitlines", "startswith", "strip",
+        "swapcase",     "title",     "translate",  "take_bytes", "upper",      "zfill",
+        "fromhex",      "maketrans", "resize",     NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.bytearray";
     rt.short_name = "bytearray";
@@ -5094,7 +5432,30 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "resize";
     rf.receiver_type = "builtins.bytearray";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_235[] = { "format", "itemsize", "shape", "strides", "suboffsets", "readonly", "ndim", "obj", "c_contiguous", "f_contiguous", "contiguous", "nbytes", "__enter__", "__exit__", "cast", "tobytes", "tolist", "toreadonly", "release", "hex", "index", "count", "__class_getitem__", NULL };
+    static const char *py_methods_235[] = {"format",
+                                           "itemsize",
+                                           "shape",
+                                           "strides",
+                                           "suboffsets",
+                                           "readonly",
+                                           "ndim",
+                                           "obj",
+                                           "c_contiguous",
+                                           "f_contiguous",
+                                           "contiguous",
+                                           "nbytes",
+                                           "__enter__",
+                                           "__exit__",
+                                           "cast",
+                                           "tobytes",
+                                           "tolist",
+                                           "toreadonly",
+                                           "release",
+                                           "hex",
+                                           "index",
+                                           "count",
+                                           "__class_getitem__",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.memoryview";
     rt.short_name = "memoryview";
@@ -5218,10 +5579,11 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.bool";
     rt.short_name = "bool";
-    static const char* py_bases_236[] = { "builtins.int", NULL };
+    static const char *py_bases_236[] = {"builtins.int", NULL};
     rt.embedded_types = py_bases_236;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_237[] = { "start", "step", "stop", "__hash__", "indices", "__class_getitem__", NULL };
+    static const char *py_methods_237[] = {
+        "start", "step", "stop", "__hash__", "indices", "__class_getitem__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.slice";
     rt.short_name = "slice";
@@ -5257,7 +5619,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__class_getitem__";
     rf.receiver_type = "builtins.slice";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_238[] = { "count", "index", NULL };
+    static const char *py_methods_238[] = {"count", "index", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.tuple";
     rt.short_name = "tuple";
@@ -5273,7 +5635,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "index";
     rf.receiver_type = "builtins.tuple";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_239[] = { "__new__", NULL };
+    static const char *py_methods_239[] = {"__new__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.function";
     rt.short_name = "function";
@@ -5284,7 +5646,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__new__";
     rf.receiver_type = "builtins.function";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_240[] = { "__init__", "copy", "append", "extend", "pop", "index", "count", "insert", "remove", "sort", NULL };
+    static const char *py_methods_240[] = {"__init__", "copy",   "append", "extend", "pop", "index",
+                                           "count",    "insert", "remove", "sort",   NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.list";
     rt.short_name = "list";
@@ -5340,7 +5703,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "sort";
     rf.receiver_type = "builtins.list";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_241[] = { "__init__", "copy", "keys", "values", "items", "fromkeys", "get", "pop", "__or__", "__ror__", NULL };
+    static const char *py_methods_241[] = {"__init__", "copy",     "keys", "values",
+                                           "items",    "fromkeys", "get",  "pop",
+                                           "__or__",   "__ror__",  NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.dict";
     rt.short_name = "dict";
@@ -5396,7 +5761,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__ror__";
     rf.receiver_type = "builtins.dict";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_242[] = { "__init__", "copy", "fromkeys", "get", "keys", "values", "items", NULL };
+    static const char *py_methods_242[] = {"__init__", "copy",   "fromkeys", "get",
+                                           "keys",     "values", "items",    NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.frozendict";
     rt.short_name = "frozendict";
@@ -5437,7 +5803,23 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "items";
     rf.receiver_type = "builtins.frozendict";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_243[] = { "__init__", "add", "copy", "difference", "difference_update", "discard", "intersection", "intersection_update", "isdisjoint", "issubset", "issuperset", "remove", "symmetric_difference", "symmetric_difference_update", "union", "update", NULL };
+    static const char *py_methods_243[] = {"__init__",
+                                           "add",
+                                           "copy",
+                                           "difference",
+                                           "difference_update",
+                                           "discard",
+                                           "intersection",
+                                           "intersection_update",
+                                           "isdisjoint",
+                                           "issubset",
+                                           "issuperset",
+                                           "remove",
+                                           "symmetric_difference",
+                                           "symmetric_difference_update",
+                                           "union",
+                                           "update",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.set";
     rt.short_name = "set";
@@ -5523,7 +5905,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "update";
     rf.receiver_type = "builtins.set";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_244[] = { "copy", "difference", "intersection", "isdisjoint", "issubset", "issuperset", "symmetric_difference", "union", NULL };
+    static const char *py_methods_244[] = {
+        "copy",       "difference",           "intersection", "isdisjoint", "issubset",
+        "issuperset", "symmetric_difference", "union",        NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.frozenset";
     rt.short_name = "frozenset";
@@ -5573,7 +5957,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "builtins.enumerate";
     rt.short_name = "enumerate";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_245[] = { "start", "stop", "step", "count", "index", NULL };
+    static const char *py_methods_245[] = {"start", "stop", "step", "count", "index", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.range";
     rt.short_name = "range";
@@ -5604,7 +5988,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "index";
     rf.receiver_type = "builtins.range";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_246[] = { "__init__", "getter", "setter", "deleter", NULL };
+    static const char *py_methods_246[] = {"__init__", "getter", "setter", "deleter", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.property";
     rt.short_name = "property";
@@ -5642,7 +6026,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "builtins._GetItemIterable";
     rt.short_name = "_GetItemIterable";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_247[] = { "__new__", NULL };
+    static const char *py_methods_247[] = {"__new__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.map";
     rt.short_name = "map";
@@ -5656,7 +6040,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins._SupportsWriteAndFlush";
     rt.short_name = "_SupportsWriteAndFlush";
-    static const char* py_bases_248[] = { "builtins.SupportsFlush", NULL };
+    static const char *py_bases_248[] = {"builtins.SupportsFlush", NULL};
     rt.embedded_types = py_bases_248;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
@@ -5690,14 +6074,14 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins._SupportsSumWithNoDefaultGiven";
     rt.short_name = "_SupportsSumWithNoDefaultGiven";
-    static const char* py_bases_249[] = { "builtins.Protocol", NULL };
+    static const char *py_bases_249[] = {"builtins.Protocol", NULL};
     rt.embedded_types = py_bases_249;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.zip";
     rt.short_name = "zip";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_250[] = { "__init__", "with_traceback", "add_note", NULL };
+    static const char *py_methods_250[] = {"__init__", "with_traceback", "add_note", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.BaseException";
     rt.short_name = "BaseException";
@@ -5721,57 +6105,57 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.GeneratorExit";
     rt.short_name = "GeneratorExit";
-    static const char* py_bases_251[] = { "builtins.BaseException", NULL };
+    static const char *py_bases_251[] = {"builtins.BaseException", NULL};
     rt.embedded_types = py_bases_251;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.KeyboardInterrupt";
     rt.short_name = "KeyboardInterrupt";
-    static const char* py_bases_252[] = { "builtins.BaseException", NULL };
+    static const char *py_bases_252[] = {"builtins.BaseException", NULL};
     rt.embedded_types = py_bases_252;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.SystemExit";
     rt.short_name = "SystemExit";
-    static const char* py_bases_253[] = { "builtins.BaseException", NULL };
+    static const char *py_bases_253[] = {"builtins.BaseException", NULL};
     rt.embedded_types = py_bases_253;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.Exception";
     rt.short_name = "Exception";
-    static const char* py_bases_254[] = { "builtins.BaseException", NULL };
+    static const char *py_bases_254[] = {"builtins.BaseException", NULL};
     rt.embedded_types = py_bases_254;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.StopIteration";
     rt.short_name = "StopIteration";
-    static const char* py_bases_255[] = { "builtins.Exception", NULL };
+    static const char *py_bases_255[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_255;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.OSError";
     rt.short_name = "OSError";
-    static const char* py_bases_256[] = { "builtins.Exception", NULL };
+    static const char *py_bases_256[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_256;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ArithmeticError";
     rt.short_name = "ArithmeticError";
-    static const char* py_bases_257[] = { "builtins.Exception", NULL };
+    static const char *py_bases_257[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_257;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.AssertionError";
     rt.short_name = "AssertionError";
-    static const char* py_bases_258[] = { "builtins.Exception", NULL };
+    static const char *py_bases_258[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_258;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_259[] = { "__init__", NULL };
+    static const char *py_methods_259[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.AttributeError";
     rt.short_name = "AttributeError";
     rt.method_names = py_methods_259;
-    static const char* py_bases_260[] = { "builtins.Exception", NULL };
+    static const char *py_bases_260[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_260;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -5782,21 +6166,21 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.BufferError";
     rt.short_name = "BufferError";
-    static const char* py_bases_261[] = { "builtins.Exception", NULL };
+    static const char *py_bases_261[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_261;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.EOFError";
     rt.short_name = "EOFError";
-    static const char* py_bases_262[] = { "builtins.Exception", NULL };
+    static const char *py_bases_262[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_262;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_263[] = { "__init__", NULL };
+    static const char *py_methods_263[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ImportError";
     rt.short_name = "ImportError";
     rt.method_names = py_methods_263;
-    static const char* py_bases_264[] = { "builtins.Exception", NULL };
+    static const char *py_bases_264[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_264;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -5807,27 +6191,27 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ImportCycleError";
     rt.short_name = "ImportCycleError";
-    static const char* py_bases_265[] = { "builtins.ImportError", NULL };
+    static const char *py_bases_265[] = {"builtins.ImportError", NULL};
     rt.embedded_types = py_bases_265;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.LookupError";
     rt.short_name = "LookupError";
-    static const char* py_bases_266[] = { "builtins.Exception", NULL };
+    static const char *py_bases_266[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_266;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.MemoryError";
     rt.short_name = "MemoryError";
-    static const char* py_bases_267[] = { "builtins.Exception", NULL };
+    static const char *py_bases_267[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_267;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_268[] = { "__init__", NULL };
+    static const char *py_methods_268[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.NameError";
     rt.short_name = "NameError";
     rt.method_names = py_methods_268;
-    static const char* py_bases_269[] = { "builtins.Exception", NULL };
+    static const char *py_bases_269[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_269;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -5838,27 +6222,27 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ReferenceError";
     rt.short_name = "ReferenceError";
-    static const char* py_bases_270[] = { "builtins.Exception", NULL };
+    static const char *py_bases_270[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_270;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.RuntimeError";
     rt.short_name = "RuntimeError";
-    static const char* py_bases_271[] = { "builtins.Exception", NULL };
+    static const char *py_bases_271[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_271;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.StopAsyncIteration";
     rt.short_name = "StopAsyncIteration";
-    static const char* py_bases_272[] = { "builtins.Exception", NULL };
+    static const char *py_bases_272[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_272;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_273[] = { "__init__", NULL };
+    static const char *py_methods_273[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.SyntaxError";
     rt.short_name = "SyntaxError";
     rt.method_names = py_methods_273;
-    static const char* py_bases_274[] = { "builtins.Exception", NULL };
+    static const char *py_bases_274[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_274;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -5869,189 +6253,189 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.SystemError";
     rt.short_name = "SystemError";
-    static const char* py_bases_275[] = { "builtins.Exception", NULL };
+    static const char *py_bases_275[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_275;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.TypeError";
     rt.short_name = "TypeError";
-    static const char* py_bases_276[] = { "builtins.Exception", NULL };
+    static const char *py_bases_276[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_276;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ValueError";
     rt.short_name = "ValueError";
-    static const char* py_bases_277[] = { "builtins.Exception", NULL };
+    static const char *py_bases_277[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_277;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.FloatingPointError";
     rt.short_name = "FloatingPointError";
-    static const char* py_bases_278[] = { "builtins.ArithmeticError", NULL };
+    static const char *py_bases_278[] = {"builtins.ArithmeticError", NULL};
     rt.embedded_types = py_bases_278;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.OverflowError";
     rt.short_name = "OverflowError";
-    static const char* py_bases_279[] = { "builtins.ArithmeticError", NULL };
+    static const char *py_bases_279[] = {"builtins.ArithmeticError", NULL};
     rt.embedded_types = py_bases_279;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ZeroDivisionError";
     rt.short_name = "ZeroDivisionError";
-    static const char* py_bases_280[] = { "builtins.ArithmeticError", NULL };
+    static const char *py_bases_280[] = {"builtins.ArithmeticError", NULL};
     rt.embedded_types = py_bases_280;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ModuleNotFoundError";
     rt.short_name = "ModuleNotFoundError";
-    static const char* py_bases_281[] = { "builtins.ImportError", NULL };
+    static const char *py_bases_281[] = {"builtins.ImportError", NULL};
     rt.embedded_types = py_bases_281;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.IndexError";
     rt.short_name = "IndexError";
-    static const char* py_bases_282[] = { "builtins.LookupError", NULL };
+    static const char *py_bases_282[] = {"builtins.LookupError", NULL};
     rt.embedded_types = py_bases_282;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.KeyError";
     rt.short_name = "KeyError";
-    static const char* py_bases_283[] = { "builtins.LookupError", NULL };
+    static const char *py_bases_283[] = {"builtins.LookupError", NULL};
     rt.embedded_types = py_bases_283;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.UnboundLocalError";
     rt.short_name = "UnboundLocalError";
-    static const char* py_bases_284[] = { "builtins.NameError", NULL };
+    static const char *py_bases_284[] = {"builtins.NameError", NULL};
     rt.embedded_types = py_bases_284;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.BlockingIOError";
     rt.short_name = "BlockingIOError";
-    static const char* py_bases_285[] = { "builtins.OSError", NULL };
+    static const char *py_bases_285[] = {"builtins.OSError", NULL};
     rt.embedded_types = py_bases_285;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ChildProcessError";
     rt.short_name = "ChildProcessError";
-    static const char* py_bases_286[] = { "builtins.OSError", NULL };
+    static const char *py_bases_286[] = {"builtins.OSError", NULL};
     rt.embedded_types = py_bases_286;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ConnectionError";
     rt.short_name = "ConnectionError";
-    static const char* py_bases_287[] = { "builtins.OSError", NULL };
+    static const char *py_bases_287[] = {"builtins.OSError", NULL};
     rt.embedded_types = py_bases_287;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.BrokenPipeError";
     rt.short_name = "BrokenPipeError";
-    static const char* py_bases_288[] = { "builtins.ConnectionError", NULL };
+    static const char *py_bases_288[] = {"builtins.ConnectionError", NULL};
     rt.embedded_types = py_bases_288;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ConnectionAbortedError";
     rt.short_name = "ConnectionAbortedError";
-    static const char* py_bases_289[] = { "builtins.ConnectionError", NULL };
+    static const char *py_bases_289[] = {"builtins.ConnectionError", NULL};
     rt.embedded_types = py_bases_289;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ConnectionRefusedError";
     rt.short_name = "ConnectionRefusedError";
-    static const char* py_bases_290[] = { "builtins.ConnectionError", NULL };
+    static const char *py_bases_290[] = {"builtins.ConnectionError", NULL};
     rt.embedded_types = py_bases_290;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ConnectionResetError";
     rt.short_name = "ConnectionResetError";
-    static const char* py_bases_291[] = { "builtins.ConnectionError", NULL };
+    static const char *py_bases_291[] = {"builtins.ConnectionError", NULL};
     rt.embedded_types = py_bases_291;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.FileExistsError";
     rt.short_name = "FileExistsError";
-    static const char* py_bases_292[] = { "builtins.OSError", NULL };
+    static const char *py_bases_292[] = {"builtins.OSError", NULL};
     rt.embedded_types = py_bases_292;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.FileNotFoundError";
     rt.short_name = "FileNotFoundError";
-    static const char* py_bases_293[] = { "builtins.OSError", NULL };
+    static const char *py_bases_293[] = {"builtins.OSError", NULL};
     rt.embedded_types = py_bases_293;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.InterruptedError";
     rt.short_name = "InterruptedError";
-    static const char* py_bases_294[] = { "builtins.OSError", NULL };
+    static const char *py_bases_294[] = {"builtins.OSError", NULL};
     rt.embedded_types = py_bases_294;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.IsADirectoryError";
     rt.short_name = "IsADirectoryError";
-    static const char* py_bases_295[] = { "builtins.OSError", NULL };
+    static const char *py_bases_295[] = {"builtins.OSError", NULL};
     rt.embedded_types = py_bases_295;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.NotADirectoryError";
     rt.short_name = "NotADirectoryError";
-    static const char* py_bases_296[] = { "builtins.OSError", NULL };
+    static const char *py_bases_296[] = {"builtins.OSError", NULL};
     rt.embedded_types = py_bases_296;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.PermissionError";
     rt.short_name = "PermissionError";
-    static const char* py_bases_297[] = { "builtins.OSError", NULL };
+    static const char *py_bases_297[] = {"builtins.OSError", NULL};
     rt.embedded_types = py_bases_297;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ProcessLookupError";
     rt.short_name = "ProcessLookupError";
-    static const char* py_bases_298[] = { "builtins.OSError", NULL };
+    static const char *py_bases_298[] = {"builtins.OSError", NULL};
     rt.embedded_types = py_bases_298;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.TimeoutError";
     rt.short_name = "TimeoutError";
-    static const char* py_bases_299[] = { "builtins.OSError", NULL };
+    static const char *py_bases_299[] = {"builtins.OSError", NULL};
     rt.embedded_types = py_bases_299;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.NotImplementedError";
     rt.short_name = "NotImplementedError";
-    static const char* py_bases_300[] = { "builtins.RuntimeError", NULL };
+    static const char *py_bases_300[] = {"builtins.RuntimeError", NULL};
     rt.embedded_types = py_bases_300;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.RecursionError";
     rt.short_name = "RecursionError";
-    static const char* py_bases_301[] = { "builtins.RuntimeError", NULL };
+    static const char *py_bases_301[] = {"builtins.RuntimeError", NULL};
     rt.embedded_types = py_bases_301;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.IndentationError";
     rt.short_name = "IndentationError";
-    static const char* py_bases_302[] = { "builtins.SyntaxError", NULL };
+    static const char *py_bases_302[] = {"builtins.SyntaxError", NULL};
     rt.embedded_types = py_bases_302;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.TabError";
     rt.short_name = "TabError";
-    static const char* py_bases_303[] = { "builtins.IndentationError", NULL };
+    static const char *py_bases_303[] = {"builtins.IndentationError", NULL};
     rt.embedded_types = py_bases_303;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.UnicodeError";
     rt.short_name = "UnicodeError";
-    static const char* py_bases_304[] = { "builtins.ValueError", NULL };
+    static const char *py_bases_304[] = {"builtins.ValueError", NULL};
     rt.embedded_types = py_bases_304;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_305[] = { "__init__", NULL };
+    static const char *py_methods_305[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.UnicodeDecodeError";
     rt.short_name = "UnicodeDecodeError";
     rt.method_names = py_methods_305;
-    static const char* py_bases_306[] = { "builtins.UnicodeError", NULL };
+    static const char *py_bases_306[] = {"builtins.UnicodeError", NULL};
     rt.embedded_types = py_bases_306;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -6059,12 +6443,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "builtins.UnicodeDecodeError";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_307[] = { "__init__", NULL };
+    static const char *py_methods_307[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.UnicodeEncodeError";
     rt.short_name = "UnicodeEncodeError";
     rt.method_names = py_methods_307;
-    static const char* py_bases_308[] = { "builtins.UnicodeError", NULL };
+    static const char *py_bases_308[] = {"builtins.UnicodeError", NULL};
     rt.embedded_types = py_bases_308;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -6072,12 +6456,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "builtins.UnicodeEncodeError";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_309[] = { "__init__", NULL };
+    static const char *py_methods_309[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.UnicodeTranslateError";
     rt.short_name = "UnicodeTranslateError";
     rt.method_names = py_methods_309;
-    static const char* py_bases_310[] = { "builtins.UnicodeError", NULL };
+    static const char *py_bases_310[] = {"builtins.UnicodeError", NULL};
     rt.embedded_types = py_bases_310;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -6088,81 +6472,82 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.Warning";
     rt.short_name = "Warning";
-    static const char* py_bases_311[] = { "builtins.Exception", NULL };
+    static const char *py_bases_311[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_311;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.UserWarning";
     rt.short_name = "UserWarning";
-    static const char* py_bases_312[] = { "builtins.Warning", NULL };
+    static const char *py_bases_312[] = {"builtins.Warning", NULL};
     rt.embedded_types = py_bases_312;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.DeprecationWarning";
     rt.short_name = "DeprecationWarning";
-    static const char* py_bases_313[] = { "builtins.Warning", NULL };
+    static const char *py_bases_313[] = {"builtins.Warning", NULL};
     rt.embedded_types = py_bases_313;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.SyntaxWarning";
     rt.short_name = "SyntaxWarning";
-    static const char* py_bases_314[] = { "builtins.Warning", NULL };
+    static const char *py_bases_314[] = {"builtins.Warning", NULL};
     rt.embedded_types = py_bases_314;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.RuntimeWarning";
     rt.short_name = "RuntimeWarning";
-    static const char* py_bases_315[] = { "builtins.Warning", NULL };
+    static const char *py_bases_315[] = {"builtins.Warning", NULL};
     rt.embedded_types = py_bases_315;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.FutureWarning";
     rt.short_name = "FutureWarning";
-    static const char* py_bases_316[] = { "builtins.Warning", NULL };
+    static const char *py_bases_316[] = {"builtins.Warning", NULL};
     rt.embedded_types = py_bases_316;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.PendingDeprecationWarning";
     rt.short_name = "PendingDeprecationWarning";
-    static const char* py_bases_317[] = { "builtins.Warning", NULL };
+    static const char *py_bases_317[] = {"builtins.Warning", NULL};
     rt.embedded_types = py_bases_317;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ImportWarning";
     rt.short_name = "ImportWarning";
-    static const char* py_bases_318[] = { "builtins.Warning", NULL };
+    static const char *py_bases_318[] = {"builtins.Warning", NULL};
     rt.embedded_types = py_bases_318;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.UnicodeWarning";
     rt.short_name = "UnicodeWarning";
-    static const char* py_bases_319[] = { "builtins.Warning", NULL };
+    static const char *py_bases_319[] = {"builtins.Warning", NULL};
     rt.embedded_types = py_bases_319;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.BytesWarning";
     rt.short_name = "BytesWarning";
-    static const char* py_bases_320[] = { "builtins.Warning", NULL };
+    static const char *py_bases_320[] = {"builtins.Warning", NULL};
     rt.embedded_types = py_bases_320;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ResourceWarning";
     rt.short_name = "ResourceWarning";
-    static const char* py_bases_321[] = { "builtins.Warning", NULL };
+    static const char *py_bases_321[] = {"builtins.Warning", NULL};
     rt.embedded_types = py_bases_321;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.EncodingWarning";
     rt.short_name = "EncodingWarning";
-    static const char* py_bases_322[] = { "builtins.Warning", NULL };
+    static const char *py_bases_322[] = {"builtins.Warning", NULL};
     rt.embedded_types = py_bases_322;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_323[] = { "__init__", "message", "exceptions", "subgroup", "split", "derive", NULL };
+    static const char *py_methods_323[] = {"__init__", "message", "exceptions", "subgroup",
+                                           "split",    "derive",  NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.BaseExceptionGroup";
     rt.short_name = "BaseExceptionGroup";
     rt.method_names = py_methods_323;
-    static const char* py_bases_324[] = { "builtins.BaseException", NULL };
+    static const char *py_bases_324[] = {"builtins.BaseException", NULL};
     rt.embedded_types = py_bases_324;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -6195,12 +6580,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "derive";
     rf.receiver_type = "builtins.BaseExceptionGroup";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_325[] = { "__init__", "exceptions", "subgroup", "split", NULL };
+    static const char *py_methods_325[] = {"__init__", "exceptions", "subgroup", "split", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.ExceptionGroup";
     rt.short_name = "ExceptionGroup";
     rt.method_names = py_methods_325;
-    static const char* py_bases_326[] = { "builtins.Exception", NULL };
+    static const char *py_bases_326[] = {"builtins.Exception", NULL};
     rt.embedded_types = py_bases_326;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -6226,7 +6611,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "builtins.PythonFinalizationError";
     rt.short_name = "PythonFinalizationError";
-    static const char* py_bases_327[] = { "builtins.RuntimeError", NULL };
+    static const char *py_bases_327[] = {"builtins.RuntimeError", NULL};
     rt.embedded_types = py_bases_327;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -6403,7 +6788,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: collections ===== */
-    static const char* py_methods_328[] = { "__init__", "copy", "fromkeys", "get", NULL };
+    static const char *py_methods_328[] = {"__init__", "copy", "fromkeys", "get", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "collections.UserDict";
     rt.short_name = "UserDict";
@@ -6429,7 +6814,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "get";
     rf.receiver_type = "collections.UserDict";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_329[] = { "__init__", "append", "insert", "pop", "remove", "copy", "count", "index", "sort", "extend", NULL };
+    static const char *py_methods_329[] = {"__init__", "append", "insert", "pop",
+                                           "remove",   "copy",   "count",  "index",
+                                           "sort",     "extend", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "collections.UserList";
     rt.short_name = "UserList";
@@ -6485,7 +6872,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "extend";
     rf.receiver_type = "collections.UserList";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_330[] = { "__init__", "capitalize", "casefold", "center", "count", "encode", "endswith", "expandtabs", "find", "format", "format_map", "index", "isalpha", "isalnum", "isdecimal", "isdigit", "isidentifier", "islower", "isnumeric", "isprintable", "isspace", "istitle", "isupper", "isascii", "join", "ljust", "lower", "lstrip", "partition", "removeprefix", "removesuffix", "replace", "rfind", "rindex", "rjust", "rpartition", "rstrip", "split", "rsplit", "splitlines", "startswith", "strip", "swapcase", "title", "translate", "upper", "zfill", NULL };
+    static const char *py_methods_330[] = {
+        "__init__",     "capitalize",  "casefold",  "center",     "count",        "encode",
+        "endswith",     "expandtabs",  "find",      "format",     "format_map",   "index",
+        "isalpha",      "isalnum",     "isdecimal", "isdigit",    "isidentifier", "islower",
+        "isnumeric",    "isprintable", "isspace",   "istitle",    "isupper",      "isascii",
+        "join",         "ljust",       "lower",     "lstrip",     "partition",    "removeprefix",
+        "removesuffix", "replace",     "rfind",     "rindex",     "rjust",        "rpartition",
+        "rstrip",       "split",       "rsplit",    "splitlines", "startswith",   "strip",
+        "swapcase",     "title",       "translate", "upper",      "zfill",        NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "collections.UserString";
     rt.short_name = "UserString";
@@ -6726,7 +7121,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "zfill";
     rf.receiver_type = "collections.UserString";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_331[] = { "maxlen", "__init__", "append", "appendleft", "copy", "count", "extend", "extendleft", "insert", "index", "pop", "popleft", "remove", "rotate", NULL };
+    static const char *py_methods_331[] = {
+        "maxlen", "__init__", "append", "appendleft", "copy",   "count",  "extend", "extendleft",
+        "insert", "index",    "pop",    "popleft",    "remove", "rotate", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "collections.deque";
     rt.short_name = "deque";
@@ -6802,7 +7199,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "rotate";
     rf.receiver_type = "collections.deque";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_332[] = { "__init__", "copy", "elements", "most_common", "fromkeys", "subtract", "update", "total", NULL };
+    static const char *py_methods_332[] = {"__init__",    "copy",     "elements",
+                                           "most_common", "fromkeys", "subtract",
+                                           "update",      "total",    NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "collections.Counter";
     rt.short_name = "Counter";
@@ -6872,7 +7271,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "collections._odict_values";
     rt.short_name = "_odict_values";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_333[] = { "popitem", "move_to_end", "copy", "keys", "items", "values", "fromkeys", "setdefault", "pop", "__or__", "__ror__", NULL };
+    static const char *py_methods_333[] = {"popitem", "move_to_end", "copy",     "keys",
+                                           "items",   "values",      "fromkeys", "setdefault",
+                                           "pop",     "__or__",      "__ror__",  NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "collections.OrderedDict";
     rt.short_name = "OrderedDict";
@@ -6933,7 +7334,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__ror__";
     rf.receiver_type = "collections.OrderedDict";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_334[] = { "__init__", "copy", NULL };
+    static const char *py_methods_334[] = {"__init__", "copy", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "collections.defaultdict";
     rt.short_name = "defaultdict";
@@ -6949,7 +7350,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "copy";
     rf.receiver_type = "collections.defaultdict";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_335[] = { "__init__", "new_child", "parents", "get", "setdefault", "pop", "copy", "fromkeys", NULL };
+    static const char *py_methods_335[] = {"__init__", "new_child", "parents",  "get", "setdefault",
+                                           "pop",      "copy",      "fromkeys", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "collections.ChainMap";
     rt.short_name = "ChainMap";
@@ -7001,7 +7403,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: collections.abc ===== */
-    static const char* py_methods_336[] = { "isdisjoint", "mapping", NULL };
+    static const char *py_methods_336[] = {"isdisjoint", "mapping", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "collections.abc.dict_keys";
     rt.short_name = "dict_keys";
@@ -7017,7 +7419,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "mapping";
     rf.receiver_type = "collections.abc.dict_keys";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_337[] = { "mapping", NULL };
+    static const char *py_methods_337[] = {"mapping", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "collections.abc.dict_values";
     rt.short_name = "dict_values";
@@ -7028,7 +7430,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "mapping";
     rf.receiver_type = "collections.abc.dict_values";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_338[] = { "isdisjoint", "mapping", NULL };
+    static const char *py_methods_338[] = {"isdisjoint", "mapping", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "collections.abc.dict_items";
     rt.short_name = "dict_items";
@@ -7047,7 +7449,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "collections.abc.Buffer";
     rt.short_name = "Buffer";
-    static const char* py_bases_339[] = { "_collections_abc.Protocol", NULL };
+    static const char *py_bases_339[] = {"_collections_abc.Protocol", NULL};
     rt.embedded_types = py_bases_339;
     cbm_registry_add_type(reg, rt);
 
@@ -7055,34 +7457,44 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures._base.Error";
     rt.short_name = "Error";
-    static const char* py_bases_340[] = { "concurrent.futures._base.Exception", NULL };
+    static const char *py_bases_340[] = {"concurrent.futures._base.Exception", NULL};
     rt.embedded_types = py_bases_340;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures._base.CancelledError";
     rt.short_name = "CancelledError";
-    static const char* py_bases_341[] = { "concurrent.futures._base.Error", NULL };
+    static const char *py_bases_341[] = {"concurrent.futures._base.Error", NULL};
     rt.embedded_types = py_bases_341;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures._base.TimeoutError";
     rt.short_name = "TimeoutError";
-    static const char* py_bases_342[] = { "concurrent.futures._base.Error", NULL };
+    static const char *py_bases_342[] = {"concurrent.futures._base.Error", NULL};
     rt.embedded_types = py_bases_342;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures._base.InvalidStateError";
     rt.short_name = "InvalidStateError";
-    static const char* py_bases_343[] = { "concurrent.futures._base.Error", NULL };
+    static const char *py_bases_343[] = {"concurrent.futures._base.Error", NULL};
     rt.embedded_types = py_bases_343;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures._base.BrokenExecutor";
     rt.short_name = "BrokenExecutor";
-    static const char* py_bases_344[] = { "concurrent.futures._base.RuntimeError", NULL };
+    static const char *py_bases_344[] = {"concurrent.futures._base.RuntimeError", NULL};
     rt.embedded_types = py_bases_344;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_345[] = { "cancel", "cancelled", "running", "done", "add_done_callback", "result", "set_running_or_notify_cancel", "set_result", "exception", "set_exception", NULL };
+    static const char *py_methods_345[] = {"cancel",
+                                           "cancelled",
+                                           "running",
+                                           "done",
+                                           "add_done_callback",
+                                           "result",
+                                           "set_running_or_notify_cancel",
+                                           "set_result",
+                                           "exception",
+                                           "set_exception",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures._base.Future";
     rt.short_name = "Future";
@@ -7138,7 +7550,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "set_exception";
     rf.receiver_type = "concurrent.futures._base.Future";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_346[] = { "submit", "map", "shutdown", "__enter__", "__exit__", NULL };
+    static const char *py_methods_346[] = {"submit",    "map",      "shutdown",
+                                           "__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures._base.Executor";
     rt.short_name = "Executor";
@@ -7169,7 +7582,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__exit__";
     rf.receiver_type = "concurrent.futures._base.Executor";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_347[] = { "result", NULL };
+    static const char *py_methods_347[] = {"result", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures._base._AsCompletedFuture";
     rt.short_name = "_AsCompletedFuture";
@@ -7183,10 +7596,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures._base.DoneAndNotDoneFutures";
     rt.short_name = "DoneAndNotDoneFutures";
-    static const char* py_bases_348[] = { "concurrent.futures._base.NamedTuple", NULL };
+    static const char *py_bases_348[] = {"concurrent.futures._base.NamedTuple", NULL};
     rt.embedded_types = py_bases_348;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_349[] = { "add_result", "add_exception", "add_cancelled", NULL };
+    static const char *py_methods_349[] = {"add_result", "add_exception", "add_cancelled", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures._base._Waiter";
     rt.short_name = "_Waiter";
@@ -7210,21 +7623,21 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures._base._AsCompletedWaiter";
     rt.short_name = "_AsCompletedWaiter";
-    static const char* py_bases_350[] = { "concurrent.futures._base._Waiter", NULL };
+    static const char *py_bases_350[] = {"concurrent.futures._base._Waiter", NULL};
     rt.embedded_types = py_bases_350;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures._base._FirstCompletedWaiter";
     rt.short_name = "_FirstCompletedWaiter";
-    static const char* py_bases_351[] = { "concurrent.futures._base._Waiter", NULL };
+    static const char *py_bases_351[] = {"concurrent.futures._base._Waiter", NULL};
     rt.embedded_types = py_bases_351;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_352[] = { "__init__", NULL };
+    static const char *py_methods_352[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures._base._AllCompletedWaiter";
     rt.short_name = "_AllCompletedWaiter";
     rt.method_names = py_methods_352;
-    static const char* py_bases_353[] = { "concurrent.futures._base._Waiter", NULL };
+    static const char *py_bases_353[] = {"concurrent.futures._base._Waiter", NULL};
     rt.embedded_types = py_bases_353;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7232,7 +7645,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "concurrent.futures._base._AllCompletedWaiter";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_354[] = { "__init__", "__enter__", "__exit__", NULL };
+    static const char *py_methods_354[] = {"__init__", "__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures._base._AcquireFutures";
     rt.short_name = "_AcquireFutures";
@@ -7263,12 +7676,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: concurrent.futures.interpreter ===== */
-    static const char* py_methods_355[] = { "__call__", NULL };
+    static const char *py_methods_355[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.interpreter._TaskFunc";
     rt.short_name = "_TaskFunc";
     rt.method_names = py_methods_355;
-    static const char* py_bases_356[] = { "concurrent.futures.interpreter.Protocol", NULL };
+    static const char *py_bases_356[] = {"concurrent.futures.interpreter.Protocol", NULL};
     rt.embedded_types = py_bases_356;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7276,12 +7689,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "concurrent.futures.interpreter._TaskFunc";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_357[] = { "prepare", "__init__", "run", NULL };
+    static const char *py_methods_357[] = {"prepare", "__init__", "run", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.interpreter.WorkerContext";
     rt.short_name = "WorkerContext";
     rt.method_names = py_methods_357;
-    static const char* py_bases_358[] = { "concurrent.futures.interpreter.ThreadWorkerContext", NULL };
+    static const char *py_bases_358[] = {"concurrent.futures.interpreter.ThreadWorkerContext",
+                                         NULL};
     rt.embedded_types = py_bases_358;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7302,15 +7716,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.interpreter.BrokenInterpreterPool";
     rt.short_name = "BrokenInterpreterPool";
-    static const char* py_bases_359[] = { "concurrent.futures.interpreter.BrokenThreadPool", NULL };
+    static const char *py_bases_359[] = {"concurrent.futures.interpreter.BrokenThreadPool", NULL};
     rt.embedded_types = py_bases_359;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_360[] = { "prepare_context", "__init__", NULL };
+    static const char *py_methods_360[] = {"prepare_context", "__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.interpreter.InterpreterPoolExecutor";
     rt.short_name = "InterpreterPoolExecutor";
     rt.method_names = py_methods_360;
-    static const char* py_bases_361[] = { "concurrent.futures.interpreter.ThreadPoolExecutor", NULL };
+    static const char *py_bases_361[] = {"concurrent.futures.interpreter.ThreadPoolExecutor", NULL};
     rt.embedded_types = py_bases_361;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7329,7 +7743,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: concurrent.futures.process ===== */
-    static const char* py_methods_362[] = { "close", "wakeup", "clear", NULL };
+    static const char *py_methods_362[] = {"close", "wakeup", "clear", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.process._ThreadWakeup";
     rt.short_name = "_ThreadWakeup";
@@ -7350,12 +7764,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "clear";
     rf.receiver_type = "concurrent.futures.process._ThreadWakeup";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_363[] = { "__init__", NULL };
+    static const char *py_methods_363[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.process._RemoteTraceback";
     rt.short_name = "_RemoteTraceback";
     rt.method_names = py_methods_363;
-    static const char* py_bases_364[] = { "concurrent.futures.process.Exception", NULL };
+    static const char *py_bases_364[] = {"concurrent.futures.process.Exception", NULL};
     rt.embedded_types = py_bases_364;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7363,7 +7777,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "concurrent.futures.process._RemoteTraceback";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_365[] = { "__init__", NULL };
+    static const char *py_methods_365[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.process._ExceptionWithTraceback";
     rt.short_name = "_ExceptionWithTraceback";
@@ -7374,7 +7788,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "concurrent.futures.process._ExceptionWithTraceback";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_366[] = { "__init__", NULL };
+    static const char *py_methods_366[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.process._WorkItem";
     rt.short_name = "_WorkItem";
@@ -7385,7 +7799,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "concurrent.futures.process._WorkItem";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_367[] = { "__init__", NULL };
+    static const char *py_methods_367[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.process._ResultItem";
     rt.short_name = "_ResultItem";
@@ -7396,7 +7810,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "concurrent.futures.process._ResultItem";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_368[] = { "__init__", NULL };
+    static const char *py_methods_368[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.process._CallItem";
     rt.short_name = "_CallItem";
@@ -7407,7 +7821,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "concurrent.futures.process._CallItem";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_369[] = { "__init__", NULL };
+    static const char *py_methods_369[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.process._SafeQueue";
     rt.short_name = "_SafeQueue";
@@ -7418,12 +7832,23 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "concurrent.futures.process._SafeQueue";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_370[] = { "__init__", "run", "add_call_item_to_queue", "wait_result_broken_or_wakeup", "process_result_item", "is_shutting_down", "terminate_broken", "flag_executor_shutting_down", "shutdown_workers", "join_executor_internals", "get_n_children_alive", NULL };
+    static const char *py_methods_370[] = {"__init__",
+                                           "run",
+                                           "add_call_item_to_queue",
+                                           "wait_result_broken_or_wakeup",
+                                           "process_result_item",
+                                           "is_shutting_down",
+                                           "terminate_broken",
+                                           "flag_executor_shutting_down",
+                                           "shutdown_workers",
+                                           "join_executor_internals",
+                                           "get_n_children_alive",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.process._ExecutorManagerThread";
     rt.short_name = "_ExecutorManagerThread";
     rt.method_names = py_methods_370;
-    static const char* py_bases_371[] = { "concurrent.futures.process.Thread", NULL };
+    static const char *py_bases_371[] = {"concurrent.futures.process.Thread", NULL};
     rt.embedded_types = py_bases_371;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7442,7 +7867,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.receiver_type = "concurrent.futures.process._ExecutorManagerThread";
     cbm_registry_add_func(reg, rf);
     memset(&rf, 0, sizeof(rf));
-    rf.qualified_name = "concurrent.futures.process._ExecutorManagerThread.wait_result_broken_or_wakeup";
+    rf.qualified_name =
+        "concurrent.futures.process._ExecutorManagerThread.wait_result_broken_or_wakeup";
     rf.short_name = "wait_result_broken_or_wakeup";
     rf.receiver_type = "concurrent.futures.process._ExecutorManagerThread";
     cbm_registry_add_func(reg, rf);
@@ -7462,7 +7888,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.receiver_type = "concurrent.futures.process._ExecutorManagerThread";
     cbm_registry_add_func(reg, rf);
     memset(&rf, 0, sizeof(rf));
-    rf.qualified_name = "concurrent.futures.process._ExecutorManagerThread.flag_executor_shutting_down";
+    rf.qualified_name =
+        "concurrent.futures.process._ExecutorManagerThread.flag_executor_shutting_down";
     rf.short_name = "flag_executor_shutting_down";
     rf.receiver_type = "concurrent.futures.process._ExecutorManagerThread";
     cbm_registry_add_func(reg, rf);
@@ -7484,15 +7911,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.process.BrokenProcessPool";
     rt.short_name = "BrokenProcessPool";
-    static const char* py_bases_372[] = { "concurrent.futures.process.BrokenExecutor", NULL };
+    static const char *py_bases_372[] = {"concurrent.futures.process.BrokenExecutor", NULL};
     rt.embedded_types = py_bases_372;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_373[] = { "__init__", "kill_workers", "terminate_workers", NULL };
+    static const char *py_methods_373[] = {"__init__", "kill_workers", "terminate_workers", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.process.ProcessPoolExecutor";
     rt.short_name = "ProcessPoolExecutor";
     rt.method_names = py_methods_373;
-    static const char* py_bases_374[] = { "concurrent.futures.process.Executor", NULL };
+    static const char *py_bases_374[] = {"concurrent.futures.process.Executor", NULL};
     rt.embedded_types = py_bases_374;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7512,12 +7939,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: concurrent.futures.thread ===== */
-    static const char* py_methods_375[] = { "__call__", NULL };
+    static const char *py_methods_375[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.thread._ResolveTaskFunc";
     rt.short_name = "_ResolveTaskFunc";
     rt.method_names = py_methods_375;
-    static const char* py_bases_376[] = { "concurrent.futures.thread.Protocol", NULL };
+    static const char *py_bases_376[] = {"concurrent.futures.thread.Protocol", NULL};
     rt.embedded_types = py_bases_376;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7525,7 +7952,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "concurrent.futures.thread._ResolveTaskFunc";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_377[] = { "prepare", "__init__", "initialize", "finalize", "run", NULL };
+    static const char *py_methods_377[] = {"prepare",  "__init__", "initialize",
+                                           "finalize", "run",      NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.thread.WorkerContext";
     rt.short_name = "WorkerContext";
@@ -7556,7 +7984,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "run";
     rf.receiver_type = "concurrent.futures.thread.WorkerContext";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_378[] = { "__init__", "run", NULL };
+    static const char *py_methods_378[] = {"__init__", "run", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.thread._WorkItem";
     rt.short_name = "_WorkItem";
@@ -7572,7 +8000,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "run";
     rf.receiver_type = "concurrent.futures.thread._WorkItem";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_379[] = { "__init__", "run", NULL };
+    static const char *py_methods_379[] = {"__init__", "run", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.thread._WorkItem";
     rt.short_name = "_WorkItem";
@@ -7591,15 +8019,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.thread.BrokenThreadPool";
     rt.short_name = "BrokenThreadPool";
-    static const char* py_bases_380[] = { "concurrent.futures.thread.BrokenExecutor", NULL };
+    static const char *py_bases_380[] = {"concurrent.futures.thread.BrokenExecutor", NULL};
     rt.embedded_types = py_bases_380;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_381[] = { "prepare_context", "__init__", NULL };
+    static const char *py_methods_381[] = {"prepare_context", "__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.futures.thread.ThreadPoolExecutor";
     rt.short_name = "ThreadPoolExecutor";
     rt.method_names = py_methods_381;
-    static const char* py_bases_382[] = { "concurrent.futures.thread.Executor", NULL };
+    static const char *py_bases_382[] = {"concurrent.futures.thread.Executor", NULL};
     rt.embedded_types = py_bases_382;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7614,12 +8042,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: concurrent.interpreters ===== */
-    static const char* py_methods_383[] = { "__init__", NULL };
+    static const char *py_methods_383[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.interpreters.ExecutionFailed";
     rt.short_name = "ExecutionFailed";
     rt.method_names = py_methods_383;
-    static const char* py_bases_384[] = { "concurrent.interpreters.InterpreterError", NULL };
+    static const char *py_bases_384[] = {"concurrent.interpreters.InterpreterError", NULL};
     rt.embedded_types = py_bases_384;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7627,7 +8055,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "concurrent.interpreters.ExecutionFailed";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_385[] = { "id", "whence", "is_running", "close", "prepare_main", "exec", "call", "call_in_thread", NULL };
+    static const char *py_methods_385[] = {"id",    "whence",         "is_running",
+                                           "close", "prepare_main",   "exec",
+                                           "call",  "call_in_thread", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.interpreters.Interpreter";
     rt.short_name = "Interpreter";
@@ -7694,10 +8124,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.interpreters._crossinterp.ItemInterpreterDestroyed";
     rt.short_name = "ItemInterpreterDestroyed";
-    static const char* py_bases_386[] = { "concurrent.interpreters._crossinterp.Exception", NULL };
+    static const char *py_bases_386[] = {"concurrent.interpreters._crossinterp.Exception", NULL};
     rt.embedded_types = py_bases_386;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_387[] = { "singleton", NULL };
+    static const char *py_methods_387[] = {"singleton", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.interpreters._crossinterp.UnboundItem";
     rt.short_name = "UnboundItem";
@@ -7721,22 +8151,27 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.interpreters._queues.QueueEmpty";
     rt.short_name = "QueueEmpty";
-    static const char* py_bases_388[] = { "concurrent.interpreters._queues.QueueError", "queue.Empty", NULL };
+    static const char *py_bases_388[] = {"concurrent.interpreters._queues.QueueError",
+                                         "queue.Empty", NULL};
     rt.embedded_types = py_bases_388;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.interpreters._queues.QueueFull";
     rt.short_name = "QueueFull";
-    static const char* py_bases_389[] = { "concurrent.interpreters._queues.QueueError", "queue.Full", NULL };
+    static const char *py_bases_389[] = {"concurrent.interpreters._queues.QueueError", "queue.Full",
+                                         NULL};
     rt.embedded_types = py_bases_389;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.interpreters._queues.ItemInterpreterDestroyed";
     rt.short_name = "ItemInterpreterDestroyed";
-    static const char* py_bases_390[] = { "concurrent.interpreters._queues.QueueError", "_crossinterp.ItemInterpreterDestroyed", NULL };
+    static const char *py_bases_390[] = {"concurrent.interpreters._queues.QueueError",
+                                         "_crossinterp.ItemInterpreterDestroyed", NULL};
     rt.embedded_types = py_bases_390;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_391[] = { "id", "unbounditems", "maxsize", "empty", "full", "qsize", "put", "put_nowait", "get", "get_nowait", NULL };
+    static const char *py_methods_391[] = {"id",   "unbounditems", "maxsize", "empty",
+                                           "full", "qsize",        "put",     "put_nowait",
+                                           "get",  "get_nowait",   NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "concurrent.interpreters._queues.Queue";
     rt.short_name = "Queue";
@@ -7802,12 +8237,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: contextlib ===== */
-    static const char* py_methods_392[] = { "__enter__", "__exit__", NULL };
+    static const char *py_methods_392[] = {"__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib.AbstractContextManager";
     rt.short_name = "AbstractContextManager";
     rt.method_names = py_methods_392;
-    static const char* py_bases_393[] = { "contextlib.ABC", NULL };
+    static const char *py_bases_393[] = {"contextlib.ABC", NULL};
     rt.embedded_types = py_bases_393;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7823,10 +8258,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib.AbstractAsyncContextManager";
     rt.short_name = "AbstractAsyncContextManager";
-    static const char* py_bases_394[] = { "contextlib.ABC", NULL };
+    static const char *py_bases_394[] = {"contextlib.ABC", NULL};
     rt.embedded_types = py_bases_394;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_395[] = { "__call__", NULL };
+    static const char *py_methods_395[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib.ContextDecorator";
     rt.short_name = "ContextDecorator";
@@ -7837,7 +8272,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "contextlib.ContextDecorator";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_396[] = { "__init__", NULL };
+    static const char *py_methods_396[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib._GeneratorContextManagerBase";
     rt.short_name = "_GeneratorContextManagerBase";
@@ -7848,12 +8283,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "contextlib._GeneratorContextManagerBase";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_397[] = { "__exit__", NULL };
+    static const char *py_methods_397[] = {"__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib._GeneratorContextManager";
     rt.short_name = "_GeneratorContextManager";
     rt.method_names = py_methods_397;
-    static const char* py_bases_398[] = { "contextlib.ContextDecorator", NULL };
+    static const char *py_bases_398[] = {"contextlib.ContextDecorator", NULL};
     rt.embedded_types = py_bases_398;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7861,7 +8296,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__exit__";
     rf.receiver_type = "contextlib._GeneratorContextManager";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_399[] = { "__call__", NULL };
+    static const char *py_methods_399[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib.AsyncContextDecorator";
     rt.short_name = "AsyncContextDecorator";
@@ -7875,15 +8310,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib._AsyncGeneratorContextManager";
     rt.short_name = "_AsyncGeneratorContextManager";
-    static const char* py_bases_400[] = { "contextlib.AsyncContextDecorator", NULL };
+    static const char *py_bases_400[] = {"contextlib.AsyncContextDecorator", NULL};
     rt.embedded_types = py_bases_400;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_401[] = { "close", NULL };
+    static const char *py_methods_401[] = {"close", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib._SupportsClose";
     rt.short_name = "_SupportsClose";
     rt.method_names = py_methods_401;
-    static const char* py_bases_402[] = { "contextlib.Protocol", NULL };
+    static const char *py_bases_402[] = {"contextlib.Protocol", NULL};
     rt.embedded_types = py_bases_402;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7891,7 +8326,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "close";
     rf.receiver_type = "contextlib._SupportsClose";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_403[] = { "__init__", "__exit__", NULL };
+    static const char *py_methods_403[] = {"__init__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib.closing";
     rt.short_name = "closing";
@@ -7907,12 +8342,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__exit__";
     rf.receiver_type = "contextlib.closing";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_404[] = { "aclose", NULL };
+    static const char *py_methods_404[] = {"aclose", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib._SupportsAclose";
     rt.short_name = "_SupportsAclose";
     rt.method_names = py_methods_404;
-    static const char* py_bases_405[] = { "contextlib.Protocol", NULL };
+    static const char *py_bases_405[] = {"contextlib.Protocol", NULL};
     rt.embedded_types = py_bases_405;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7920,7 +8355,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "aclose";
     rf.receiver_type = "contextlib._SupportsAclose";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_406[] = { "__init__", NULL };
+    static const char *py_methods_406[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib.aclosing";
     rt.short_name = "aclosing";
@@ -7931,7 +8366,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "contextlib.aclosing";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_407[] = { "__init__", "__exit__", NULL };
+    static const char *py_methods_407[] = {"__init__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib.suppress";
     rt.short_name = "suppress";
@@ -7947,12 +8382,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__exit__";
     rf.receiver_type = "contextlib.suppress";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_408[] = { "write", "flush", NULL };
+    static const char *py_methods_408[] = {"write", "flush", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib._SupportsRedirect";
     rt.short_name = "_SupportsRedirect";
     rt.method_names = py_methods_408;
-    static const char* py_bases_409[] = { "contextlib.Protocol", NULL };
+    static const char *py_bases_409[] = {"contextlib.Protocol", NULL};
     rt.embedded_types = py_bases_409;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -7965,7 +8400,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "flush";
     rf.receiver_type = "contextlib._SupportsRedirect";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_410[] = { "__init__", "__exit__", NULL };
+    static const char *py_methods_410[] = {"__init__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib._RedirectStream";
     rt.short_name = "_RedirectStream";
@@ -7989,7 +8424,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "contextlib.redirect_stderr";
     rt.short_name = "redirect_stderr";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_411[] = { "enter_context", "push", "callback", "pop_all", NULL };
+    static const char *py_methods_411[] = {"enter_context", "push", "callback", "pop_all", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib._BaseExitStack";
     rt.short_name = "_BaseExitStack";
@@ -8019,7 +8454,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "contextlib._BaseExitStackAbstract";
     rt.short_name = "_BaseExitStackAbstract";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_412[] = { "close", "__enter__", "__exit__", NULL };
+    static const char *py_methods_412[] = {"close", "__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib.ExitStack";
     rt.short_name = "ExitStack";
@@ -8040,7 +8475,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__exit__";
     rf.receiver_type = "contextlib.ExitStack";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_413[] = { "enter_async_context", "push_async_exit", "push_async_callback", "aclose", NULL };
+    static const char *py_methods_413[] = {"enter_async_context", "push_async_exit",
+                                           "push_async_callback", "aclose", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib.AsyncExitStack";
     rt.short_name = "AsyncExitStack";
@@ -8066,7 +8502,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "aclose";
     rf.receiver_type = "contextlib.AsyncExitStack";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_414[] = { "__init__", "__enter__", "__exit__", NULL };
+    static const char *py_methods_414[] = {"__init__", "__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib.nullcontext";
     rt.short_name = "nullcontext";
@@ -8087,7 +8523,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__exit__";
     rf.receiver_type = "contextlib.nullcontext";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_415[] = { "__init__", "__enter__", "__exit__", NULL };
+    static const char *py_methods_415[] = {"__init__", "__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "contextlib.chdir";
     rt.short_name = "chdir";
@@ -8125,7 +8561,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "copy.Error";
     rt.short_name = "Error";
-    static const char* py_bases_416[] = { "copy.Exception", NULL };
+    static const char *py_bases_416[] = {"copy.Exception", NULL};
     rt.embedded_types = py_bases_416;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -8142,12 +8578,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: dataclasses ===== */
-    static const char* py_methods_417[] = { "__call__", NULL };
+    static const char *py_methods_417[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "dataclasses._DataclassFactory";
     rt.short_name = "_DataclassFactory";
     rt.method_names = py_methods_417;
-    static const char* py_bases_418[] = { "dataclasses.Protocol", NULL };
+    static const char *py_bases_418[] = {"dataclasses.Protocol", NULL};
     rt.embedded_types = py_bases_418;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -8158,14 +8594,14 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "dataclasses._MISSING_TYPE";
     rt.short_name = "_MISSING_TYPE";
-    static const char* py_bases_419[] = { "enum.Enum", NULL };
+    static const char *py_bases_419[] = {"enum.Enum", NULL};
     rt.embedded_types = py_bases_419;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "dataclasses.KW_ONLY";
     rt.short_name = "KW_ONLY";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_420[] = { "__call__", NULL };
+    static const char *py_methods_420[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "dataclasses._DefaultFactory";
     rt.short_name = "_DefaultFactory";
@@ -8176,7 +8612,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "dataclasses._DefaultFactory";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_421[] = { "__init__", NULL };
+    static const char *py_methods_421[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "dataclasses.Field";
     rt.short_name = "Field";
@@ -8190,10 +8626,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "dataclasses.FrozenInstanceError";
     rt.short_name = "FrozenInstanceError";
-    static const char* py_bases_422[] = { "dataclasses.AttributeError", NULL };
+    static const char *py_bases_422[] = {"dataclasses.AttributeError", NULL};
     rt.embedded_types = py_bases_422;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_423[] = { "__init__", NULL };
+    static const char *py_methods_423[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "dataclasses.InitVar";
     rt.short_name = "InitVar";
@@ -8238,7 +8674,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: datetime ===== */
-    static const char* py_methods_424[] = { "tzname", "utcoffset", "dst", "fromutc", NULL };
+    static const char *py_methods_424[] = {"tzname", "utcoffset", "dst", "fromutc", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "datetime.tzinfo";
     rt.short_name = "tzinfo";
@@ -8264,12 +8700,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "fromutc";
     rf.receiver_type = "datetime.tzinfo";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_425[] = { "tzname", "utcoffset", "dst", NULL };
+    static const char *py_methods_425[] = {"tzname", "utcoffset", "dst", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "datetime.timezone";
     rt.short_name = "timezone";
     rt.method_names = py_methods_425;
-    static const char* py_bases_426[] = { "datetime.tzinfo", NULL };
+    static const char *py_bases_426[] = {"datetime.tzinfo", NULL};
     rt.embedded_types = py_bases_426;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -8287,7 +8723,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "dst";
     rf.receiver_type = "datetime.timezone";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_427[] = { "year", "week", "weekday", NULL };
+    static const char *py_methods_427[] = {"year", "week", "weekday", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "datetime._IsoCalendarDate";
     rt.short_name = "_IsoCalendarDate";
@@ -8308,7 +8744,11 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "weekday";
     rf.receiver_type = "datetime._IsoCalendarDate";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_428[] = { "fromtimestamp", "today", "fromordinal", "fromisoformat", "fromisocalendar", "year", "month", "day", "ctime", "strptime", "strftime", "isoformat", "timetuple", "toordinal", "__replace__", "replace", "weekday", "isoweekday", "isocalendar", NULL };
+    static const char *py_methods_428[] = {
+        "fromtimestamp", "today",     "fromordinal", "fromisoformat", "fromisocalendar",
+        "year",          "month",     "day",         "ctime",         "strptime",
+        "strftime",      "isoformat", "timetuple",   "toordinal",     "__replace__",
+        "replace",       "weekday",   "isoweekday",  "isocalendar",   NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "datetime.date";
     rt.short_name = "date";
@@ -8409,7 +8849,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "isocalendar";
     rf.receiver_type = "datetime.date";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_429[] = { "hour", "minute", "second", "microsecond", "tzinfo", "fold", "isoformat", "fromisoformat", "strptime", "strftime", "utcoffset", "tzname", "dst", "__replace__", "replace", NULL };
+    static const char *py_methods_429[] = {"hour",     "minute",      "second",    "microsecond",
+                                           "tzinfo",   "fold",        "isoformat", "fromisoformat",
+                                           "strptime", "strftime",    "utcoffset", "tzname",
+                                           "dst",      "__replace__", "replace",   NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "datetime.time";
     rt.short_name = "time";
@@ -8490,7 +8933,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "replace";
     rf.receiver_type = "datetime.time";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_430[] = { "days", "seconds", "microseconds", "total_seconds", NULL };
+    static const char *py_methods_430[] = {"days", "seconds", "microseconds", "total_seconds",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "datetime.timedelta";
     rt.short_name = "timedelta";
@@ -8516,12 +8960,17 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "total_seconds";
     rf.receiver_type = "datetime.timedelta";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_431[] = { "hour", "minute", "second", "microsecond", "tzinfo", "fold", "fromtimestamp", "utcfromtimestamp", "now", "utcnow", "combine", "timestamp", "utctimetuple", "date", "time", "timetz", "__replace__", "replace", "astimezone", "isoformat", "strptime", "utcoffset", "tzname", "dst", NULL };
+    static const char *py_methods_431[] = {
+        "hour",     "minute",        "second",           "microsecond", "tzinfo",
+        "fold",     "fromtimestamp", "utcfromtimestamp", "now",         "utcnow",
+        "combine",  "timestamp",     "utctimetuple",     "date",        "time",
+        "timetz",   "__replace__",   "replace",          "astimezone",  "isoformat",
+        "strptime", "utcoffset",     "tzname",           "dst",         NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "datetime.datetime";
     rt.short_name = "datetime";
     rt.method_names = py_methods_431;
-    static const char* py_bases_432[] = { "datetime.date", NULL };
+    static const char *py_bases_432[] = {"datetime.date", NULL};
     rt.embedded_types = py_bases_432;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -8646,7 +9095,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: enum ===== */
-    static const char* py_methods_433[] = { "__init__", NULL };
+    static const char *py_methods_433[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.nonmember";
     rt.short_name = "nonmember";
@@ -8657,7 +9106,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "enum.nonmember";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_434[] = { "__init__", NULL };
+    static const char *py_methods_434[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.member";
     rt.short_name = "member";
@@ -8668,7 +9117,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "enum.member";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_435[] = { "__init__", "update", "member_names", NULL };
+    static const char *py_methods_435[] = {"__init__", "update", "member_names", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum._EnumDict";
     rt.short_name = "_EnumDict";
@@ -8689,12 +9138,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "member_names";
     rf.receiver_type = "enum._EnumDict";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_436[] = { "__new__", "__contains__", "__call__", "__signature__", NULL };
+    static const char *py_methods_436[] = {"__new__", "__contains__", "__call__", "__signature__",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.EnumMeta";
     rt.short_name = "EnumMeta";
     rt.method_names = py_methods_436;
-    static const char* py_bases_437[] = { "enum.type", NULL };
+    static const char *py_bases_437[] = {"enum.type", NULL};
     rt.embedded_types = py_bases_437;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -8720,10 +9170,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.property";
     rt.short_name = "property";
-    static const char* py_bases_438[] = { "types.DynamicClassAttribute", NULL };
+    static const char *py_bases_438[] = {"types.DynamicClassAttribute", NULL};
     rt.embedded_types = py_bases_438;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_439[] = { "name", "value", "__copy__", "__deepcopy__", "__signature__", "_add_value_alias_", "_add_alias_", NULL };
+    static const char *py_methods_439[] = {
+        "name",        "value", "__copy__", "__deepcopy__", "__signature__", "_add_value_alias_",
+        "_add_alias_", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.Enum";
     rt.short_name = "Enum";
@@ -8767,15 +9219,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.ReprEnum";
     rt.short_name = "ReprEnum";
-    static const char* py_bases_440[] = { "enum.Enum", NULL };
+    static const char *py_bases_440[] = {"enum.Enum", NULL};
     rt.embedded_types = py_bases_440;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_441[] = { "value", NULL };
+    static const char *py_methods_441[] = {"value", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.IntEnum";
     rt.short_name = "IntEnum";
     rt.method_names = py_methods_441;
-    static const char* py_bases_442[] = { "enum.int", "enum.ReprEnum", NULL };
+    static const char *py_bases_442[] = {"enum.int", "enum.ReprEnum", NULL};
     rt.embedded_types = py_bases_442;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -8783,12 +9235,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "value";
     rf.receiver_type = "enum.IntEnum";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_443[] = { "value", NULL };
+    static const char *py_methods_443[] = {"value", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.IntEnum";
     rt.short_name = "IntEnum";
     rt.method_names = py_methods_443;
-    static const char* py_bases_444[] = { "enum.int", "enum._IntEnumBase", NULL };
+    static const char *py_bases_444[] = {"enum.int", "enum._IntEnumBase", NULL};
     rt.embedded_types = py_bases_444;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -8796,12 +9248,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "value";
     rf.receiver_type = "enum.IntEnum";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_445[] = { "name", "value", "__iter__", "__len__", NULL };
+    static const char *py_methods_445[] = {"name", "value", "__iter__", "__len__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.Flag";
     rt.short_name = "Flag";
     rt.method_names = py_methods_445;
-    static const char* py_bases_446[] = { "enum.Enum", NULL };
+    static const char *py_bases_446[] = {"enum.Enum", NULL};
     rt.embedded_types = py_bases_446;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -8824,12 +9276,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__len__";
     rf.receiver_type = "enum.Flag";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_447[] = { "value", NULL };
+    static const char *py_methods_447[] = {"value", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.StrEnum";
     rt.short_name = "StrEnum";
     rt.method_names = py_methods_447;
-    static const char* py_bases_448[] = { "enum.str", "enum.ReprEnum", NULL };
+    static const char *py_bases_448[] = {"enum.str", "enum.ReprEnum", NULL};
     rt.embedded_types = py_bases_448;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -8840,10 +9292,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.EnumCheck";
     rt.short_name = "EnumCheck";
-    static const char* py_bases_449[] = { "enum.StrEnum", NULL };
+    static const char *py_bases_449[] = {"enum.StrEnum", NULL};
     rt.embedded_types = py_bases_449;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_450[] = { "__init__", "__call__", NULL };
+    static const char *py_methods_450[] = {"__init__", "__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.verify";
     rt.short_name = "verify";
@@ -8862,28 +9314,28 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.FlagBoundary";
     rt.short_name = "FlagBoundary";
-    static const char* py_bases_451[] = { "enum.StrEnum", NULL };
+    static const char *py_bases_451[] = {"enum.StrEnum", NULL};
     rt.embedded_types = py_bases_451;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.IntFlag";
     rt.short_name = "IntFlag";
-    static const char* py_bases_452[] = { "enum.int", "enum.ReprEnum", "enum.Flag", NULL };
+    static const char *py_bases_452[] = {"enum.int", "enum.ReprEnum", "enum.Flag", NULL};
     rt.embedded_types = py_bases_452;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.IntFlag";
     rt.short_name = "IntFlag";
-    static const char* py_bases_453[] = { "enum.int", "enum.ReprEnum", "enum.Flag", NULL };
+    static const char *py_bases_453[] = {"enum.int", "enum.ReprEnum", "enum.Flag", NULL};
     rt.embedded_types = py_bases_453;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.IntFlag";
     rt.short_name = "IntFlag";
-    static const char* py_bases_454[] = { "enum.int", "enum.Flag", NULL };
+    static const char *py_bases_454[] = {"enum.int", "enum.Flag", NULL};
     rt.embedded_types = py_bases_454;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_455[] = { "value", NULL };
+    static const char *py_methods_455[] = {"value", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "enum.auto";
     rt.short_name = "auto";
@@ -8935,16 +9387,17 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "functools._CacheInfo";
     rt.short_name = "_CacheInfo";
-    static const char* py_bases_456[] = { "functools.NamedTuple", NULL };
+    static const char *py_bases_456[] = {"functools.NamedTuple", NULL};
     rt.embedded_types = py_bases_456;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "functools._CacheParameters";
     rt.short_name = "_CacheParameters";
-    static const char* py_bases_457[] = { "functools.TypedDict", NULL };
+    static const char *py_bases_457[] = {"functools.TypedDict", NULL};
     rt.embedded_types = py_bases_457;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_458[] = { "__call__", "cache_info", "cache_clear", "cache_parameters", NULL };
+    static const char *py_methods_458[] = {"__call__", "cache_info", "cache_clear",
+                                           "cache_parameters", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "functools._lru_cache_wrapper";
     rt.short_name = "_lru_cache_wrapper";
@@ -8970,7 +9423,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "cache_parameters";
     rf.receiver_type = "functools._lru_cache_wrapper";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_459[] = { "__call__", NULL };
+    static const char *py_methods_459[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "functools._Wrapped";
     rt.short_name = "_Wrapped";
@@ -8981,7 +9434,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "functools._Wrapped";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_460[] = { "__call__", NULL };
+    static const char *py_methods_460[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "functools._Wrapper";
     rt.short_name = "_Wrapper";
@@ -8992,7 +9445,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "functools._Wrapper";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_461[] = { "func", "args", "keywords", "__call__", NULL };
+    static const char *py_methods_461[] = {"func", "args", "keywords", "__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "functools.partial";
     rt.short_name = "partial";
@@ -9018,7 +9471,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "functools.partial";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_462[] = { "__new__", "__init__", NULL };
+    static const char *py_methods_462[] = {"__new__", "__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "functools.partialmethod";
     rt.short_name = "partialmethod";
@@ -9034,7 +9487,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "functools.partialmethod";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_463[] = { "dispatch", "register", "__call__", NULL };
+    static const char *py_methods_463[] = {"dispatch", "register", "__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "functools._SingleDispatchCallable";
     rt.short_name = "_SingleDispatchCallable";
@@ -9055,7 +9508,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "functools._SingleDispatchCallable";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_464[] = { "__init__", "register", NULL };
+    static const char *py_methods_464[] = {"__init__", "register", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "functools.singledispatchmethod";
     rt.short_name = "singledispatchmethod";
@@ -9071,7 +9524,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "register";
     rf.receiver_type = "functools.singledispatchmethod";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_465[] = { "__init__", NULL };
+    static const char *py_methods_465[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "functools.cached_property";
     rt.short_name = "cached_property";
@@ -9120,12 +9573,14 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: http ===== */
-    static const char* py_methods_466[] = { "phrase", "description", "is_informational", "is_success", "is_redirection", "is_client_error", "is_server_error", NULL };
+    static const char *py_methods_466[] = {
+        "phrase",         "description",     "is_informational", "is_success",
+        "is_redirection", "is_client_error", "is_server_error",  NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.HTTPStatus";
     rt.short_name = "HTTPStatus";
     rt.method_names = py_methods_466;
-    static const char* py_bases_467[] = { "http.IntEnum", NULL };
+    static const char *py_bases_467[] = {"http.IntEnum", NULL};
     rt.embedded_types = py_bases_467;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9163,12 +9618,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "is_server_error";
     rf.receiver_type = "http.HTTPStatus";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_468[] = { "description", NULL };
+    static const char *py_methods_468[] = {"description", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.HTTPMethod";
     rt.short_name = "HTTPMethod";
     rt.method_names = py_methods_468;
-    static const char* py_bases_469[] = { "http.StrEnum", NULL };
+    static const char *py_bases_469[] = {"http.StrEnum", NULL};
     rt.embedded_types = py_bases_469;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9178,7 +9633,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: http.client ===== */
-    static const char* py_methods_470[] = { "getallmatchingheaders", NULL };
+    static const char *py_methods_470[] = {"getallmatchingheaders", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.HTTPMessage";
     rt.short_name = "HTTPMessage";
@@ -9189,12 +9644,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "getallmatchingheaders";
     rf.receiver_type = "http.client.HTTPMessage";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_471[] = { "__init__", "peek", "read", "read1", "readinto", "readline", "getheader", "getheaders", "isclosed", "__enter__", "__exit__", "info", "geturl", "getcode", "begin", NULL };
+    static const char *py_methods_471[] = {"__init__", "peek",      "read",      "read1",
+                                           "readinto", "readline",  "getheader", "getheaders",
+                                           "isclosed", "__enter__", "__exit__",  "info",
+                                           "geturl",   "getcode",   "begin",     NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.HTTPResponse";
     rt.short_name = "HTTPResponse";
     rt.method_names = py_methods_471;
-    static const char* py_bases_472[] = { "io.BufferedIOBase", "http.client.BinaryIO", NULL };
+    static const char *py_bases_472[] = {"io.BufferedIOBase", "http.client.BinaryIO", NULL};
     rt.embedded_types = py_bases_472;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9272,7 +9730,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "begin";
     rf.receiver_type = "http.client.HTTPResponse";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_473[] = { "__init__", "request", "getresponse", "set_debuglevel", "get_proxy_response_headers", "set_tunnel", "connect", "close", "putrequest", "putheader", "endheaders", "send", NULL };
+    static const char *py_methods_473[] = {
+        "__init__",   "request", "getresponse", "set_debuglevel", "get_proxy_response_headers",
+        "set_tunnel", "connect", "close",       "putrequest",     "putheader",
+        "endheaders", "send",    NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.HTTPConnection";
     rt.short_name = "HTTPConnection";
@@ -9338,12 +9799,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "send";
     rf.receiver_type = "http.client.HTTPConnection";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_474[] = { "__init__", NULL };
+    static const char *py_methods_474[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.HTTPSConnection";
     rt.short_name = "HTTPSConnection";
     rt.method_names = py_methods_474;
-    static const char* py_bases_475[] = { "http.client.HTTPConnection", NULL };
+    static const char *py_bases_475[] = {"http.client.HTTPConnection", NULL};
     rt.embedded_types = py_bases_475;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9354,27 +9815,27 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.HTTPException";
     rt.short_name = "HTTPException";
-    static const char* py_bases_476[] = { "http.client.Exception", NULL };
+    static const char *py_bases_476[] = {"http.client.Exception", NULL};
     rt.embedded_types = py_bases_476;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.NotConnected";
     rt.short_name = "NotConnected";
-    static const char* py_bases_477[] = { "http.client.HTTPException", NULL };
+    static const char *py_bases_477[] = {"http.client.HTTPException", NULL};
     rt.embedded_types = py_bases_477;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.InvalidURL";
     rt.short_name = "InvalidURL";
-    static const char* py_bases_478[] = { "http.client.HTTPException", NULL };
+    static const char *py_bases_478[] = {"http.client.HTTPException", NULL};
     rt.embedded_types = py_bases_478;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_479[] = { "__init__", NULL };
+    static const char *py_methods_479[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.UnknownProtocol";
     rt.short_name = "UnknownProtocol";
     rt.method_names = py_methods_479;
-    static const char* py_bases_480[] = { "http.client.HTTPException", NULL };
+    static const char *py_bases_480[] = {"http.client.HTTPException", NULL};
     rt.embedded_types = py_bases_480;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9385,21 +9846,21 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.UnknownTransferEncoding";
     rt.short_name = "UnknownTransferEncoding";
-    static const char* py_bases_481[] = { "http.client.HTTPException", NULL };
+    static const char *py_bases_481[] = {"http.client.HTTPException", NULL};
     rt.embedded_types = py_bases_481;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.UnimplementedFileMode";
     rt.short_name = "UnimplementedFileMode";
-    static const char* py_bases_482[] = { "http.client.HTTPException", NULL };
+    static const char *py_bases_482[] = {"http.client.HTTPException", NULL};
     rt.embedded_types = py_bases_482;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_483[] = { "__init__", NULL };
+    static const char *py_methods_483[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.IncompleteRead";
     rt.short_name = "IncompleteRead";
     rt.method_names = py_methods_483;
-    static const char* py_bases_484[] = { "http.client.HTTPException", NULL };
+    static const char *py_bases_484[] = {"http.client.HTTPException", NULL};
     rt.embedded_types = py_bases_484;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9410,33 +9871,33 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.ImproperConnectionState";
     rt.short_name = "ImproperConnectionState";
-    static const char* py_bases_485[] = { "http.client.HTTPException", NULL };
+    static const char *py_bases_485[] = {"http.client.HTTPException", NULL};
     rt.embedded_types = py_bases_485;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.CannotSendRequest";
     rt.short_name = "CannotSendRequest";
-    static const char* py_bases_486[] = { "http.client.ImproperConnectionState", NULL };
+    static const char *py_bases_486[] = {"http.client.ImproperConnectionState", NULL};
     rt.embedded_types = py_bases_486;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.CannotSendHeader";
     rt.short_name = "CannotSendHeader";
-    static const char* py_bases_487[] = { "http.client.ImproperConnectionState", NULL };
+    static const char *py_bases_487[] = {"http.client.ImproperConnectionState", NULL};
     rt.embedded_types = py_bases_487;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.ResponseNotReady";
     rt.short_name = "ResponseNotReady";
-    static const char* py_bases_488[] = { "http.client.ImproperConnectionState", NULL };
+    static const char *py_bases_488[] = {"http.client.ImproperConnectionState", NULL};
     rt.embedded_types = py_bases_488;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_489[] = { "__init__", NULL };
+    static const char *py_methods_489[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.BadStatusLine";
     rt.short_name = "BadStatusLine";
     rt.method_names = py_methods_489;
-    static const char* py_bases_490[] = { "http.client.HTTPException", NULL };
+    static const char *py_bases_490[] = {"http.client.HTTPException", NULL};
     rt.embedded_types = py_bases_490;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9444,12 +9905,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "http.client.BadStatusLine";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_491[] = { "__init__", NULL };
+    static const char *py_methods_491[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.LineTooLong";
     rt.short_name = "LineTooLong";
     rt.method_names = py_methods_491;
-    static const char* py_bases_492[] = { "http.client.HTTPException", NULL };
+    static const char *py_bases_492[] = {"http.client.HTTPException", NULL};
     rt.embedded_types = py_bases_492;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9460,7 +9921,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.client.RemoteDisconnected";
     rt.short_name = "RemoteDisconnected";
-    static const char* py_bases_493[] = { "http.client.ConnectionResetError", "http.client.BadStatusLine", NULL };
+    static const char *py_bases_493[] = {"http.client.ConnectionResetError",
+                                         "http.client.BadStatusLine", NULL};
     rt.embedded_types = py_bases_493;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9472,10 +9934,20 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.cookiejar.LoadError";
     rt.short_name = "LoadError";
-    static const char* py_bases_494[] = { "http.cookiejar.OSError", NULL };
+    static const char *py_bases_494[] = {"http.cookiejar.OSError", NULL};
     rt.embedded_types = py_bases_494;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_495[] = { "__init__", "add_cookie_header", "extract_cookies", "set_policy", "make_cookies", "set_cookie", "set_cookie_if_ok", "clear", "clear_session_cookies", "clear_expired_cookies", NULL };
+    static const char *py_methods_495[] = {"__init__",
+                                           "add_cookie_header",
+                                           "extract_cookies",
+                                           "set_policy",
+                                           "make_cookies",
+                                           "set_cookie",
+                                           "set_cookie_if_ok",
+                                           "clear",
+                                           "clear_session_cookies",
+                                           "clear_expired_cookies",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.cookiejar.CookieJar";
     rt.short_name = "CookieJar";
@@ -9531,12 +10003,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "clear_expired_cookies";
     rf.receiver_type = "http.cookiejar.CookieJar";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_496[] = { "__init__", "save", "load", "revert", NULL };
+    static const char *py_methods_496[] = {"__init__", "save", "load", "revert", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.cookiejar.FileCookieJar";
     rt.short_name = "FileCookieJar";
     rt.method_names = py_methods_496;
-    static const char* py_bases_497[] = { "http.cookiejar.CookieJar", NULL };
+    static const char *py_bases_497[] = {"http.cookiejar.CookieJar", NULL};
     rt.embedded_types = py_bases_497;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9562,15 +10034,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.cookiejar.MozillaCookieJar";
     rt.short_name = "MozillaCookieJar";
-    static const char* py_bases_498[] = { "http.cookiejar.FileCookieJar", NULL };
+    static const char *py_bases_498[] = {"http.cookiejar.FileCookieJar", NULL};
     rt.embedded_types = py_bases_498;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_499[] = { "as_lwp_str", NULL };
+    static const char *py_methods_499[] = {"as_lwp_str", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.cookiejar.LWPCookieJar";
     rt.short_name = "LWPCookieJar";
     rt.method_names = py_methods_499;
-    static const char* py_bases_500[] = { "http.cookiejar.FileCookieJar", NULL };
+    static const char *py_bases_500[] = {"http.cookiejar.FileCookieJar", NULL};
     rt.embedded_types = py_bases_500;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9578,7 +10050,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "as_lwp_str";
     rf.receiver_type = "http.cookiejar.LWPCookieJar";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_501[] = { "set_ok", "return_ok", "domain_return_ok", "path_return_ok", NULL };
+    static const char *py_methods_501[] = {"set_ok", "return_ok", "domain_return_ok",
+                                           "path_return_ok", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.cookiejar.CookiePolicy";
     rt.short_name = "CookiePolicy";
@@ -9604,12 +10077,31 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "path_return_ok";
     rf.receiver_type = "http.cookiejar.CookiePolicy";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_502[] = { "__init__", "blocked_domains", "set_blocked_domains", "is_blocked", "allowed_domains", "set_allowed_domains", "is_not_allowed", "set_ok_version", "set_ok_verifiability", "set_ok_name", "set_ok_path", "set_ok_domain", "set_ok_port", "return_ok_version", "return_ok_verifiability", "return_ok_secure", "return_ok_expires", "return_ok_port", "return_ok_domain", NULL };
+    static const char *py_methods_502[] = {"__init__",
+                                           "blocked_domains",
+                                           "set_blocked_domains",
+                                           "is_blocked",
+                                           "allowed_domains",
+                                           "set_allowed_domains",
+                                           "is_not_allowed",
+                                           "set_ok_version",
+                                           "set_ok_verifiability",
+                                           "set_ok_name",
+                                           "set_ok_path",
+                                           "set_ok_domain",
+                                           "set_ok_port",
+                                           "return_ok_version",
+                                           "return_ok_verifiability",
+                                           "return_ok_secure",
+                                           "return_ok_expires",
+                                           "return_ok_port",
+                                           "return_ok_domain",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.cookiejar.DefaultCookiePolicy";
     rt.short_name = "DefaultCookiePolicy";
     rt.method_names = py_methods_502;
-    static const char* py_bases_503[] = { "http.cookiejar.CookiePolicy", NULL };
+    static const char *py_bases_503[] = {"http.cookiejar.CookiePolicy", NULL};
     rt.embedded_types = py_bases_503;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9707,7 +10199,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "return_ok_domain";
     rf.receiver_type = "http.cookiejar.DefaultCookiePolicy";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_504[] = { "__init__", "has_nonstandard_attr", "get_nonstandard_attr", "set_nonstandard_attr", "is_expired", NULL };
+    static const char *py_methods_504[] = {"__init__",
+                                           "has_nonstandard_attr",
+                                           "get_nonstandard_attr",
+                                           "set_nonstandard_attr",
+                                           "is_expired",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.cookiejar.Cookie";
     rt.short_name = "Cookie";
@@ -9743,10 +10240,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.cookies.CookieError";
     rt.short_name = "CookieError";
-    static const char* py_bases_505[] = { "http.cookies.Exception", NULL };
+    static const char *py_bases_505[] = {"http.cookies.Exception", NULL};
     rt.embedded_types = py_bases_505;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_506[] = { "value", "coded_value", "key", "__init__", "set", "setdefault", "update", "isReservedKey", "output", "js_output", "OutputString", NULL };
+    static const char *py_methods_506[] = {"value",  "coded_value", "key",          "__init__",
+                                           "set",    "setdefault",  "update",       "isReservedKey",
+                                           "output", "js_output",   "OutputString", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.cookies.Morsel";
     rt.short_name = "Morsel";
@@ -9807,7 +10306,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "OutputString";
     rf.receiver_type = "http.cookies.Morsel";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_507[] = { "__init__", "value_decode", "value_encode", "output", "js_output", "load", NULL };
+    static const char *py_methods_507[] = {
+        "__init__", "value_decode", "value_encode", "output", "js_output", "load", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.cookies.BaseCookie";
     rt.short_name = "BaseCookie";
@@ -9852,21 +10352,22 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.server.HTTPServer";
     rt.short_name = "HTTPServer";
-    static const char* py_bases_508[] = { "socketserver.TCPServer", NULL };
+    static const char *py_bases_508[] = {"socketserver.TCPServer", NULL};
     rt.embedded_types = py_bases_508;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.server.ThreadingHTTPServer";
     rt.short_name = "ThreadingHTTPServer";
-    static const char* py_bases_509[] = { "socketserver.ThreadingMixIn", "http.server.HTTPServer", NULL };
+    static const char *py_bases_509[] = {"socketserver.ThreadingMixIn", "http.server.HTTPServer",
+                                         NULL};
     rt.embedded_types = py_bases_509;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_510[] = { "create_default_context", NULL };
+    static const char *py_methods_510[] = {"create_default_context", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.server._SSLModule";
     rt.short_name = "_SSLModule";
     rt.method_names = py_methods_510;
-    static const char* py_bases_511[] = { "http.server.Protocol", NULL };
+    static const char *py_bases_511[] = {"http.server.Protocol", NULL};
     rt.embedded_types = py_bases_511;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9874,12 +10375,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "create_default_context";
     rf.receiver_type = "http.server._SSLModule";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_512[] = { "__init__", "server_activate", NULL };
+    static const char *py_methods_512[] = {"__init__", "server_activate", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.server.HTTPSServer";
     rt.short_name = "HTTPSServer";
     rt.method_names = py_methods_512;
-    static const char* py_bases_513[] = { "http.server.HTTPServer", NULL };
+    static const char *py_bases_513[] = {"http.server.HTTPServer", NULL};
     rt.embedded_types = py_bases_513;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9895,15 +10396,32 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.server.ThreadingHTTPSServer";
     rt.short_name = "ThreadingHTTPSServer";
-    static const char* py_bases_514[] = { "socketserver.ThreadingMixIn", "http.server.HTTPSServer", NULL };
+    static const char *py_bases_514[] = {"socketserver.ThreadingMixIn", "http.server.HTTPSServer",
+                                         NULL};
     rt.embedded_types = py_bases_514;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_515[] = { "handle_one_request", "handle_expect_100", "send_error", "send_response", "send_header", "send_response_only", "end_headers", "flush_headers", "log_request", "log_error", "log_message", "version_string", "date_time_string", "log_date_time_string", "address_string", "parse_request", NULL };
+    static const char *py_methods_515[] = {"handle_one_request",
+                                           "handle_expect_100",
+                                           "send_error",
+                                           "send_response",
+                                           "send_header",
+                                           "send_response_only",
+                                           "end_headers",
+                                           "flush_headers",
+                                           "log_request",
+                                           "log_error",
+                                           "log_message",
+                                           "version_string",
+                                           "date_time_string",
+                                           "log_date_time_string",
+                                           "address_string",
+                                           "parse_request",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.server.BaseHTTPRequestHandler";
     rt.short_name = "BaseHTTPRequestHandler";
     rt.method_names = py_methods_515;
-    static const char* py_bases_516[] = { "socketserver.StreamRequestHandler", NULL };
+    static const char *py_bases_516[] = {"socketserver.StreamRequestHandler", NULL};
     rt.embedded_types = py_bases_516;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -9986,12 +10504,14 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "parse_request";
     rf.receiver_type = "http.server.BaseHTTPRequestHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_517[] = { "__init__", "do_GET", "do_HEAD", "send_head", "list_directory", "translate_path", "copyfile", "guess_type", NULL };
+    static const char *py_methods_517[] = {"__init__",  "do_GET",         "do_HEAD",
+                                           "send_head", "list_directory", "translate_path",
+                                           "copyfile",  "guess_type",     NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.server.SimpleHTTPRequestHandler";
     rt.short_name = "SimpleHTTPRequestHandler";
     rt.method_names = py_methods_517;
-    static const char* py_bases_518[] = { "http.server.BaseHTTPRequestHandler", NULL };
+    static const char *py_bases_518[] = {"http.server.BaseHTTPRequestHandler", NULL};
     rt.embedded_types = py_bases_518;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -10034,12 +10554,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "guess_type";
     rf.receiver_type = "http.server.SimpleHTTPRequestHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_519[] = { "do_POST", "is_cgi", "is_executable", "is_python", "run_cgi", NULL };
+    static const char *py_methods_519[] = {"do_POST",   "is_cgi",  "is_executable",
+                                           "is_python", "run_cgi", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.server.CGIHTTPRequestHandler";
     rt.short_name = "CGIHTTPRequestHandler";
     rt.method_names = py_methods_519;
-    static const char* py_bases_520[] = { "http.server.SimpleHTTPRequestHandler", NULL };
+    static const char *py_bases_520[] = {"http.server.SimpleHTTPRequestHandler", NULL};
     rt.embedded_types = py_bases_520;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -10067,12 +10588,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "run_cgi";
     rf.receiver_type = "http.server.CGIHTTPRequestHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_521[] = { "do_POST", "is_cgi", "is_executable", "is_python", "run_cgi", NULL };
+    static const char *py_methods_521[] = {"do_POST",   "is_cgi",  "is_executable",
+                                           "is_python", "run_cgi", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "http.server.CGIHTTPRequestHandler";
     rt.short_name = "CGIHTTPRequestHandler";
     rt.method_names = py_methods_521;
-    static const char* py_bases_522[] = { "http.server.SimpleHTTPRequestHandler", NULL };
+    static const char *py_bases_522[] = {"http.server.SimpleHTTPRequestHandler", NULL};
     rt.embedded_types = py_bases_522;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -10109,10 +10631,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.EndOfBlock";
     rt.short_name = "EndOfBlock";
-    static const char* py_bases_523[] = { "inspect.Exception", NULL };
+    static const char *py_bases_523[] = {"inspect.Exception", NULL};
     rt.embedded_types = py_bases_523;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_524[] = { "tokeneater", NULL };
+    static const char *py_methods_524[] = {"tokeneater", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.BlockFinder";
     rt.short_name = "BlockFinder";
@@ -10139,7 +10661,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "inspect._empty";
     rt.short_name = "_empty";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_525[] = { "__init__", "parameters", "return_annotation", "bind", "bind_partial", "replace", "from_callable", "format", NULL };
+    static const char *py_methods_525[] = {"__init__",      "parameters",   "return_annotation",
+                                           "bind",          "bind_partial", "replace",
+                                           "from_callable", "format",       NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.Signature";
     rt.short_name = "Signature";
@@ -10185,12 +10709,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "format";
     rf.receiver_type = "inspect.Signature";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_526[] = { "description", NULL };
+    static const char *py_methods_526[] = {"description", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect._ParameterKind";
     rt.short_name = "_ParameterKind";
     rt.method_names = py_methods_526;
-    static const char* py_bases_527[] = { "enum.IntEnum", NULL };
+    static const char *py_bases_527[] = {"enum.IntEnum", NULL};
     rt.embedded_types = py_bases_527;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -10198,7 +10722,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "description";
     rf.receiver_type = "inspect._ParameterKind";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_528[] = { "__init__", "name", "default", "kind", "annotation", "replace", NULL };
+    static const char *py_methods_528[] = {"__init__",   "name",    "default", "kind",
+                                           "annotation", "replace", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.Parameter";
     rt.short_name = "Parameter";
@@ -10234,7 +10759,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "replace";
     rf.receiver_type = "inspect.Parameter";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_529[] = { "args", "kwargs", "signature", "__init__", "apply_defaults", NULL };
+    static const char *py_methods_529[] = {"args",     "kwargs",         "signature",
+                                           "__init__", "apply_defaults", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.BoundArguments";
     rt.short_name = "BoundArguments";
@@ -10268,97 +10794,97 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.Arguments";
     rt.short_name = "Arguments";
-    static const char* py_bases_530[] = { "inspect.NamedTuple", NULL };
+    static const char *py_bases_530[] = {"inspect.NamedTuple", NULL};
     rt.embedded_types = py_bases_530;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.ArgSpec";
     rt.short_name = "ArgSpec";
-    static const char* py_bases_531[] = { "inspect.NamedTuple", NULL };
+    static const char *py_bases_531[] = {"inspect.NamedTuple", NULL};
     rt.embedded_types = py_bases_531;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.FullArgSpec";
     rt.short_name = "FullArgSpec";
-    static const char* py_bases_532[] = { "inspect.NamedTuple", NULL };
+    static const char *py_bases_532[] = {"inspect.NamedTuple", NULL};
     rt.embedded_types = py_bases_532;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.ArgInfo";
     rt.short_name = "ArgInfo";
-    static const char* py_bases_533[] = { "inspect.NamedTuple", NULL };
+    static const char *py_bases_533[] = {"inspect.NamedTuple", NULL};
     rt.embedded_types = py_bases_533;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.ClosureVars";
     rt.short_name = "ClosureVars";
-    static const char* py_bases_534[] = { "inspect.NamedTuple", NULL };
+    static const char *py_bases_534[] = {"inspect.NamedTuple", NULL};
     rt.embedded_types = py_bases_534;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect._Traceback";
     rt.short_name = "_Traceback";
-    static const char* py_bases_535[] = { "inspect.NamedTuple", NULL };
+    static const char *py_bases_535[] = {"inspect.NamedTuple", NULL};
     rt.embedded_types = py_bases_535;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect._FrameInfo";
     rt.short_name = "_FrameInfo";
-    static const char* py_bases_536[] = { "inspect.NamedTuple", NULL };
+    static const char *py_bases_536[] = {"inspect.NamedTuple", NULL};
     rt.embedded_types = py_bases_536;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.Traceback";
     rt.short_name = "Traceback";
-    static const char* py_bases_537[] = { "inspect._Traceback", NULL };
+    static const char *py_bases_537[] = {"inspect._Traceback", NULL};
     rt.embedded_types = py_bases_537;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.FrameInfo";
     rt.short_name = "FrameInfo";
-    static const char* py_bases_538[] = { "inspect._FrameInfo", NULL };
+    static const char *py_bases_538[] = {"inspect._FrameInfo", NULL};
     rt.embedded_types = py_bases_538;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.Traceback";
     rt.short_name = "Traceback";
-    static const char* py_bases_539[] = { "inspect._Traceback", NULL };
+    static const char *py_bases_539[] = {"inspect._Traceback", NULL};
     rt.embedded_types = py_bases_539;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.FrameInfo";
     rt.short_name = "FrameInfo";
-    static const char* py_bases_540[] = { "inspect._FrameInfo", NULL };
+    static const char *py_bases_540[] = {"inspect._FrameInfo", NULL};
     rt.embedded_types = py_bases_540;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.Traceback";
     rt.short_name = "Traceback";
-    static const char* py_bases_541[] = { "inspect.NamedTuple", NULL };
+    static const char *py_bases_541[] = {"inspect.NamedTuple", NULL};
     rt.embedded_types = py_bases_541;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.FrameInfo";
     rt.short_name = "FrameInfo";
-    static const char* py_bases_542[] = { "inspect.NamedTuple", NULL };
+    static const char *py_bases_542[] = {"inspect.NamedTuple", NULL};
     rt.embedded_types = py_bases_542;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.Attribute";
     rt.short_name = "Attribute";
-    static const char* py_bases_543[] = { "inspect.NamedTuple", NULL };
+    static const char *py_bases_543[] = {"inspect.NamedTuple", NULL};
     rt.embedded_types = py_bases_543;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.ClassFoundException";
     rt.short_name = "ClassFoundException";
-    static const char* py_bases_544[] = { "inspect.Exception", NULL };
+    static const char *py_bases_544[] = {"inspect.Exception", NULL};
     rt.embedded_types = py_bases_544;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "inspect.BufferFlags";
     rt.short_name = "BufferFlags";
-    static const char* py_bases_545[] = { "enum.IntFlag", NULL };
+    static const char *py_bases_545[] = {"enum.IntFlag", NULL};
     rt.embedded_types = py_bases_545;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -10646,34 +11172,34 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "io.UnsupportedOperation";
     rt.short_name = "UnsupportedOperation";
-    static const char* py_bases_546[] = { "io.OSError", "io.ValueError", NULL };
+    static const char *py_bases_546[] = {"io.OSError", "io.ValueError", NULL};
     rt.embedded_types = py_bases_546;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "io.IOBase";
     rt.short_name = "IOBase";
-    static const char* py_bases_547[] = { "io._IOBase", NULL };
+    static const char *py_bases_547[] = {"io._IOBase", NULL};
     rt.embedded_types = py_bases_547;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "io.RawIOBase";
     rt.short_name = "RawIOBase";
-    static const char* py_bases_548[] = { "io._RawIOBase", "io.IOBase", NULL };
+    static const char *py_bases_548[] = {"io._RawIOBase", "io.IOBase", NULL};
     rt.embedded_types = py_bases_548;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "io.BufferedIOBase";
     rt.short_name = "BufferedIOBase";
-    static const char* py_bases_549[] = { "io._BufferedIOBase", "io.IOBase", NULL };
+    static const char *py_bases_549[] = {"io._BufferedIOBase", "io.IOBase", NULL};
     rt.embedded_types = py_bases_549;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "io.TextIOBase";
     rt.short_name = "TextIOBase";
-    static const char* py_bases_550[] = { "io._TextIOBase", "io.IOBase", NULL };
+    static const char *py_bases_550[] = {"io._TextIOBase", "io.IOBase", NULL};
     rt.embedded_types = py_bases_550;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_551[] = { "read", NULL };
+    static const char *py_methods_551[] = {"read", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "io.Reader";
     rt.short_name = "Reader";
@@ -10684,7 +11210,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "read";
     rf.receiver_type = "io.Reader";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_552[] = { "write", NULL };
+    static const char *py_methods_552[] = {"write", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "io.Writer";
     rt.short_name = "Writer";
@@ -10713,7 +11239,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "itertools.accumulate";
     rt.short_name = "accumulate";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_553[] = { "from_iterable", NULL };
+    static const char *py_methods_553[] = {"from_iterable", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "itertools.chain";
     rt.short_name = "chain";
@@ -10776,7 +11302,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "itertools.pairwise";
     rt.short_name = "pairwise";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_554[] = { "__new__", NULL };
+    static const char *py_methods_554[] = {"__new__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "itertools.batched";
     rt.short_name = "batched";
@@ -10815,12 +11341,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: json.decoder ===== */
-    static const char* py_methods_555[] = { "__init__", NULL };
+    static const char *py_methods_555[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "json.decoder.JSONDecodeError";
     rt.short_name = "JSONDecodeError";
     rt.method_names = py_methods_555;
-    static const char* py_bases_556[] = { "json.decoder.ValueError", NULL };
+    static const char *py_bases_556[] = {"json.decoder.ValueError", NULL};
     rt.embedded_types = py_bases_556;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -10828,7 +11354,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "json.decoder.JSONDecodeError";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_557[] = { "__init__", "decode", "raw_decode", NULL };
+    static const char *py_methods_557[] = {"__init__", "decode", "raw_decode", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "json.decoder.JSONDecoder";
     rt.short_name = "JSONDecoder";
@@ -10851,7 +11377,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: json.encoder ===== */
-    static const char* py_methods_558[] = { "__init__", "default", "encode", "iterencode", NULL };
+    static const char *py_methods_558[] = {"__init__", "default", "encode", "iterencode", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "json.encoder.JSONEncoder";
     rt.short_name = "JSONEncoder";
@@ -10901,12 +11427,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: logging ===== */
-    static const char* py_methods_559[] = { "filter", NULL };
+    static const char *py_methods_559[] = {"filter", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging._SupportsFilter";
     rt.short_name = "_SupportsFilter";
     rt.method_names = py_methods_559;
-    static const char* py_bases_560[] = { "logging.Protocol", NULL };
+    static const char *py_bases_560[] = {"logging.Protocol", NULL};
     rt.embedded_types = py_bases_560;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -10914,12 +11440,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "filter";
     rf.receiver_type = "logging._SupportsFilter";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_561[] = { "filter", NULL };
+    static const char *py_methods_561[] = {"filter", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging._SupportsFilter";
     rt.short_name = "_SupportsFilter";
     rt.method_names = py_methods_561;
-    static const char* py_bases_562[] = { "logging.Protocol", NULL };
+    static const char *py_bases_562[] = {"logging.Protocol", NULL};
     rt.embedded_types = py_bases_562;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -10927,7 +11453,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "filter";
     rf.receiver_type = "logging._SupportsFilter";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_563[] = { "addFilter", "removeFilter", "filter", NULL };
+    static const char *py_methods_563[] = {"addFilter", "removeFilter", "filter", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.Filterer";
     rt.short_name = "Filterer";
@@ -10948,7 +11474,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "filter";
     rf.receiver_type = "logging.Filterer";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_564[] = { "__init__", "getLogger", "setLoggerClass", "setLogRecordFactory", NULL };
+    static const char *py_methods_564[] = {"__init__", "getLogger", "setLoggerClass",
+                                           "setLogRecordFactory", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.Manager";
     rt.short_name = "Manager";
@@ -10974,12 +11501,18 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "setLogRecordFactory";
     rf.receiver_type = "logging.Manager";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_565[] = { "__init__", "setLevel", "isEnabledFor", "getEffectiveLevel", "getChild", "getChildren", "debug", "info", "warning", "warn", "error", "exception", "critical", "log", "addHandler", "removeHandler", "findCaller", "handle", "makeRecord", "hasHandlers", "callHandlers", NULL };
+    static const char *py_methods_565[] = {
+        "__init__",     "setLevel",    "isEnabledFor", "getEffectiveLevel",
+        "getChild",     "getChildren", "debug",        "info",
+        "warning",      "warn",        "error",        "exception",
+        "critical",     "log",         "addHandler",   "removeHandler",
+        "findCaller",   "handle",      "makeRecord",   "hasHandlers",
+        "callHandlers", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.Logger";
     rt.short_name = "Logger";
     rt.method_names = py_methods_565;
-    static const char* py_bases_566[] = { "logging.Filterer", NULL };
+    static const char *py_bases_566[] = {"logging.Filterer", NULL};
     rt.embedded_types = py_bases_566;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11087,12 +11620,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "callHandlers";
     rf.receiver_type = "logging.Logger";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_567[] = { "__init__", "get_name", "set_name", "createLock", "acquire", "release", "setLevel", "setFormatter", "flush", "close", "handle", "handleError", "format", "emit", NULL };
+    static const char *py_methods_567[] = {"__init__", "get_name", "set_name", "createLock",
+                                           "acquire",  "release",  "setLevel", "setFormatter",
+                                           "flush",    "close",    "handle",   "handleError",
+                                           "format",   "emit",     NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.Handler";
     rt.short_name = "Handler";
     rt.method_names = py_methods_567;
-    static const char* py_bases_568[] = { "logging.Filterer", NULL };
+    static const char *py_bases_568[] = {"logging.Filterer", NULL};
     rt.embedded_types = py_bases_568;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11165,7 +11701,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "emit";
     rf.receiver_type = "logging.Handler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_569[] = { "__init__", "format", "formatTime", "formatException", "formatMessage", "formatStack", "usesTime", NULL };
+    static const char *py_methods_569[] = {
+        "__init__",      "format",      "formatTime", "formatException",
+        "formatMessage", "formatStack", "usesTime",   NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.Formatter";
     rt.short_name = "Formatter";
@@ -11206,7 +11744,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "usesTime";
     rf.receiver_type = "logging.Formatter";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_570[] = { "__init__", "formatHeader", "formatFooter", "format", NULL };
+    static const char *py_methods_570[] = {"__init__", "formatHeader", "formatFooter", "format",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.BufferingFormatter";
     rt.short_name = "BufferingFormatter";
@@ -11232,7 +11771,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "format";
     rf.receiver_type = "logging.BufferingFormatter";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_571[] = { "__init__", "filter", NULL };
+    static const char *py_methods_571[] = {"__init__", "filter", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.Filter";
     rt.short_name = "Filter";
@@ -11248,7 +11787,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "filter";
     rf.receiver_type = "logging.Filter";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_572[] = { "__init__", "getMessage", NULL };
+    static const char *py_methods_572[] = {"__init__", "getMessage", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.LogRecord";
     rt.short_name = "LogRecord";
@@ -11264,7 +11803,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "getMessage";
     rf.receiver_type = "logging.LogRecord";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_573[] = { "__init__", "process", "debug", "info", "warning", "warn", "error", "exception", "critical", "log", "isEnabledFor", "getEffectiveLevel", "setLevel", "hasHandlers", "_log", "name", "__class_getitem__", NULL };
+    static const char *py_methods_573[] = {
+        "__init__", "process",     "debug",    "info", "warning",           "warn",
+        "error",    "exception",   "critical", "log",  "isEnabledFor",      "getEffectiveLevel",
+        "setLevel", "hasHandlers", "_log",     "name", "__class_getitem__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.LoggerAdapter";
     rt.short_name = "LoggerAdapter";
@@ -11355,12 +11897,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__class_getitem__";
     rf.receiver_type = "logging.LoggerAdapter";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_574[] = { "__init__", "setStream", "__class_getitem__", NULL };
+    static const char *py_methods_574[] = {"__init__", "setStream", "__class_getitem__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.StreamHandler";
     rt.short_name = "StreamHandler";
     rt.method_names = py_methods_574;
-    static const char* py_bases_575[] = { "logging.Handler", NULL };
+    static const char *py_bases_575[] = {"logging.Handler", NULL};
     rt.embedded_types = py_bases_575;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11378,7 +11920,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__class_getitem__";
     rf.receiver_type = "logging.StreamHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_576[] = { "__init__", NULL };
+    static const char *py_methods_576[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.FileHandler";
     rt.short_name = "FileHandler";
@@ -11392,10 +11934,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.NullHandler";
     rt.short_name = "NullHandler";
-    static const char* py_bases_577[] = { "logging.Handler", NULL };
+    static const char *py_bases_577[] = {"logging.Handler", NULL};
     rt.embedded_types = py_bases_577;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_578[] = { "__init__", "append", NULL };
+    static const char *py_methods_578[] = {"__init__", "append", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.PlaceHolder";
     rt.short_name = "PlaceHolder";
@@ -11411,12 +11953,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "append";
     rf.receiver_type = "logging.PlaceHolder";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_579[] = { "__init__", NULL };
+    static const char *py_methods_579[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.RootLogger";
     rt.short_name = "RootLogger";
     rt.method_names = py_methods_579;
-    static const char* py_bases_580[] = { "logging.Logger", NULL };
+    static const char *py_bases_580[] = {"logging.Logger", NULL};
     rt.embedded_types = py_bases_580;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11424,7 +11966,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "logging.RootLogger";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_581[] = { "__init__", "usesTime", "validate", "format", NULL };
+    static const char *py_methods_581[] = {"__init__", "usesTime", "validate", "format", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.PercentStyle";
     rt.short_name = "PercentStyle";
@@ -11453,13 +11995,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.StrFormatStyle";
     rt.short_name = "StrFormatStyle";
-    static const char* py_bases_582[] = { "logging.PercentStyle", NULL };
+    static const char *py_bases_582[] = {"logging.PercentStyle", NULL};
     rt.embedded_types = py_bases_582;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.StringTemplateStyle";
     rt.short_name = "StringTemplateStyle";
-    static const char* py_bases_583[] = { "logging.PercentStyle", NULL };
+    static const char *py_bases_583[] = {"logging.PercentStyle", NULL};
     rt.embedded_types = py_bases_583;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11563,34 +12105,35 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.config._RootLoggerConfiguration";
     rt.short_name = "_RootLoggerConfiguration";
-    static const char* py_bases_584[] = { "logging.config.TypedDict", NULL };
+    static const char *py_bases_584[] = {"logging.config.TypedDict", NULL};
     rt.embedded_types = py_bases_584;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.config._RootLoggerConfiguration";
     rt.short_name = "_RootLoggerConfiguration";
-    static const char* py_bases_585[] = { "logging.config.TypedDict", NULL };
+    static const char *py_bases_585[] = {"logging.config.TypedDict", NULL};
     rt.embedded_types = py_bases_585;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.config._LoggerConfiguration";
     rt.short_name = "_LoggerConfiguration";
-    static const char* py_bases_586[] = { "logging.config._RootLoggerConfiguration", "logging.config.TypedDict", NULL };
+    static const char *py_bases_586[] = {"logging.config._RootLoggerConfiguration",
+                                         "logging.config.TypedDict", NULL};
     rt.embedded_types = py_bases_586;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.config._FilterConfigurationTypedDict";
     rt.short_name = "_FilterConfigurationTypedDict";
-    static const char* py_bases_587[] = { "logging.config.TypedDict", NULL };
+    static const char *py_bases_587[] = {"logging.config.TypedDict", NULL};
     rt.embedded_types = py_bases_587;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.config._DictConfigArgs";
     rt.short_name = "_DictConfigArgs";
-    static const char* py_bases_588[] = { "logging.config.TypedDict", NULL };
+    static const char *py_bases_588[] = {"logging.config.TypedDict", NULL};
     rt.embedded_types = py_bases_588;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_589[] = { "convert_with_key", "convert", NULL };
+    static const char *py_methods_589[] = {"convert_with_key", "convert", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.config.ConvertingMixin";
     rt.short_name = "ConvertingMixin";
@@ -11606,12 +12149,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "convert";
     rf.receiver_type = "logging.config.ConvertingMixin";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_590[] = { "get", "pop", NULL };
+    static const char *py_methods_590[] = {"get", "pop", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.config.ConvertingDict";
     rt.short_name = "ConvertingDict";
     rt.method_names = py_methods_590;
-    static const char* py_bases_591[] = { "logging.config.ConvertingMixin", NULL };
+    static const char *py_bases_591[] = {"logging.config.ConvertingMixin", NULL};
     rt.embedded_types = py_bases_591;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11624,12 +12167,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "pop";
     rf.receiver_type = "logging.config.ConvertingDict";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_592[] = { "pop", NULL };
+    static const char *py_methods_592[] = {"pop", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.config.ConvertingList";
     rt.short_name = "ConvertingList";
     rt.method_names = py_methods_592;
-    static const char* py_bases_593[] = { "logging.config.ConvertingMixin", NULL };
+    static const char *py_bases_593[] = {"logging.config.ConvertingMixin", NULL};
     rt.embedded_types = py_bases_593;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11640,16 +12183,18 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.config.ConvertingTuple";
     rt.short_name = "ConvertingTuple";
-    static const char* py_bases_594[] = { "logging.config.ConvertingMixin", NULL };
+    static const char *py_bases_594[] = {"logging.config.ConvertingMixin", NULL};
     rt.embedded_types = py_bases_594;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.config.ConvertingTuple";
     rt.short_name = "ConvertingTuple";
-    static const char* py_bases_595[] = { "logging.config.ConvertingMixin", NULL };
+    static const char *py_bases_595[] = {"logging.config.ConvertingMixin", NULL};
     rt.embedded_types = py_bases_595;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_596[] = { "__init__", "resolve", "ext_convert", "cfg_convert", "convert", "configure_custom", "as_tuple", NULL };
+    static const char *py_methods_596[] = {"__init__",    "resolve", "ext_convert",
+                                           "cfg_convert", "convert", "configure_custom",
+                                           "as_tuple",    NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.config.BaseConfigurator";
     rt.short_name = "BaseConfigurator";
@@ -11690,12 +12235,21 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "as_tuple";
     rf.receiver_type = "logging.config.BaseConfigurator";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_597[] = { "configure", "configure_formatter", "configure_filter", "add_filters", "configure_handler", "add_handlers", "common_logger_config", "configure_logger", "configure_root", NULL };
+    static const char *py_methods_597[] = {"configure",
+                                           "configure_formatter",
+                                           "configure_filter",
+                                           "add_filters",
+                                           "configure_handler",
+                                           "add_handlers",
+                                           "common_logger_config",
+                                           "configure_logger",
+                                           "configure_root",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.config.DictConfigurator";
     rt.short_name = "DictConfigurator";
     rt.method_names = py_methods_597;
-    static const char* py_bases_598[] = { "logging.config.BaseConfigurator", NULL };
+    static const char *py_bases_598[] = {"logging.config.BaseConfigurator", NULL};
     rt.embedded_types = py_bases_598;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11765,12 +12319,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: logging.handlers ===== */
-    static const char* py_methods_599[] = { "__init__", "reopenIfNeeded", NULL };
+    static const char *py_methods_599[] = {"__init__", "reopenIfNeeded", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers.WatchedFileHandler";
     rt.short_name = "WatchedFileHandler";
     rt.method_names = py_methods_599;
-    static const char* py_bases_600[] = { "logging.handlers.FileHandler", NULL };
+    static const char *py_bases_600[] = {"logging.handlers.FileHandler", NULL};
     rt.embedded_types = py_bases_600;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11783,12 +12337,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "reopenIfNeeded";
     rf.receiver_type = "logging.handlers.WatchedFileHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_601[] = { "__init__", "rotation_filename", "rotate", NULL };
+    static const char *py_methods_601[] = {"__init__", "rotation_filename", "rotate", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers.BaseRotatingHandler";
     rt.short_name = "BaseRotatingHandler";
     rt.method_names = py_methods_601;
-    static const char* py_bases_602[] = { "logging.handlers.FileHandler", NULL };
+    static const char *py_bases_602[] = {"logging.handlers.FileHandler", NULL};
     rt.embedded_types = py_bases_602;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11806,12 +12360,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "rotate";
     rf.receiver_type = "logging.handlers.BaseRotatingHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_603[] = { "__init__", "doRollover", "shouldRollover", NULL };
+    static const char *py_methods_603[] = {"__init__", "doRollover", "shouldRollover", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers.RotatingFileHandler";
     rt.short_name = "RotatingFileHandler";
     rt.method_names = py_methods_603;
-    static const char* py_bases_604[] = { "logging.handlers.BaseRotatingHandler", NULL };
+    static const char *py_bases_604[] = {"logging.handlers.BaseRotatingHandler", NULL};
     rt.embedded_types = py_bases_604;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11829,12 +12383,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "shouldRollover";
     rf.receiver_type = "logging.handlers.RotatingFileHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_605[] = { "__init__", "doRollover", "shouldRollover", "computeRollover", "getFilesToDelete", NULL };
+    static const char *py_methods_605[] = {"__init__",        "doRollover",       "shouldRollover",
+                                           "computeRollover", "getFilesToDelete", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers.TimedRotatingFileHandler";
     rt.short_name = "TimedRotatingFileHandler";
     rt.method_names = py_methods_605;
-    static const char* py_bases_606[] = { "logging.handlers.BaseRotatingHandler", NULL };
+    static const char *py_bases_606[] = {"logging.handlers.BaseRotatingHandler", NULL};
     rt.embedded_types = py_bases_606;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11862,12 +12417,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "getFilesToDelete";
     rf.receiver_type = "logging.handlers.TimedRotatingFileHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_607[] = { "__init__", "makeSocket", "makePickle", "send", "createSocket", NULL };
+    static const char *py_methods_607[] = {"__init__", "makeSocket",   "makePickle",
+                                           "send",     "createSocket", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers.SocketHandler";
     rt.short_name = "SocketHandler";
     rt.method_names = py_methods_607;
-    static const char* py_bases_608[] = { "logging.handlers.Handler", NULL };
+    static const char *py_bases_608[] = {"logging.handlers.Handler", NULL};
     rt.embedded_types = py_bases_608;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11895,12 +12451,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "createSocket";
     rf.receiver_type = "logging.handlers.SocketHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_609[] = { "makeSocket", NULL };
+    static const char *py_methods_609[] = {"makeSocket", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers.DatagramHandler";
     rt.short_name = "DatagramHandler";
     rt.method_names = py_methods_609;
-    static const char* py_bases_610[] = { "logging.handlers.SocketHandler", NULL };
+    static const char *py_bases_610[] = {"logging.handlers.SocketHandler", NULL};
     rt.embedded_types = py_bases_610;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11908,12 +12464,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "makeSocket";
     rf.receiver_type = "logging.handlers.DatagramHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_611[] = { "__init__", "createSocket", "encodePriority", "mapPriority", NULL };
+    static const char *py_methods_611[] = {"__init__", "createSocket", "encodePriority",
+                                           "mapPriority", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers.SysLogHandler";
     rt.short_name = "SysLogHandler";
     rt.method_names = py_methods_611;
-    static const char* py_bases_612[] = { "logging.handlers.Handler", NULL };
+    static const char *py_bases_612[] = {"logging.handlers.Handler", NULL};
     rt.embedded_types = py_bases_612;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11936,12 +12493,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "mapPriority";
     rf.receiver_type = "logging.handlers.SysLogHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_613[] = { "__init__", "getEventCategory", "getEventType", "getMessageID", NULL };
+    static const char *py_methods_613[] = {"__init__", "getEventCategory", "getEventType",
+                                           "getMessageID", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers.NTEventLogHandler";
     rt.short_name = "NTEventLogHandler";
     rt.method_names = py_methods_613;
-    static const char* py_bases_614[] = { "logging.handlers.Handler", NULL };
+    static const char *py_bases_614[] = {"logging.handlers.Handler", NULL};
     rt.embedded_types = py_bases_614;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11964,12 +12522,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "getMessageID";
     rf.receiver_type = "logging.handlers.NTEventLogHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_615[] = { "__init__", "getSubject", NULL };
+    static const char *py_methods_615[] = {"__init__", "getSubject", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers.SMTPHandler";
     rt.short_name = "SMTPHandler";
     rt.method_names = py_methods_615;
-    static const char* py_bases_616[] = { "logging.handlers.Handler", NULL };
+    static const char *py_bases_616[] = {"logging.handlers.Handler", NULL};
     rt.embedded_types = py_bases_616;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -11982,12 +12540,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "getSubject";
     rf.receiver_type = "logging.handlers.SMTPHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_617[] = { "__init__", "shouldFlush", NULL };
+    static const char *py_methods_617[] = {"__init__", "shouldFlush", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers.BufferingHandler";
     rt.short_name = "BufferingHandler";
     rt.method_names = py_methods_617;
-    static const char* py_bases_618[] = { "logging.handlers.Handler", NULL };
+    static const char *py_bases_618[] = {"logging.handlers.Handler", NULL};
     rt.embedded_types = py_bases_618;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -12000,12 +12558,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "shouldFlush";
     rf.receiver_type = "logging.handlers.BufferingHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_619[] = { "__init__", "setTarget", NULL };
+    static const char *py_methods_619[] = {"__init__", "setTarget", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers.MemoryHandler";
     rt.short_name = "MemoryHandler";
     rt.method_names = py_methods_619;
-    static const char* py_bases_620[] = { "logging.handlers.BufferingHandler", NULL };
+    static const char *py_bases_620[] = {"logging.handlers.BufferingHandler", NULL};
     rt.embedded_types = py_bases_620;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -12018,12 +12576,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "setTarget";
     rf.receiver_type = "logging.handlers.MemoryHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_621[] = { "__init__", "mapLogRecord", "getConnection", NULL };
+    static const char *py_methods_621[] = {"__init__", "mapLogRecord", "getConnection", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers.HTTPHandler";
     rt.short_name = "HTTPHandler";
     rt.method_names = py_methods_621;
-    static const char* py_bases_622[] = { "logging.handlers.Handler", NULL };
+    static const char *py_bases_622[] = {"logging.handlers.Handler", NULL};
     rt.embedded_types = py_bases_622;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -12041,7 +12599,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "getConnection";
     rf.receiver_type = "logging.handlers.HTTPHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_623[] = { "get", "put_nowait", NULL };
+    static const char *py_methods_623[] = {"get", "put_nowait", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers._QueueLike";
     rt.short_name = "_QueueLike";
@@ -12057,12 +12615,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "put_nowait";
     rf.receiver_type = "logging.handlers._QueueLike";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_624[] = { "__init__", "prepare", "enqueue", NULL };
+    static const char *py_methods_624[] = {"__init__", "prepare", "enqueue", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers.QueueHandler";
     rt.short_name = "QueueHandler";
     rt.method_names = py_methods_624;
-    static const char* py_bases_625[] = { "logging.handlers.Handler", NULL };
+    static const char *py_bases_625[] = {"logging.handlers.Handler", NULL};
     rt.embedded_types = py_bases_625;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -12080,7 +12638,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "enqueue";
     rf.receiver_type = "logging.handlers.QueueHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_626[] = { "__init__", "dequeue", "prepare", "start", "stop", "enqueue_sentinel", "handle", "__enter__", "__exit__", NULL };
+    static const char *py_methods_626[] = {
+        "__init__",         "dequeue", "prepare",   "start",    "stop",
+        "enqueue_sentinel", "handle",  "__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "logging.handlers.QueueListener";
     rt.short_name = "QueueListener";
@@ -12144,7 +12704,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "math._SupportsProdWithNoDefaultGiven";
     rt.short_name = "_SupportsProdWithNoDefaultGiven";
-    static const char* py_bases_627[] = { "math.Protocol", NULL };
+    static const char *py_bases_627[] = {"math.Protocol", NULL};
     rt.embedded_types = py_bases_627;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
@@ -12381,7 +12941,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.connection ===== */
-    static const char* py_methods_628[] = { "__init__", "closed", "readable", "writable", "fileno", "close", "send_bytes", "send", "recv_bytes", "recv_bytes_into", "recv", "poll", "__enter__", "__exit__", NULL };
+    static const char *py_methods_628[] = {
+        "__init__", "closed",     "readable",  "writable",   "fileno",
+        "close",    "send_bytes", "send",      "recv_bytes", "recv_bytes_into",
+        "recv",     "poll",       "__enter__", "__exit__",   NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.connection._ConnectionBase";
     rt.short_name = "_ConnectionBase";
@@ -12465,7 +13028,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "multiprocessing.connection.PipeConnection";
     rt.short_name = "PipeConnection";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_629[] = { "__init__", "accept", "close", "address", "last_accepted", "__enter__", "__exit__", NULL };
+    static const char *py_methods_629[] = {"__init__",      "accept",    "close",    "address",
+                                           "last_accepted", "__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.connection.Listener";
     rt.short_name = "Listener";
@@ -12531,28 +13095,59 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.context.ProcessError";
     rt.short_name = "ProcessError";
-    static const char* py_bases_630[] = { "multiprocessing.context.Exception", NULL };
+    static const char *py_bases_630[] = {"multiprocessing.context.Exception", NULL};
     rt.embedded_types = py_bases_630;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.context.BufferTooShort";
     rt.short_name = "BufferTooShort";
-    static const char* py_bases_631[] = { "multiprocessing.context.ProcessError", NULL };
+    static const char *py_bases_631[] = {"multiprocessing.context.ProcessError", NULL};
     rt.embedded_types = py_bases_631;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.context.TimeoutError";
     rt.short_name = "TimeoutError";
-    static const char* py_bases_632[] = { "multiprocessing.context.ProcessError", NULL };
+    static const char *py_bases_632[] = {"multiprocessing.context.ProcessError", NULL};
     rt.embedded_types = py_bases_632;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.context.AuthenticationError";
     rt.short_name = "AuthenticationError";
-    static const char* py_bases_633[] = { "multiprocessing.context.ProcessError", NULL };
+    static const char *py_bases_633[] = {"multiprocessing.context.ProcessError", NULL};
     rt.embedded_types = py_bases_633;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_634[] = { "current_process", "parent_process", "active_children", "cpu_count", "Manager", "Pipe", "Barrier", "BoundedSemaphore", "Condition", "Event", "Lock", "RLock", "Semaphore", "Queue", "JoinableQueue", "SimpleQueue", "Pool", "RawValue", "RawArray", "Value", "Array", "freeze_support", "get_logger", "log_to_stderr", "allow_connection_pickling", "set_executable", "set_forkserver_preload", "get_context", "get_start_method", "set_start_method", "reducer", NULL };
+    static const char *py_methods_634[] = {"current_process",
+                                           "parent_process",
+                                           "active_children",
+                                           "cpu_count",
+                                           "Manager",
+                                           "Pipe",
+                                           "Barrier",
+                                           "BoundedSemaphore",
+                                           "Condition",
+                                           "Event",
+                                           "Lock",
+                                           "RLock",
+                                           "Semaphore",
+                                           "Queue",
+                                           "JoinableQueue",
+                                           "SimpleQueue",
+                                           "Pool",
+                                           "RawValue",
+                                           "RawArray",
+                                           "Value",
+                                           "Array",
+                                           "freeze_support",
+                                           "get_logger",
+                                           "log_to_stderr",
+                                           "allow_connection_pickling",
+                                           "set_executable",
+                                           "set_forkserver_preload",
+                                           "get_context",
+                                           "get_start_method",
+                                           "set_start_method",
+                                           "reducer",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.context.BaseContext";
     rt.short_name = "BaseContext";
@@ -12716,15 +13311,16 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.context.Process";
     rt.short_name = "Process";
-    static const char* py_bases_635[] = { "multiprocessing.context.BaseProcess", NULL };
+    static const char *py_bases_635[] = {"multiprocessing.context.BaseProcess", NULL};
     rt.embedded_types = py_bases_635;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_636[] = { "__init__", "get_start_method", "get_all_start_methods", NULL };
+    static const char *py_methods_636[] = {"__init__", "get_start_method", "get_all_start_methods",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.context.DefaultContext";
     rt.short_name = "DefaultContext";
     rt.method_names = py_methods_636;
-    static const char* py_bases_637[] = { "multiprocessing.context.BaseContext", NULL };
+    static const char *py_bases_637[] = {"multiprocessing.context.BaseContext", NULL};
     rt.embedded_types = py_bases_637;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -12742,12 +13338,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "get_all_start_methods";
     rf.receiver_type = "multiprocessing.context.DefaultContext";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_638[] = { "_Popen", NULL };
+    static const char *py_methods_638[] = {"_Popen", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.context.SpawnProcess";
     rt.short_name = "SpawnProcess";
     rt.method_names = py_methods_638;
-    static const char* py_bases_639[] = { "multiprocessing.context.BaseProcess", NULL };
+    static const char *py_bases_639[] = {"multiprocessing.context.BaseProcess", NULL};
     rt.embedded_types = py_bases_639;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -12758,31 +13354,31 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.context.SpawnContext";
     rt.short_name = "SpawnContext";
-    static const char* py_bases_640[] = { "multiprocessing.context.BaseContext", NULL };
+    static const char *py_bases_640[] = {"multiprocessing.context.BaseContext", NULL};
     rt.embedded_types = py_bases_640;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.context.ForkProcess";
     rt.short_name = "ForkProcess";
-    static const char* py_bases_641[] = { "multiprocessing.context.BaseProcess", NULL };
+    static const char *py_bases_641[] = {"multiprocessing.context.BaseProcess", NULL};
     rt.embedded_types = py_bases_641;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.context.ForkServerProcess";
     rt.short_name = "ForkServerProcess";
-    static const char* py_bases_642[] = { "multiprocessing.context.BaseProcess", NULL };
+    static const char *py_bases_642[] = {"multiprocessing.context.BaseProcess", NULL};
     rt.embedded_types = py_bases_642;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.context.ForkContext";
     rt.short_name = "ForkContext";
-    static const char* py_bases_643[] = { "multiprocessing.context.BaseContext", NULL };
+    static const char *py_bases_643[] = {"multiprocessing.context.BaseContext", NULL};
     rt.embedded_types = py_bases_643;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.context.ForkServerContext";
     rt.short_name = "ForkServerContext";
-    static const char* py_bases_644[] = { "multiprocessing.context.BaseContext", NULL };
+    static const char *py_bases_644[] = {"multiprocessing.context.BaseContext", NULL};
     rt.embedded_types = py_bases_644;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -12799,12 +13395,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.dummy ===== */
-    static const char* py_methods_645[] = { "exitcode", "__init__", NULL };
+    static const char *py_methods_645[] = {"exitcode", "__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.dummy.DummyProcess";
     rt.short_name = "DummyProcess";
     rt.method_names = py_methods_645;
-    static const char* py_bases_646[] = { "threading.Thread", NULL };
+    static const char *py_bases_646[] = {"threading.Thread", NULL};
     rt.embedded_types = py_bases_646;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -12817,7 +13413,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "multiprocessing.dummy.DummyProcess";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_647[] = { "__init__", NULL };
+    static const char *py_methods_647[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.dummy.Namespace";
     rt.short_name = "Namespace";
@@ -12828,7 +13424,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "multiprocessing.dummy.Namespace";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_648[] = { "__init__", NULL };
+    static const char *py_methods_648[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.dummy.Value";
     rt.short_name = "Value";
@@ -12865,7 +13461,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.dummy.connection ===== */
-    static const char* py_methods_649[] = { "__enter__", "__exit__", "__init__", "close", "poll", NULL };
+    static const char *py_methods_649[] = {"__enter__", "__exit__", "__init__",
+                                           "close",     "poll",     NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.dummy.connection.Connection";
     rt.short_name = "Connection";
@@ -12896,7 +13493,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "poll";
     rf.receiver_type = "multiprocessing.dummy.connection.Connection";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_650[] = { "address", "__enter__", "__exit__", "__init__", "accept", "close", NULL };
+    static const char *py_methods_650[] = {"address", "__enter__", "__exit__", "__init__",
+                                           "accept",  "close",     NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.dummy.connection.Listener";
     rt.short_name = "Listener";
@@ -12942,7 +13540,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.forkserver ===== */
-    static const char* py_methods_651[] = { "set_forkserver_preload", "get_inherited_fds", "connect_to_new_process", "ensure_running", NULL };
+    static const char *py_methods_651[] = {"set_forkserver_preload", "get_inherited_fds",
+                                           "connect_to_new_process", "ensure_running", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.forkserver.ForkServer";
     rt.short_name = "ForkServer";
@@ -12982,7 +13581,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.heap ===== */
-    static const char* py_methods_652[] = { "__init__", NULL };
+    static const char *py_methods_652[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.heap.Arena";
     rt.short_name = "Arena";
@@ -12993,12 +13592,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "multiprocessing.heap.Arena";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_653[] = { "detach", NULL };
+    static const char *py_methods_653[] = {"detach", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.heap._SupportsDetach";
     rt.short_name = "_SupportsDetach";
     rt.method_names = py_methods_653;
-    static const char* py_bases_654[] = { "multiprocessing.heap.Protocol", NULL };
+    static const char *py_bases_654[] = {"multiprocessing.heap.Protocol", NULL};
     rt.embedded_types = py_bases_654;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -13006,7 +13605,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "detach";
     rf.receiver_type = "multiprocessing.heap._SupportsDetach";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_655[] = { "__init__", "free", "malloc", NULL };
+    static const char *py_methods_655[] = {"__init__", "free", "malloc", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.heap.Heap";
     rt.short_name = "Heap";
@@ -13027,7 +13626,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "malloc";
     rf.receiver_type = "multiprocessing.heap.Heap";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_656[] = { "__init__", "create_memoryview", NULL };
+    static const char *py_methods_656[] = {"__init__", "create_memoryview", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.heap.BufferWrapper";
     rt.short_name = "BufferWrapper";
@@ -13053,7 +13652,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.managers ===== */
-    static const char* py_methods_657[] = { "__init__", NULL };
+    static const char *py_methods_657[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers.Namespace";
     rt.short_name = "Namespace";
@@ -13064,7 +13663,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "multiprocessing.managers.Namespace";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_658[] = { "__init__", NULL };
+    static const char *py_methods_658[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers.Token";
     rt.short_name = "Token";
@@ -13075,7 +13674,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "multiprocessing.managers.Token";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_659[] = { "__init__", NULL };
+    static const char *py_methods_659[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers.BaseProxy";
     rt.short_name = "BaseProxy";
@@ -13086,12 +13685,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "multiprocessing.managers.BaseProxy";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_660[] = { "get", "set", NULL };
+    static const char *py_methods_660[] = {"get", "set", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers.ValueProxy";
     rt.short_name = "ValueProxy";
     rt.method_names = py_methods_660;
-    static const char* py_bases_661[] = { "multiprocessing.managers.BaseProxy", NULL };
+    static const char *py_bases_661[] = {"multiprocessing.managers.BaseProxy", NULL};
     rt.embedded_types = py_bases_661;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -13104,12 +13703,14 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "set";
     rf.receiver_type = "multiprocessing.managers.ValueProxy";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_662[] = { "copy", "get", "pop", "keys", "items", "values", "fromkeys", "__reversed__", "__or__", "__ror__", "__ior__", NULL };
+    static const char *py_methods_662[] = {"copy",   "get",     "pop",      "keys",
+                                           "items",  "values",  "fromkeys", "__reversed__",
+                                           "__or__", "__ror__", "__ior__",  NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers._BaseDictProxy";
     rt.short_name = "_BaseDictProxy";
     rt.method_names = py_methods_662;
-    static const char* py_bases_663[] = { "multiprocessing.managers.BaseProxy", NULL };
+    static const char *py_bases_663[] = {"multiprocessing.managers.BaseProxy", NULL};
     rt.embedded_types = py_bases_663;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -13171,12 +13772,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "multiprocessing.managers.DictProxy";
     rt.short_name = "DictProxy";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_664[] = { "copy", "get", "pop", "keys", "items", "values", NULL };
+    static const char *py_methods_664[] = {"copy", "get", "pop", "keys", "items", "values", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers.DictProxy";
     rt.short_name = "DictProxy";
     rt.method_names = py_methods_664;
-    static const char* py_bases_665[] = { "multiprocessing.managers.BaseProxy", NULL };
+    static const char *py_bases_665[] = {"multiprocessing.managers.BaseProxy", NULL};
     rt.embedded_types = py_bases_665;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -13209,12 +13810,29 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "values";
     rf.receiver_type = "multiprocessing.managers.DictProxy";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_666[] = { "add", "copy", "clear", "difference", "difference_update", "discard", "intersection", "intersection_update", "isdisjoint", "issubset", "issuperset", "pop", "remove", "symmetric_difference", "symmetric_difference_update", "union", "update", NULL };
+    static const char *py_methods_666[] = {"add",
+                                           "copy",
+                                           "clear",
+                                           "difference",
+                                           "difference_update",
+                                           "discard",
+                                           "intersection",
+                                           "intersection_update",
+                                           "isdisjoint",
+                                           "issubset",
+                                           "issuperset",
+                                           "pop",
+                                           "remove",
+                                           "symmetric_difference",
+                                           "symmetric_difference_update",
+                                           "union",
+                                           "update",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers._BaseSetProxy";
     rt.short_name = "_BaseSetProxy";
     rt.method_names = py_methods_666;
-    static const char* py_bases_667[] = { "multiprocessing.managers.BaseProxy", NULL };
+    static const char *py_bases_667[] = {"multiprocessing.managers.BaseProxy", NULL};
     rt.embedded_types = py_bases_667;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -13306,12 +13924,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "multiprocessing.managers.SetProxy";
     rt.short_name = "SetProxy";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_668[] = { "append", "extend", "pop", "index", "count", "insert", "remove", "clear", "copy", "sort", NULL };
+    static const char *py_methods_668[] = {"append", "extend", "pop",  "index", "count", "insert",
+                                           "remove", "clear",  "copy", "sort",  NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers.BaseListProxy";
     rt.short_name = "BaseListProxy";
     rt.method_names = py_methods_668;
-    static const char* py_bases_669[] = { "multiprocessing.managers.BaseProxy", NULL };
+    static const char *py_bases_669[] = {"multiprocessing.managers.BaseProxy", NULL};
     rt.embedded_types = py_bases_669;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -13364,7 +13983,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "sort";
     rf.receiver_type = "multiprocessing.managers.BaseListProxy";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_670[] = { "__class_getitem__", NULL };
+    static const char *py_methods_670[] = {"__class_getitem__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers.ListProxy";
     rt.short_name = "ListProxy";
@@ -13375,7 +13994,24 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__class_getitem__";
     rf.receiver_type = "multiprocessing.managers.ListProxy";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_671[] = { "__init__", "serve_forever", "accepter", "handle_request", "serve_client", "fallback_getvalue", "fallback_str", "fallback_repr", "dummy", "debug_info", "number_of_objects", "shutdown", "create", "get_methods", "accept_connection", "incref", "decref", NULL };
+    static const char *py_methods_671[] = {"__init__",
+                                           "serve_forever",
+                                           "accepter",
+                                           "handle_request",
+                                           "serve_client",
+                                           "fallback_getvalue",
+                                           "fallback_str",
+                                           "fallback_repr",
+                                           "dummy",
+                                           "debug_info",
+                                           "number_of_objects",
+                                           "shutdown",
+                                           "create",
+                                           "get_methods",
+                                           "accept_connection",
+                                           "incref",
+                                           "decref",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers.Server";
     rt.short_name = "Server";
@@ -13466,7 +14102,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "decref";
     rf.receiver_type = "multiprocessing.managers.Server";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_672[] = { "__init__", "get_server", "connect", "start", "join", "address", "register", "__enter__", "__exit__", NULL };
+    static const char *py_methods_672[] = {"__init__", "get_server", "connect",  "start",
+                                           "join",     "address",    "register", "__enter__",
+                                           "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers.BaseManager";
     rt.short_name = "BaseManager";
@@ -13517,12 +14155,28 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__exit__";
     rf.receiver_type = "multiprocessing.managers.BaseManager";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_673[] = { "Barrier", "BoundedSemaphore", "Condition", "Event", "Lock", "Namespace", "Pool", "Queue", "JoinableQueue", "RLock", "Semaphore", "Array", "Value", "dict", "list", "set", NULL };
+    static const char *py_methods_673[] = {"Barrier",
+                                           "BoundedSemaphore",
+                                           "Condition",
+                                           "Event",
+                                           "Lock",
+                                           "Namespace",
+                                           "Pool",
+                                           "Queue",
+                                           "JoinableQueue",
+                                           "RLock",
+                                           "Semaphore",
+                                           "Array",
+                                           "Value",
+                                           "dict",
+                                           "list",
+                                           "set",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers.SyncManager";
     rt.short_name = "SyncManager";
     rt.method_names = py_methods_673;
-    static const char* py_bases_674[] = { "multiprocessing.managers.BaseManager", NULL };
+    static const char *py_bases_674[] = {"multiprocessing.managers.BaseManager", NULL};
     rt.embedded_types = py_bases_674;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -13608,15 +14262,16 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers.RemoteError";
     rt.short_name = "RemoteError";
-    static const char* py_bases_675[] = { "multiprocessing.managers.Exception", NULL };
+    static const char *py_bases_675[] = {"multiprocessing.managers.Exception", NULL};
     rt.embedded_types = py_bases_675;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_676[] = { "track_segment", "release_segment", "list_segments", NULL };
+    static const char *py_methods_676[] = {"track_segment", "release_segment", "list_segments",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers.SharedMemoryServer";
     rt.short_name = "SharedMemoryServer";
     rt.method_names = py_methods_676;
-    static const char* py_bases_677[] = { "multiprocessing.managers.Server", NULL };
+    static const char *py_bases_677[] = {"multiprocessing.managers.Server", NULL};
     rt.embedded_types = py_bases_677;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -13634,12 +14289,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "list_segments";
     rf.receiver_type = "multiprocessing.managers.SharedMemoryServer";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_678[] = { "get_server", "SharedMemory", "ShareableList", NULL };
+    static const char *py_methods_678[] = {"get_server", "SharedMemory", "ShareableList", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.managers.SharedMemoryManager";
     rt.short_name = "SharedMemoryManager";
     rt.method_names = py_methods_678;
-    static const char* py_bases_679[] = { "multiprocessing.managers.BaseManager", NULL };
+    static const char *py_bases_679[] = {"multiprocessing.managers.BaseManager", NULL};
     rt.embedded_types = py_bases_679;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -13659,7 +14314,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.pool ===== */
-    static const char* py_methods_680[] = { "__init__", "get", "wait", "ready", "successful", NULL };
+    static const char *py_methods_680[] = {"__init__", "get", "wait", "ready", "successful", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.pool.ApplyResult";
     rt.short_name = "ApplyResult";
@@ -13690,7 +14345,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "successful";
     rf.receiver_type = "multiprocessing.pool.ApplyResult";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_681[] = { "__init__", NULL };
+    static const char *py_methods_681[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.pool.MapResult";
     rt.short_name = "MapResult";
@@ -13701,7 +14356,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "multiprocessing.pool.MapResult";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_682[] = { "__init__", "next", NULL };
+    static const char *py_methods_682[] = {"__init__", "next", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.pool.IMapIterator";
     rt.short_name = "IMapIterator";
@@ -13721,7 +14376,11 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "multiprocessing.pool.IMapUnorderedIterator";
     rt.short_name = "IMapUnorderedIterator";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_683[] = { "__init__", "Process", "apply", "apply_async", "map", "map_async", "imap", "imap_unordered", "starmap", "starmap_async", "close", "terminate", "join", "__enter__", "__exit__", NULL };
+    static const char *py_methods_683[] = {
+        "__init__", "Process",       "apply",    "apply_async",
+        "map",      "map_async",     "imap",     "imap_unordered",
+        "starmap",  "starmap_async", "close",    "terminate",
+        "join",     "__enter__",     "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.pool.Pool";
     rt.short_name = "Pool";
@@ -13802,12 +14461,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__exit__";
     rf.receiver_type = "multiprocessing.pool.Pool";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_684[] = { "__init__", NULL };
+    static const char *py_methods_684[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.pool.ThreadPool";
     rt.short_name = "ThreadPool";
     rt.method_names = py_methods_684;
-    static const char* py_bases_685[] = { "multiprocessing.pool.Pool", NULL };
+    static const char *py_bases_685[] = {"multiprocessing.pool.Pool", NULL};
     rt.embedded_types = py_bases_685;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -13817,7 +14476,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.popen_fork ===== */
-    static const char* py_methods_686[] = { "__init__", "duplicate_for_child", "poll", "wait", "interrupt", "terminate", "kill", "close", NULL };
+    static const char *py_methods_686[] = {"__init__",  "duplicate_for_child", "poll", "wait",
+                                           "interrupt", "terminate",           "kill", "close",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.popen_fork.Popen";
     rt.short_name = "Popen";
@@ -13865,7 +14526,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.popen_forkserver ===== */
-    static const char* py_methods_687[] = { "__init__", "detach", NULL };
+    static const char *py_methods_687[] = {"__init__", "detach", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.popen_forkserver._DupFd";
     rt.short_name = "_DupFd";
@@ -13884,12 +14545,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.popen_forkserver.Popen";
     rt.short_name = "Popen";
-    static const char* py_bases_688[] = { "popen_fork.Popen", NULL };
+    static const char *py_bases_688[] = {"popen_fork.Popen", NULL};
     rt.embedded_types = py_bases_688;
     cbm_registry_add_type(reg, rt);
 
     /* ===== module: multiprocessing.popen_spawn_posix ===== */
-    static const char* py_methods_689[] = { "__init__", "detach", NULL };
+    static const char *py_methods_689[] = {"__init__", "detach", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.popen_spawn_posix._DupFd";
     rt.short_name = "_DupFd";
@@ -13908,12 +14569,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.popen_spawn_posix.Popen";
     rt.short_name = "Popen";
-    static const char* py_bases_690[] = { "popen_fork.Popen", NULL };
+    static const char *py_bases_690[] = {"popen_fork.Popen", NULL};
     rt.embedded_types = py_bases_690;
     cbm_registry_add_type(reg, rt);
 
     /* ===== module: multiprocessing.popen_spawn_win32 ===== */
-    static const char* py_methods_691[] = { "__init__", "duplicate_for_child", "wait", "poll", "terminate", "close", NULL };
+    static const char *py_methods_691[] = {
+        "__init__", "duplicate_for_child", "wait", "poll", "terminate", "close", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.popen_spawn_win32.Popen";
     rt.short_name = "Popen";
@@ -13951,7 +14613,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.process ===== */
-    static const char* py_methods_692[] = { "__init__", "run", "start", "interrupt", "terminate", "kill", "close", "join", "is_alive", "exitcode", "ident", "pid", "sentinel", NULL };
+    static const char *py_methods_692[] = {
+        "__init__", "run",      "start",    "interrupt", "terminate", "kill",     "close",
+        "join",     "is_alive", "exitcode", "ident",     "pid",       "sentinel", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.process.BaseProcess";
     rt.short_name = "BaseProcess";
@@ -14036,7 +14700,19 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.queues ===== */
-    static const char* py_methods_693[] = { "__init__", "put", "get", "qsize", "empty", "full", "get_nowait", "put_nowait", "close", "join_thread", "cancel_join_thread", "__class_getitem__", NULL };
+    static const char *py_methods_693[] = {"__init__",
+                                           "put",
+                                           "get",
+                                           "qsize",
+                                           "empty",
+                                           "full",
+                                           "get_nowait",
+                                           "put_nowait",
+                                           "close",
+                                           "join_thread",
+                                           "cancel_join_thread",
+                                           "__class_getitem__",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.queues.Queue";
     rt.short_name = "Queue";
@@ -14102,7 +14778,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__class_getitem__";
     rf.receiver_type = "multiprocessing.queues.Queue";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_694[] = { "task_done", "join", NULL };
+    static const char *py_methods_694[] = {"task_done", "join", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.queues.JoinableQueue";
     rt.short_name = "JoinableQueue";
@@ -14118,7 +14794,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "join";
     rf.receiver_type = "multiprocessing.queues.JoinableQueue";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_695[] = { "__init__", "close", "empty", "get", "put", NULL };
+    static const char *py_methods_695[] = {"__init__", "close", "empty", "get", "put", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.queues.SimpleQueue";
     rt.short_name = "SimpleQueue";
@@ -14151,12 +14827,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.reduction ===== */
-    static const char* py_methods_696[] = { "__init__", "register", "dumps", NULL };
+    static const char *py_methods_696[] = {"__init__", "register", "dumps", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.reduction.ForkingPickler";
     rt.short_name = "ForkingPickler";
     rt.method_names = py_methods_696;
-    static const char* py_bases_697[] = { "pickle.Pickler", NULL };
+    static const char *py_bases_697[] = {"pickle.Pickler", NULL};
     rt.embedded_types = py_bases_697;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -14174,7 +14850,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "dumps";
     rf.receiver_type = "multiprocessing.reduction.ForkingPickler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_698[] = { "__init__", "detach", NULL };
+    static const char *py_methods_698[] = {"__init__", "detach", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.reduction.DupHandle";
     rt.short_name = "DupHandle";
@@ -14190,7 +14866,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "detach";
     rf.receiver_type = "multiprocessing.reduction.DupHandle";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_699[] = { "__init__", NULL };
+    static const char *py_methods_699[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.reduction.AbstractReducer";
     rt.short_name = "AbstractReducer";
@@ -14235,7 +14911,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.resource_sharer ===== */
-    static const char* py_methods_700[] = { "__init__", "detach", NULL };
+    static const char *py_methods_700[] = {"__init__", "detach", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.resource_sharer.DupSocket";
     rt.short_name = "DupSocket";
@@ -14251,7 +14927,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "detach";
     rf.receiver_type = "multiprocessing.resource_sharer.DupSocket";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_701[] = { "__init__", "detach", NULL };
+    static const char *py_methods_701[] = {"__init__", "detach", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.resource_sharer.DupFd";
     rt.short_name = "DupFd";
@@ -14273,7 +14949,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.resource_tracker ===== */
-    static const char* py_methods_702[] = { "getfd", "ensure_running", "register", "unregister", "__del__", NULL };
+    static const char *py_methods_702[] = {"getfd",      "ensure_running", "register",
+                                           "unregister", "__del__",        NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.resource_tracker.ResourceTracker";
     rt.short_name = "ResourceTracker";
@@ -14310,7 +14987,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.shared_memory ===== */
-    static const char* py_methods_703[] = { "__init__", "buf", "name", "size", "close", "unlink", NULL };
+    static const char *py_methods_703[] = {"__init__", "buf",    "name", "size",
+                                           "close",    "unlink", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.shared_memory.SharedMemory";
     rt.short_name = "SharedMemory";
@@ -14346,7 +15024,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "unlink";
     rf.receiver_type = "multiprocessing.shared_memory.SharedMemory";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_704[] = { "__init__", "format", "count", "index", NULL };
+    static const char *py_methods_704[] = {"__init__", "format", "count", "index", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.shared_memory.ShareableList";
     rt.short_name = "ShareableList";
@@ -14374,12 +15052,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.sharedctypes ===== */
-    static const char* py_methods_705[] = { "__call__", NULL };
+    static const char *py_methods_705[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.sharedctypes._AcquireFunc";
     rt.short_name = "_AcquireFunc";
     rt.method_names = py_methods_705;
-    static const char* py_bases_706[] = { "multiprocessing.sharedctypes.Protocol", NULL };
+    static const char *py_bases_706[] = {"multiprocessing.sharedctypes.Protocol", NULL};
     rt.embedded_types = py_bases_706;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -14387,7 +15065,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "multiprocessing.sharedctypes._AcquireFunc";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_707[] = { "__init__", "get_obj", "get_lock", "__enter__", "__exit__", NULL };
+    static const char *py_methods_707[] = {"__init__",  "get_obj",  "get_lock",
+                                           "__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.sharedctypes.SynchronizedBase";
     rt.short_name = "SynchronizedBase";
@@ -14494,12 +15173,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.synchronize ===== */
-    static const char* py_methods_708[] = { "__init__", NULL };
+    static const char *py_methods_708[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.synchronize.Barrier";
     rt.short_name = "Barrier";
     rt.method_names = py_methods_708;
-    static const char* py_bases_709[] = { "threading.Barrier", NULL };
+    static const char *py_bases_709[] = {"threading.Barrier", NULL};
     rt.embedded_types = py_bases_709;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -14507,7 +15186,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "multiprocessing.synchronize.Barrier";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_710[] = { "__init__", "notify", "notify_all", "wait", "wait_for", "__enter__", "__exit__", "acquire", "release", NULL };
+    static const char *py_methods_710[] = {"__init__", "notify",    "notify_all", "wait",
+                                           "wait_for", "__enter__", "__exit__",   "acquire",
+                                           "release",  NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.synchronize.Condition";
     rt.short_name = "Condition";
@@ -14558,7 +15239,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "release";
     rf.receiver_type = "multiprocessing.synchronize.Condition";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_711[] = { "__init__", "is_set", "set", "clear", "wait", NULL };
+    static const char *py_methods_711[] = {"__init__", "is_set", "set", "clear", "wait", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.synchronize.Event";
     rt.short_name = "Event";
@@ -14589,7 +15270,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "wait";
     rf.receiver_type = "multiprocessing.synchronize.Event";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_712[] = { "__init__", "__enter__", "__exit__", "acquire", "release", "locked", NULL };
+    static const char *py_methods_712[] = {"__init__", "__enter__", "__exit__", "acquire",
+                                           "release",  "locked",    NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.synchronize.SemLock";
     rt.short_name = "SemLock";
@@ -14625,12 +15307,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "locked";
     rf.receiver_type = "multiprocessing.synchronize.SemLock";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_713[] = { "__init__", NULL };
+    static const char *py_methods_713[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.synchronize.Lock";
     rt.short_name = "Lock";
     rt.method_names = py_methods_713;
-    static const char* py_bases_714[] = { "multiprocessing.synchronize.SemLock", NULL };
+    static const char *py_bases_714[] = {"multiprocessing.synchronize.SemLock", NULL};
     rt.embedded_types = py_bases_714;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -14638,12 +15320,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "multiprocessing.synchronize.Lock";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_715[] = { "__init__", NULL };
+    static const char *py_methods_715[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.synchronize.RLock";
     rt.short_name = "RLock";
     rt.method_names = py_methods_715;
-    static const char* py_bases_716[] = { "multiprocessing.synchronize.SemLock", NULL };
+    static const char *py_bases_716[] = {"multiprocessing.synchronize.SemLock", NULL};
     rt.embedded_types = py_bases_716;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -14651,12 +15333,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "multiprocessing.synchronize.RLock";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_717[] = { "__init__", "get_value", NULL };
+    static const char *py_methods_717[] = {"__init__", "get_value", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.synchronize.Semaphore";
     rt.short_name = "Semaphore";
     rt.method_names = py_methods_717;
-    static const char* py_bases_718[] = { "multiprocessing.synchronize.SemLock", NULL };
+    static const char *py_bases_718[] = {"multiprocessing.synchronize.SemLock", NULL};
     rt.embedded_types = py_bases_718;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -14669,12 +15351,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "get_value";
     rf.receiver_type = "multiprocessing.synchronize.Semaphore";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_719[] = { "__init__", NULL };
+    static const char *py_methods_719[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.synchronize.BoundedSemaphore";
     rt.short_name = "BoundedSemaphore";
     rt.method_names = py_methods_719;
-    static const char* py_bases_720[] = { "multiprocessing.synchronize.Semaphore", NULL };
+    static const char *py_bases_720[] = {"multiprocessing.synchronize.Semaphore", NULL};
     rt.embedded_types = py_bases_720;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -14684,7 +15366,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: multiprocessing.util ===== */
-    static const char* py_methods_721[] = { "__init__", "__call__", "cancel", "still_active", NULL };
+    static const char *py_methods_721[] = {"__init__", "__call__", "cancel", "still_active", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.util.Finalize";
     rt.short_name = "Finalize";
@@ -14710,7 +15392,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "still_active";
     rf.receiver_type = "multiprocessing.util.Finalize";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_722[] = { "__enter__", "__exit__", NULL };
+    static const char *py_methods_722[] = {"__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.util.ForkAwareThreadLock";
     rt.short_name = "ForkAwareThreadLock";
@@ -14729,7 +15411,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "multiprocessing.util.ForkAwareLocal";
     rt.short_name = "ForkAwareLocal";
-    static const char* py_bases_723[] = { "threading.local", NULL };
+    static const char *py_bases_723[] = {"threading.local", NULL};
     rt.embedded_types = py_bases_723;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -14800,7 +15482,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: os ===== */
-    static const char* py_methods_724[] = { "__init__", "get", "pop", "setdefault", "copy", NULL };
+    static const char *py_methods_724[] = {"__init__", "get", "pop", "setdefault", "copy", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "os._Environ";
     rt.short_name = "_Environ";
@@ -14831,7 +15513,11 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "copy";
     rf.receiver_type = "os._Environ";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_725[] = { "st_mode", "st_ino", "st_dev", "st_nlink", "st_uid", "st_gid", "st_size", "st_atime", "st_mtime", "st_ctime", "st_atime_ns", "st_mtime_ns", "st_ctime_ns", "st_file_attributes", "st_reparse_tag", "st_blocks", "st_blksize", "st_rdev", "st_flags", NULL };
+    static const char *py_methods_725[] = {
+        "st_mode",     "st_ino",      "st_dev",      "st_nlink",           "st_uid",
+        "st_gid",      "st_size",     "st_atime",    "st_mtime",           "st_ctime",
+        "st_atime_ns", "st_mtime_ns", "st_ctime_ns", "st_file_attributes", "st_reparse_tag",
+        "st_blocks",   "st_blksize",  "st_rdev",     "st_flags",           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "os.stat_result";
     rt.short_name = "stat_result";
@@ -14935,10 +15621,11 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "os.PathLike";
     rt.short_name = "PathLike";
-    static const char* py_bases_726[] = { "os.ABC", NULL };
+    static const char *py_bases_726[] = {"os.ABC", NULL};
     rt.embedded_types = py_bases_726;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_727[] = { "name", "path", "inode", "is_dir", "is_file", "is_symlink", "stat", "is_junction", NULL };
+    static const char *py_methods_727[] = {"name",       "path", "inode",       "is_dir", "is_file",
+                                           "is_symlink", "stat", "is_junction", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "os.DirEntry";
     rt.short_name = "DirEntry";
@@ -14984,7 +15671,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "is_junction";
     rf.receiver_type = "os.DirEntry";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_728[] = { "f_bsize", "f_frsize", "f_blocks", "f_bfree", "f_bavail", "f_files", "f_ffree", "f_favail", "f_flag", "f_namemax", "f_fsid", NULL };
+    static const char *py_methods_728[] = {"f_bsize",  "f_frsize",  "f_blocks", "f_bfree",
+                                           "f_bavail", "f_files",   "f_ffree",  "f_favail",
+                                           "f_flag",   "f_namemax", "f_fsid",   NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "os.statvfs_result";
     rt.short_name = "statvfs_result";
@@ -15045,7 +15734,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "f_fsid";
     rf.receiver_type = "os.statvfs_result";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_729[] = { "sysname", "nodename", "release", "version", "machine", NULL };
+    static const char *py_methods_729[] = {"sysname", "nodename", "release",
+                                           "version", "machine",  NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "os.uname_result";
     rt.short_name = "uname_result";
@@ -15076,7 +15766,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "machine";
     rf.receiver_type = "os.uname_result";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_730[] = { "columns", "lines", NULL };
+    static const char *py_methods_730[] = {"columns", "lines", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "os.terminal_size";
     rt.short_name = "terminal_size";
@@ -15092,7 +15782,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "lines";
     rf.receiver_type = "os.terminal_size";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_731[] = { "__enter__", "__exit__", "close", NULL };
+    static const char *py_methods_731[] = {"__enter__", "__exit__", "close", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "os._ScandirIterator";
     rt.short_name = "_ScandirIterator";
@@ -15113,7 +15803,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "close";
     rf.receiver_type = "os._ScandirIterator";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_732[] = { "__init__", "close", "__enter__", "__exit__", "read", "readable", "readline", "readlines", "writable", "write", "writelines", NULL };
+    static const char *py_methods_732[] = {"__init__", "close",    "__enter__",  "__exit__",
+                                           "read",     "readable", "readline",   "readlines",
+                                           "writable", "write",    "writelines", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "os._wrap_close";
     rt.short_name = "_wrap_close";
@@ -15174,7 +15866,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "writelines";
     rf.receiver_type = "os._wrap_close";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_733[] = { "user", "system", "children_user", "children_system", "elapsed", NULL };
+    static const char *py_methods_733[] = {"user",    "system", "children_user", "children_system",
+                                           "elapsed", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "os.times_result";
     rt.short_name = "times_result";
@@ -15205,7 +15898,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "elapsed";
     rf.receiver_type = "os.times_result";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_734[] = { "si_pid", "si_uid", "si_signo", "si_status", "si_code", NULL };
+    static const char *py_methods_734[] = {"si_pid",    "si_uid",  "si_signo",
+                                           "si_status", "si_code", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "os.waitid_result";
     rt.short_name = "waitid_result";
@@ -15236,7 +15930,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "si_code";
     rf.receiver_type = "os.waitid_result";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_735[] = { "sched_priority", NULL };
+    static const char *py_methods_735[] = {"sched_priority", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "os.sched_param";
     rt.short_name = "sched_param";
@@ -15247,7 +15941,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "sched_priority";
     rf.receiver_type = "os.sched_param";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_736[] = { "__init__", "close", "__enter__", "__exit__", NULL };
+    static const char *py_methods_736[] = {"__init__", "close", "__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "os._AddedDllDirectory";
     rt.short_name = "_AddedDllDirectory";
@@ -16213,7 +16907,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: pathlib ===== */
-    static const char* py_methods_737[] = { "full_match", "parts", "drive", "root", "anchor", "name", "suffix", "suffixes", "stem", "__new__", "__init__", "as_posix", "as_uri", "is_absolute", "is_reserved", "is_relative_to", "match", "relative_to", "with_name", "with_stem", "with_suffix", "joinpath", "parents", "parent", "__class_getitem__", "with_segments", NULL };
+    static const char *py_methods_737[] = {
+        "full_match",     "parts",    "drive",       "root",        "anchor",
+        "name",           "suffix",   "suffixes",    "stem",        "__new__",
+        "__init__",       "as_posix", "as_uri",      "is_absolute", "is_reserved",
+        "is_relative_to", "match",    "relative_to", "with_name",   "with_stem",
+        "with_suffix",    "joinpath", "parents",     "parent",      "__class_getitem__",
+        "with_segments",  NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "pathlib.PurePath";
     rt.short_name = "PurePath";
@@ -16352,21 +17052,70 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "pathlib.PurePosixPath";
     rt.short_name = "PurePosixPath";
-    static const char* py_bases_738[] = { "pathlib.PurePath", NULL };
+    static const char *py_bases_738[] = {"pathlib.PurePath", NULL};
     rt.embedded_types = py_bases_738;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "pathlib.PureWindowsPath";
     rt.short_name = "PureWindowsPath";
-    static const char* py_bases_739[] = { "pathlib.PurePath", NULL };
+    static const char *py_bases_739[] = {"pathlib.PurePath", NULL};
     rt.embedded_types = py_bases_739;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_740[] = { "__new__", "cwd", "stat", "chmod", "from_uri", "is_dir", "is_file", "read_text", "__enter__", "__exit__", "glob", "rglob", "exists", "is_symlink", "is_socket", "is_fifo", "is_block_device", "is_char_device", "is_junction", "iterdir", "lchmod", "lstat", "mkdir", "info", "move_into", "move", "copy_into", "copy", "open", "is_mount", "readlink", "rename", "replace", "resolve", "rmdir", "symlink_to", "hardlink_to", "touch", "unlink", "home", "absolute", "expanduser", "read_bytes", "samefile", "write_bytes", "write_text", "link_to", "walk", "as_uri", NULL };
+    static const char *py_methods_740[] = {"__new__",
+                                           "cwd",
+                                           "stat",
+                                           "chmod",
+                                           "from_uri",
+                                           "is_dir",
+                                           "is_file",
+                                           "read_text",
+                                           "__enter__",
+                                           "__exit__",
+                                           "glob",
+                                           "rglob",
+                                           "exists",
+                                           "is_symlink",
+                                           "is_socket",
+                                           "is_fifo",
+                                           "is_block_device",
+                                           "is_char_device",
+                                           "is_junction",
+                                           "iterdir",
+                                           "lchmod",
+                                           "lstat",
+                                           "mkdir",
+                                           "info",
+                                           "move_into",
+                                           "move",
+                                           "copy_into",
+                                           "copy",
+                                           "open",
+                                           "is_mount",
+                                           "readlink",
+                                           "rename",
+                                           "replace",
+                                           "resolve",
+                                           "rmdir",
+                                           "symlink_to",
+                                           "hardlink_to",
+                                           "touch",
+                                           "unlink",
+                                           "home",
+                                           "absolute",
+                                           "expanduser",
+                                           "read_bytes",
+                                           "samefile",
+                                           "write_bytes",
+                                           "write_text",
+                                           "link_to",
+                                           "walk",
+                                           "as_uri",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "pathlib.Path";
     rt.short_name = "Path";
     rt.method_names = py_methods_740;
-    static const char* py_bases_741[] = { "pathlib.PurePath", NULL };
+    static const char *py_bases_741[] = {"pathlib.PurePath", NULL};
     rt.embedded_types = py_bases_741;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -16617,29 +17366,29 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "pathlib.PosixPath";
     rt.short_name = "PosixPath";
-    static const char* py_bases_742[] = { "pathlib.Path", "pathlib.PurePosixPath", NULL };
+    static const char *py_bases_742[] = {"pathlib.Path", "pathlib.PurePosixPath", NULL};
     rt.embedded_types = py_bases_742;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "pathlib.WindowsPath";
     rt.short_name = "WindowsPath";
-    static const char* py_bases_743[] = { "pathlib.Path", "pathlib.PureWindowsPath", NULL };
+    static const char *py_bases_743[] = {"pathlib.Path", "pathlib.PureWindowsPath", NULL};
     rt.embedded_types = py_bases_743;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "pathlib.UnsupportedOperation";
     rt.short_name = "UnsupportedOperation";
-    static const char* py_bases_744[] = { "pathlib.NotImplementedError", NULL };
+    static const char *py_bases_744[] = {"pathlib.NotImplementedError", NULL};
     rt.embedded_types = py_bases_744;
     cbm_registry_add_type(reg, rt);
 
     /* ===== module: pathlib.types ===== */
-    static const char* py_methods_745[] = { "exists", "is_dir", "is_file", "is_symlink", NULL };
+    static const char *py_methods_745[] = {"exists", "is_dir", "is_file", "is_symlink", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "pathlib.types.PathInfo";
     rt.short_name = "PathInfo";
     rt.method_names = py_methods_745;
-    static const char* py_bases_746[] = { "pathlib.types.Protocol", NULL };
+    static const char *py_bases_746[] = {"pathlib.types.Protocol", NULL};
     rt.embedded_types = py_bases_746;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -16664,7 +17413,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: pickle ===== */
-    static const char* py_methods_747[] = { "raw", "release", NULL };
+    static const char *py_methods_747[] = {"raw", "release", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "pickle.PickleBuffer";
     rt.short_name = "PickleBuffer";
@@ -16680,7 +17429,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "release";
     rf.receiver_type = "pickle.PickleBuffer";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_748[] = { "__init__", "dump", "clear_memo", "persistent_id", "reducer_override", NULL };
+    static const char *py_methods_748[] = {
+        "__init__", "dump", "clear_memo", "persistent_id", "reducer_override", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "pickle._Pickler";
     rt.short_name = "_Pickler";
@@ -16711,7 +17461,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "reducer_override";
     rf.receiver_type = "pickle._Pickler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_749[] = { "__init__", "load", "find_class", "persistent_load", NULL };
+    static const char *py_methods_749[] = {"__init__", "load", "find_class", "persistent_load",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "pickle._Unpickler";
     rt.short_name = "_Unpickler";
@@ -16832,16 +17583,18 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "queue.Full";
     rt.short_name = "Full";
-    static const char* py_bases_750[] = { "queue.Exception", NULL };
+    static const char *py_bases_750[] = {"queue.Exception", NULL};
     rt.embedded_types = py_bases_750;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "queue.ShutDown";
     rt.short_name = "ShutDown";
-    static const char* py_bases_751[] = { "queue.Exception", NULL };
+    static const char *py_bases_751[] = {"queue.Exception", NULL};
     rt.embedded_types = py_bases_751;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_752[] = { "__init__", "empty", "full", "get", "get_nowait", "shutdown", "put", "put_nowait", "join", "qsize", "task_done", NULL };
+    static const char *py_methods_752[] = {"__init__",   "empty",    "full",      "get",
+                                           "get_nowait", "shutdown", "put",       "put_nowait",
+                                           "join",       "qsize",    "task_done", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "queue.Queue";
     rt.short_name = "Queue";
@@ -16912,12 +17665,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_type(reg, rt);
 
     /* ===== module: re ===== */
-    static const char* py_methods_753[] = { "__init__", NULL };
+    static const char *py_methods_753[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "re.error";
     rt.short_name = "error";
     rt.method_names = py_methods_753;
-    static const char* py_bases_754[] = { "re.Exception", NULL };
+    static const char *py_bases_754[] = {"re.Exception", NULL};
     rt.embedded_types = py_bases_754;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -16925,7 +17678,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "re.error";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_755[] = { "pos", "endpos", "lastindex", "lastgroup", "string", "re", "expand", "group", "groups", "groupdict", "start", "end", "span", "regs", NULL };
+    static const char *py_methods_755[] = {"pos",   "endpos", "lastindex", "lastgroup", "string",
+                                           "re",    "expand", "group",     "groups",    "groupdict",
+                                           "start", "end",    "span",      "regs",      NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "re.Match";
     rt.short_name = "Match";
@@ -17001,7 +17756,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "regs";
     rf.receiver_type = "re.Match";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_756[] = { "flags", "groupindex", "groups", "pattern", "search", "match", "fullmatch", "split", "findall", "finditer", "sub", "subn", NULL };
+    static const char *py_methods_756[] = {"flags", "groupindex", "groups", "pattern", "search",
+                                           "match", "fullmatch",  "split",  "findall", "finditer",
+                                           "sub",   "subn",       NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "re.Pattern";
     rt.short_name = "Pattern";
@@ -17070,7 +17827,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "re.RegexFlag";
     rt.short_name = "RegexFlag";
-    static const char* py_bases_757[] = { "enum.IntFlag", NULL };
+    static const char *py_bases_757[] = {"enum.IntFlag", NULL};
     rt.embedded_types = py_bases_757;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -17126,45 +17883,45 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "shutil.Error";
     rt.short_name = "Error";
-    static const char* py_bases_758[] = { "shutil.OSError", NULL };
+    static const char *py_bases_758[] = {"shutil.OSError", NULL};
     rt.embedded_types = py_bases_758;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "shutil.SameFileError";
     rt.short_name = "SameFileError";
-    static const char* py_bases_759[] = { "shutil.Error", NULL };
+    static const char *py_bases_759[] = {"shutil.Error", NULL};
     rt.embedded_types = py_bases_759;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "shutil.SpecialFileError";
     rt.short_name = "SpecialFileError";
-    static const char* py_bases_760[] = { "shutil.OSError", NULL };
+    static const char *py_bases_760[] = {"shutil.OSError", NULL};
     rt.embedded_types = py_bases_760;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "shutil.ExecError";
     rt.short_name = "ExecError";
-    static const char* py_bases_761[] = { "shutil.OSError", NULL };
+    static const char *py_bases_761[] = {"shutil.OSError", NULL};
     rt.embedded_types = py_bases_761;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "shutil.ReadError";
     rt.short_name = "ReadError";
-    static const char* py_bases_762[] = { "shutil.OSError", NULL };
+    static const char *py_bases_762[] = {"shutil.OSError", NULL};
     rt.embedded_types = py_bases_762;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "shutil.RegistryError";
     rt.short_name = "RegistryError";
-    static const char* py_bases_763[] = { "shutil.Exception", NULL };
+    static const char *py_bases_763[] = {"shutil.Exception", NULL};
     rt.embedded_types = py_bases_763;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_764[] = { "__call__", NULL };
+    static const char *py_methods_764[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "shutil._RmtreeType";
     rt.short_name = "_RmtreeType";
     rt.method_names = py_methods_764;
-    static const char* py_bases_765[] = { "shutil.Protocol", NULL };
+    static const char *py_bases_765[] = {"shutil.Protocol", NULL};
     rt.embedded_types = py_bases_765;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -17175,7 +17932,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "shutil._ntuple_diskusage";
     rt.short_name = "_ntuple_diskusage";
-    static const char* py_bases_766[] = { "shutil.NamedTuple", NULL };
+    static const char *py_bases_766[] = {"shutil.NamedTuple", NULL};
     rt.embedded_types = py_bases_766;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -17267,45 +18024,45 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "socket.herror";
     rt.short_name = "herror";
-    static const char* py_bases_767[] = { "socket.error", NULL };
+    static const char *py_bases_767[] = {"socket.error", NULL};
     rt.embedded_types = py_bases_767;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "socket.gaierror";
     rt.short_name = "gaierror";
-    static const char* py_bases_768[] = { "socket.error", NULL };
+    static const char *py_bases_768[] = {"socket.error", NULL};
     rt.embedded_types = py_bases_768;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "socket.AddressFamily";
     rt.short_name = "AddressFamily";
-    static const char* py_bases_769[] = { "socket.IntEnum", NULL };
+    static const char *py_bases_769[] = {"socket.IntEnum", NULL};
     rt.embedded_types = py_bases_769;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "socket.SocketKind";
     rt.short_name = "SocketKind";
-    static const char* py_bases_770[] = { "socket.IntEnum", NULL };
+    static const char *py_bases_770[] = {"socket.IntEnum", NULL};
     rt.embedded_types = py_bases_770;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "socket.MsgFlag";
     rt.short_name = "MsgFlag";
-    static const char* py_bases_771[] = { "socket.IntFlag", NULL };
+    static const char *py_bases_771[] = {"socket.IntFlag", NULL};
     rt.embedded_types = py_bases_771;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "socket.AddressInfo";
     rt.short_name = "AddressInfo";
-    static const char* py_bases_772[] = { "socket.IntFlag", NULL };
+    static const char *py_bases_772[] = {"socket.IntFlag", NULL};
     rt.embedded_types = py_bases_772;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_773[] = { "read", "seek", NULL };
+    static const char *py_methods_773[] = {"read", "seek", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "socket._SendableFile";
     rt.short_name = "_SendableFile";
     rt.method_names = py_methods_773;
-    static const char* py_bases_774[] = { "socket.Protocol", NULL };
+    static const char *py_bases_774[] = {"socket.Protocol", NULL};
     rt.embedded_types = py_bases_774;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -17318,12 +18075,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "seek";
     rf.receiver_type = "socket._SendableFile";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_775[] = { "__init__", "__enter__", "__exit__", "dup", "accept", "makefile", "sendfile", "family", "type", "get_inheritable", "set_inheritable", NULL };
+    static const char *py_methods_775[] = {
+        "__init__", "__enter__",       "__exit__",        "dup",
+        "accept",   "makefile",        "sendfile",        "family",
+        "type",     "get_inheritable", "set_inheritable", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "socket.socket";
     rt.short_name = "socket";
     rt.method_names = py_methods_775;
-    static const char* py_bases_776[] = { "_socket.socket", NULL };
+    static const char *py_bases_776[] = {"_socket.socket", NULL};
     rt.embedded_types = py_bases_776;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -17381,12 +18141,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "set_inheritable";
     rf.receiver_type = "socket.socket";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_777[] = { "__init__", "readinto", "write", "name", "mode", NULL };
+    static const char *py_methods_777[] = {"__init__", "readinto", "write", "name", "mode", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "socket.SocketIO";
     rt.short_name = "SocketIO";
     rt.method_names = py_methods_777;
-    static const char* py_bases_778[] = { "socket.RawIOBase", NULL };
+    static const char *py_bases_778[] = {"socket.RawIOBase", NULL};
     rt.embedded_types = py_bases_778;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -17456,7 +18216,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: string ===== */
-    static const char* py_methods_779[] = { "__init__", "substitute", "safe_substitute", "get_identifiers", "is_valid", NULL };
+    static const char *py_methods_779[] = {"__init__",        "substitute", "safe_substitute",
+                                           "get_identifiers", "is_valid",   NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "string.Template";
     rt.short_name = "Template";
@@ -17487,7 +18248,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "is_valid";
     rf.receiver_type = "string.Template";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_780[] = { "format", "vformat", "parse", "get_field", "get_value", "check_unused_args", "format_field", "convert_field", NULL };
+    static const char *py_methods_780[] = {"format",       "vformat",       "parse",
+                                           "get_field",    "get_value",     "check_unused_args",
+                                           "format_field", "convert_field", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "string.Formatter";
     rt.short_name = "Formatter";
@@ -17539,7 +18302,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: string.templatelib ===== */
-    static const char* py_methods_781[] = { "values", NULL };
+    static const char *py_methods_781[] = {"values", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "string.templatelib.Template";
     rt.short_name = "Template";
@@ -17560,7 +18323,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: subprocess ===== */
-    static const char* py_methods_782[] = { "__init__", "check_returncode", NULL };
+    static const char *py_methods_782[] = {"__init__", "check_returncode", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "subprocess.CompletedProcess";
     rt.short_name = "CompletedProcess";
@@ -17579,15 +18342,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "subprocess.SubprocessError";
     rt.short_name = "SubprocessError";
-    static const char* py_bases_783[] = { "subprocess.Exception", NULL };
+    static const char *py_bases_783[] = {"subprocess.Exception", NULL};
     rt.embedded_types = py_bases_783;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_784[] = { "__init__", NULL };
+    static const char *py_methods_784[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "subprocess.TimeoutExpired";
     rt.short_name = "TimeoutExpired";
     rt.method_names = py_methods_784;
-    static const char* py_bases_785[] = { "subprocess.SubprocessError", NULL };
+    static const char *py_bases_785[] = {"subprocess.SubprocessError", NULL};
     rt.embedded_types = py_bases_785;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -17595,12 +18358,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "subprocess.TimeoutExpired";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_786[] = { "__init__", NULL };
+    static const char *py_methods_786[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "subprocess.CalledProcessError";
     rt.short_name = "CalledProcessError";
     rt.method_names = py_methods_786;
-    static const char* py_bases_787[] = { "subprocess.SubprocessError", NULL };
+    static const char *py_bases_787[] = {"subprocess.SubprocessError", NULL};
     rt.embedded_types = py_bases_787;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -17608,7 +18371,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "subprocess.CalledProcessError";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_788[] = { "__init__", "poll", "wait", "communicate", "send_signal", "terminate", "kill", "__enter__", "__exit__", NULL };
+    static const char *py_methods_788[] = {"__init__",    "poll",      "wait", "communicate",
+                                           "send_signal", "terminate", "kill", "__enter__",
+                                           "__exit__",    NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "subprocess.Popen";
     rt.short_name = "Popen";
@@ -17659,7 +18424,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__exit__";
     rf.receiver_type = "subprocess.Popen";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_789[] = { "__init__", "copy", NULL };
+    static const char *py_methods_789[] = {"__init__", "copy", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "subprocess.STARTUPINFO";
     rt.short_name = "STARTUPINFO";
@@ -17705,12 +18470,33 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: sys ===== */
-    static const char* py_methods_790[] = { "debug", "inspect", "interactive", "optimize", "dont_write_bytecode", "no_user_site", "no_site", "ignore_environment", "verbose", "bytes_warning", "quiet", "hash_randomization", "isolated", "dev_mode", "utf8_mode", "warn_default_encoding", "safe_path", "gil", "thread_inherit_context", "context_aware_warnings", "int_max_str_digits", NULL };
+    static const char *py_methods_790[] = {"debug",
+                                           "inspect",
+                                           "interactive",
+                                           "optimize",
+                                           "dont_write_bytecode",
+                                           "no_user_site",
+                                           "no_site",
+                                           "ignore_environment",
+                                           "verbose",
+                                           "bytes_warning",
+                                           "quiet",
+                                           "hash_randomization",
+                                           "isolated",
+                                           "dev_mode",
+                                           "utf8_mode",
+                                           "warn_default_encoding",
+                                           "safe_path",
+                                           "gil",
+                                           "thread_inherit_context",
+                                           "context_aware_warnings",
+                                           "int_max_str_digits",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "sys._flags";
     rt.short_name = "_flags";
     rt.method_names = py_methods_790;
-    static const char* py_bases_791[] = { "sys._UninstantiableStructseq", NULL };
+    static const char *py_bases_791[] = {"sys._UninstantiableStructseq", NULL};
     rt.embedded_types = py_bases_791;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -17818,7 +18604,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "int_max_str_digits";
     rf.receiver_type = "sys._flags";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_792[] = { "max", "max_exp", "max_10_exp", "min", "min_exp", "min_10_exp", "dig", "mant_dig", "epsilon", "radix", "rounds", NULL };
+    static const char *py_methods_792[] = {"max",     "max_exp",    "max_10_exp", "min",
+                                           "min_exp", "min_10_exp", "dig",        "mant_dig",
+                                           "epsilon", "radix",      "rounds",     NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "sys._float_info";
     rt.short_name = "_float_info";
@@ -17879,7 +18667,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "rounds";
     rf.receiver_type = "sys._float_info";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_793[] = { "width", "modulus", "inf", "nan", "imag", "algorithm", "hash_bits", "seed_bits", "cutoff", NULL };
+    static const char *py_methods_793[] = {"width",     "modulus",   "inf",       "nan",    "imag",
+                                           "algorithm", "hash_bits", "seed_bits", "cutoff", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "sys._hash_info";
     rt.short_name = "_hash_info";
@@ -17934,7 +18723,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "sys._implementation";
     rt.short_name = "_implementation";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_794[] = { "bits_per_digit", "sizeof_digit", "default_max_str_digits", "str_digits_check_threshold", NULL };
+    static const char *py_methods_794[] = {"bits_per_digit", "sizeof_digit",
+                                           "default_max_str_digits", "str_digits_check_threshold",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "sys._int_info";
     rt.short_name = "_int_info";
@@ -17960,12 +18751,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "str_digits_check_threshold";
     rf.receiver_type = "sys._int_info";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_795[] = { "name", "lock", "version", NULL };
+    static const char *py_methods_795[] = {"name", "lock", "version", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "sys._thread_info";
     rt.short_name = "_thread_info";
     rt.method_names = py_methods_795;
-    static const char* py_bases_796[] = { "sys._UninstantiableStructseq", NULL };
+    static const char *py_bases_796[] = {"sys._UninstantiableStructseq", NULL};
     rt.embedded_types = py_bases_796;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -17983,12 +18774,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "version";
     rf.receiver_type = "sys._thread_info";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_797[] = { "major", "minor", "micro", "releaselevel", "serial", NULL };
+    static const char *py_methods_797[] = {"major",        "minor",  "micro",
+                                           "releaselevel", "serial", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "sys._version_info";
     rt.short_name = "_version_info";
     rt.method_names = py_methods_797;
-    static const char* py_bases_798[] = { "sys._UninstantiableStructseq", NULL };
+    static const char *py_bases_798[] = {"sys._UninstantiableStructseq", NULL};
     rt.embedded_types = py_bases_798;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -18016,12 +18808,22 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "serial";
     rf.receiver_type = "sys._version_info";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_799[] = { "major", "minor", "build", "platform", "service_pack", "service_pack_minor", "service_pack_major", "suite_mask", "product_type", "platform_version", NULL };
+    static const char *py_methods_799[] = {"major",
+                                           "minor",
+                                           "build",
+                                           "platform",
+                                           "service_pack",
+                                           "service_pack_minor",
+                                           "service_pack_major",
+                                           "suite_mask",
+                                           "product_type",
+                                           "platform_version",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "sys._WinVersion";
     rt.short_name = "_WinVersion";
     rt.method_names = py_methods_799;
-    static const char* py_bases_800[] = { "sys._UninstantiableStructseq", NULL };
+    static const char *py_bases_800[] = {"sys._UninstantiableStructseq", NULL};
     rt.embedded_types = py_bases_800;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -18077,10 +18879,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "sys.UnraisableHookArgs";
     rt.short_name = "UnraisableHookArgs";
-    static const char* py_bases_801[] = { "sys.Protocol", NULL };
+    static const char *py_bases_801[] = {"sys.Protocol", NULL};
     rt.embedded_types = py_bases_801;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_802[] = { "firstiter", "finalizer", NULL };
+    static const char *py_methods_802[] = {"firstiter", "finalizer", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "sys._asyncgen_hooks";
     rt.short_name = "_asyncgen_hooks";
@@ -18272,7 +19074,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: sys._monitoring ===== */
-    static const char* py_methods_803[] = { "BRANCH", NULL };
+    static const char *py_methods_803[] = {"BRANCH", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "sys._monitoring._events";
     rt.short_name = "_events";
@@ -18325,7 +19127,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: tempfile ===== */
-    static const char* py_methods_804[] = { "__init__", "__enter__", "__exit__", "close", "fileno", "flush", "isatty", "read", "readable", "readline", "readlines", "seek", "seekable", "tell", "truncate", "writable", "write", "writelines", "closed", NULL };
+    static const char *py_methods_804[] = {
+        "__init__", "__enter__", "__exit__", "close",      "fileno", "flush",    "isatty",
+        "read",     "readable",  "readline", "readlines",  "seek",   "seekable", "tell",
+        "truncate", "writable",  "write",    "writelines", "closed", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "tempfile._TemporaryFileWrapper";
     rt.short_name = "_TemporaryFileWrapper";
@@ -18426,12 +19231,16 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "closed";
     rf.receiver_type = "tempfile._TemporaryFileWrapper";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_805[] = { "encoding", "newlines", "__init__", "errors", "rollover", "__enter__", "__exit__", "close", "fileno", "flush", "isatty", "read1", "readinto", "readinto1", "detach", "read", "readline", "readlines", "seek", "tell", "truncate", "write", "writelines", "readable", "seekable", "writable", NULL };
+    static const char *py_methods_805[] = {
+        "encoding", "newlines",   "__init__", "errors",    "rollover", "__enter__", "__exit__",
+        "close",    "fileno",     "flush",    "isatty",    "read1",    "readinto",  "readinto1",
+        "detach",   "read",       "readline", "readlines", "seek",     "tell",      "truncate",
+        "write",    "writelines", "readable", "seekable",  "writable", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "tempfile.SpooledTemporaryFile";
     rt.short_name = "SpooledTemporaryFile";
     rt.method_names = py_methods_805;
-    static const char* py_bases_806[] = { "tempfile._SpooledTemporaryFileBase", NULL };
+    static const char *py_bases_806[] = {"tempfile._SpooledTemporaryFileBase", NULL};
     rt.embedded_types = py_bases_806;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -18564,7 +19373,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "writable";
     rf.receiver_type = "tempfile.SpooledTemporaryFile";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_807[] = { "__init__", "cleanup", "__enter__", "__exit__", NULL };
+    static const char *py_methods_807[] = {"__init__", "cleanup", "__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "tempfile.TemporaryDirectory";
     rt.short_name = "TemporaryDirectory";
@@ -18628,7 +19437,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: threading ===== */
-    static const char* py_methods_808[] = { "ident", "__init__", "start", "run", "join", "native_id", "is_alive", "isDaemon", "setDaemon", "getName", "setName", NULL };
+    static const char *py_methods_808[] = {"ident",     "__init__",  "start",    "run",
+                                           "join",      "native_id", "is_alive", "isDaemon",
+                                           "setDaemon", "getName",   "setName",  NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "threading.Thread";
     rt.short_name = "Thread";
@@ -18689,12 +19500,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "setName";
     rf.receiver_type = "threading.Thread";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_809[] = { "__init__", NULL };
+    static const char *py_methods_809[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "threading._DummyThread";
     rt.short_name = "_DummyThread";
     rt.method_names = py_methods_809;
-    static const char* py_bases_810[] = { "threading.Thread", NULL };
+    static const char *py_bases_810[] = {"threading.Thread", NULL};
     rt.embedded_types = py_bases_810;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -18702,7 +19513,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "threading._DummyThread";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_811[] = { "acquire", "release", "__exit__", "locked", NULL };
+    static const char *py_methods_811[] = {"acquire", "release", "__exit__", "locked", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "threading._RLock";
     rt.short_name = "_RLock";
@@ -18728,7 +19539,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "locked";
     rf.receiver_type = "threading._RLock";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_812[] = { "__init__", "__enter__", "__exit__", "acquire", "release", "locked", "wait", "wait_for", "notify", "notify_all", "notifyAll", NULL };
+    static const char *py_methods_812[] = {"__init__", "__enter__",  "__exit__",  "acquire",
+                                           "release",  "locked",     "wait",      "wait_for",
+                                           "notify",   "notify_all", "notifyAll", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "threading.Condition";
     rt.short_name = "Condition";
@@ -18789,7 +19602,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "notifyAll";
     rf.receiver_type = "threading.Condition";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_813[] = { "__init__", "__exit__", "acquire", "__enter__", "release", NULL };
+    static const char *py_methods_813[] = {"__init__",  "__exit__", "acquire",
+                                           "__enter__", "release",  NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "threading.Semaphore";
     rt.short_name = "Semaphore";
@@ -18823,10 +19637,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "threading.BoundedSemaphore";
     rt.short_name = "BoundedSemaphore";
-    static const char* py_bases_814[] = { "threading.Semaphore", NULL };
+    static const char *py_bases_814[] = {"threading.Semaphore", NULL};
     rt.embedded_types = py_bases_814;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_815[] = { "is_set", "isSet", "set", "clear", "wait", NULL };
+    static const char *py_methods_815[] = {"is_set", "isSet", "set", "clear", "wait", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "threading.Event";
     rt.short_name = "Event";
@@ -18857,12 +19671,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "wait";
     rf.receiver_type = "threading.Event";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_816[] = { "__init__", "cancel", NULL };
+    static const char *py_methods_816[] = {"__init__", "cancel", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "threading.Timer";
     rt.short_name = "Timer";
     rt.method_names = py_methods_816;
-    static const char* py_bases_817[] = { "threading.Thread", NULL };
+    static const char *py_bases_817[] = {"threading.Thread", NULL};
     rt.embedded_types = py_bases_817;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -18875,7 +19689,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "cancel";
     rf.receiver_type = "threading.Timer";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_818[] = { "parties", "n_waiting", "broken", "__init__", "wait", "reset", "abort", NULL };
+    static const char *py_methods_818[] = {"parties", "n_waiting", "broken", "__init__",
+                                           "wait",    "reset",     "abort",  NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "threading.Barrier";
     rt.short_name = "Barrier";
@@ -18919,7 +19734,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "threading.BrokenBarrierError";
     rt.short_name = "BrokenBarrierError";
-    static const char* py_bases_819[] = { "threading.RuntimeError", NULL };
+    static const char *py_bases_819[] = {"threading.RuntimeError", NULL};
     rt.embedded_types = py_bases_819;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -18980,12 +19795,14 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: time ===== */
-    static const char* py_methods_820[] = { "tm_year", "tm_mon", "tm_mday", "tm_hour", "tm_min", "tm_sec", "tm_wday", "tm_yday", "tm_isdst", "tm_zone", "tm_gmtoff", NULL };
+    static const char *py_methods_820[] = {"tm_year",  "tm_mon",  "tm_mday",   "tm_hour",
+                                           "tm_min",   "tm_sec",  "tm_wday",   "tm_yday",
+                                           "tm_isdst", "tm_zone", "tm_gmtoff", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "time.struct_time";
     rt.short_name = "struct_time";
     rt.method_names = py_methods_820;
-    static const char* py_bases_821[] = { "time._TimeTuple", NULL };
+    static const char *py_bases_821[] = {"time._TimeTuple", NULL};
     rt.embedded_types = py_bases_821;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -19046,7 +19863,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "time._ClockInfo";
     rt.short_name = "_ClockInfo";
-    static const char* py_bases_822[] = { "time.Protocol", NULL };
+    static const char *py_bases_822[] = {"time.Protocol", NULL};
     rt.embedded_types = py_bases_822;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -19163,7 +19980,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "typing._Final";
     rt.short_name = "_Final";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_823[] = { "__infer_variance__", "__default__", "__new__", "__typing_subst__", "__typing_prepare_subst__", "has_default", "evaluate_bound", "evaluate_constraints", "evaluate_default", NULL };
+    static const char *py_methods_823[] = {
+        "__infer_variance__",       "__default__", "__new__",        "__typing_subst__",
+        "__typing_prepare_subst__", "has_default", "evaluate_bound", "evaluate_constraints",
+        "evaluate_default",         NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.TypeVar";
     rt.short_name = "TypeVar";
@@ -19217,10 +20037,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing._SpecialForm";
     rt.short_name = "_SpecialForm";
-    static const char* py_bases_824[] = { "typing._Final", NULL };
+    static const char *py_bases_824[] = {"typing._Final", NULL};
     rt.embedded_types = py_bases_824;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_825[] = { "__bound__", "__covariant__", "__contravariant__", "__infer_variance__", "__default__", "has_default", "__new__", "evaluate_default", NULL };
+    static const char *py_methods_825[] = {
+        "__bound__",   "__covariant__", "__contravariant__", "__infer_variance__",
+        "__default__", "has_default",   "__new__",           "evaluate_default",
+        NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.TypeVarTuple";
     rt.short_name = "TypeVarTuple";
@@ -19266,7 +20089,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "evaluate_default";
     rf.receiver_type = "typing.TypeVarTuple";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_826[] = { "__new__", "__init__", NULL };
+    static const char *py_methods_826[] = {"__new__", "__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.ParamSpecArgs";
     rt.short_name = "ParamSpecArgs";
@@ -19282,7 +20105,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "typing.ParamSpecArgs";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_827[] = { "__new__", "__init__", NULL };
+    static const char *py_methods_827[] = {"__new__", "__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.ParamSpecKwargs";
     rt.short_name = "ParamSpecKwargs";
@@ -19298,7 +20121,16 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "typing.ParamSpecKwargs";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_828[] = { "__infer_variance__", "__default__", "__new__", "args", "kwargs", "__typing_subst__", "__typing_prepare_subst__", "has_default", "evaluate_default", NULL };
+    static const char *py_methods_828[] = {"__infer_variance__",
+                                           "__default__",
+                                           "__new__",
+                                           "args",
+                                           "kwargs",
+                                           "__typing_subst__",
+                                           "__typing_prepare_subst__",
+                                           "has_default",
+                                           "evaluate_default",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.ParamSpec";
     rt.short_name = "ParamSpec";
@@ -19349,7 +20181,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "evaluate_default";
     rf.receiver_type = "typing.ParamSpec";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_829[] = { "__init__", "__call__", NULL };
+    static const char *py_methods_829[] = {"__init__", "__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.NewType";
     rt.short_name = "NewType";
@@ -19377,12 +20209,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "typing._Generic";
     rt.short_name = "_Generic";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_830[] = { "__init__", NULL };
+    static const char *py_methods_830[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing._ProtocolMeta";
     rt.short_name = "_ProtocolMeta";
     rt.method_names = py_methods_830;
-    static const char* py_bases_831[] = { "typing.ABCMeta", NULL };
+    static const char *py_bases_831[] = {"typing.ABCMeta", NULL};
     rt.embedded_types = py_bases_831;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -19393,31 +20225,31 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.SupportsInt";
     rt.short_name = "SupportsInt";
-    static const char* py_bases_832[] = { "typing.Protocol", NULL };
+    static const char *py_bases_832[] = {"typing.Protocol", NULL};
     rt.embedded_types = py_bases_832;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.SupportsFloat";
     rt.short_name = "SupportsFloat";
-    static const char* py_bases_833[] = { "typing.Protocol", NULL };
+    static const char *py_bases_833[] = {"typing.Protocol", NULL};
     rt.embedded_types = py_bases_833;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.SupportsComplex";
     rt.short_name = "SupportsComplex";
-    static const char* py_bases_834[] = { "typing.Protocol", NULL };
+    static const char *py_bases_834[] = {"typing.Protocol", NULL};
     rt.embedded_types = py_bases_834;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.SupportsBytes";
     rt.short_name = "SupportsBytes";
-    static const char* py_bases_835[] = { "typing.Protocol", NULL };
+    static const char *py_bases_835[] = {"typing.Protocol", NULL};
     rt.embedded_types = py_bases_835;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.SupportsIndex";
     rt.short_name = "SupportsIndex";
-    static const char* py_bases_836[] = { "typing.Protocol", NULL };
+    static const char *py_bases_836[] = {"typing.Protocol", NULL};
     rt.embedded_types = py_bases_836;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
@@ -19431,13 +20263,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.Sized";
     rt.short_name = "Sized";
-    static const char* py_bases_837[] = { "typing.Protocol", NULL };
+    static const char *py_bases_837[] = {"typing.Protocol", NULL};
     rt.embedded_types = py_bases_837;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.Hashable";
     rt.short_name = "Hashable";
-    static const char* py_bases_838[] = { "typing.Protocol", NULL };
+    static const char *py_bases_838[] = {"typing.Protocol", NULL};
     rt.embedded_types = py_bases_838;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
@@ -19452,7 +20284,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "typing.Reversible";
     rt.short_name = "Reversible";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_839[] = { "send", "throw", "close", NULL };
+    static const char *py_methods_839[] = {"send", "throw", "close", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.Generator";
     rt.short_name = "Generator";
@@ -19485,7 +20317,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "typing.Awaitable";
     rt.short_name = "Awaitable";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_840[] = { "send", "throw", "close", NULL };
+    static const char *py_methods_840[] = {"send", "throw", "close", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.Coroutine";
     rt.short_name = "Coroutine";
@@ -19518,7 +20350,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "typing.AsyncIterator";
     rt.short_name = "AsyncIterator";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_841[] = { "asend", "athrow", "aclose", NULL };
+    static const char *py_methods_841[] = {"asend", "athrow", "aclose", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.AsyncGenerator";
     rt.short_name = "AsyncGenerator";
@@ -19547,7 +20379,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "typing.Collection";
     rt.short_name = "Collection";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_842[] = { "index", "count", NULL };
+    static const char *py_methods_842[] = {"index", "count", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.Sequence";
     rt.short_name = "Sequence";
@@ -19563,7 +20395,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "count";
     rf.receiver_type = "typing.Sequence";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_843[] = { "insert", "append", "clear", "extend", "reverse", "pop", "remove", NULL };
+    static const char *py_methods_843[] = {"insert",  "append", "clear",  "extend",
+                                           "reverse", "pop",    "remove", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.MutableSequence";
     rt.short_name = "MutableSequence";
@@ -19604,7 +20437,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "remove";
     rf.receiver_type = "typing.MutableSequence";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_844[] = { "isdisjoint", NULL };
+    static const char *py_methods_844[] = {"isdisjoint", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.AbstractSet";
     rt.short_name = "AbstractSet";
@@ -19615,7 +20448,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "isdisjoint";
     rf.receiver_type = "typing.AbstractSet";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_845[] = { "add", "discard", "clear", "pop", "remove", NULL };
+    static const char *py_methods_845[] = {"add", "discard", "clear", "pop", "remove", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.MutableSet";
     rt.short_name = "MutableSet";
@@ -19646,12 +20479,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "remove";
     rf.receiver_type = "typing.MutableSet";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_846[] = { "__init__", NULL };
+    static const char *py_methods_846[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.MappingView";
     rt.short_name = "MappingView";
     rt.method_names = py_methods_846;
-    static const char* py_bases_847[] = { "typing.Sized", NULL };
+    static const char *py_bases_847[] = {"typing.Sized", NULL};
     rt.embedded_types = py_bases_847;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -19659,12 +20492,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "typing.MappingView";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_848[] = { "__init__", NULL };
+    static const char *py_methods_848[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.ItemsView";
     rt.short_name = "ItemsView";
     rt.method_names = py_methods_848;
-    static const char* py_bases_849[] = { "typing.MappingView", NULL };
+    static const char *py_bases_849[] = {"typing.MappingView", NULL};
     rt.embedded_types = py_bases_849;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -19672,12 +20505,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "typing.ItemsView";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_850[] = { "__init__", NULL };
+    static const char *py_methods_850[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.KeysView";
     rt.short_name = "KeysView";
     rt.method_names = py_methods_850;
-    static const char* py_bases_851[] = { "typing.MappingView", NULL };
+    static const char *py_bases_851[] = {"typing.MappingView", NULL};
     rt.embedded_types = py_bases_851;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -19685,12 +20518,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "typing.KeysView";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_852[] = { "__init__", NULL };
+    static const char *py_methods_852[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.ValuesView";
     rt.short_name = "ValuesView";
     rt.method_names = py_methods_852;
-    static const char* py_bases_853[] = { "typing.MappingView", NULL };
+    static const char *py_bases_853[] = {"typing.MappingView", NULL};
     rt.embedded_types = py_bases_853;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -19698,7 +20531,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "typing.ValuesView";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_854[] = { "get", "items", "keys", "values", NULL };
+    static const char *py_methods_854[] = {"get", "items", "keys", "values", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.Mapping";
     rt.short_name = "Mapping";
@@ -19724,7 +20557,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "values";
     rf.receiver_type = "typing.Mapping";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_855[] = { "clear", "pop", "popitem", "setdefault", "update", NULL };
+    static const char *py_methods_855[] = {"clear", "pop", "popitem", "setdefault", "update", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.MutableMapping";
     rt.short_name = "MutableMapping";
@@ -19755,7 +20588,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "update";
     rf.receiver_type = "typing.MutableMapping";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_856[] = { "mode", "name", "close", "closed", "fileno", "flush", "isatty", "read", "readable", "readline", "readlines", "seek", "seekable", "tell", "truncate", "writable", "write", "writelines", "__enter__", "__exit__", NULL };
+    static const char *py_methods_856[] = {
+        "mode",     "name",     "close",    "closed",     "fileno",    "flush",    "isatty",
+        "read",     "readable", "readline", "readlines",  "seek",      "seekable", "tell",
+        "truncate", "writable", "write",    "writelines", "__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.IO";
     rt.short_name = "IO";
@@ -19861,7 +20697,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__exit__";
     rf.receiver_type = "typing.IO";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_857[] = { "__enter__", NULL };
+    static const char *py_methods_857[] = {"__enter__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.BinaryIO";
     rt.short_name = "BinaryIO";
@@ -19872,7 +20708,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__enter__";
     rf.receiver_type = "typing.BinaryIO";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_858[] = { "buffer", "encoding", "errors", "line_buffering", "newlines", "__enter__", NULL };
+    static const char *py_methods_858[] = {"buffer",   "encoding",  "errors", "line_buffering",
+                                           "newlines", "__enter__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.TextIO";
     rt.short_name = "TextIO";
@@ -19908,7 +20745,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__enter__";
     rf.receiver_type = "typing.TextIO";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_859[] = { "__init__", "__replace__", NULL };
+    static const char *py_methods_859[] = {"__init__", "__replace__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.NamedTuple";
     rt.short_name = "NamedTuple";
@@ -19924,7 +20761,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__replace__";
     rf.receiver_type = "typing.NamedTuple";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_860[] = { "copy", "setdefault", "pop", "update", "items", "keys", "values", NULL };
+    static const char *py_methods_860[] = {"copy",  "setdefault", "pop",    "update",
+                                           "items", "keys",       "values", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing._TypedDict";
     rt.short_name = "_TypedDict";
@@ -19965,12 +20803,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "values";
     rf.receiver_type = "typing._TypedDict";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_861[] = { "__init__", "_evaluate", "__or__", "__ror__", NULL };
+    static const char *py_methods_861[] = {"__init__", "_evaluate", "__or__", "__ror__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.ForwardRef";
     rt.short_name = "ForwardRef";
     rt.method_names = py_methods_861;
-    static const char* py_bases_862[] = { "typing._Final", NULL };
+    static const char *py_bases_862[] = {"typing._Final", NULL};
     rt.embedded_types = py_bases_862;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -19993,7 +20831,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__ror__";
     rf.receiver_type = "typing.ForwardRef";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_863[] = { "__qualname__", "__iter__", "evaluate_value", NULL };
+    static const char *py_methods_863[] = {"__qualname__", "__iter__", "evaluate_value", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing.TypeAliasType";
     rt.short_name = "TypeAliasType";
@@ -20108,7 +20946,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: typing_extensions ===== */
-    static const char* py_methods_864[] = { "copy", "setdefault", "pop", "update", "items", "keys", "values", NULL };
+    static const char *py_methods_864[] = {"copy",  "setdefault", "pop",    "update",
+                                           "items", "keys",       "values", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions._TypedDict";
     rt.short_name = "_TypedDict";
@@ -20149,7 +20988,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "values";
     rf.receiver_type = "typing_extensions._TypedDict";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_865[] = { "__init__", NULL };
+    static const char *py_methods_865[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.NamedTuple";
     rt.short_name = "NamedTuple";
@@ -20160,7 +20999,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "typing_extensions.NamedTuple";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_866[] = { "__init__", "__call__", NULL };
+    static const char *py_methods_866[] = {"__init__", "__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.NewType";
     rt.short_name = "NewType";
@@ -20179,37 +21018,37 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.Buffer";
     rt.short_name = "Buffer";
-    static const char* py_bases_867[] = { "typing_extensions.Protocol", "abc.ABC", NULL };
+    static const char *py_bases_867[] = {"typing_extensions.Protocol", "abc.ABC", NULL};
     rt.embedded_types = py_bases_867;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.SupportsInt";
     rt.short_name = "SupportsInt";
-    static const char* py_bases_868[] = { "typing_extensions.Protocol", NULL };
+    static const char *py_bases_868[] = {"typing_extensions.Protocol", NULL};
     rt.embedded_types = py_bases_868;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.SupportsFloat";
     rt.short_name = "SupportsFloat";
-    static const char* py_bases_869[] = { "typing_extensions.Protocol", NULL };
+    static const char *py_bases_869[] = {"typing_extensions.Protocol", NULL};
     rt.embedded_types = py_bases_869;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.SupportsComplex";
     rt.short_name = "SupportsComplex";
-    static const char* py_bases_870[] = { "typing_extensions.Protocol", NULL };
+    static const char *py_bases_870[] = {"typing_extensions.Protocol", NULL};
     rt.embedded_types = py_bases_870;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.SupportsBytes";
     rt.short_name = "SupportsBytes";
-    static const char* py_bases_871[] = { "typing_extensions.Protocol", NULL };
+    static const char *py_bases_871[] = {"typing_extensions.Protocol", NULL};
     rt.embedded_types = py_bases_871;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.SupportsIndex";
     rt.short_name = "SupportsIndex";
-    static const char* py_bases_872[] = { "typing_extensions.Protocol", NULL };
+    static const char *py_bases_872[] = {"typing_extensions.Protocol", NULL};
     rt.embedded_types = py_bases_872;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
@@ -20220,7 +21059,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "typing_extensions.SupportsRound";
     rt.short_name = "SupportsRound";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_873[] = { "read", NULL };
+    static const char *py_methods_873[] = {"read", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.Reader";
     rt.short_name = "Reader";
@@ -20231,7 +21070,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "read";
     rf.receiver_type = "typing_extensions.Reader";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_874[] = { "write", NULL };
+    static const char *py_methods_874[] = {"write", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.Writer";
     rt.short_name = "Writer";
@@ -20250,7 +21089,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "typing_extensions.CapsuleType";
     rt.short_name = "CapsuleType";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_875[] = { "__init__", "__call__", NULL };
+    static const char *py_methods_875[] = {"__init__", "__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.deprecated";
     rt.short_name = "deprecated";
@@ -20266,7 +21105,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "typing_extensions.deprecated";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_876[] = { "__init__", "has_default", "__typing_subst__", NULL };
+    static const char *py_methods_876[] = {"__init__", "has_default", "__typing_subst__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.TypeVar";
     rt.short_name = "TypeVar";
@@ -20287,7 +21126,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__typing_subst__";
     rf.receiver_type = "typing_extensions.TypeVar";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_877[] = { "__init__", "args", "kwargs", "has_default", NULL };
+    static const char *py_methods_877[] = {"__init__", "args", "kwargs", "has_default", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.ParamSpec";
     rt.short_name = "ParamSpec";
@@ -20313,7 +21152,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "has_default";
     rf.receiver_type = "typing_extensions.ParamSpec";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_878[] = { "__init__", "has_default", NULL };
+    static const char *py_methods_878[] = {"__init__", "has_default", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.TypeVarTuple";
     rt.short_name = "TypeVarTuple";
@@ -20329,7 +21168,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "has_default";
     rf.receiver_type = "typing_extensions.TypeVarTuple";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_879[] = { "__init__", NULL };
+    static const char *py_methods_879[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.TypeAliasType";
     rt.short_name = "TypeAliasType";
@@ -20340,7 +21179,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "typing_extensions.TypeAliasType";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_880[] = { "__init__", NULL };
+    static const char *py_methods_880[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.Doc";
     rt.short_name = "Doc";
@@ -20358,10 +21197,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.Format";
     rt.short_name = "Format";
-    static const char* py_bases_881[] = { "enum.IntEnum", NULL };
+    static const char *py_bases_881[] = {"enum.IntEnum", NULL};
     rt.embedded_types = py_bases_881;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_882[] = { "__init__", "__or__", "__ror__", NULL };
+    static const char *py_methods_882[] = {"__init__", "__or__", "__ror__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "typing_extensions.Sentinel";
     rt.short_name = "Sentinel";
@@ -20468,12 +21307,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: unittest ===== */
-    static const char* py_methods_883[] = { "asyncSetUp", "asyncTearDown", "addAsyncCleanup", "enterAsyncContext", NULL };
+    static const char *py_methods_883[] = {"asyncSetUp", "asyncTearDown", "addAsyncCleanup",
+                                           "enterAsyncContext", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.IsolatedAsyncioTestCase";
     rt.short_name = "IsolatedAsyncioTestCase";
     rt.method_names = py_methods_883;
-    static const char* py_bases_884[] = { "unittest.async_case.TestCase", NULL };
+    static const char *py_bases_884[] = {"unittest.async_case.TestCase", NULL};
     rt.embedded_types = py_bases_884;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -20505,15 +21345,15 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest._log._LoggingWatcher";
     rt.short_name = "_LoggingWatcher";
-    static const char* py_bases_885[] = { "unittest._log.NamedTuple", NULL };
+    static const char *py_bases_885[] = {"unittest._log.NamedTuple", NULL};
     rt.embedded_types = py_bases_885;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_886[] = { "__init__", "__enter__", "__exit__", NULL };
+    static const char *py_methods_886[] = {"__init__", "__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest._log._AssertLogsContext";
     rt.short_name = "_AssertLogsContext";
     rt.method_names = py_methods_886;
-    static const char* py_bases_887[] = { "unittest._log._BaseTestCaseContext", NULL };
+    static const char *py_bases_887[] = {"unittest._log._BaseTestCaseContext", NULL};
     rt.embedded_types = py_bases_887;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -20533,12 +21373,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: unittest.async_case ===== */
-    static const char* py_methods_888[] = { "asyncSetUp", "asyncTearDown", "addAsyncCleanup", "enterAsyncContext", NULL };
+    static const char *py_methods_888[] = {"asyncSetUp", "asyncTearDown", "addAsyncCleanup",
+                                           "enterAsyncContext", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.async_case.IsolatedAsyncioTestCase";
     rt.short_name = "IsolatedAsyncioTestCase";
     rt.method_names = py_methods_888;
-    static const char* py_bases_889[] = { "unittest.async_case.TestCase", NULL };
+    static const char *py_bases_889[] = {"unittest.async_case.TestCase", NULL};
     rt.embedded_types = py_bases_889;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -20563,7 +21404,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: unittest.case ===== */
-    static const char* py_methods_890[] = { "__init__", NULL };
+    static const char *py_methods_890[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.case._BaseTestCaseContext";
     rt.short_name = "_BaseTestCaseContext";
@@ -20574,12 +21415,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "unittest.case._BaseTestCaseContext";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_891[] = { "__init__", "handle", NULL };
+    static const char *py_methods_891[] = {"__init__", "handle", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.case._AssertRaisesBaseContext";
     rt.short_name = "_AssertRaisesBaseContext";
     rt.method_names = py_methods_891;
-    static const char* py_bases_892[] = { "unittest.case._BaseTestCaseContext", NULL };
+    static const char *py_bases_892[] = {"unittest.case._BaseTestCaseContext", NULL};
     rt.embedded_types = py_bases_892;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -20592,12 +21433,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "handle";
     rf.receiver_type = "unittest.case._AssertRaisesBaseContext";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_893[] = { "__init__", NULL };
+    static const char *py_methods_893[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.case.SkipTest";
     rt.short_name = "SkipTest";
     rt.method_names = py_methods_893;
-    static const char* py_bases_894[] = { "unittest.case.Exception", NULL };
+    static const char *py_bases_894[] = {"unittest.case.Exception", NULL};
     rt.embedded_types = py_bases_894;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -20608,10 +21449,75 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.case._SupportsAbsAndDunderGE";
     rt.short_name = "_SupportsAbsAndDunderGE";
-    static const char* py_bases_895[] = { "unittest.case.Protocol", NULL };
+    static const char *py_bases_895[] = {"unittest.case.Protocol", NULL};
     rt.embedded_types = py_bases_895;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_896[] = { "__init__", "setUp", "tearDown", "setUpClass", "tearDownClass", "run", "__call__", "skipTest", "subTest", "debug", "_addSkip", "assertEqual", "assertNotEqual", "assertTrue", "assertFalse", "assertIs", "assertIsNot", "assertIsNone", "assertIsNotNone", "assertIn", "assertNotIn", "assertIsInstance", "assertNotIsInstance", "assertGreater", "assertGreaterEqual", "assertLess", "assertLessEqual", "assertRaises", "assertRaisesRegex", "assertWarns", "assertWarnsRegex", "assertLogs", "assertNoLogs", "assertAlmostEqual", "assertNotAlmostEqual", "assertRegex", "assertNotRegex", "assertCountEqual", "addTypeEqualityFunc", "assertMultiLineEqual", "assertSequenceEqual", "assertListEqual", "assertTupleEqual", "assertSetEqual", "assertDictEqual", "fail", "countTestCases", "defaultTestResult", "id", "shortDescription", "addCleanup", "enterContext", "doCleanups", "addClassCleanup", "doClassCleanups", "enterClassContext", "assertDictContainsSubset", "assertIsSubclass", "assertNotIsSubclass", "assertHasAttr", "assertNotHasAttr", "assertStartsWith", "assertNotStartsWith", "assertEndsWith", "assertNotEndsWith", NULL };
+    static const char *py_methods_896[] = {"__init__",
+                                           "setUp",
+                                           "tearDown",
+                                           "setUpClass",
+                                           "tearDownClass",
+                                           "run",
+                                           "__call__",
+                                           "skipTest",
+                                           "subTest",
+                                           "debug",
+                                           "_addSkip",
+                                           "assertEqual",
+                                           "assertNotEqual",
+                                           "assertTrue",
+                                           "assertFalse",
+                                           "assertIs",
+                                           "assertIsNot",
+                                           "assertIsNone",
+                                           "assertIsNotNone",
+                                           "assertIn",
+                                           "assertNotIn",
+                                           "assertIsInstance",
+                                           "assertNotIsInstance",
+                                           "assertGreater",
+                                           "assertGreaterEqual",
+                                           "assertLess",
+                                           "assertLessEqual",
+                                           "assertRaises",
+                                           "assertRaisesRegex",
+                                           "assertWarns",
+                                           "assertWarnsRegex",
+                                           "assertLogs",
+                                           "assertNoLogs",
+                                           "assertAlmostEqual",
+                                           "assertNotAlmostEqual",
+                                           "assertRegex",
+                                           "assertNotRegex",
+                                           "assertCountEqual",
+                                           "addTypeEqualityFunc",
+                                           "assertMultiLineEqual",
+                                           "assertSequenceEqual",
+                                           "assertListEqual",
+                                           "assertTupleEqual",
+                                           "assertSetEqual",
+                                           "assertDictEqual",
+                                           "fail",
+                                           "countTestCases",
+                                           "defaultTestResult",
+                                           "id",
+                                           "shortDescription",
+                                           "addCleanup",
+                                           "enterContext",
+                                           "doCleanups",
+                                           "addClassCleanup",
+                                           "doClassCleanups",
+                                           "enterClassContext",
+                                           "assertDictContainsSubset",
+                                           "assertIsSubclass",
+                                           "assertNotIsSubclass",
+                                           "assertHasAttr",
+                                           "assertNotHasAttr",
+                                           "assertStartsWith",
+                                           "assertNotStartsWith",
+                                           "assertEndsWith",
+                                           "assertNotEndsWith",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.case.TestCase";
     rt.short_name = "TestCase";
@@ -20942,12 +21848,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "assertNotEndsWith";
     rf.receiver_type = "unittest.case.TestCase";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_897[] = { "__init__", "runTest", NULL };
+    static const char *py_methods_897[] = {"__init__", "runTest", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.case.FunctionTestCase";
     rt.short_name = "FunctionTestCase";
     rt.method_names = py_methods_897;
-    static const char* py_bases_898[] = { "unittest.case.TestCase", NULL };
+    static const char *py_bases_898[] = {"unittest.case.TestCase", NULL};
     rt.embedded_types = py_bases_898;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -20960,12 +21866,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "runTest";
     rf.receiver_type = "unittest.case.FunctionTestCase";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_899[] = { "__enter__", "__exit__", NULL };
+    static const char *py_methods_899[] = {"__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.case._AssertRaisesContext";
     rt.short_name = "_AssertRaisesContext";
     rt.method_names = py_methods_899;
-    static const char* py_bases_900[] = { "unittest.case._AssertRaisesBaseContext", NULL };
+    static const char *py_bases_900[] = {"unittest.case._AssertRaisesBaseContext", NULL};
     rt.embedded_types = py_bases_900;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -20978,12 +21884,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__exit__";
     rf.receiver_type = "unittest.case._AssertRaisesContext";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_901[] = { "__enter__", "__exit__", NULL };
+    static const char *py_methods_901[] = {"__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.case._AssertWarnsContext";
     rt.short_name = "_AssertWarnsContext";
     rt.method_names = py_methods_901;
-    static const char* py_bases_902[] = { "unittest.case._AssertRaisesBaseContext", NULL };
+    static const char *py_bases_902[] = {"unittest.case._AssertRaisesBaseContext", NULL};
     rt.embedded_types = py_bases_902;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21026,7 +21932,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: unittest.loader ===== */
-    static const char* py_methods_903[] = { "loadTestsFromTestCase", "loadTestsFromModule", "loadTestsFromName", "loadTestsFromNames", "getTestCaseNames", "discover", NULL };
+    static const char *py_methods_903[] = {"loadTestsFromTestCase",
+                                           "loadTestsFromModule",
+                                           "loadTestsFromName",
+                                           "loadTestsFromNames",
+                                           "getTestCaseNames",
+                                           "discover",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.loader.TestLoader";
     rt.short_name = "TestLoader";
@@ -21076,12 +21988,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: unittest.main ===== */
-    static const char* py_methods_904[] = { "run", NULL };
+    static const char *py_methods_904[] = {"run", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.main._TestRunner";
     rt.short_name = "_TestRunner";
     rt.method_names = py_methods_904;
-    static const char* py_bases_905[] = { "unittest.main.Protocol", NULL };
+    static const char *py_bases_905[] = {"unittest.main.Protocol", NULL};
     rt.embedded_types = py_bases_905;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21089,7 +22001,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "run";
     rf.receiver_type = "unittest.main._TestRunner";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_906[] = { "__init__", "parseArgs", "createTests", "runTests", NULL };
+    static const char *py_methods_906[] = {"__init__", "parseArgs", "createTests", "runTests",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.main.TestProgram";
     rt.short_name = "TestProgram";
@@ -21117,7 +22030,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: unittest.mock ===== */
-    static const char* py_methods_907[] = { "__init__", NULL };
+    static const char *py_methods_907[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock._SentinelObject";
     rt.short_name = "_SentinelObject";
@@ -21132,7 +22045,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "unittest.mock._Sentinel";
     rt.short_name = "_Sentinel";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_908[] = { "__init__", "__call__", "args", "kwargs", "call_list", NULL };
+    static const char *py_methods_908[] = {"__init__", "__call__",  "args",
+                                           "kwargs",   "call_list", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock._Call";
     rt.short_name = "_Call";
@@ -21163,7 +22077,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "call_list";
     rf.receiver_type = "unittest.mock._Call";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_909[] = { "__init__", "__call__", "args", "kwargs", "call_list", NULL };
+    static const char *py_methods_909[] = {"__init__", "__call__",  "args",
+                                           "kwargs",   "call_list", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock._Call";
     rt.short_name = "_Call";
@@ -21198,7 +22113,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "unittest.mock._CallList";
     rt.short_name = "_CallList";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_910[] = { "__init__", NULL };
+    static const char *py_methods_910[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock.Base";
     rt.short_name = "Base";
@@ -21209,12 +22124,26 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "unittest.mock.Base";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_911[] = { "__new__", "__init__", "assert_called_with", "assert_not_called", "assert_called_once_with", "assert_called", "assert_called_once", "reset_mock", "assert_any_call", "assert_has_calls", "mock_add_spec", "attach_mock", "configure_mock", "_calls_repr", NULL };
+    static const char *py_methods_911[] = {"__new__",
+                                           "__init__",
+                                           "assert_called_with",
+                                           "assert_not_called",
+                                           "assert_called_once_with",
+                                           "assert_called",
+                                           "assert_called_once",
+                                           "reset_mock",
+                                           "assert_any_call",
+                                           "assert_has_calls",
+                                           "mock_add_spec",
+                                           "attach_mock",
+                                           "configure_mock",
+                                           "_calls_repr",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock.NonCallableMock";
     rt.short_name = "NonCallableMock";
     rt.method_names = py_methods_911;
-    static const char* py_bases_912[] = { "unittest.mock.Base", "unittest.mock.Any", NULL };
+    static const char *py_bases_912[] = {"unittest.mock.Base", "unittest.mock.Any", NULL};
     rt.embedded_types = py_bases_912;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21287,12 +22216,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "_calls_repr";
     rf.receiver_type = "unittest.mock.NonCallableMock";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_913[] = { "__init__", "__call__", NULL };
+    static const char *py_methods_913[] = {"__init__", "__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock.CallableMixin";
     rt.short_name = "CallableMixin";
     rt.method_names = py_methods_913;
-    static const char* py_bases_914[] = { "unittest.mock.Base", NULL };
+    static const char *py_bases_914[] = {"unittest.mock.Base", NULL};
     rt.embedded_types = py_bases_914;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21308,10 +22237,23 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock.Mock";
     rt.short_name = "Mock";
-    static const char* py_bases_915[] = { "unittest.mock.CallableMixin", "unittest.mock.NonCallableMock", NULL };
+    static const char *py_bases_915[] = {"unittest.mock.CallableMixin",
+                                         "unittest.mock.NonCallableMock", NULL};
     rt.embedded_types = py_bases_915;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_916[] = { "__init__", "copy", "__call__", "decoration_helper", "decorate_class", "decorate_callable", "decorate_async_callable", "get_original", "__enter__", "__exit__", "start", "stop", NULL };
+    static const char *py_methods_916[] = {"__init__",
+                                           "copy",
+                                           "__call__",
+                                           "decoration_helper",
+                                           "decorate_class",
+                                           "decorate_callable",
+                                           "decorate_async_callable",
+                                           "get_original",
+                                           "__enter__",
+                                           "__exit__",
+                                           "start",
+                                           "stop",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock._patch";
     rt.short_name = "_patch";
@@ -21377,7 +22319,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "stop";
     rf.receiver_type = "unittest.mock._patch";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_917[] = { "__call__", NULL };
+    static const char *py_methods_917[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock._patch_pass_arg";
     rt.short_name = "_patch_pass_arg";
@@ -21388,7 +22330,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "unittest.mock._patch_pass_arg";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_918[] = { "__init__", "__call__", "__enter__", "__exit__", "decorate_callable", "decorate_async_callable", "decorate_class", NULL };
+    static const char *py_methods_918[] = {"__init__",          "__call__",
+                                           "__enter__",         "__exit__",
+                                           "decorate_callable", "decorate_async_callable",
+                                           "decorate_class",    NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock._patch_dict";
     rt.short_name = "_patch_dict";
@@ -21429,7 +22374,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "decorate_class";
     rf.receiver_type = "unittest.mock._patch_dict";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_919[] = { "__call__", "object", "multiple", "stopall", NULL };
+    static const char *py_methods_919[] = {"__call__", "object", "multiple", "stopall", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock._patcher";
     rt.short_name = "_patcher";
@@ -21455,12 +22400,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "stopall";
     rf.receiver_type = "unittest.mock._patcher";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_920[] = { "__init__", NULL };
+    static const char *py_methods_920[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock.MagicMixin";
     rt.short_name = "MagicMixin";
     rt.method_names = py_methods_920;
-    static const char* py_bases_921[] = { "unittest.mock.Base", NULL };
+    static const char *py_bases_921[] = {"unittest.mock.Base", NULL};
     rt.embedded_types = py_bases_921;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21471,21 +22416,31 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock.NonCallableMagicMock";
     rt.short_name = "NonCallableMagicMock";
-    static const char* py_bases_922[] = { "unittest.mock.MagicMixin", "unittest.mock.NonCallableMock", NULL };
+    static const char *py_bases_922[] = {"unittest.mock.MagicMixin",
+                                         "unittest.mock.NonCallableMock", NULL};
     rt.embedded_types = py_bases_922;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock.MagicMock";
     rt.short_name = "MagicMock";
-    static const char* py_bases_923[] = { "unittest.mock.MagicMixin", "unittest.mock.Mock", NULL };
+    static const char *py_bases_923[] = {"unittest.mock.MagicMixin", "unittest.mock.Mock", NULL};
     rt.embedded_types = py_bases_923;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_924[] = { "__init__", "assert_awaited", "assert_awaited_once", "assert_awaited_with", "assert_awaited_once_with", "assert_any_await", "assert_has_awaits", "assert_not_awaited", "reset_mock", NULL };
+    static const char *py_methods_924[] = {"__init__",
+                                           "assert_awaited",
+                                           "assert_awaited_once",
+                                           "assert_awaited_with",
+                                           "assert_awaited_once_with",
+                                           "assert_any_await",
+                                           "assert_has_awaits",
+                                           "assert_not_awaited",
+                                           "reset_mock",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock.AsyncMockMixin";
     rt.short_name = "AsyncMockMixin";
     rt.method_names = py_methods_924;
-    static const char* py_bases_925[] = { "unittest.mock.Base", NULL };
+    static const char *py_bases_925[] = {"unittest.mock.Base", NULL};
     rt.embedded_types = py_bases_925;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21533,12 +22488,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "reset_mock";
     rf.receiver_type = "unittest.mock.AsyncMockMixin";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_926[] = { "__init__", NULL };
+    static const char *py_methods_926[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock.AsyncMagicMixin";
     rt.short_name = "AsyncMagicMixin";
     rt.method_names = py_methods_926;
-    static const char* py_bases_927[] = { "unittest.mock.MagicMixin", NULL };
+    static const char *py_bases_927[] = {"unittest.mock.MagicMixin", NULL};
     rt.embedded_types = py_bases_927;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21546,12 +22501,14 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "unittest.mock.AsyncMagicMixin";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_928[] = { "reset_mock", NULL };
+    static const char *py_methods_928[] = {"reset_mock", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock.AsyncMock";
     rt.short_name = "AsyncMock";
     rt.method_names = py_methods_928;
-    static const char* py_bases_929[] = { "unittest.mock.AsyncMockMixin", "unittest.mock.AsyncMagicMixin", "unittest.mock.Mock", NULL };
+    static const char *py_bases_929[] = {"unittest.mock.AsyncMockMixin",
+                                         "unittest.mock.AsyncMagicMixin", "unittest.mock.Mock",
+                                         NULL};
     rt.embedded_types = py_bases_929;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21559,12 +22516,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "reset_mock";
     rf.receiver_type = "unittest.mock.AsyncMock";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_930[] = { "__init__", "create_mock", NULL };
+    static const char *py_methods_930[] = {"__init__", "create_mock", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock.MagicProxy";
     rt.short_name = "MagicProxy";
     rt.method_names = py_methods_930;
-    static const char* py_bases_931[] = { "unittest.mock.Base", NULL };
+    static const char *py_bases_931[] = {"unittest.mock.Base", NULL};
     rt.embedded_types = py_bases_931;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21580,10 +22537,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock._ANY";
     rt.short_name = "_ANY";
-    static const char* py_bases_932[] = { "unittest.mock.Any", NULL };
+    static const char *py_bases_932[] = {"unittest.mock.Any", NULL};
     rt.embedded_types = py_bases_932;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_933[] = { "__init__", NULL };
+    static const char *py_methods_933[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock._SpecState";
     rt.short_name = "_SpecState";
@@ -21597,15 +22554,16 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock.PropertyMock";
     rt.short_name = "PropertyMock";
-    static const char* py_bases_934[] = { "unittest.mock.Mock", NULL };
+    static const char *py_bases_934[] = {"unittest.mock.Mock", NULL};
     rt.embedded_types = py_bases_934;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_935[] = { "__init__", "reset_mock", "wait_until_called", "wait_until_any_call_with", NULL };
+    static const char *py_methods_935[] = {"__init__", "reset_mock", "wait_until_called",
+                                           "wait_until_any_call_with", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock.ThreadingMixin";
     rt.short_name = "ThreadingMixin";
     rt.method_names = py_methods_935;
-    static const char* py_bases_936[] = { "unittest.mock.Base", NULL };
+    static const char *py_bases_936[] = {"unittest.mock.Base", NULL};
     rt.embedded_types = py_bases_936;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21631,7 +22589,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.mock.ThreadingMock";
     rt.short_name = "ThreadingMock";
-    static const char* py_bases_937[] = { "unittest.mock.ThreadingMixin", "unittest.mock.MagicMixin", "unittest.mock.Mock", NULL };
+    static const char *py_bases_937[] = {"unittest.mock.ThreadingMixin", "unittest.mock.MagicMixin",
+                                         "unittest.mock.Mock", NULL};
     rt.embedded_types = py_bases_937;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21648,7 +22607,23 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: unittest.result ===== */
-    static const char* py_methods_938[] = { "__init__", "printErrors", "wasSuccessful", "stop", "startTest", "stopTest", "startTestRun", "stopTestRun", "addError", "addFailure", "addSuccess", "addSkip", "addExpectedFailure", "addUnexpectedSuccess", "addSubTest", "addDuration", NULL };
+    static const char *py_methods_938[] = {"__init__",
+                                           "printErrors",
+                                           "wasSuccessful",
+                                           "stop",
+                                           "startTest",
+                                           "stopTest",
+                                           "startTestRun",
+                                           "stopTestRun",
+                                           "addError",
+                                           "addFailure",
+                                           "addSuccess",
+                                           "addSkip",
+                                           "addExpectedFailure",
+                                           "addUnexpectedSuccess",
+                                           "addSubTest",
+                                           "addDuration",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.result.TestResult";
     rt.short_name = "TestResult";
@@ -21743,15 +22718,17 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.runner._SupportsWriteAndFlush";
     rt.short_name = "_SupportsWriteAndFlush";
-    static const char* py_bases_939[] = { "unittest.runner.SupportsFlush", "unittest.runner.Protocol", NULL };
+    static const char *py_bases_939[] = {"unittest.runner.SupportsFlush",
+                                         "unittest.runner.Protocol", NULL};
     rt.embedded_types = py_bases_939;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_940[] = { "writeln", NULL };
+    static const char *py_methods_940[] = {"writeln", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.runner._TextTestStream";
     rt.short_name = "_TextTestStream";
     rt.method_names = py_methods_940;
-    static const char* py_bases_941[] = { "unittest.runner._SupportsWriteAndFlush", "unittest.runner.Protocol", NULL };
+    static const char *py_bases_941[] = {"unittest.runner._SupportsWriteAndFlush",
+                                         "unittest.runner.Protocol", NULL};
     rt.embedded_types = py_bases_941;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21759,7 +22736,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "writeln";
     rf.receiver_type = "unittest.runner._TextTestStream";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_942[] = { "__init__", "writeln", "flush", "write", NULL };
+    static const char *py_methods_942[] = {"__init__", "writeln", "flush", "write", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.runner._WritelnDecorator";
     rt.short_name = "_WritelnDecorator";
@@ -21785,12 +22762,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "write";
     rf.receiver_type = "unittest.runner._WritelnDecorator";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_943[] = { "__init__", "getDescription", "printErrorList", NULL };
+    static const char *py_methods_943[] = {"__init__", "getDescription", "printErrorList", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.runner.TextTestResult";
     rt.short_name = "TextTestResult";
     rt.method_names = py_methods_943;
-    static const char* py_bases_944[] = { "unittest.result.TestResult", NULL };
+    static const char *py_bases_944[] = {"unittest.result.TestResult", NULL};
     rt.embedded_types = py_bases_944;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21808,7 +22785,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "printErrorList";
     rf.receiver_type = "unittest.runner.TextTestResult";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_945[] = { "__init__", "run", NULL };
+    static const char *py_methods_945[] = {"__init__", "run", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.runner.TextTestRunner";
     rt.short_name = "TextTestRunner";
@@ -21844,7 +22821,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: unittest.suite ===== */
-    static const char* py_methods_946[] = { "__init__", "__call__", "addTest", "addTests", "run", "debug", "countTestCases", NULL };
+    static const char *py_methods_946[] = {"__init__", "__call__", "addTest",        "addTests",
+                                           "run",      "debug",    "countTestCases", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.suite.BaseTestSuite";
     rt.short_name = "BaseTestSuite";
@@ -21885,12 +22863,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "countTestCases";
     rf.receiver_type = "unittest.suite.BaseTestSuite";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_947[] = { "run", NULL };
+    static const char *py_methods_947[] = {"run", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.suite.TestSuite";
     rt.short_name = "TestSuite";
     rt.method_names = py_methods_947;
-    static const char* py_bases_948[] = { "unittest.suite.BaseTestSuite", NULL };
+    static const char *py_bases_948[] = {"unittest.suite.BaseTestSuite", NULL};
     rt.embedded_types = py_bases_948;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21903,25 +22881,25 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.util._SupportsDunderLT";
     rt.short_name = "_SupportsDunderLT";
-    static const char* py_bases_949[] = { "unittest.util.Protocol", NULL };
+    static const char *py_bases_949[] = {"unittest.util.Protocol", NULL};
     rt.embedded_types = py_bases_949;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.util._SupportsDunderGT";
     rt.short_name = "_SupportsDunderGT";
-    static const char* py_bases_950[] = { "unittest.util.Protocol", NULL };
+    static const char *py_bases_950[] = {"unittest.util.Protocol", NULL};
     rt.embedded_types = py_bases_950;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.util._SupportsDunderLE";
     rt.short_name = "_SupportsDunderLE";
-    static const char* py_bases_951[] = { "unittest.util.Protocol", NULL };
+    static const char *py_bases_951[] = {"unittest.util.Protocol", NULL};
     rt.embedded_types = py_bases_951;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "unittest.util._SupportsDunderGE";
     rt.short_name = "_SupportsDunderGE";
-    static const char* py_bases_952[] = { "unittest.util.Protocol", NULL };
+    static const char *py_bases_952[] = {"unittest.util.Protocol", NULL};
     rt.embedded_types = py_bases_952;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21946,12 +22924,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: urllib.error ===== */
-    static const char* py_methods_953[] = { "__init__", NULL };
+    static const char *py_methods_953[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.error.URLError";
     rt.short_name = "URLError";
     rt.method_names = py_methods_953;
-    static const char* py_bases_954[] = { "urllib.error.OSError", NULL };
+    static const char *py_bases_954[] = {"urllib.error.OSError", NULL};
     rt.embedded_types = py_bases_954;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21959,12 +22937,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "urllib.error.URLError";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_955[] = { "headers", "reason", "__init__", NULL };
+    static const char *py_methods_955[] = {"headers", "reason", "__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.error.HTTPError";
     rt.short_name = "HTTPError";
     rt.method_names = py_methods_955;
-    static const char* py_bases_956[] = { "urllib.error.URLError", "urllib.error.addinfourl", NULL };
+    static const char *py_bases_956[] = {"urllib.error.URLError", "urllib.error.addinfourl", NULL};
     rt.embedded_types = py_bases_956;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21982,12 +22960,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "urllib.error.HTTPError";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_957[] = { "__init__", NULL };
+    static const char *py_methods_957[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.error.ContentTooShortError";
     rt.short_name = "ContentTooShortError";
     rt.method_names = py_methods_957;
-    static const char* py_bases_958[] = { "urllib.error.URLError", NULL };
+    static const char *py_bases_958[] = {"urllib.error.URLError", NULL};
     rt.embedded_types = py_bases_958;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -21997,7 +22975,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: urllib.parse ===== */
-    static const char* py_methods_959[] = { "encode", NULL };
+    static const char *py_methods_959[] = {"encode", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse._ResultMixinStr";
     rt.short_name = "_ResultMixinStr";
@@ -22008,7 +22986,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "encode";
     rf.receiver_type = "urllib.parse._ResultMixinStr";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_960[] = { "decode", NULL };
+    static const char *py_methods_960[] = {"decode", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse._ResultMixinBytes";
     rt.short_name = "_ResultMixinBytes";
@@ -22019,7 +22997,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "decode";
     rf.receiver_type = "urllib.parse._ResultMixinBytes";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_961[] = { "username", "password", "hostname", "port", NULL };
+    static const char *py_methods_961[] = {"username", "password", "hostname", "port", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse._NetlocResultMixinBase";
     rt.short_name = "_NetlocResultMixinBase";
@@ -22048,39 +23026,39 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse._NetlocResultMixinStr";
     rt.short_name = "_NetlocResultMixinStr";
-    static const char* py_bases_962[] = { "urllib.parse._ResultMixinStr", NULL };
+    static const char *py_bases_962[] = {"urllib.parse._ResultMixinStr", NULL};
     rt.embedded_types = py_bases_962;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse._NetlocResultMixinBytes";
     rt.short_name = "_NetlocResultMixinBytes";
-    static const char* py_bases_963[] = { "urllib.parse._ResultMixinBytes", NULL };
+    static const char *py_bases_963[] = {"urllib.parse._ResultMixinBytes", NULL};
     rt.embedded_types = py_bases_963;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse._DefragResultBase";
     rt.short_name = "_DefragResultBase";
-    static const char* py_bases_964[] = { "urllib.parse.NamedTuple", NULL };
+    static const char *py_bases_964[] = {"urllib.parse.NamedTuple", NULL};
     rt.embedded_types = py_bases_964;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse._SplitResultBase";
     rt.short_name = "_SplitResultBase";
-    static const char* py_bases_965[] = { "urllib.parse.NamedTuple", NULL };
+    static const char *py_bases_965[] = {"urllib.parse.NamedTuple", NULL};
     rt.embedded_types = py_bases_965;
     cbm_registry_add_type(reg, rt);
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse._ParseResultBase";
     rt.short_name = "_ParseResultBase";
-    static const char* py_bases_966[] = { "urllib.parse.NamedTuple", NULL };
+    static const char *py_bases_966[] = {"urllib.parse.NamedTuple", NULL};
     rt.embedded_types = py_bases_966;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_967[] = { "geturl", NULL };
+    static const char *py_methods_967[] = {"geturl", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse.DefragResult";
     rt.short_name = "DefragResult";
     rt.method_names = py_methods_967;
-    static const char* py_bases_968[] = { "urllib.parse._ResultMixinStr", NULL };
+    static const char *py_bases_968[] = {"urllib.parse._ResultMixinStr", NULL};
     rt.embedded_types = py_bases_968;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22088,12 +23066,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "geturl";
     rf.receiver_type = "urllib.parse.DefragResult";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_969[] = { "geturl", NULL };
+    static const char *py_methods_969[] = {"geturl", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse.SplitResult";
     rt.short_name = "SplitResult";
     rt.method_names = py_methods_969;
-    static const char* py_bases_970[] = { "urllib.parse._NetlocResultMixinStr", NULL };
+    static const char *py_bases_970[] = {"urllib.parse._NetlocResultMixinStr", NULL};
     rt.embedded_types = py_bases_970;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22101,12 +23079,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "geturl";
     rf.receiver_type = "urllib.parse.SplitResult";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_971[] = { "geturl", NULL };
+    static const char *py_methods_971[] = {"geturl", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse.ParseResult";
     rt.short_name = "ParseResult";
     rt.method_names = py_methods_971;
-    static const char* py_bases_972[] = { "urllib.parse._NetlocResultMixinStr", NULL };
+    static const char *py_bases_972[] = {"urllib.parse._NetlocResultMixinStr", NULL};
     rt.embedded_types = py_bases_972;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22114,12 +23092,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "geturl";
     rf.receiver_type = "urllib.parse.ParseResult";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_973[] = { "geturl", NULL };
+    static const char *py_methods_973[] = {"geturl", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse.DefragResultBytes";
     rt.short_name = "DefragResultBytes";
     rt.method_names = py_methods_973;
-    static const char* py_bases_974[] = { "urllib.parse._ResultMixinBytes", NULL };
+    static const char *py_bases_974[] = {"urllib.parse._ResultMixinBytes", NULL};
     rt.embedded_types = py_bases_974;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22127,12 +23105,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "geturl";
     rf.receiver_type = "urllib.parse.DefragResultBytes";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_975[] = { "geturl", NULL };
+    static const char *py_methods_975[] = {"geturl", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse.SplitResultBytes";
     rt.short_name = "SplitResultBytes";
     rt.method_names = py_methods_975;
-    static const char* py_bases_976[] = { "urllib.parse._NetlocResultMixinBytes", NULL };
+    static const char *py_bases_976[] = {"urllib.parse._NetlocResultMixinBytes", NULL};
     rt.embedded_types = py_bases_976;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22140,12 +23118,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "geturl";
     rf.receiver_type = "urllib.parse.SplitResultBytes";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_977[] = { "geturl", NULL };
+    static const char *py_methods_977[] = {"geturl", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse.ParseResultBytes";
     rt.short_name = "ParseResultBytes";
     rt.method_names = py_methods_977;
-    static const char* py_bases_978[] = { "urllib.parse._NetlocResultMixinBytes", NULL };
+    static const char *py_bases_978[] = {"urllib.parse._NetlocResultMixinBytes", NULL};
     rt.embedded_types = py_bases_978;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22153,12 +23131,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "geturl";
     rf.receiver_type = "urllib.parse.ParseResultBytes";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_979[] = { "__call__", NULL };
+    static const char *py_methods_979[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.parse._QuoteVia";
     rt.short_name = "_QuoteVia";
     rt.method_names = py_methods_979;
-    static const char* py_bases_980[] = { "urllib.parse.Protocol", NULL };
+    static const char *py_bases_980[] = {"urllib.parse.Protocol", NULL};
     rt.embedded_types = py_bases_980;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22232,7 +23210,19 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: urllib.request ===== */
-    static const char* py_methods_981[] = { "full_url", "__init__", "get_method", "add_header", "add_unredirected_header", "has_header", "remove_header", "get_full_url", "set_proxy", "get_header", "header_items", "has_proxy", NULL };
+    static const char *py_methods_981[] = {"full_url",
+                                           "__init__",
+                                           "get_method",
+                                           "add_header",
+                                           "add_unredirected_header",
+                                           "has_header",
+                                           "remove_header",
+                                           "get_full_url",
+                                           "set_proxy",
+                                           "get_header",
+                                           "header_items",
+                                           "has_proxy",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.Request";
     rt.short_name = "Request";
@@ -22298,7 +23288,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "has_proxy";
     rf.receiver_type = "urllib.request.Request";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_982[] = { "add_handler", "open", "error", "close", NULL };
+    static const char *py_methods_982[] = {"add_handler", "open", "error", "close", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.OpenerDirector";
     rt.short_name = "OpenerDirector";
@@ -22324,7 +23314,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "close";
     rf.receiver_type = "urllib.request.OpenerDirector";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_983[] = { "add_parent", "close", NULL };
+    static const char *py_methods_983[] = {"add_parent", "close", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.BaseHandler";
     rt.short_name = "BaseHandler";
@@ -22340,12 +23330,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "close";
     rf.receiver_type = "urllib.request.BaseHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_984[] = { "http_error_default", NULL };
+    static const char *py_methods_984[] = {"http_error_default", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.HTTPDefaultErrorHandler";
     rt.short_name = "HTTPDefaultErrorHandler";
     rt.method_names = py_methods_984;
-    static const char* py_bases_985[] = { "urllib.request.BaseHandler", NULL };
+    static const char *py_bases_985[] = {"urllib.request.BaseHandler", NULL};
     rt.embedded_types = py_bases_985;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22353,12 +23343,18 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "http_error_default";
     rf.receiver_type = "urllib.request.HTTPDefaultErrorHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_986[] = { "redirect_request", "http_error_301", "http_error_302", "http_error_303", "http_error_307", "http_error_308", NULL };
+    static const char *py_methods_986[] = {"redirect_request",
+                                           "http_error_301",
+                                           "http_error_302",
+                                           "http_error_303",
+                                           "http_error_307",
+                                           "http_error_308",
+                                           NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.HTTPRedirectHandler";
     rt.short_name = "HTTPRedirectHandler";
     rt.method_names = py_methods_986;
-    static const char* py_bases_987[] = { "urllib.request.BaseHandler", NULL };
+    static const char *py_bases_987[] = {"urllib.request.BaseHandler", NULL};
     rt.embedded_types = py_bases_987;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22391,12 +23387,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "http_error_308";
     rf.receiver_type = "urllib.request.HTTPRedirectHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_988[] = { "__init__", "http_request", "http_response", "https_request", "https_response", NULL };
+    static const char *py_methods_988[] = {"__init__",      "http_request",   "http_response",
+                                           "https_request", "https_response", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.HTTPCookieProcessor";
     rt.short_name = "HTTPCookieProcessor";
     rt.method_names = py_methods_988;
-    static const char* py_bases_989[] = { "urllib.request.BaseHandler", NULL };
+    static const char *py_bases_989[] = {"urllib.request.BaseHandler", NULL};
     rt.embedded_types = py_bases_989;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22424,12 +23421,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "https_response";
     rf.receiver_type = "urllib.request.HTTPCookieProcessor";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_990[] = { "__init__", "proxy_open", NULL };
+    static const char *py_methods_990[] = {"__init__", "proxy_open", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.ProxyHandler";
     rt.short_name = "ProxyHandler";
     rt.method_names = py_methods_990;
-    static const char* py_bases_991[] = { "urllib.request.BaseHandler", NULL };
+    static const char *py_bases_991[] = {"urllib.request.BaseHandler", NULL};
     rt.embedded_types = py_bases_991;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22442,7 +23439,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "proxy_open";
     rf.receiver_type = "urllib.request.ProxyHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_992[] = { "add_password", "find_user_password", "is_suburi", "reduce_uri", NULL };
+    static const char *py_methods_992[] = {"add_password", "find_user_password", "is_suburi",
+                                           "reduce_uri", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.HTTPPasswordMgr";
     rt.short_name = "HTTPPasswordMgr";
@@ -22468,12 +23466,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "reduce_uri";
     rf.receiver_type = "urllib.request.HTTPPasswordMgr";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_993[] = { "add_password", "find_user_password", NULL };
+    static const char *py_methods_993[] = {"add_password", "find_user_password", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.HTTPPasswordMgrWithDefaultRealm";
     rt.short_name = "HTTPPasswordMgrWithDefaultRealm";
     rt.method_names = py_methods_993;
-    static const char* py_bases_994[] = { "urllib.request.HTTPPasswordMgr", NULL };
+    static const char *py_bases_994[] = {"urllib.request.HTTPPasswordMgr", NULL};
     rt.embedded_types = py_bases_994;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22486,12 +23484,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "find_user_password";
     rf.receiver_type = "urllib.request.HTTPPasswordMgrWithDefaultRealm";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_995[] = { "add_password", "update_authenticated", "is_authenticated", NULL };
+    static const char *py_methods_995[] = {"add_password", "update_authenticated",
+                                           "is_authenticated", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.HTTPPasswordMgrWithPriorAuth";
     rt.short_name = "HTTPPasswordMgrWithPriorAuth";
     rt.method_names = py_methods_995;
-    static const char* py_bases_996[] = { "urllib.request.HTTPPasswordMgrWithDefaultRealm", NULL };
+    static const char *py_bases_996[] = {"urllib.request.HTTPPasswordMgrWithDefaultRealm", NULL};
     rt.embedded_types = py_bases_996;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22509,7 +23508,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "is_authenticated";
     rf.receiver_type = "urllib.request.HTTPPasswordMgrWithPriorAuth";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_997[] = { "__init__", "http_error_auth_reqed", "http_request", "http_response", "https_request", "https_response", "retry_http_basic_auth", NULL };
+    static const char *py_methods_997[] = {
+        "__init__",      "http_error_auth_reqed", "http_request",          "http_response",
+        "https_request", "https_response",        "retry_http_basic_auth", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.AbstractBasicAuthHandler";
     rt.short_name = "AbstractBasicAuthHandler";
@@ -22550,12 +23551,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "retry_http_basic_auth";
     rf.receiver_type = "urllib.request.AbstractBasicAuthHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_998[] = { "http_error_401", NULL };
+    static const char *py_methods_998[] = {"http_error_401", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.HTTPBasicAuthHandler";
     rt.short_name = "HTTPBasicAuthHandler";
     rt.method_names = py_methods_998;
-    static const char* py_bases_999[] = { "urllib.request.AbstractBasicAuthHandler", "urllib.request.BaseHandler", NULL };
+    static const char *py_bases_999[] = {"urllib.request.AbstractBasicAuthHandler",
+                                         "urllib.request.BaseHandler", NULL};
     rt.embedded_types = py_bases_999;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22563,12 +23565,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "http_error_401";
     rf.receiver_type = "urllib.request.HTTPBasicAuthHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1000[] = { "http_error_407", NULL };
+    static const char *py_methods_1000[] = {"http_error_407", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.ProxyBasicAuthHandler";
     rt.short_name = "ProxyBasicAuthHandler";
     rt.method_names = py_methods_1000;
-    static const char* py_bases_1001[] = { "urllib.request.AbstractBasicAuthHandler", "urllib.request.BaseHandler", NULL };
+    static const char *py_bases_1001[] = {"urllib.request.AbstractBasicAuthHandler",
+                                          "urllib.request.BaseHandler", NULL};
     rt.embedded_types = py_bases_1001;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22576,7 +23579,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "http_error_407";
     rf.receiver_type = "urllib.request.ProxyBasicAuthHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1002[] = { "__init__", "reset_retry_count", "http_error_auth_reqed", "retry_http_digest_auth", "get_cnonce", "get_authorization", "get_algorithm_impls", "get_entity_digest", NULL };
+    static const char *py_methods_1002[] = {
+        "__init__",   "reset_retry_count", "http_error_auth_reqed", "retry_http_digest_auth",
+        "get_cnonce", "get_authorization", "get_algorithm_impls",   "get_entity_digest",
+        NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.AbstractDigestAuthHandler";
     rt.short_name = "AbstractDigestAuthHandler";
@@ -22622,12 +23628,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "get_entity_digest";
     rf.receiver_type = "urllib.request.AbstractDigestAuthHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1003[] = { "http_error_401", NULL };
+    static const char *py_methods_1003[] = {"http_error_401", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.HTTPDigestAuthHandler";
     rt.short_name = "HTTPDigestAuthHandler";
     rt.method_names = py_methods_1003;
-    static const char* py_bases_1004[] = { "urllib.request.BaseHandler", "urllib.request.AbstractDigestAuthHandler", NULL };
+    static const char *py_bases_1004[] = {"urllib.request.BaseHandler",
+                                          "urllib.request.AbstractDigestAuthHandler", NULL};
     rt.embedded_types = py_bases_1004;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22635,12 +23642,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "http_error_401";
     rf.receiver_type = "urllib.request.HTTPDigestAuthHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1005[] = { "http_error_407", NULL };
+    static const char *py_methods_1005[] = {"http_error_407", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.ProxyDigestAuthHandler";
     rt.short_name = "ProxyDigestAuthHandler";
     rt.method_names = py_methods_1005;
-    static const char* py_bases_1006[] = { "urllib.request.BaseHandler", "urllib.request.AbstractDigestAuthHandler", NULL };
+    static const char *py_bases_1006[] = {"urllib.request.BaseHandler",
+                                          "urllib.request.AbstractDigestAuthHandler", NULL};
     rt.embedded_types = py_bases_1006;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22648,12 +23656,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "http_error_407";
     rf.receiver_type = "urllib.request.ProxyDigestAuthHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1007[] = { "__call__", NULL };
+    static const char *py_methods_1007[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request._HTTPConnectionProtocol";
     rt.short_name = "_HTTPConnectionProtocol";
     rt.method_names = py_methods_1007;
-    static const char* py_bases_1008[] = { "urllib.request.Protocol", NULL };
+    static const char *py_bases_1008[] = {"urllib.request.Protocol", NULL};
     rt.embedded_types = py_bases_1008;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22661,12 +23669,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "urllib.request._HTTPConnectionProtocol";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1009[] = { "__init__", "set_http_debuglevel", "do_request_", "do_open", NULL };
+    static const char *py_methods_1009[] = {"__init__", "set_http_debuglevel", "do_request_",
+                                            "do_open", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.AbstractHTTPHandler";
     rt.short_name = "AbstractHTTPHandler";
     rt.method_names = py_methods_1009;
-    static const char* py_bases_1010[] = { "urllib.request.BaseHandler", NULL };
+    static const char *py_bases_1010[] = {"urllib.request.BaseHandler", NULL};
     rt.embedded_types = py_bases_1010;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22689,12 +23698,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "do_open";
     rf.receiver_type = "urllib.request.AbstractHTTPHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1011[] = { "http_open", "http_request", NULL };
+    static const char *py_methods_1011[] = {"http_open", "http_request", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.HTTPHandler";
     rt.short_name = "HTTPHandler";
     rt.method_names = py_methods_1011;
-    static const char* py_bases_1012[] = { "urllib.request.AbstractHTTPHandler", NULL };
+    static const char *py_bases_1012[] = {"urllib.request.AbstractHTTPHandler", NULL};
     rt.embedded_types = py_bases_1012;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22707,12 +23716,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "http_request";
     rf.receiver_type = "urllib.request.HTTPHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1013[] = { "__init__", "https_open", "https_request", NULL };
+    static const char *py_methods_1013[] = {"__init__", "https_open", "https_request", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.HTTPSHandler";
     rt.short_name = "HTTPSHandler";
     rt.method_names = py_methods_1013;
-    static const char* py_bases_1014[] = { "urllib.request.AbstractHTTPHandler", NULL };
+    static const char *py_bases_1014[] = {"urllib.request.AbstractHTTPHandler", NULL};
     rt.embedded_types = py_bases_1014;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22730,12 +23739,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "https_request";
     rf.receiver_type = "urllib.request.HTTPSHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1015[] = { "file_open", "get_names", "open_local_file", NULL };
+    static const char *py_methods_1015[] = {"file_open", "get_names", "open_local_file", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.FileHandler";
     rt.short_name = "FileHandler";
     rt.method_names = py_methods_1015;
-    static const char* py_bases_1016[] = { "urllib.request.BaseHandler", NULL };
+    static const char *py_bases_1016[] = {"urllib.request.BaseHandler", NULL};
     rt.embedded_types = py_bases_1016;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22753,12 +23762,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "open_local_file";
     rf.receiver_type = "urllib.request.FileHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1017[] = { "data_open", NULL };
+    static const char *py_methods_1017[] = {"data_open", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.DataHandler";
     rt.short_name = "DataHandler";
     rt.method_names = py_methods_1017;
-    static const char* py_bases_1018[] = { "urllib.request.BaseHandler", NULL };
+    static const char *py_bases_1018[] = {"urllib.request.BaseHandler", NULL};
     rt.embedded_types = py_bases_1018;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22766,7 +23775,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "data_open";
     rf.receiver_type = "urllib.request.DataHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1019[] = { "__init__", "close", "endtransfer", "file_close", "init", "real_close", "retrfile", NULL };
+    static const char *py_methods_1019[] = {"__init__", "close",      "endtransfer", "file_close",
+                                            "init",     "real_close", "retrfile",    NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.ftpwrapper";
     rt.short_name = "ftpwrapper";
@@ -22807,12 +23817,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "retrfile";
     rf.receiver_type = "urllib.request.ftpwrapper";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1020[] = { "ftp_open", "connect_ftp", NULL };
+    static const char *py_methods_1020[] = {"ftp_open", "connect_ftp", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.FTPHandler";
     rt.short_name = "FTPHandler";
     rt.method_names = py_methods_1020;
-    static const char* py_bases_1021[] = { "urllib.request.BaseHandler", NULL };
+    static const char *py_bases_1021[] = {"urllib.request.BaseHandler", NULL};
     rt.embedded_types = py_bases_1021;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22825,12 +23835,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "connect_ftp";
     rf.receiver_type = "urllib.request.FTPHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1022[] = { "setTimeout", "setMaxConns", "check_cache", "clear_cache", NULL };
+    static const char *py_methods_1022[] = {"setTimeout", "setMaxConns", "check_cache",
+                                            "clear_cache", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.CacheFTPHandler";
     rt.short_name = "CacheFTPHandler";
     rt.method_names = py_methods_1022;
-    static const char* py_bases_1023[] = { "urllib.request.FTPHandler", NULL };
+    static const char *py_bases_1023[] = {"urllib.request.FTPHandler", NULL};
     rt.embedded_types = py_bases_1023;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22853,12 +23864,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "clear_cache";
     rf.receiver_type = "urllib.request.CacheFTPHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1024[] = { "unknown_open", NULL };
+    static const char *py_methods_1024[] = {"unknown_open", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.UnknownHandler";
     rt.short_name = "UnknownHandler";
     rt.method_names = py_methods_1024;
-    static const char* py_bases_1025[] = { "urllib.request.BaseHandler", NULL };
+    static const char *py_bases_1025[] = {"urllib.request.BaseHandler", NULL};
     rt.embedded_types = py_bases_1025;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22866,12 +23877,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "unknown_open";
     rf.receiver_type = "urllib.request.UnknownHandler";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1026[] = { "http_response", "https_response", NULL };
+    static const char *py_methods_1026[] = {"http_response", "https_response", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.HTTPErrorProcessor";
     rt.short_name = "HTTPErrorProcessor";
     rt.method_names = py_methods_1026;
-    static const char* py_bases_1027[] = { "urllib.request.BaseHandler", NULL };
+    static const char *py_bases_1027[] = {"urllib.request.BaseHandler", NULL};
     rt.embedded_types = py_bases_1027;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -22884,7 +23895,23 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "https_response";
     rf.receiver_type = "urllib.request.HTTPErrorProcessor";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1028[] = { "__init__", "open", "open_unknown", "retrieve", "addheader", "cleanup", "close", "http_error", "http_error_default", "open_data", "open_file", "open_ftp", "open_http", "open_https", "open_local_file", "open_unknown_proxy", NULL };
+    static const char *py_methods_1028[] = {"__init__",
+                                            "open",
+                                            "open_unknown",
+                                            "retrieve",
+                                            "addheader",
+                                            "cleanup",
+                                            "close",
+                                            "http_error",
+                                            "http_error_default",
+                                            "open_data",
+                                            "open_file",
+                                            "open_ftp",
+                                            "open_http",
+                                            "open_https",
+                                            "open_local_file",
+                                            "open_unknown_proxy",
+                                            NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.URLopener";
     rt.short_name = "URLopener";
@@ -22970,12 +23997,27 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "open_unknown_proxy";
     rf.receiver_type = "urllib.request.URLopener";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1029[] = { "prompt_user_passwd", "get_user_passwd", "http_error_301", "http_error_302", "http_error_303", "http_error_307", "http_error_308", "http_error_401", "http_error_407", "http_error_default", "redirect_internal", "retry_http_basic_auth", "retry_https_basic_auth", "retry_proxy_http_basic_auth", "retry_proxy_https_basic_auth", NULL };
+    static const char *py_methods_1029[] = {"prompt_user_passwd",
+                                            "get_user_passwd",
+                                            "http_error_301",
+                                            "http_error_302",
+                                            "http_error_303",
+                                            "http_error_307",
+                                            "http_error_308",
+                                            "http_error_401",
+                                            "http_error_407",
+                                            "http_error_default",
+                                            "redirect_internal",
+                                            "retry_http_basic_auth",
+                                            "retry_https_basic_auth",
+                                            "retry_proxy_http_basic_auth",
+                                            "retry_proxy_https_basic_auth",
+                                            NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.request.FancyURLopener";
     rt.short_name = "FancyURLopener";
     rt.method_names = py_methods_1029;
-    static const char* py_bases_1030[] = { "urllib.request.URLopener", NULL };
+    static const char *py_bases_1030[] = {"urllib.request.URLopener", NULL};
     rt.embedded_types = py_bases_1030;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -23103,7 +24145,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     cbm_registry_add_func(reg, rf);
 
     /* ===== module: urllib.response ===== */
-    static const char* py_methods_1031[] = { "__init__", "__exit__", "write", "writelines", NULL };
+    static const char *py_methods_1031[] = {"__init__", "__exit__", "write", "writelines", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.response.addbase";
     rt.short_name = "addbase";
@@ -23129,12 +24171,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "writelines";
     rf.receiver_type = "urllib.response.addbase";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1032[] = { "__init__", NULL };
+    static const char *py_methods_1032[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.response.addclosehook";
     rt.short_name = "addclosehook";
     rt.method_names = py_methods_1032;
-    static const char* py_bases_1033[] = { "urllib.response.addbase", NULL };
+    static const char *py_bases_1033[] = {"urllib.response.addbase", NULL};
     rt.embedded_types = py_bases_1033;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -23142,12 +24184,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "urllib.response.addclosehook";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1034[] = { "__init__", "info", NULL };
+    static const char *py_methods_1034[] = {"__init__", "info", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.response.addinfo";
     rt.short_name = "addinfo";
     rt.method_names = py_methods_1034;
-    static const char* py_bases_1035[] = { "urllib.response.addbase", NULL };
+    static const char *py_bases_1035[] = {"urllib.response.addbase", NULL};
     rt.embedded_types = py_bases_1035;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -23160,12 +24202,13 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "info";
     rf.receiver_type = "urllib.response.addinfo";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1036[] = { "status", "__init__", "geturl", "info", "getcode", NULL };
+    static const char *py_methods_1036[] = {"status", "__init__", "geturl",
+                                            "info",   "getcode",  NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.response.addinfourl";
     rt.short_name = "addinfourl";
     rt.method_names = py_methods_1036;
-    static const char* py_bases_1037[] = { "urllib.response.addinfo", NULL };
+    static const char *py_bases_1037[] = {"urllib.response.addinfo", NULL};
     rt.embedded_types = py_bases_1037;
     cbm_registry_add_type(reg, rt);
     memset(&rf, 0, sizeof(rf));
@@ -23198,10 +24241,12 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.robotparser.RequestRate";
     rt.short_name = "RequestRate";
-    static const char* py_bases_1038[] = { "urllib.robotparser.NamedTuple", NULL };
+    static const char *py_bases_1038[] = {"urllib.robotparser.NamedTuple", NULL};
     rt.embedded_types = py_bases_1038;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_1039[] = { "__init__", "set_url", "read", "parse", "can_fetch", "mtime", "modified", "crawl_delay", "request_rate", "site_maps", NULL };
+    static const char *py_methods_1039[] = {"__init__",     "set_url",   "read",     "parse",
+                                            "can_fetch",    "mtime",     "modified", "crawl_delay",
+                                            "request_rate", "site_maps", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "urllib.robotparser.RobotFileParser";
     rt.short_name = "RobotFileParser";
@@ -23262,10 +24307,10 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "warnings._OptionError";
     rt.short_name = "_OptionError";
-    static const char* py_bases_1040[] = { "warnings.Exception", NULL };
+    static const char *py_bases_1040[] = {"warnings.Exception", NULL};
     rt.embedded_types = py_bases_1040;
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_1041[] = { "__init__", NULL };
+    static const char *py_methods_1041[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "warnings.WarningMessage";
     rt.short_name = "WarningMessage";
@@ -23276,7 +24321,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "warnings.WarningMessage";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1042[] = { "__init__", "__enter__", "__exit__", NULL };
+    static const char *py_methods_1042[] = {"__init__", "__enter__", "__exit__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "warnings.catch_warnings";
     rt.short_name = "catch_warnings";
@@ -23297,7 +24342,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__exit__";
     rf.receiver_type = "warnings.catch_warnings";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1043[] = { "__init__", "__call__", NULL };
+    static const char *py_methods_1043[] = {"__init__", "__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "warnings.deprecated";
     rt.short_name = "deprecated";
@@ -23343,7 +24388,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rt.qualified_name = "weakref.ProxyType";
     rt.short_name = "ProxyType";
     cbm_registry_add_type(reg, rt);
-    static const char* py_methods_1044[] = { "__call__", NULL };
+    static const char *py_methods_1044[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "weakref.ReferenceType";
     rt.short_name = "ReferenceType";
@@ -23354,7 +24399,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "weakref.ReferenceType";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1045[] = { "__call__", NULL };
+    static const char *py_methods_1045[] = {"__call__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "weakref.WeakMethod";
     rt.short_name = "WeakMethod";
@@ -23365,7 +24410,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__call__";
     rf.receiver_type = "weakref.WeakMethod";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1046[] = { "__init__", "copy", "get", "keys", "values", "items", "itervaluerefs", "valuerefs", "setdefault", "pop", "update", NULL };
+    static const char *py_methods_1046[] = {"__init__",   "copy",  "get",           "keys",
+                                            "values",     "items", "itervaluerefs", "valuerefs",
+                                            "setdefault", "pop",   "update",        NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "weakref.WeakValueDictionary";
     rt.short_name = "WeakValueDictionary";
@@ -23426,7 +24473,7 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "update";
     rf.receiver_type = "weakref.WeakValueDictionary";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1047[] = { "__init__", NULL };
+    static const char *py_methods_1047[] = {"__init__", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "weakref.KeyedRef";
     rt.short_name = "KeyedRef";
@@ -23437,7 +24484,9 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "__init__";
     rf.receiver_type = "weakref.KeyedRef";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1048[] = { "__init__", "copy", "get", "keys", "values", "items", "keyrefs", "setdefault", "pop", "update", NULL };
+    static const char *py_methods_1048[] = {"__init__", "copy",   "get",     "keys",
+                                            "values",   "items",  "keyrefs", "setdefault",
+                                            "pop",      "update", NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "weakref.WeakKeyDictionary";
     rt.short_name = "WeakKeyDictionary";
@@ -23493,7 +24542,8 @@ void cbm_python_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
     rf.short_name = "update";
     rf.receiver_type = "weakref.WeakKeyDictionary";
     cbm_registry_add_func(reg, rf);
-    static const char* py_methods_1049[] = { "__init__", "__call__", "detach", "peek", "alive", NULL };
+    static const char *py_methods_1049[] = {"__init__", "__call__", "detach",
+                                            "peek",     "alive",    NULL};
     memset(&rt, 0, sizeof(rt));
     rt.qualified_name = "weakref.finalize";
     rt.short_name = "finalize";

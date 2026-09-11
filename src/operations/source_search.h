@@ -6,8 +6,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-cbm_operation_result_t cbm_source_search_operation_execute(
-    const char *args_json, const cbm_operation_runtime_t *runtime);
+cbm_operation_result_t cbm_source_search_operation_execute(const char *args_json,
+                                                           const cbm_operation_runtime_t *runtime);
 
 /* Existing characterization seams retained while implementation ownership
  * moves out of MCP. */

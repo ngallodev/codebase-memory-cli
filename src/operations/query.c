@@ -10,10 +10,12 @@
 #include <string.h>
 
 static char *copy_string(const char *text) {
-    if (!text) return NULL;
+    if (!text)
+        return NULL;
     size_t len = strlen(text);
     char *copy = malloc(len + 1U);
-    if (copy) memcpy(copy, text, len + 1U);
+    if (copy)
+        memcpy(copy, text, len + 1U);
     return copy;
 }
 
@@ -26,7 +28,8 @@ static char *string_arg(const char *args_json, const char *name) {
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
     char *result = value && yyjson_is_str(value) ? copy_string(yyjson_get_str(value)) : NULL;
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return result;
 }
 
@@ -34,7 +37,8 @@ static char *project_arg(const char *args_json) {
     static const char *const names[] = {"project", "project_name", "project_id", "projectName"};
     for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); ++i) {
         char *value = string_arg(args_json, names[i]);
-        if (value) return value;
+        if (value)
+            return value;
     }
     return NULL;
 }
@@ -44,7 +48,8 @@ static int int_arg(const char *args_json, const char *name, int fallback) {
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
     int result = value && yyjson_is_int(value) ? (int)yyjson_get_sint(value) : fallback;
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return result;
 }
 
@@ -97,7 +102,8 @@ cbm_operation_result_t cbm_query_operation_execute(const char *args_json) {
     cbm_cypher_result_t result = {0};
     int rc = cbm_cypher_execute(store, query, cypher_project, max_rows, &result);
     if (rc < 0) {
-        cbm_operation_result_t error = error_result(result.error ? result.error : "query execution failed");
+        cbm_operation_result_t error =
+            error_result(result.error ? result.error : "query execution failed");
         cbm_cypher_result_free(&result);
         cbm_store_close(store);
         free(query);
@@ -123,10 +129,12 @@ cbm_operation_result_t cbm_query_operation_execute(const char *args_json) {
             cbm_tree_row_end(&sb);
         }
         cbm_tree_scalar_int(&sb, "total", result.row_count);
-        if (result.warning) cbm_tree_scalar_str(&sb, "warning", result.warning);
+        if (result.warning)
+            cbm_tree_scalar_str(&sb, "warning", result.warning);
         if (result.row_count == 0) {
             cbm_tree_scalar_str(&sb, "hint",
-                                "Query returned no results. Use get_graph_schema() to see available labels and edge types.");
+                                "Query returned no results. Use get_graph_schema() to see "
+                                "available labels and edge types.");
         }
         payload = cbm_sb_finish(&sb);
     } else {
@@ -136,23 +144,28 @@ cbm_operation_result_t cbm_query_operation_execute(const char *args_json) {
             yyjson_mut_doc_set_root(doc, root);
             yyjson_mut_val *columns = yyjson_mut_arr(doc);
             yyjson_mut_val *rows = yyjson_mut_arr(doc);
-            for (int c = 0; c < result.col_count; ++c) yyjson_mut_arr_add_str(doc, columns, result.columns[c]);
+            for (int c = 0; c < result.col_count; ++c)
+                yyjson_mut_arr_add_str(doc, columns, result.columns[c]);
             for (int r = 0; r < result.row_count; ++r) {
                 yyjson_mut_val *row = yyjson_mut_arr(doc);
-                for (int c = 0; c < result.col_count; ++c) yyjson_mut_arr_add_str(doc, row, result.rows[r][c]);
+                for (int c = 0; c < result.col_count; ++c)
+                    yyjson_mut_arr_add_str(doc, row, result.rows[r][c]);
                 yyjson_mut_arr_add_val(rows, row);
             }
             yyjson_mut_obj_add_val(doc, root, "columns", columns);
             yyjson_mut_obj_add_val(doc, root, "rows", rows);
             yyjson_mut_obj_add_int(doc, root, "total", result.row_count);
-            if (result.warning) yyjson_mut_obj_add_str(doc, root, "warning", result.warning);
+            if (result.warning)
+                yyjson_mut_obj_add_str(doc, root, "warning", result.warning);
             if (result.row_count == 0) {
                 yyjson_mut_obj_add_str(doc, root, "hint",
-                    "Query returned no results. Use get_graph_schema() to see available labels and edge types.");
+                                       "Query returned no results. Use get_graph_schema() to see "
+                                       "available labels and edge types.");
             }
             payload = yyjson_mut_write(doc, 0, NULL);
         }
-        if (doc) yyjson_mut_doc_free(doc);
+        if (doc)
+            yyjson_mut_doc_free(doc);
     }
 
     cbm_cypher_result_free(&result);

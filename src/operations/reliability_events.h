@@ -34,8 +34,8 @@ typedef struct cbm_reliability_record {
     const char *project;
     const char *operation;
     const char *reason;
-    int sqlite_code;          /* 0 when not applicable. */
-    uint64_t elapsed_ms;      /* 0 when not measured/applicable. */
+    int sqlite_code;     /* 0 when not applicable. */
+    uint64_t elapsed_ms; /* 0 when not measured/applicable. */
     bool retry;
 } cbm_reliability_record_t;
 

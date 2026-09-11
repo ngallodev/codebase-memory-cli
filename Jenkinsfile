@@ -1,19 +1,76 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'CBM_RELEASE_VERSION', defaultValue: '',
+               description: 'Optional version passed to the release build, for example v0.11.0-rc.2')
+    }
+
     options {
         buildDiscarder(logRotator(numToKeepStr: '10'))
         disableConcurrentBuilds()
-        timeout(time: 45, unit: 'MINUTES')
+        timeout(time: 240, unit: 'MINUTES')
     }
 
     stages {
+        stage('Lint') {
+            steps {
+                sh '''
+                    set -eu
+                    scripts/lint.sh --ci CLANG_FORMAT=clang-format-20
+                '''
+            }
+        }
+        stage('Memory lint') {
+            steps {
+                sh 'scripts/ci/lint-mem.sh clang-tidy-22'
+            }
+        }
+        stage('Security static') {
+            steps {
+                sh '''
+                    set -eu
+                    scripts/security-audit.sh
+                    scripts/security-ui.sh
+                    scripts/security-vendored.sh
+                '''
+            }
+        }
+        stage('License gate') {
+            steps {
+                sh '''
+                    set -eu
+                    scripts/license-gate.sh --selftest
+                    scripts/license-gate.sh
+                    scripts/audit-license-provenance.py
+                '''
+            }
+        }
         stage('Build') {
-            steps { sh 'scripts/build.sh' }
+            steps {
+                sh '''
+                    set -eu
+                    if [ -n "${CBM_RELEASE_VERSION:-}" ]; then
+                        scripts/build.sh --version "$CBM_RELEASE_VERSION"
+                    else
+                        scripts/build.sh
+                    fi
+                '''
+            }
         }
         stage('Test') {
             steps {
                 sh 'if [ -n "${CBM_TEST_SUITES:-}" ]; then scripts/test.sh --suites "$CBM_TEST_SUITES"; else scripts/test.sh; fi'
+            }
+        }
+        stage('Package wrappers') {
+            steps {
+                sh 'scripts/ci/test-package-wrappers.sh'
+            }
+        }
+        stage('Thread sanitizer') {
+            steps {
+                sh 'scripts/test.sh --tsan'
             }
         }
         stage('Archive Linux CLI artifact') {

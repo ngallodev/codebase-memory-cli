@@ -30,8 +30,7 @@ void cbm_operation_result_dispose(cbm_operation_result_t *result) {
 }
 
 cbm_operation_result_t cbm_operation_execute(cbm_operation_context_t *context,
-                                              cbm_operation_id_t operation,
-                                              const char *args_json) {
+                                             cbm_operation_id_t operation, const char *args_json) {
     if (!cbm_operation_descriptor(operation)) {
         return cbm_operation_result_copy("unknown operation", true);
     }

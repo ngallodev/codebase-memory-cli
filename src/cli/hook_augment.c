@@ -387,7 +387,8 @@ static char *ha_format_context(const char *payload, const char *token, bool *is_
         yyjson_doc *inner_doc = inner ? yyjson_read(inner, strlen(inner), 0) : NULL;
         yyjson_doc_free(idoc);
         idoc = inner_doc;
-        if (!idoc) return NULL;
+        if (!idoc)
+            return NULL;
         iroot = yyjson_doc_get_root(idoc);
     } else if (yyjson_is_obj(iroot) && yyjson_obj_get(iroot, "error")) {
         *is_error = true;
@@ -475,22 +476,29 @@ static char *ha_format_context(const char *payload, const char *token, bool *is_
 static char *ha_coverage_context(const char *payload, const char *rel, bool *is_error) {
     *is_error = false;
     yyjson_doc *idoc = payload ? yyjson_read(payload, strlen(payload), 0) : NULL;
-    if (!idoc) return NULL;
+    if (!idoc)
+        return NULL;
     yyjson_val *iroot = yyjson_doc_get_root(idoc);
     yyjson_val *legacy_error = yyjson_is_obj(iroot) ? yyjson_obj_get(iroot, "isError") : NULL;
     if (legacy_error) {
         if (yyjson_is_true(legacy_error)) {
-            *is_error = true; yyjson_doc_free(idoc); return NULL;
+            *is_error = true;
+            yyjson_doc_free(idoc);
+            return NULL;
         }
         yyjson_val *content = yyjson_obj_get(iroot, "content");
         yyjson_val *item0 = yyjson_is_arr(content) ? yyjson_arr_get(content, 0) : NULL;
         const char *inner = ha_obj_str(item0, "text");
         yyjson_doc *inner_doc = inner ? yyjson_read(inner, strlen(inner), 0) : NULL;
-        yyjson_doc_free(idoc); idoc = inner_doc;
-        if (!idoc) return NULL;
+        yyjson_doc_free(idoc);
+        idoc = inner_doc;
+        if (!idoc)
+            return NULL;
         iroot = yyjson_doc_get_root(idoc);
     } else if (yyjson_is_obj(iroot) && yyjson_obj_get(iroot, "error")) {
-        *is_error = true; yyjson_doc_free(idoc); return NULL;
+        *is_error = true;
+        yyjson_doc_free(idoc);
+        return NULL;
     }
     char *text = NULL;
     yyjson_val *paths = yyjson_obj_get(iroot, "paths");
@@ -570,8 +578,7 @@ static char *ha_resolve_coverage(const char *file_path) {
         return NULL; /* file directly at a root — nothing to resolve against */
     }
     char project_root[4096];
-    char *project =
-        ha_resolve_indexed_project_with_root(dir, project_root, sizeof(project_root));
+    char *project = ha_resolve_indexed_project_with_root(dir, project_root, sizeof(project_root));
     if (!project) {
         return NULL;
     }
@@ -787,8 +794,7 @@ static bool ha_path_contains(const char *root, const char *candidate) {
 #endif
 }
 
-static char *ha_registry_project_for_path(const char *cwd, char *root_out,
-                                          size_t root_out_size) {
+static char *ha_registry_project_for_path(const char *cwd, char *root_out, size_t root_out_size) {
     char canonical_cwd[4096];
     if (!ha_canonical_path(cwd, canonical_cwd, sizeof(canonical_cwd))) {
         return NULL;
@@ -1343,7 +1349,8 @@ static const char *ha_active_tier(yyjson_val *root, const char *event) {
 
 static const char *ha_no_project_index_guidance(const char *event) {
     return event && strcmp(event, "SubagentStart") == 0
-               ? "Ask the parent agent to run `codebase-memory-cli index .` before structural exploration; "
+               ? "Ask the parent agent to run `codebase-memory-cli index .` before structural "
+                 "exploration; "
                  "do not attempt graph mutation."
                : "Run `codebase-memory-cli index .` before structural exploration.";
 }
@@ -1397,7 +1404,8 @@ static char *ha_lifecycle_json_from_root(const char *session_root, yyjson_val *r
                  "`codebase-memory-cli coverage PATH` for every file relied on; if incomplete, "
                  "read the reported missed lines directly and qualify conclusions. For structural "
                  "code discovery use `codebase-memory-cli search`, then `trace`, then `snippet`. "
-                 "Use grep, glob, and file reads for literals, configs, non-code files, and verification.",
+                 "Use grep, glob, and file reads for literals, configs, non-code files, and "
+                 "verification.",
                  scope, safe_project, tier);
     } else {
         const char *index_guidance = ha_no_project_index_guidance(event);
@@ -1709,7 +1717,8 @@ const char *cbm_hook_admission_notice(cbm_hook_admission_t reason, const char *h
     }
     switch (reason) {
     case CBM_HOOK_ADMISSION_DAEMON_ABSENT:
-        return "{\"systemMessage\":\"codebase-memory-cli: graph hook augmentation is currently unavailable because no warm CBM runtime is "
+        return "{\"systemMessage\":\"codebase-memory-cli: graph hook augmentation is currently "
+               "unavailable because no warm CBM runtime is "
                "running. CLI commands still work normally. Run `codebase-memory-cli daemon start` "
                "only if you want low-latency hook augmentation.\"}";
     case CBM_HOOK_ADMISSION_BUILD_CONFLICT:

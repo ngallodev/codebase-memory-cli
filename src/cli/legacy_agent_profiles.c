@@ -177,7 +177,8 @@ static const char *profile_description(cbm_graph_tier_t tier, cbm_graph_access_t
         "or claim Codebase Memory results it cannot execute.",
         "Verified read-only handoff; parent agent must supply coverage evidence; child must not "
         "invent or claim Codebase Memory results it cannot execute.",
-        "Audit read-only handoff; parent agent must supply coverage evidence; child must not invent "
+        "Audit read-only handoff; parent agent must supply coverage evidence; child must not "
+        "invent "
         "or claim Codebase Memory results it cannot execute.",
     };
     return access == CBM_GRAPH_ACCESS_DIRECT ? direct[tier] : handoff[tier];

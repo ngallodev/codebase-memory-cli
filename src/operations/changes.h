@@ -6,7 +6,7 @@
 #include "store/store.h"
 
 cbm_operation_result_t cbm_changes_operation_execute(const char *args_json,
-                                                      const cbm_operation_runtime_t *runtime);
+                                                     const cbm_operation_runtime_t *runtime);
 
 /* Kept public for the existing white-box characterization tests while the
  * implementation moves out of MCP. */

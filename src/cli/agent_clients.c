@@ -53,8 +53,8 @@ static const cbm_agent_client_profile_t agent_profiles[CBM_AGENT_CLIENT_COUNT] =
      CBM_AGENT_CAP_INSTRUCTIONS | CBM_AGENT_CAP_SKILL | CBM_AGENT_CAP_AGENT, true, "pochi"},
     {CBM_AGENT_CLIENT_PI, "pi", "Pi", CBM_AGENT_STABLE,
      CBM_AGENT_CAP_INSTRUCTIONS | CBM_AGENT_CAP_SKILL, false, "pi"},
-    {CBM_AGENT_CLIENT_SOURCEGRAPH_CODY, "sourcegraph-cody", "Sourcegraph Cody",
-     CBM_AGENT_OPT_IN, 0U, true, NULL},
+    {CBM_AGENT_CLIENT_SOURCEGRAPH_CODY, "sourcegraph-cody", "Sourcegraph Cody", CBM_AGENT_OPT_IN,
+     0U, true, NULL},
     {CBM_AGENT_CLIENT_OMP, "omp", "Oh My Pi (omp)", CBM_AGENT_STABLE,
      CBM_AGENT_CAP_SKILL | CBM_AGENT_CAP_AGENT, true, "omp"},
 };

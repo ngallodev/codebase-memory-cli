@@ -52,7 +52,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <process.h>
-#include <psapi.h> /* GetProcessMemoryInfo */
+#include <psapi.h>    /* GetProcessMemoryInfo */
 #include <tlhelp32.h> /* CreateToolhelp32Snapshot, Process32First/Next */
 #else
 #include <sys/stat.h>
@@ -137,13 +137,13 @@ static void handle_ui_config(cbm_http_conn_t *c, const cbm_http_req_t *req) {
     if (cfg) {
         cbm_config_close(cfg);
     }
-    /* upstream_issues_url: where the missed-coverage callout (#963) sends
+    /* issues_url: where the missed-coverage callout (#963) sends
      * edge-case reports. Served from the backend on purpose — the UI security
      * audit forbids hardcoded external URLs in graph-ui source (external
      * targets must come from an auditable backend response, same pattern as
      * the /api/repo-info deep-links). */
     cbm_http_replyf(c, 200, g_cors_json, "{\"lang\":\"%s\",\"upstream_issues_url\":\"%s\"}",
-                    lang_buf, "https://github.com/DeusData/codebase-memory-mcp/issues/new");
+                    lang_buf, "https://github.com/ngallodev/codebase-memory-cli/issues/new");
 }
 
 /* ── Server state ─────────────────────────────────────────────── */
@@ -171,7 +171,7 @@ typedef struct {
 struct cbm_http_server {
     cbm_httpd_t *listener;
     cbm_store_host_t *store_host; /* own neutral read-side store cache */
-    struct cbm_watcher *watcher; /* external watcher ref (not owned) */
+    struct cbm_watcher *watcher;  /* external watcher ref (not owned) */
     cbm_http_index_executor_fn index_executor;
     void *index_executor_context;
     cbm_http_project_mutation_begin_fn mutation_begin;
@@ -589,9 +589,8 @@ static void handle_processes(cbm_http_conn_t *c) {
         pe.dwSize = sizeof(pe);
         for (BOOL ok = Process32First(hSnap, &pe); ok; ok = Process32Next(hSnap, &pe)) {
             if (_stricmp(pe.szExeFile, "codebase-memory-cli.exe") == 0) {
-                HANDLE hProc = OpenProcess(
-                    PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-                    FALSE, pe.th32ProcessID);
+                HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE,
+                                           pe.th32ProcessID);
                 if (hProc) {
                     PROCESS_MEMORY_COUNTERS ppmc;
                     FILETIME ftc, fte, ftk, ftu;
@@ -634,13 +633,10 @@ static void handle_processes(cbm_http_conn_t *c) {
                                  "\"command\":\"codebase-memory-cli\","
                                  "\"is_self\":%s}",
                                  pe.th32ProcessID, cpu_user + cpu_sys,
-                                 (double)proc_rss / (1024.0 * 1024.0),
-                                 elapsed_sec / 86400,
-                                 (elapsed_sec % 86400) / 3600,
-                                 (elapsed_sec % 3600) / 60,
+                                 (double)proc_rss / (1024.0 * 1024.0), elapsed_sec / 86400,
+                                 (elapsed_sec % 86400) / 3600, (elapsed_sec % 3600) / 60,
                                  elapsed_sec % 60,
-                                 pe.th32ProcessID == (DWORD)_getpid()
-                                     ? "true" : "false");
+                                 pe.th32ProcessID == (DWORD)_getpid() ? "true" : "false");
                     if (pos >= (int)sizeof(buf)) {
                         pos = (int)sizeof(buf) - 1;
                     }
@@ -2148,8 +2144,7 @@ void cbm_http_server_set_project_mutation_guard(cbm_http_server_t *srv,
     srv->mutation_begin = begin;
     srv->mutation_end = end;
     srv->mutation_context = begin ? context : NULL;
-    cbm_store_host_set_mutation_guard(srv->store_host, begin, begin, end,
-                                      begin ? context : NULL);
+    cbm_store_host_set_mutation_guard(srv->store_host, begin, begin, end, begin ? context : NULL);
 }
 
 void cbm_http_server_set_readiness_secret(cbm_http_server_t *srv,

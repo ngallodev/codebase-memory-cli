@@ -18,24 +18,28 @@ struct cbm_operation_session_state {
 };
 
 static char *session_state_strdup(const char *value) {
-    if (!value) return NULL;
+    if (!value)
+        return NULL;
     size_t length = strlen(value);
     char *copy = malloc(length + 1);
-    if (!copy) return NULL;
+    if (!copy)
+        return NULL;
     memcpy(copy, value, length + 1);
     return copy;
 }
 
 cbm_operation_session_state_t *cbm_operation_session_state_new(void) {
     cbm_operation_session_state_t *state = calloc(1, sizeof(*state));
-    if (!state) return NULL;
+    if (!state)
+        return NULL;
     cbm_mutex_init(&state->request_scope_mutex);
     atomic_init(&state->cancel_requested, 0);
     return state;
 }
 
 void cbm_operation_session_state_clear_context(cbm_operation_session_state_t *state) {
-    if (!state) return;
+    if (!state)
+        return;
     free(state->session_root);
     free(state->session_project);
     free(state->allowed_root);
@@ -46,17 +50,18 @@ void cbm_operation_session_state_clear_context(cbm_operation_session_state_t *st
 }
 
 void cbm_operation_session_state_free(cbm_operation_session_state_t *state) {
-    if (!state) return;
+    if (!state)
+        return;
     cbm_operation_session_state_clear_context(state);
     cbm_mutex_destroy(&state->request_scope_mutex);
     free(state);
 }
 
 bool cbm_operation_session_state_set_context(cbm_operation_session_state_t *state,
-                                             const char *session_root,
-                                             const char *allowed_root,
+                                             const char *session_root, const char *allowed_root,
                                              bool allowed_root_policy_set) {
-    if (!state || !session_root || !session_root[0]) return false;
+    if (!state || !session_root || !session_root[0])
+        return false;
 
     char *root_copy = session_state_strdup(session_root);
     char *project = cbm_project_name_from_path(session_root);
@@ -95,7 +100,8 @@ bool cbm_operation_session_allowed_root_policy_set(const cbm_operation_session_s
 }
 
 bool cbm_operation_session_request_scope_begin(cbm_operation_session_state_t *state) {
-    if (!state) return false;
+    if (!state)
+        return false;
     cbm_mutex_lock(&state->request_scope_mutex);
     bool available = state->request_scope_depth < UINT_MAX;
     if (available) {
@@ -109,7 +115,8 @@ bool cbm_operation_session_request_scope_begin(cbm_operation_session_state_t *st
 }
 
 void cbm_operation_session_request_scope_end(cbm_operation_session_state_t *state) {
-    if (!state) return;
+    if (!state)
+        return;
     cbm_mutex_lock(&state->request_scope_mutex);
     if (state->request_scope_depth > 0) {
         state->request_scope_depth--;
@@ -121,7 +128,8 @@ void cbm_operation_session_request_scope_end(cbm_operation_session_state_t *stat
 }
 
 bool cbm_operation_session_cancel_active(cbm_operation_session_state_t *state) {
-    if (!state) return false;
+    if (!state)
+        return false;
     cbm_mutex_lock(&state->request_scope_mutex);
     bool active = state->request_scope_depth != 0;
     if (active) {

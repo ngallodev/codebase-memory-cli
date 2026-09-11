@@ -46,9 +46,8 @@ typedef struct cbm_operation_result {
 } cbm_operation_result_t;
 
 typedef cbm_operation_result_t (*cbm_operation_backend_fn)(void *context,
-                                                            cbm_operation_id_t operation,
-                                                            const char *args_json);
-
+                                                           cbm_operation_id_t operation,
+                                                           const char *args_json);
 
 typedef struct cbm_store cbm_store_t;
 
@@ -70,7 +69,8 @@ typedef bool (*cbm_operation_mutation_begin_fn)(void *context, const char *proje
 typedef bool (*cbm_operation_mutation_try_begin_fn)(void *context, const char *project);
 typedef void (*cbm_operation_mutation_end_fn)(void *context, const char *project);
 typedef void (*cbm_operation_project_detach_fn)(void *context, const char *project);
-typedef cbm_operation_result_t (*cbm_operation_index_execute_fn)(void *context, const char *root_path,
+typedef cbm_operation_result_t (*cbm_operation_index_execute_fn)(void *context,
+                                                                 const char *root_path,
                                                                  const char *args_json);
 typedef void (*cbm_operation_project_invalidate_fn)(void *context, const char *project);
 
@@ -148,8 +148,7 @@ void cbm_operation_result_dispose(cbm_operation_result_t *result);
  * operation layer deliberately knows nothing about MCP, daemon framing, CLI
  * rendering, hook transports, or the legacy tool result envelope. */
 cbm_operation_result_t cbm_operation_execute(cbm_operation_context_t *context,
-                                              cbm_operation_id_t operation,
-                                              const char *args_json);
+                                             cbm_operation_id_t operation, const char *args_json);
 
 #ifdef __cplusplus
 }

@@ -79,7 +79,6 @@ bool cbm_path_within_root(const char *root_path, const char *abs_path) {
     return false;
 }
 
-
 enum {
     /* POSIX: two components, so every top-level tree is refused in one rule with
      * no list to maintain — "/etc", "/home", "/Users", "/var", "/opt", "/srv".

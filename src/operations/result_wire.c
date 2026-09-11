@@ -6,11 +6,13 @@
 #include <string.h>
 
 char *cbm_operation_result_wire_encode(const cbm_operation_result_t *result) {
-    if (!result || !result->payload) return NULL;
+    if (!result || !result->payload)
+        return NULL;
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
     if (!doc || !root) {
-        if (doc) yyjson_mut_doc_free(doc);
+        if (doc)
+            yyjson_mut_doc_free(doc);
         return NULL;
     }
     yyjson_mut_doc_set_root(doc, root);
@@ -22,7 +24,8 @@ char *cbm_operation_result_wire_encode(const cbm_operation_result_t *result) {
 }
 
 bool cbm_operation_result_wire_decode(const char *wire, cbm_operation_result_t *result_out) {
-    if (!wire || !result_out) return false;
+    if (!wire || !result_out)
+        return false;
     yyjson_doc *doc = yyjson_read(wire, strlen(wire), 0);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *payload = yyjson_is_obj(root) ? yyjson_obj_get(root, "payload") : NULL;
@@ -32,6 +35,7 @@ bool cbm_operation_result_wire_decode(const char *wire, cbm_operation_result_t *
         *result_out = cbm_operation_result_copy(yyjson_get_str(payload), yyjson_get_bool(is_error));
         valid = result_out->payload != NULL;
     }
-    if (doc) yyjson_doc_free(doc);
+    if (doc)
+        yyjson_doc_free(doc);
     return valid;
 }

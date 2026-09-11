@@ -29,12 +29,12 @@ enum {
 };
 
 static const char *const k_event_names[CBM_RELIABILITY_EVENT_COUNT] = {
-    "mutation.requested",       "mutation.coalesced",       "mutation.conflict",
-    "mutation.lock_wait",       "mutation.lock_timeout",    "sqlite.busy",
-    "sqlite.locked",            "store.integrity.ok",       "store.integrity.transient",
-    "store.integrity.corrupt",  "store.quarantine",         "store.rebuild.requested",
-    "store.rebuild.completed",  "store.wal.starving",       "store.checkpoint",
-    "index.worker.crash",       "index.publish",
+    "mutation.requested",      "mutation.coalesced",    "mutation.conflict",
+    "mutation.lock_wait",      "mutation.lock_timeout", "sqlite.busy",
+    "sqlite.locked",           "store.integrity.ok",    "store.integrity.transient",
+    "store.integrity.corrupt", "store.quarantine",      "store.rebuild.requested",
+    "store.rebuild.completed", "store.wal.starving",    "store.checkpoint",
+    "index.worker.crash",      "index.publish",
 };
 
 static char g_process_log_path[RELIABILITY_PATH_CAP];
@@ -61,11 +61,21 @@ static void json_string(FILE *sink, const char *value) {
     const unsigned char *cursor = (const unsigned char *)(value ? value : "");
     while (*cursor) {
         switch (*cursor) {
-        case '"': (void)fputs("\\\"", sink); break;
-        case '\\': (void)fputs("\\\\", sink); break;
-        case '\n': (void)fputs("\\n", sink); break;
-        case '\r': (void)fputs("\\r", sink); break;
-        case '\t': (void)fputs("\\t", sink); break;
+        case '"':
+            (void)fputs("\\\"", sink);
+            break;
+        case '\\':
+            (void)fputs("\\\\", sink);
+            break;
+        case '\n':
+            (void)fputs("\\n", sink);
+            break;
+        case '\r':
+            (void)fputs("\\r", sink);
+            break;
+        case '\t':
+            (void)fputs("\\t", sink);
+            break;
         default:
             if (*cursor < 0x20) {
                 (void)fprintf(sink, "\\u%04x", (unsigned int)*cursor);
@@ -94,26 +104,32 @@ typedef struct reliability_file_info {
 static int reliability_file_newest_first(const void *left, const void *right) {
     const reliability_file_info_t *a = left;
     const reliability_file_info_t *b = right;
-    if (a->mtime_ns > b->mtime_ns) return -1;
-    if (a->mtime_ns < b->mtime_ns) return 1;
+    if (a->mtime_ns > b->mtime_ns)
+        return -1;
+    if (a->mtime_ns < b->mtime_ns)
+        return 1;
     return strcmp(a->path, b->path);
 }
 
 static reliability_file_info_t *reliability_list_files(const char *directory, size_t *count_out) {
     *count_out = 0;
     cbm_dir_t *dir = cbm_opendir(directory);
-    if (!dir) return NULL;
+    if (!dir)
+        return NULL;
     reliability_file_info_t *files = NULL;
     size_t count = 0;
     size_t capacity = 0;
     cbm_dirent_t *entry = NULL;
     while ((entry = cbm_readdir(dir)) != NULL) {
-        if (!reliability_file_name(entry->name)) continue;
+        if (!reliability_file_name(entry->name))
+            continue;
         char path[RELIABILITY_PATH_CAP];
         int written = snprintf(path, sizeof(path), "%s/%s", directory, entry->name);
-        if (written <= 0 || (size_t)written >= sizeof(path)) continue;
+        if (written <= 0 || (size_t)written >= sizeof(path))
+            continue;
         cbm_path_info_t info;
-        if (cbm_path_info_utf8(path, &info) != 0 || !info.is_regular || info.is_symlink) continue;
+        if (cbm_path_info_utf8(path, &info) != 0 || !info.is_regular || info.is_symlink)
+            continue;
         if (count == capacity) {
             size_t next = capacity ? capacity * 2 : 16;
             reliability_file_info_t *grown = realloc(files, next * sizeof(*grown));
@@ -130,7 +146,8 @@ static reliability_file_info_t *reliability_list_files(const char *directory, si
         count++;
     }
     cbm_closedir(dir);
-    if (count > 1) qsort(files, count, sizeof(*files), reliability_file_newest_first);
+    if (count > 1)
+        qsort(files, count, sizeof(*files), reliability_file_newest_first);
     *count_out = count;
     return files;
 }
@@ -138,7 +155,8 @@ static reliability_file_info_t *reliability_list_files(const char *directory, si
 static void reliability_prune(const char *directory) {
     size_t count = 0;
     reliability_file_info_t *files = reliability_list_files(directory, &count);
-    if (!files) return;
+    if (!files)
+        return;
     int64_t now_ns = (int64_t)time(NULL) * INT64_C(1000000000);
     int64_t max_age_ns = (int64_t)RELIABILITY_RETENTION_SECONDS * INT64_C(1000000000);
     for (size_t i = 0; i < count; ++i) {
@@ -153,7 +171,8 @@ static void reliability_prune(const char *directory) {
 }
 
 static bool reliability_process_log_init(void) {
-    if (g_process_log_initialized) return !g_process_log_disabled;
+    if (g_process_log_initialized)
+        return !g_process_log_disabled;
     g_process_log_initialized = true;
     const char *cache_dir = cbm_resolve_cache_dir();
     char directory[RELIABILITY_PATH_CAP];
@@ -181,23 +200,28 @@ void cbm_reliability_record(const cbm_reliability_record_t *record) {
         return;
     }
     int64_t size = cbm_file_size(g_process_log_path);
-    if (size >= RELIABILITY_FILE_CAP) return;
+    if (size >= RELIABILITY_FILE_CAP)
+        return;
     FILE *sink = cbm_fopen(g_process_log_path, "ab");
-    if (!sink) return;
+    if (!sink)
+        return;
 #ifndef _WIN32
     (void)chmod(g_process_log_path, 0600);
 #endif
-    (void)fprintf(sink, "{\"timestamp\":%lld,\"pid\":%d,\"event\":",
-                  (long long)time(NULL), (int)getpid());
+    (void)fprintf(sink, "{\"timestamp\":%lld,\"pid\":%d,\"event\":", (long long)time(NULL),
+                  (int)getpid());
     json_string(sink, cbm_reliability_event_name(record->event));
     if (record->project && record->project[0]) {
-        (void)fputs(",\"project\":", sink); json_string(sink, record->project);
+        (void)fputs(",\"project\":", sink);
+        json_string(sink, record->project);
     }
     if (record->operation && record->operation[0]) {
-        (void)fputs(",\"operation\":", sink); json_string(sink, record->operation);
+        (void)fputs(",\"operation\":", sink);
+        json_string(sink, record->operation);
     }
     if (record->reason && record->reason[0]) {
-        (void)fputs(",\"reason\":", sink); json_string(sink, record->reason);
+        (void)fputs(",\"reason\":", sink);
+        json_string(sink, record->reason);
     }
     if (record->sqlite_code != 0) {
         (void)fprintf(sink, ",\"sqlite_code\":%d", record->sqlite_code);
@@ -205,7 +229,8 @@ void cbm_reliability_record(const cbm_reliability_record_t *record) {
     if (record->elapsed_ms != 0) {
         (void)fprintf(sink, ",\"elapsed_ms\":%" PRIu64, record->elapsed_ms);
     }
-    if (record->retry) (void)fputs(",\"retry\":true", sink);
+    if (record->retry)
+        (void)fputs(",\"retry\":true", sink);
     (void)fputs("}\n", sink);
     (void)fclose(sink);
 }
@@ -213,32 +238,39 @@ void cbm_reliability_record(const cbm_reliability_record_t *record) {
 static int reliability_event_from_line(const char *line) {
     const char marker[] = "\"event\":\"";
     const char *start = strstr(line, marker);
-    if (!start) return -1;
+    if (!start)
+        return -1;
     start += sizeof(marker) - 1;
     for (int event = 0; event < CBM_RELIABILITY_EVENT_COUNT; ++event) {
         const char *name = k_event_names[event];
         size_t length = strlen(name);
-        if (strncmp(start, name, length) == 0 && start[length] == '"') return event;
+        if (strncmp(start, name, length) == 0 && start[length] == '"')
+            return event;
     }
     return -1;
 }
 
 bool cbm_reliability_read_summary(const char *cache_dir, size_t max_files,
                                   cbm_reliability_summary_t *summary_out) {
-    if (!summary_out) return false;
+    if (!summary_out)
+        return false;
     memset(summary_out, 0, sizeof(*summary_out));
     char directory[RELIABILITY_PATH_CAP];
-    if (!reliability_dir_path(cache_dir, directory, sizeof(directory))) return true;
+    if (!reliability_dir_path(cache_dir, directory, sizeof(directory)))
+        return true;
     size_t count = 0;
     reliability_file_info_t *files = reliability_list_files(directory, &count);
-    if (!files) return true;
+    if (!files)
+        return true;
     size_t limit = max_files ? max_files : RELIABILITY_DEFAULT_SCAN_FILES;
-    if (count > limit) summary_out->truncated = true;
+    if (count > limit)
+        summary_out->truncated = true;
     size_t scan = count < limit ? count : limit;
     char line[RELIABILITY_LINE_CAP];
     for (size_t i = 0; i < scan; ++i) {
         FILE *source = cbm_fopen(files[i].path, "rb");
-        if (!source) continue;
+        if (!source)
+            continue;
         summary_out->files_scanned++;
         while (fgets(line, sizeof(line), source)) {
             size_t length = strlen(line);

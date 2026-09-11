@@ -372,15 +372,16 @@ static const tool_def_t TOOLS[] = {
      "\"string\"}},\"required\":[\"traces\",\"project\"]}"},
 };
 
-
 size_t cbm_tool_catalog_count(void) {
     return sizeof(TOOLS) / sizeof(TOOLS[0]);
 }
 
 static const tool_def_t *catalog_find(const char *name) {
-    if (!name) return NULL;
+    if (!name)
+        return NULL;
     for (size_t i = 0; i < cbm_tool_catalog_count(); ++i) {
-        if (strcmp(TOOLS[i].name, name) == 0) return &TOOLS[i];
+        if (strcmp(TOOLS[i].name, name) == 0)
+            return &TOOLS[i];
     }
     return NULL;
 }

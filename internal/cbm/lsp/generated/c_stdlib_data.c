@@ -5,36 +5,38 @@
 #include <string.h>
 
 // Helper macros for concise registration
-#define REG_FUNC(qn, short, ret_type) do { \
-    memset(&rf, 0, sizeof(rf)); \
-    rf.min_params = -1; \
-    rf.qualified_name = (qn); \
-    rf.short_name = (short); \
-    rf.signature = cbm_type_func(arena, NULL, NULL, (const CBMType*[]){(ret_type), NULL}); \
-    cbm_registry_add_func(reg, rf); \
-} while(0)
+#define REG_FUNC(qn, short, ret_type)                                                           \
+    do {                                                                                        \
+        memset(&rf, 0, sizeof(rf));                                                             \
+        rf.min_params = -1;                                                                     \
+        rf.qualified_name = (qn);                                                               \
+        rf.short_name = (short);                                                                \
+        rf.signature = cbm_type_func(arena, NULL, NULL, (const CBMType *[]){(ret_type), NULL}); \
+        cbm_registry_add_func(reg, rf);                                                         \
+    } while (0)
 
-#define REG_TYPE(qn, short) do { \
-    memset(&rt, 0, sizeof(rt)); \
-    rt.qualified_name = (qn); \
-    rt.short_name = (short); \
-    cbm_registry_add_type(reg, rt); \
-} while(0)
+#define REG_TYPE(qn, short)             \
+    do {                                \
+        memset(&rt, 0, sizeof(rt));     \
+        rt.qualified_name = (qn);       \
+        rt.short_name = (short);        \
+        cbm_registry_add_type(reg, rt); \
+    } while (0)
 
-void cbm_c_stdlib_register(CBMTypeRegistry* reg, CBMArena* arena) {
+void cbm_c_stdlib_register(CBMTypeRegistry *reg, CBMArena *arena) {
     CBMRegisteredFunc rf;
     CBMRegisteredType rt;
 
-    const CBMType* t_int = cbm_type_builtin(arena, "int");
-    const CBMType* t_size_t = cbm_type_builtin(arena, "size_t");
-    const CBMType* t_double = cbm_type_builtin(arena, "double");
-    const CBMType* t_void = cbm_type_builtin(arena, "void");
-    const CBMType* t_char_ptr = cbm_type_pointer(arena, cbm_type_builtin(arena, "char"));
-    const CBMType* t_void_ptr = cbm_type_pointer(arena, t_void);
+    const CBMType *t_int = cbm_type_builtin(arena, "int");
+    const CBMType *t_size_t = cbm_type_builtin(arena, "size_t");
+    const CBMType *t_double = cbm_type_builtin(arena, "double");
+    const CBMType *t_void = cbm_type_builtin(arena, "void");
+    const CBMType *t_char_ptr = cbm_type_pointer(arena, cbm_type_builtin(arena, "char"));
+    const CBMType *t_void_ptr = cbm_type_pointer(arena, t_void);
 
     // FILE type
     REG_TYPE("FILE", "FILE");
-    const CBMType* t_file_ptr = cbm_type_pointer(arena, cbm_type_named(arena, "FILE"));
+    const CBMType *t_file_ptr = cbm_type_pointer(arena, cbm_type_named(arena, "FILE"));
 
     // stdio.h
     REG_FUNC("fopen", "fopen", t_file_ptr);

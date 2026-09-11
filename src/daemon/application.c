@@ -188,8 +188,7 @@ static cbm_daemon_application_job_t *application_job_subscribe_locked(
 static bool application_mutation_begin_internal(cbm_daemon_application_t *application,
                                                 cbm_daemon_application_session_t *session,
                                                 const char *project_key, bool wait);
-static char *application_index_execute(void *context, const char *root_path,
-                                       const char *args_json);
+static char *application_index_execute(void *context, const char *root_path, const char *args_json);
 
 static atomic_bool g_application_fail_next_job_thread_start_for_test = ATOMIC_VAR_INIT(false);
 
@@ -249,7 +248,8 @@ static bool application_operation_cancelled(void *context) {
         return false;
     }
     cbm_mutex_lock(&session->application->mutex);
-    bool cancelled = session->application->stopping || application_request_cancelled_locked(session);
+    bool cancelled =
+        session->application->stopping || application_request_cancelled_locked(session);
     cbm_mutex_unlock(&session->application->mutex);
     return cancelled;
 }
@@ -278,7 +278,8 @@ static cbm_store_t *application_operation_store_resolve(
 
 static void application_operation_store_invalidate(void *context) {
     cbm_daemon_application_session_t *session = context;
-    if (session && session->store_host) cbm_store_host_invalidate(session->store_host);
+    if (session && session->store_host)
+        cbm_store_host_invalidate(session->store_host);
 }
 
 static char *application_operation_store_error(void *context, const char *project) {
@@ -295,13 +296,15 @@ static void application_operation_mutation_end(void *context, const char *projec
 
 static void application_operation_project_detach(void *context, const char *project) {
     cbm_daemon_application_session_t *session = context;
-    if (!session) return;
-    if (session->store_host) cbm_store_host_detach_project(session->store_host, project);
+    if (!session)
+        return;
+    if (session->store_host)
+        cbm_store_host_detach_project(session->store_host, project);
 }
 
 static cbm_operation_result_t application_operation_index_execute(void *context,
-                                                                   const char *root_path,
-                                                                   const char *args_json) {
+                                                                  const char *root_path,
+                                                                  const char *args_json) {
     cbm_daemon_application_session_t *session = context;
     char *wire = application_index_execute(session, root_path, args_json);
     if (!wire) {
@@ -515,8 +518,8 @@ static bool application_session_workspace_allowed(const cbm_daemon_application_s
     bool allowed =
         root && root[0] &&
         cbm_workspace_root_allowed(root, cbm_workspace_home_dir(), cbm_workspace_cache_dir(),
-                                   cbm_operation_session_allowed_root(session->operation_session), boundary_error,
-                                   sizeof(boundary_error));
+                                   cbm_operation_session_allowed_root(session->operation_session),
+                                   boundary_error, sizeof(boundary_error));
     if (!allowed) {
         cbm_log_warn("daemon.workspace.skipped", "operation", operation, "detail",
                      root && root[0] ? boundary_error : "session root is unavailable");
@@ -527,8 +530,8 @@ static bool application_session_workspace_allowed(const cbm_daemon_application_s
 /* Caller holds application->mutex. */
 static void application_refresh_watch_locked(cbm_daemon_application_session_t *session) {
     cbm_daemon_application_t *application = session->application;
-    if (!application->watcher || !session->context_set ||
-        session->hook_event || session->hook_dialect || session->auto_index_subscribed) {
+    if (!application->watcher || !session->context_set || session->hook_event ||
+        session->hook_dialect || session->auto_index_subscribed) {
         return;
     }
     const char *project = cbm_operation_session_project(session->operation_session);
@@ -985,8 +988,8 @@ static bool application_mutation_begin_internal(cbm_daemon_application_t *applic
         cbm_mutex_unlock(&application->mutex);
         if (cancelled || !wait) {
             if (busy && !cancelled) {
-                cbm_log_warn("mutation.conflict", "project", project_key, "coordinator",
-                             "daemon", "action", "refuse_mutation");
+                cbm_log_warn("mutation.conflict", "project", project_key, "coordinator", "daemon",
+                             "action", "refuse_mutation");
             }
             return false;
         }
@@ -1283,7 +1286,8 @@ static cbm_index_supervised_result_disposition_t application_attempt_disposition
             attempt->result.cancellation_requested = true;
         }
     }
-    return cbm_index_supervised_result_disposition(0, attempt->has_result ? &attempt->result : NULL);
+    return cbm_index_supervised_result_disposition(0,
+                                                   attempt->has_result ? &attempt->result : NULL);
 }
 
 static void application_record_attempt(const application_attempt_t *attempt,
@@ -1566,15 +1570,17 @@ static void application_job_publish(cbm_daemon_application_job_t *job,
     job->terminal = true;
     job->thread_done = true;
     if (job->successful) {
-        cbm_reliability_record(&(cbm_reliability_record_t){
-            .event = CBM_RELIABILITY_EVENT_INDEX_PUBLISH,
-            .project = job->project_key, .operation = "index", .reason = "completed"});
-    } else if (execution->have_last_result &&
-               (execution->last_result.outcome == CBM_PROC_CRASH ||
-                execution->last_result.outcome == CBM_PROC_HANG)) {
+        cbm_reliability_record(
+            &(cbm_reliability_record_t){.event = CBM_RELIABILITY_EVENT_INDEX_PUBLISH,
+                                        .project = job->project_key,
+                                        .operation = "index",
+                                        .reason = "completed"});
+    } else if (execution->have_last_result && (execution->last_result.outcome == CBM_PROC_CRASH ||
+                                               execution->last_result.outcome == CBM_PROC_HANG)) {
         cbm_reliability_record(&(cbm_reliability_record_t){
             .event = CBM_RELIABILITY_EVENT_INDEX_WORKER_CRASH,
-            .project = job->project_key, .operation = "index",
+            .project = job->project_key,
+            .operation = "index",
             .reason = execution->last_result.outcome == CBM_PROC_HANG ? "hang" : "crash",
             .retry = !execution->unsafe_terminal});
     }
@@ -1736,17 +1742,20 @@ static cbm_daemon_application_job_t *application_job_subscribe_locked(
         if (!application_index_args_equal(job->args_json, args_json)) {
             cbm_log_warn("mutation.conflict", "project", project_key, "operation", "index",
                          "reason", "options_mismatch");
-            cbm_reliability_record(&(cbm_reliability_record_t){
-                .event = CBM_RELIABILITY_EVENT_MUTATION_CONFLICT,
-                .project = project_key, .operation = "index", .reason = "options_mismatch"});
+            cbm_reliability_record(
+                &(cbm_reliability_record_t){.event = CBM_RELIABILITY_EVENT_MUTATION_CONFLICT,
+                                            .project = project_key,
+                                            .operation = "index",
+                                            .reason = "options_mismatch"});
             *status_out = APPLICATION_JOB_SUBSCRIBE_OPTIONS_CONFLICT;
             return NULL;
         }
         job->subscribers++;
         cbm_log_info("mutation.coalesced", "project", project_key, "operation", "index");
-        cbm_reliability_record(&(cbm_reliability_record_t){
-            .event = CBM_RELIABILITY_EVENT_MUTATION_COALESCED,
-            .project = project_key, .operation = "index"});
+        cbm_reliability_record(
+            &(cbm_reliability_record_t){.event = CBM_RELIABILITY_EVENT_MUTATION_COALESCED,
+                                        .project = project_key,
+                                        .operation = "index"});
         *status_out = APPLICATION_JOB_SUBSCRIBE_OK;
         return job;
     }
@@ -1774,9 +1783,10 @@ static cbm_daemon_application_job_t *application_job_subscribe_locked(
     job->subscribers = 1;
     job->next = application->jobs;
     application->jobs = job;
-    cbm_reliability_record(&(cbm_reliability_record_t){
-        .event = CBM_RELIABILITY_EVENT_MUTATION_REQUESTED,
-        .project = project_key, .operation = "index"});
+    cbm_reliability_record(
+        &(cbm_reliability_record_t){.event = CBM_RELIABILITY_EVENT_MUTATION_REQUESTED,
+                                    .project = project_key,
+                                    .operation = "index"});
     if (application_job_thread_create(&job->thread, job) == 0) {
         job->thread_started = true;
     } else {
@@ -1874,8 +1884,8 @@ static char *application_auto_index_args(const char *root_path) {
 }
 
 static void application_background_initialize_impl(cbm_daemon_application_session_t *session) {
-    if (!session || !session->application || !session->context_set ||
-        session->hook_event || session->hook_dialect) {
+    if (!session || !session->application || !session->context_set || session->hook_event ||
+        session->hook_dialect) {
         return;
     }
     cbm_daemon_application_t *application = session->application;
@@ -1955,7 +1965,6 @@ static void application_background_initialize(cbm_daemon_application_session_t *
     atomic_fetch_add_explicit(&g_application_background_initializes_for_test, 1,
                               memory_order_release);
 }
-
 
 static bool application_watch_job_subscription_exists_locked(
     cbm_daemon_application_t *application, cbm_daemon_application_session_t *session,
@@ -2162,7 +2171,8 @@ static char *application_index_execute(void *context, const char *root_path,
     if (session->active_job) {
         application_job_unsubscribe_locked(job);
         cbm_mutex_unlock(&session->application->mutex);
-        return application_operation_wire_error("this session already has an active index operation");
+        return application_operation_wire_error(
+            "this session already has an active index operation");
     }
     session->active_job = job;
     session->active_job_subscribed = true;
@@ -2255,10 +2265,9 @@ static cbm_daemon_runtime_application_status_t application_set_context(
     struct stat root_status;
     canonical =
         canonical && stat(canonical_root, &root_status) == 0 && S_ISDIR(root_status.st_mode);
-    bool set = canonical &&
-               cbm_operation_session_state_set_context(
-                   session->operation_session, canonical_root,
-                   allowed_present ? canonical_allowed : NULL, true);
+    bool set = canonical && cbm_operation_session_state_set_context(
+                                session->operation_session, canonical_root,
+                                allowed_present ? canonical_allowed : NULL, true);
     free(root);
     free(allowed);
     if (!set) {
@@ -2273,7 +2282,6 @@ static cbm_daemon_runtime_application_status_t application_set_context(
     return CBM_DAEMON_RUNTIME_APPLICATION_OK;
 }
 
-
 static cbm_daemon_runtime_application_status_t application_operation_request(
     cbm_daemon_application_session_t *session, const uint8_t *request, uint32_t request_length,
     uint8_t **response_out, uint32_t *response_length_out) {
@@ -2286,8 +2294,8 @@ static cbm_daemon_runtime_application_status_t application_operation_request(
     }
     char *name = application_text_copy(request + APPLICATION_OPERATION_HEADER_SIZE, name_length);
     uint32_t args_length = request_length - APPLICATION_OPERATION_HEADER_SIZE - name_length;
-    char *args = application_text_copy(
-        request + APPLICATION_OPERATION_HEADER_SIZE + name_length, args_length);
+    char *args = application_text_copy(request + APPLICATION_OPERATION_HEADER_SIZE + name_length,
+                                       args_length);
     if (!name || !args) {
         free(name);
         free(args);
@@ -2902,8 +2910,7 @@ static cbm_daemon_runtime_application_status_t application_client_exchange(
 
 cbm_daemon_runtime_application_status_t cbm_daemon_application_client_set_context(
     cbm_daemon_runtime_client_t *client, const char *session_root, const char *allowed_root,
-    const char *hook_event, const char *hook_dialect,
-    uint32_t timeout_ms) {
+    const char *hook_event, const char *hook_dialect, uint32_t timeout_ms) {
     if (!client || !session_root || !session_root[0]) {
         return CBM_DAEMON_RUNTIME_APPLICATION_REJECTED;
     }
@@ -3051,10 +3058,14 @@ static cbm_daemon_runtime_application_status_t application_client_text_request(
 
 cbm_daemon_runtime_application_status_t cbm_daemon_application_client_operation_result(
     cbm_daemon_runtime_client_t *client, const char *operation_name, const char *args_json,
-    uint8_t **response_out, uint32_t *response_length_out, bool *is_error_out, uint32_t timeout_ms) {
-    if (response_out) *response_out = NULL;
-    if (response_length_out) *response_length_out = 0;
-    if (is_error_out) *is_error_out = false;
+    uint8_t **response_out, uint32_t *response_length_out, bool *is_error_out,
+    uint32_t timeout_ms) {
+    if (response_out)
+        *response_out = NULL;
+    if (response_length_out)
+        *response_length_out = 0;
+    if (is_error_out)
+        *is_error_out = false;
     if (!client || !operation_name || !operation_name[0] || !args_json || !args_json[0] ||
         !cbm_operation_find(operation_name)) {
         return CBM_DAEMON_RUNTIME_APPLICATION_REJECTED;
@@ -3076,9 +3087,8 @@ cbm_daemon_runtime_application_status_t cbm_daemon_application_client_operation_
 
     uint8_t *wire_response = NULL;
     uint32_t wire_response_length = 0;
-    cbm_daemon_runtime_application_status_t status =
-        application_client_exchange(client, request, (uint32_t)total, &wire_response,
-                                    &wire_response_length, timeout_ms);
+    cbm_daemon_runtime_application_status_t status = application_client_exchange(
+        client, request, (uint32_t)total, &wire_response, &wire_response_length, timeout_ms);
     if (status != CBM_DAEMON_RUNTIME_APPLICATION_OK) {
         free(wire_response);
         return status;
@@ -3106,8 +3116,10 @@ cbm_daemon_runtime_application_status_t cbm_daemon_application_client_operation_
     } else {
         free(payload);
     }
-    if (response_length_out) *response_length_out = payload_length;
-    if (is_error_out) *is_error_out = is_error;
+    if (response_length_out)
+        *response_length_out = payload_length;
+    if (is_error_out)
+        *is_error_out = is_error;
     return CBM_DAEMON_RUNTIME_APPLICATION_OK;
 }
 
@@ -3296,6 +3308,5 @@ bool cbm_daemon_application_session_retains_store_for_test(
     const cbm_daemon_runtime_application_session_t *opaque_session) {
     const cbm_daemon_application_session_t *session =
         (const cbm_daemon_application_session_t *)opaque_session;
-    return session && session->store_host &&
-           cbm_store_host_store(session->store_host) != NULL;
+    return session && session->store_host && cbm_store_host_store(session->store_host) != NULL;
 }

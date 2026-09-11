@@ -44,15 +44,18 @@ static bool compare_cancelled(const cbm_operation_runtime_t *runtime) {
 }
 
 static char *compare_strdup(const char *text) {
-    if (!text) return NULL;
+    if (!text)
+        return NULL;
     size_t len = strlen(text);
     char *copy = malloc(len + 1U);
-    if (copy) memcpy(copy, text, len + 1U);
+    if (copy)
+        memcpy(copy, text, len + 1U);
     return copy;
 }
 
 static bool compare_project_db_file(const char *name) {
-    if (!name) return false;
+    if (!name)
+        return false;
     size_t len = strlen(name);
     return len > 3U && strcmp(name + len - 3U, ".db") == 0 && name[0] != '_' &&
            strncmp(name, ":memory:", strlen(":memory:")) != 0;
@@ -74,15 +77,18 @@ static bool compare_primary_project_name(cbm_store_t *store, char *out, size_t o
         }
     }
     bool ok = primary_count == 1;
-    if (ok) (void)snprintf(out, out_size, "%s", projects[primary].name);
+    if (ok)
+        (void)snprintf(out, out_size, "%s", projects[primary].name);
     cbm_store_free_projects(projects, count);
     return ok;
 }
 
 static cbm_store_t *compare_open_project_store(const char *project) {
-    if (!project || !cbm_validate_project_name(project)) return NULL;
+    if (!project || !cbm_validate_project_name(project))
+        return NULL;
     const char *cache_dir = cbm_resolve_cache_dir();
-    if (!cache_dir) return NULL;
+    if (!cache_dir)
+        return NULL;
 
     char path[CBM_SZ_2K];
     if (snprintf(path, sizeof(path), "%s/%s.db", cache_dir, project) < (int)sizeof(path)) {
@@ -98,16 +104,19 @@ static cbm_store_t *compare_open_project_store(const char *project) {
     }
 
     cbm_dir_t *dir = cbm_opendir(cache_dir);
-    if (!dir) return NULL;
+    if (!dir)
+        return NULL;
     cbm_store_t *found = NULL;
     cbm_dirent_t *entry = NULL;
     while ((entry = cbm_readdir(dir)) != NULL) {
-        if (!compare_project_db_file(entry->name)) continue;
+        if (!compare_project_db_file(entry->name))
+            continue;
         if (snprintf(path, sizeof(path), "%s/%s", cache_dir, entry->name) >= (int)sizeof(path)) {
             continue;
         }
         cbm_store_t *candidate = cbm_store_open_path_query(path);
-        if (!candidate) continue;
+        if (!candidate)
+            continue;
         char internal_name[CBM_SZ_1K];
         if (compare_primary_project_name(candidate, internal_name, sizeof(internal_name)) &&
             strcmp(internal_name, project) == 0) {
@@ -124,7 +133,8 @@ static cbm_operation_result_t compare_error(const char *code, const char *messag
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
     if (!doc || !root) {
-        if (doc) yyjson_mut_doc_free(doc);
+        if (doc)
+            yyjson_mut_doc_free(doc);
         return cbm_operation_result_copy("compare_graphs failed: out of memory", true);
     }
     yyjson_mut_doc_set_root(doc, root);
@@ -135,7 +145,8 @@ static cbm_operation_result_t compare_error(const char *code, const char *messag
     }
     char *json = yyjson_mut_write(doc, 0, NULL);
     yyjson_mut_doc_free(doc);
-    if (!json) return cbm_operation_result_copy("compare_graphs failed: out of memory", true);
+    if (!json)
+        return cbm_operation_result_copy("compare_graphs failed: out of memory", true);
     return cbm_operation_result_take(json, true);
 }
 
@@ -226,35 +237,59 @@ static bool compare_parse_arguments(const char *args, char **base_project, char 
     return true;
 }
 
-static bool compare_utf8_cont(unsigned char c) { return (c & 0xC0U) == 0x80U; }
+static bool compare_utf8_cont(unsigned char c) {
+    return (c & 0xC0U) == 0x80U;
+}
 
 static char *compare_sanitize_utf8_lossy(const char *s) {
-    if (!s) return NULL;
+    if (!s)
+        return NULL;
     size_t len = strlen(s);
-    if (len > (SIZE_MAX - 1U) / 3U) return NULL;
+    if (len > (SIZE_MAX - 1U) / 3U)
+        return NULL;
     char *out = malloc(len * 3U + 1U);
-    if (!out) return NULL;
+    if (!out)
+        return NULL;
     const unsigned char *p = (const unsigned char *)s;
     const unsigned char *end = p + len;
     unsigned char *dst = (unsigned char *)out;
     while (p < end) {
         unsigned char c = *p;
         size_t n = 0U;
-        if (c < 0x80U) n = 1U;
-        else if (c >= 0xC2U && c <= 0xDFU && p + 1 < end && compare_utf8_cont(p[1])) n = 2U;
-        else if (c == 0xE0U && p + 2 < end && p[1] >= 0xA0U && p[1] <= 0xBFU && compare_utf8_cont(p[2])) n = 3U;
-        else if (c >= 0xE1U && c <= 0xECU && p + 2 < end && compare_utf8_cont(p[1]) && compare_utf8_cont(p[2])) n = 3U;
-        else if (c == 0xEDU && p + 2 < end && p[1] >= 0x80U && p[1] <= 0x9FU && compare_utf8_cont(p[2])) n = 3U;
-        else if (c >= 0xEEU && c <= 0xEFU && p + 2 < end && compare_utf8_cont(p[1]) && compare_utf8_cont(p[2])) n = 3U;
-        else if (c == 0xF0U && p + 3 < end && p[1] >= 0x90U && p[1] <= 0xBFU && compare_utf8_cont(p[2]) && compare_utf8_cont(p[3])) n = 4U;
-        else if (c >= 0xF1U && c <= 0xF3U && p + 3 < end && compare_utf8_cont(p[1]) && compare_utf8_cont(p[2]) && compare_utf8_cont(p[3])) n = 4U;
-        else if (c == 0xF4U && p + 3 < end && p[1] >= 0x80U && p[1] <= 0x8FU && compare_utf8_cont(p[2]) && compare_utf8_cont(p[3])) n = 4U;
+        if (c < 0x80U)
+            n = 1U;
+        else if (c >= 0xC2U && c <= 0xDFU && p + 1 < end && compare_utf8_cont(p[1]))
+            n = 2U;
+        else if (c == 0xE0U && p + 2 < end && p[1] >= 0xA0U && p[1] <= 0xBFU &&
+                 compare_utf8_cont(p[2]))
+            n = 3U;
+        else if (c >= 0xE1U && c <= 0xECU && p + 2 < end && compare_utf8_cont(p[1]) &&
+                 compare_utf8_cont(p[2]))
+            n = 3U;
+        else if (c == 0xEDU && p + 2 < end && p[1] >= 0x80U && p[1] <= 0x9FU &&
+                 compare_utf8_cont(p[2]))
+            n = 3U;
+        else if (c >= 0xEEU && c <= 0xEFU && p + 2 < end && compare_utf8_cont(p[1]) &&
+                 compare_utf8_cont(p[2]))
+            n = 3U;
+        else if (c == 0xF0U && p + 3 < end && p[1] >= 0x90U && p[1] <= 0xBFU &&
+                 compare_utf8_cont(p[2]) && compare_utf8_cont(p[3]))
+            n = 4U;
+        else if (c >= 0xF1U && c <= 0xF3U && p + 3 < end && compare_utf8_cont(p[1]) &&
+                 compare_utf8_cont(p[2]) && compare_utf8_cont(p[3]))
+            n = 4U;
+        else if (c == 0xF4U && p + 3 < end && p[1] >= 0x80U && p[1] <= 0x8FU &&
+                 compare_utf8_cont(p[2]) && compare_utf8_cont(p[3]))
+            n = 4U;
         if (n > 0U) {
             memcpy(dst, p, n);
             dst += n;
             p += n;
         } else {
-            *dst++ = 0xEFU; *dst++ = 0xBFU; *dst++ = 0xBDU; ++p;
+            *dst++ = 0xEFU;
+            *dst++ = 0xBFU;
+            *dst++ = 0xBDU;
+            ++p;
         }
     }
     *dst = '\0';
@@ -264,7 +299,8 @@ static char *compare_sanitize_utf8_lossy(const char *s) {
 static bool compare_add_identity_string(yyjson_mut_doc *doc, yyjson_mut_val *object,
                                         const char *key, const char *value) {
     char *sanitized = compare_sanitize_utf8_lossy(value);
-    if (!sanitized) return false;
+    if (!sanitized)
+        return false;
     bool ok = yyjson_mut_obj_add_strcpy(doc, object, key, sanitized);
     free(sanitized);
     return ok;
@@ -273,17 +309,25 @@ static bool compare_add_identity_string(yyjson_mut_doc *doc, yyjson_mut_val *obj
 static yyjson_mut_val *compare_node_json(yyjson_mut_doc *doc,
                                          const cbm_graph_node_identity_t *node) {
     yyjson_mut_val *object = yyjson_mut_obj(doc);
-    if (!object || !compare_add_identity_string(doc, object, "qualified_name", node->qualified_name) ||
+    if (!object ||
+        !compare_add_identity_string(doc, object, "qualified_name", node->qualified_name) ||
         !compare_add_identity_string(doc, object, "label", node->label) ||
-        !compare_add_identity_string(doc, object, "file_path", node->file_path)) return NULL;
+        !compare_add_identity_string(doc, object, "file_path", node->file_path))
+        return NULL;
     return object;
 }
 
 static bool compare_append_item(compare_response_t *response, compare_result_set_t *set,
                                 yyjson_mut_doc *item_doc, yyjson_mut_val *item) {
-    if (!item_doc || !item) { yyjson_mut_doc_free(item_doc); return false; }
+    if (!item_doc || !item) {
+        yyjson_mut_doc_free(item_doc);
+        return false;
+    }
     char *encoded = yyjson_mut_write(item_doc, 0, NULL);
-    if (!encoded) { yyjson_mut_doc_free(item_doc); return false; }
+    if (!encoded) {
+        yyjson_mut_doc_free(item_doc);
+        return false;
+    }
     size_t encoded_len = strlen(encoded);
     size_t separator = set->returned > 0U ? 1U : 0U;
     free(encoded);
@@ -297,7 +341,8 @@ static bool compare_append_item(compare_response_t *response, compare_result_set
     yyjson_mut_val *copy = yyjson_mut_val_mut_copy(response->doc, item);
     bool ok = copy && yyjson_mut_arr_add_val(set->items, copy);
     yyjson_mut_doc_free(item_doc);
-    if (!ok) return false;
+    if (!ok)
+        return false;
     set->encoded_bytes += separator + encoded_len;
     ++set->returned;
     return true;
@@ -307,10 +352,12 @@ static bool compare_node_callback(void *context, bool added,
                                   const cbm_graph_node_identity_t *node) {
     compare_response_t *response = context;
     compare_result_set_t *set = added ? &response->nodes_added : &response->nodes_removed;
-    if (set->returned >= response->limit || set->budget_exhausted) return true;
+    if (set->returned >= response->limit || set->budget_exhausted)
+        return true;
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *item = doc ? compare_node_json(doc, node) : NULL;
-    if (doc && item) yyjson_mut_doc_set_root(doc, item);
+    if (doc && item)
+        yyjson_mut_doc_set_root(doc, item);
     return compare_append_item(response, set, doc, item);
 }
 
@@ -318,7 +365,8 @@ static bool compare_edge_callback(void *context, bool added,
                                   const cbm_graph_edge_identity_t *edge) {
     compare_response_t *response = context;
     compare_result_set_t *set = added ? &response->edges_added : &response->edges_removed;
-    if (set->returned >= response->limit || set->budget_exhausted) return true;
+    if (set->returned >= response->limit || set->budget_exhausted)
+        return true;
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *item = doc ? yyjson_mut_obj(doc) : NULL;
     yyjson_mut_val *source = doc ? compare_node_json(doc, &edge->source) : NULL;
@@ -327,7 +375,8 @@ static bool compare_edge_callback(void *context, bool added,
               yyjson_mut_obj_add_val(doc, item, "target", target) &&
               compare_add_identity_string(doc, item, "type", edge->type) &&
               compare_add_identity_string(doc, item, "local_name_gen", edge->local_name_gen);
-    if (ok) yyjson_mut_doc_set_root(doc, item);
+    if (ok)
+        yyjson_mut_doc_set_root(doc, item);
     return compare_append_item(response, set, doc, ok ? item : NULL);
 }
 
@@ -343,7 +392,8 @@ static yyjson_mut_val *compare_project_json(yyjson_mut_doc *doc, const char *pro
         !compare_add_identity_string(doc, object, "generation", metadata->generation) ||
         !compare_add_identity_string(doc, object, "index_mode", metadata->index_mode) ||
         !yyjson_mut_obj_add_sint(doc, object, "node_count", metadata->node_count) ||
-        !yyjson_mut_obj_add_sint(doc, object, "edge_count", metadata->edge_count)) return NULL;
+        !yyjson_mut_obj_add_sint(doc, object, "edge_count", metadata->edge_count))
+        return NULL;
     return object;
 }
 
@@ -355,10 +405,15 @@ static yyjson_mut_val *compare_set_json(yyjson_mut_doc *doc, compare_result_set_
     if (!object || !reasons || !yyjson_mut_obj_add_val(doc, object, "items", set->items) ||
         !yyjson_mut_obj_add_uint(doc, object, "returned", set->returned) ||
         !yyjson_mut_obj_add_uint(doc, object, "total", total) ||
-        !yyjson_mut_obj_add_bool(doc, object, "truncated", truncated)) return NULL;
-    if (truncated && set->returned >= limit && !yyjson_mut_arr_add_strcpy(doc, reasons, "limit")) return NULL;
-    if (truncated && set->budget_exhausted && !yyjson_mut_arr_add_strcpy(doc, reasons, "encoded_byte_budget")) return NULL;
-    if (!yyjson_mut_obj_add_val(doc, object, "truncation_reasons", reasons)) return NULL;
+        !yyjson_mut_obj_add_bool(doc, object, "truncated", truncated))
+        return NULL;
+    if (truncated && set->returned >= limit && !yyjson_mut_arr_add_strcpy(doc, reasons, "limit"))
+        return NULL;
+    if (truncated && set->budget_exhausted &&
+        !yyjson_mut_arr_add_strcpy(doc, reasons, "encoded_byte_budget"))
+        return NULL;
+    if (!yyjson_mut_obj_add_val(doc, object, "truncation_reasons", reasons))
+        return NULL;
     return object;
 }
 
@@ -374,17 +429,21 @@ cbm_operation_result_t cbm_compare_operation_execute(const char *args_json,
         return compare_error("invalid_arguments", argument_error);
     }
     if (compare_cancelled(runtime)) {
-        free(base_project); free(target_project);
+        free(base_project);
+        free(target_project);
         return compare_error("cancelled", "compare_graphs cancelled for this request");
     }
     cbm_store_t *base_store = compare_open_project_store(base_project);
     if (!base_store) {
-        free(base_project); free(target_project);
+        free(base_project);
+        free(target_project);
         return compare_error("project_not_indexed", "base project is not indexed");
     }
     cbm_store_t *target_store = compare_open_project_store(target_project);
     if (!target_store) {
-        cbm_store_close(base_store); free(base_project); free(target_project);
+        cbm_store_close(base_store);
+        free(base_project);
+        free(target_project);
         return compare_error("project_not_indexed", "target project is not indexed");
     }
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -400,8 +459,11 @@ cbm_operation_result_t cbm_compare_operation_execute(const char *args_json,
     };
     if (!doc || !root || !response.nodes_added.items || !response.nodes_removed.items ||
         !response.edges_added.items || !response.edges_removed.items) {
-        cbm_store_close(target_store); cbm_store_close(base_store); yyjson_mut_doc_free(doc);
-        free(base_project); free(target_project);
+        cbm_store_close(target_store);
+        cbm_store_close(base_store);
+        yyjson_mut_doc_free(doc);
+        free(base_project);
+        free(target_project);
         return compare_error("allocation_failed", "could not allocate comparison result");
     }
     yyjson_mut_doc_set_root(doc, root);
@@ -409,13 +471,20 @@ cbm_operation_result_t cbm_compare_operation_execute(const char *args_json,
     int rc = cbm_store_compare_graphs(base_store, base_project, target_store, target_project,
                                       scan_limit, compare_cancel_callback, compare_node_callback,
                                       compare_edge_callback, &response, &comparison);
-    cbm_store_close(target_store); cbm_store_close(base_store);
+    cbm_store_close(target_store);
+    cbm_store_close(base_store);
     if (rc != CBM_STORE_OK) {
-        yyjson_mut_doc_free(doc); free(base_project); free(target_project);
-        if (rc == CBM_STORE_CANCELLED) return compare_error("cancelled", "compare_graphs cancelled for this request");
-        if (rc == CBM_STORE_NOT_FOUND) return compare_error("project_not_indexed", "project is not indexed");
-        if (rc == CBM_STORE_SCAN_LIMIT) return compare_error("scan_limit_exceeded", "combined graph rows exceed scan_limit");
-        if (rc == CBM_STORE_CALLBACK_ERR) return compare_error("allocation_failed", "could not allocate comparison result");
+        yyjson_mut_doc_free(doc);
+        free(base_project);
+        free(target_project);
+        if (rc == CBM_STORE_CANCELLED)
+            return compare_error("cancelled", "compare_graphs cancelled for this request");
+        if (rc == CBM_STORE_NOT_FOUND)
+            return compare_error("project_not_indexed", "project is not indexed");
+        if (rc == CBM_STORE_SCAN_LIMIT)
+            return compare_error("scan_limit_exceeded", "combined graph rows exceed scan_limit");
+        if (rc == CBM_STORE_CALLBACK_ERR)
+            return compare_error("allocation_failed", "could not allocate comparison result");
         return compare_error("query_failed", "graph comparison query failed");
     }
     yyjson_mut_val *base = compare_project_json(doc, base_project, &comparison.base);
@@ -423,24 +492,42 @@ cbm_operation_result_t cbm_compare_operation_execute(const char *args_json,
     yyjson_mut_val *nodes = yyjson_mut_obj(doc);
     yyjson_mut_val *edges = yyjson_mut_obj(doc);
     yyjson_mut_val *limits = yyjson_mut_obj(doc);
-    yyjson_mut_val *nodes_added = compare_set_json(doc, &response.nodes_added, comparison.nodes_added_total, response.limit);
-    yyjson_mut_val *nodes_removed = compare_set_json(doc, &response.nodes_removed, comparison.nodes_removed_total, response.limit);
-    yyjson_mut_val *edges_added = compare_set_json(doc, &response.edges_added, comparison.edges_added_total, response.limit);
-    yyjson_mut_val *edges_removed = compare_set_json(doc, &response.edges_removed, comparison.edges_removed_total, response.limit);
-    bool built = base && target && nodes && edges && limits && nodes_added && nodes_removed && edges_added && edges_removed &&
-        yyjson_mut_obj_add_int(doc, root, "schema_version", 1) &&
-        yyjson_mut_obj_add_val(doc, root, "base", base) && yyjson_mut_obj_add_val(doc, root, "target", target) &&
-        yyjson_mut_obj_add_val(doc, nodes, "added", nodes_added) && yyjson_mut_obj_add_val(doc, nodes, "removed", nodes_removed) &&
-        yyjson_mut_obj_add_val(doc, root, "nodes", nodes) && yyjson_mut_obj_add_val(doc, edges, "added", edges_added) &&
-        yyjson_mut_obj_add_val(doc, edges, "removed", edges_removed) && yyjson_mut_obj_add_val(doc, root, "edges", edges) &&
-        yyjson_mut_obj_add_uint(doc, limits, "limit", limit) && yyjson_mut_obj_add_uint(doc, limits, "scan_limit", scan_limit) &&
+    yyjson_mut_val *nodes_added =
+        compare_set_json(doc, &response.nodes_added, comparison.nodes_added_total, response.limit);
+    yyjson_mut_val *nodes_removed = compare_set_json(
+        doc, &response.nodes_removed, comparison.nodes_removed_total, response.limit);
+    yyjson_mut_val *edges_added =
+        compare_set_json(doc, &response.edges_added, comparison.edges_added_total, response.limit);
+    yyjson_mut_val *edges_removed = compare_set_json(
+        doc, &response.edges_removed, comparison.edges_removed_total, response.limit);
+    bool built =
+        base && target && nodes && edges && limits && nodes_added && nodes_removed && edges_added &&
+        edges_removed && yyjson_mut_obj_add_int(doc, root, "schema_version", 1) &&
+        yyjson_mut_obj_add_val(doc, root, "base", base) &&
+        yyjson_mut_obj_add_val(doc, root, "target", target) &&
+        yyjson_mut_obj_add_val(doc, nodes, "added", nodes_added) &&
+        yyjson_mut_obj_add_val(doc, nodes, "removed", nodes_removed) &&
+        yyjson_mut_obj_add_val(doc, root, "nodes", nodes) &&
+        yyjson_mut_obj_add_val(doc, edges, "added", edges_added) &&
+        yyjson_mut_obj_add_val(doc, edges, "removed", edges_removed) &&
+        yyjson_mut_obj_add_val(doc, root, "edges", edges) &&
+        yyjson_mut_obj_add_uint(doc, limits, "limit", limit) &&
+        yyjson_mut_obj_add_uint(doc, limits, "scan_limit", scan_limit) &&
         yyjson_mut_obj_add_uint(doc, limits, "encoded_byte_budget", COMPARE_SET_BYTE_BUDGET) &&
         yyjson_mut_obj_add_val(doc, root, "limits", limits);
-    free(base_project); free(target_project);
-    if (!built) { yyjson_mut_doc_free(doc); return compare_error("allocation_failed", "could not allocate comparison result"); }
-    if (compare_cancelled(runtime)) { yyjson_mut_doc_free(doc); return compare_error("cancelled", "compare_graphs cancelled for this request"); }
+    free(base_project);
+    free(target_project);
+    if (!built) {
+        yyjson_mut_doc_free(doc);
+        return compare_error("allocation_failed", "could not allocate comparison result");
+    }
+    if (compare_cancelled(runtime)) {
+        yyjson_mut_doc_free(doc);
+        return compare_error("cancelled", "compare_graphs cancelled for this request");
+    }
     char *json = yyjson_mut_write(doc, 0, NULL);
     yyjson_mut_doc_free(doc);
-    if (!json) return compare_error("allocation_failed", "could not serialize comparison result");
+    if (!json)
+        return compare_error("allocation_failed", "could not serialize comparison result");
     return cbm_operation_result_take(json, false);
 }
