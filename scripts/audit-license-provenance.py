@@ -10,6 +10,8 @@ Verdicts:
   ERROR              upstream fetch failed
 """
 import base64
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import lru_cache
 import hashlib
 import json
 import os
@@ -68,11 +70,55 @@ CANDIDATE_NAMES = ["LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING",
                    "license", "License.txt", "NOTICE"]
 
 
+@lru_cache(maxsize=None)
 def gh_api(path):
+    """Fetch one GitHub API path once per audit process."""
     r = subprocess.run(["gh", "api", path], capture_output=True, text=True)
     if r.returncode != 0:
         return None
     return r.stdout
+
+
+def gh_json(path):
+    out = gh_api(path)
+    if not out:
+        return None
+    try:
+        return json.loads(out)
+    except json.JSONDecodeError:
+        return None
+
+
+@lru_cache(maxsize=None)
+def default_branch(repo):
+    data = gh_json(f"repos/{repo}")
+    return data.get("default_branch") if isinstance(data, dict) else None
+
+
+@lru_cache(maxsize=None)
+def upstream_tree(repo, ref=None):
+    """Return one repository/ref tree, or None when GitHub cannot provide it."""
+    tree_ref = ref or default_branch(repo)
+    if not tree_ref:
+        return None
+    data = gh_json(f"repos/{repo}/git/trees/{tree_ref}?recursive=1")
+    if not isinstance(data, dict) or data.get("truncated"):
+        return None
+    return {
+        entry["path"]: entry["sha"]
+        for entry in data.get("tree", [])
+        if entry.get("type") == "blob" and entry.get("path") and entry.get("sha")
+    }
+
+
+def upstream_blob(repo, sha):
+    data = gh_json(f"repos/{repo}/git/blobs/{sha}")
+    if not isinstance(data, dict) or data.get("encoding") != "base64":
+        return None
+    try:
+        return base64.b64decode(data.get("content", "")).decode("utf-8", "replace")
+    except (ValueError, UnicodeDecodeError):
+        return None
 
 
 def upstream_default_license(repo):
@@ -87,6 +133,10 @@ def upstream_default_license(repo):
 
 
 def upstream_file(repo, path, ref=None):
+    tree = upstream_tree(repo, ref)
+    if tree is not None and path in tree:
+        return upstream_blob(repo, tree[path])
+
     url = f"repos/{repo}/contents/{path}"
     if ref:
         url += f"?ref={ref}"
@@ -100,6 +150,20 @@ def upstream_file(repo, path, ref=None):
     except Exception:
         pass
     return None
+
+
+def upstream_named_file(repo, name, ref=None):
+    """Find a named license in a cached tree, falling back to contents API."""
+    tree = upstream_tree(repo, ref)
+    if tree is not None:
+        wanted = name.lower()
+        for path, sha in tree.items():
+            if os.path.basename(path).lower() == wanted:
+                content = upstream_blob(repo, sha)
+                if content is not None:
+                    return content
+        return None
+    return upstream_file(repo, name, ref)
 
 
 def local_license(dirpath):
@@ -132,43 +196,40 @@ def main():
     manifest = parse_manifest()
     results = {}
 
-    def check_upstream(key, dirpath, repo, pinned=None, exact_path=None):
+    def check_upstream(dirpath, repo, pinned=None, exact_path=None):
         fname, ours = local_license(dirpath)
         if ours is None:
-            results[key] = ("NO-LOCAL-LICENSE", "")
-            return
+            return "NO-LOCAL-LICENSE", ""
         # 1) exact upstream path (e.g. lz4 lib/LICENSE), at HEAD then pinned
         if exact_path:
             for ref in (None, pinned):
                 up = upstream_file(repo, exact_path, ref)
                 if up is not None and up == ours:
-                    results[key] = ("IDENTICAL" if ref is None else "IDENTICAL@PINNED",
-                                    f"{repo}:{exact_path}")
-                    return
+                    return ("IDENTICAL" if ref is None else "IDENTICAL@PINNED",
+                            f"{repo}:{exact_path}")
         # 2) default-branch detected license
         up = upstream_default_license(repo)
         if up is not None and up == ours:
-            results[key] = ("IDENTICAL", f"{repo} (default branch)")
-            return
+            return "IDENTICAL", f"{repo} (default branch)"
         # 3) pinned-commit candidates by filename
         if pinned:
             tried = [fname] + [c for c in CANDIDATE_NAMES if c != fname]
             for cand in tried:
-                up2 = upstream_file(repo, cand, pinned)
+                up2 = upstream_named_file(repo, cand, pinned)
                 if up2 is not None and up2 == ours:
-                    results[key] = ("IDENTICAL@PINNED", f"{repo}:{cand}@{pinned}")
-                    return
+                    return "IDENTICAL@PINNED", f"{repo}:{cand}@{pinned}"
         # 4) HEAD candidates by filename
         for cand in CANDIDATE_NAMES:
-            up3 = upstream_file(repo, cand)
+            up3 = upstream_named_file(repo, cand)
             if up3 is not None and up3 == ours:
-                results[key] = ("IDENTICAL", f"{repo}:{cand} (default branch)")
-                return
-        results[key] = ("DIFFERS" if up is not None else "ERROR", f"{repo}")
+                return "IDENTICAL", f"{repo}:{cand} (default branch)"
+        return ("DIFFERS" if up is not None else "ERROR", f"{repo}")
+
+    checks = []
 
     # Libraries
     for rel, (repo, exact) in LIBS.items():
-        check_upstream(rel, os.path.join(ROOT, rel), repo, exact_path=exact)
+        checks.append((rel, os.path.join(ROOT, rel), repo, None, exact))
 
     # Special: nomic = canonical Apache-2.0 text; sqlite3 = first-party notice
     #
@@ -206,19 +267,28 @@ def main():
                 results[key] = ("FIRST-PARTY-VAR", f"{fname}: differs from root LICENSE")
             continue
         if g in FORKS:
-            check_upstream(key, d, FORKS[g])
+            checks.append((key, d, FORKS[g], None, None))
             continue
         if g in SPECIAL_NOTICE:
             results[key] = ("MANUAL-VERIFIED", SPECIAL_NOTICE[g])
             continue
         if g in DISAGREEMENT:
-            check_upstream(key, d, DISAGREEMENT[g])
+            checks.append((key, d, DISAGREEMENT[g], None, None))
             continue
         if g in manifest:
             repo, pinned = manifest[g]
-            check_upstream(key, d, repo, pinned=pinned)
+            checks.append((key, d, repo, pinned, None))
             continue
         results[key] = ("NO-MANIFEST-ENTRY", "")
+
+    workers = max(1, int(os.environ.get("CBM_PROVENANCE_WORKERS", "16")))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {
+            pool.submit(check_upstream, directory, repo, pinned, exact): key
+            for key, directory, repo, pinned, exact in checks
+        }
+        for future in as_completed(futures):
+            results[futures[future]] = future.result()
 
     # Report
     from collections import Counter
@@ -232,9 +302,14 @@ def main():
         verdict, detail = results[key]
         if verdict not in ("IDENTICAL", "IDENTICAL@PINNED", "FIRST-PARTY-OK"):
             print(f"  {key}: {verdict} [{detail}]")
-    json.dump({k: list(v) for k, v in results.items()},
-              open("/tmp/audit_licenses_results.json", "w"), indent=1)
-    print("\nfull results: /tmp/audit_licenses_results.json")
+    results_path = os.environ.get(
+        "CBM_PROVENANCE_RESULTS",
+        os.path.join(ROOT, "build", "audit_licenses_results.json"),
+    )
+    os.makedirs(os.path.dirname(os.path.abspath(results_path)), exist_ok=True)
+    with open(results_path, "w", encoding="utf-8") as fh:
+        json.dump({k: list(v) for k, v in results.items()}, fh, indent=1)
+    print(f"\nfull results: {results_path}")
 
     accepted = {"IDENTICAL", "IDENTICAL@PINNED", "FIRST-PARTY-OK",
                 "FIRST-PARTY-NOTICE", "MANUAL-VERIFIED"}
