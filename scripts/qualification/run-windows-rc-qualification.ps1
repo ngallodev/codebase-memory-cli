@@ -12,7 +12,7 @@ param(
   [ValidateSet('BASELINE_ZERO','PASS')][string]$BenchmarkResult = 'BASELINE_ZERO',
   [switch]$InitializeCorpus,
   [switch]$UploadEvidence,
-  [string]$Repository = 'DeusData/codebase-memory-mcp',
+  [string]$Repository = 'ngallodev/codebase-memory-cli',
   [string]$ExpectedHost = 'luigi.home.arpa'
 )
 $ErrorActionPreference='Stop'

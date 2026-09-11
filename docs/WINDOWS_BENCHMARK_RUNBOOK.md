@@ -8,7 +8,7 @@ The repository identities are fixed. Do not substitute repositories without crea
 
 | ID | Repository | Initialization identity for this generation |
 |---|---|---|
-| `codebase-memory-cli` | `https://github.com/DeusData/codebase-memory-mcp.git` | **Exact RC tag/commit being qualified.** Do not pin this until the RC draft exists. |
+| `codebase-memory-cli` | `https://github.com/ngallodev/codebase-memory-cli.git` | **Exact RC tag/commit being qualified.** Do not pin this until the RC draft exists. |
 | `specgen-aw` | `https://github.com/ngallodev-software/specgen-aw.git` | SpecGen `0.2.1`, `master`; snapshot observed 2026-09-08: `466debfec788c7aeeee858c6b51e98b1b9afe653`. |
 | `agent-workflow` | `https://github.com/ngallodev-software/agent-workflow.git` | Agent-Workflow `0.10.0`, `master`; snapshot observed 2026-09-08: `e84925205301ff7169aff5a8cb14d10680c3739c`. |
 | `agent-workflow-spec-contracts` | `https://github.com/ngallodev-software/agent-workflow-spec-contracts.git` | released tag `v0.2.1`; commit `0b32e556ef33bd00c0111d30a8b9225eb5196fcd`. |
