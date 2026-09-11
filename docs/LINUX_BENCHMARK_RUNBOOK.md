@@ -25,17 +25,17 @@ query, symbol, base branch, initialization ref, and eventually frozen commit.
 
 ## First run: initialize and freeze
 
-Use a disposable benchmark workspace and results root. For an RC candidate:
+Use the repository wrapper for the standard current-checkout run. It resolves
+the repository root, binary, and exact `HEAD` automatically:
 
 ```bash
-scripts/qualification/run-linux-benchmark-corpus.sh \
-  --binary /absolute/path/to/codebase-memory-cli \
-  --workspace-root /var/tmp/cbm-linux-benchmark/repos \
-  --results-root /var/tmp/cbm-linux-benchmark/results \
-  --codebase-memory-ref v0.11.0-rc.1 \
-  --initialize \
-  --repeats 5
+scripts/qualification/run-linux-cbm-benchmark.sh
 ```
+
+Build first with `scripts/build-dev.sh` when
+`build/c/codebase-memory-cli` is absent. Override the default disposable roots
+with `CBM_LINUX_BENCHMARK_WORKSPACE` and `CBM_LINUX_BENCHMARK_RESULTS`, or the
+repeat count with `CBM_LINUX_BENCHMARK_REPEATS`.
 
 Initialization performs the following before measuring anything:
 

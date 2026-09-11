@@ -27,6 +27,13 @@ codes) and rejects unknown flags with exit 2 + `Please consult --help.`
 | **smoke-invariants** | `smoke-invariants.sh` | Production-path CLI resilience battery (public command discovery, removed-MCP rejection, index/search/snippet/coverage flow, malformed-input handling) — no fixture server or install E2E. `smoke.yml` runs an explicitly seam-enabled build on the WIDEST source matrix; release artifacts remain seam-free and use the release-shaped smoke legs above. |
 | **soak** | `soak-legs.sh` | The release-gating soak SEQUENCE: `quick` then `query-leak` (the #581 detector — never reindexes, so RSS growth = query-path leak), each guarded by a completion-summary check. `--legs quick` for the ASan single-leg variant. Duration is per leg. |
 
+For a one-command Linux frozen-corpus benchmark from the current checkout,
+run `scripts/qualification/run-linux-cbm-benchmark.sh`. It uses the current
+HEAD as the exact codebase-memory ref, `build/c/codebase-memory-cli` as the
+binary, `/var/tmp/cbm-linux-benchmark/{repos,results}` as the default roots,
+and five repetitions. Set `CBM_LINUX_BENCHMARK_WORKSPACE` or
+`CBM_LINUX_BENCHMARK_RESULTS` to override the roots.
+
 Internal harnesses — never called directly by a venue (the contract forbids
 it): `smoke-test.sh` (CLI invariants; wrappers optionally provide a release fixture server + sandbox),
 `soak-test.sh` (one soak run; `soak-legs.sh` provides the sequence + guards),

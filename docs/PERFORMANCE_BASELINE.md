@@ -250,16 +250,10 @@ single-repository harness by hand. Both platforms consume
 `docs/qualification/BENCHMARK_CORPUS.json`, use each repository's frozen `workload` and
 `operations`, and fail closed if a required operation does not complete successfully.
 
-Linux initialization/baseline example:
+Linux initialization/baseline example from this checkout:
 
 ```bash
-scripts/qualification/run-linux-benchmark-corpus.sh \
-  --binary /path/to/codebase-memory-cli \
-  --workspace-root /var/tmp/cbm-benchmark/repos \
-  --results-root /var/tmp/cbm-benchmark/results \
-  --codebase-memory-ref v0.11.0-rc.1 \
-  --initialize \
-  --repeats 5
+scripts/qualification/run-linux-cbm-benchmark.sh
 ```
 
 After the corpus is frozen, omit `--initialize` and `--codebase-memory-ref` and point

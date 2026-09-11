@@ -6,7 +6,7 @@
     {
       "id": "codebase-memory-cli",
       "name": "codebase-memory-cli",
-      "remote": "https://github.com/DeusData/codebase-memory-mcp.git",
+      "remote": "https://github.com/ngallodev/codebase-memory-cli.git",
       "commit": "TO_BE_PINNED_FROM_FROZEN_CHECKOUT",
       "clean_required": true,
       "category": "self-hosting-multilanguage",
