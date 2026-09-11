@@ -1,0 +1,70 @@
+name: Manual Windows Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      repeats:
+        description: Measured repetitions for each warm operation
+        required: false
+        default: '5'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  windows-benchmark:
+    name: Build, install, and benchmark Windows CLI
+    runs-on: windows-2025
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2
+        with:
+          msystem: CLANG64
+          path-type: inherit
+          install: >-
+            mingw-w64-clang-x86_64-clang
+            mingw-w64-clang-x86_64-zlib
+            mingw-w64-clang-x86_64-python3
+            make
+            git
+            coreutils
+            zip
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      - name: Build native Windows binary
+        shell: msys2 {0}
+        run: scripts/build.sh --with-ui CC=clang CXX=clang++
+
+      - name: Install exact built binary and run benchmark
+        shell: pwsh
+        env:
+          BENCH_REPEATS: ${{ inputs.repeats }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo = (Get-Location).Path
+          $binary = Join-Path $repo 'build\c\codebase-memory-cli.exe'
+          $install = Join-Path $env:RUNNER_TEMP 'cbm-installed'
+          $workspace = Join-Path $env:RUNNER_TEMP 'cbm-benchmark-repos'
+          $results = Join-Path $env:RUNNER_TEMP 'cbm-benchmark-results'
+          & pwsh -NoProfile -File (Join-Path $repo 'scripts\setup-windows.ps1') `
+            -Binary $binary -InstallDir $install -NoPathPrompt
+          if ($LASTEXITCODE) { throw 'binary installation failed' }
+          & pwsh -NoProfile -File (Join-Path $repo 'scripts\qualification\run-windows-benchmark-corpus.ps1') `
+            -CandidateBinary (Join-Path $install 'codebase-memory-cli.exe') `
+            -WorkspaceRoot $workspace -ResultsRoot $results `
+            -CodebaseMemoryRef $env:GITHUB_SHA -Repeats ([int]$env:BENCH_REPEATS) -Initialize
+          if ($LASTEXITCODE) { throw 'Windows benchmark failed' }
+
+      - name: Upload benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-benchmark-${{ github.run_id }}
+          path: ${{ runner.temp }}/cbm-benchmark-results
+          if-no-files-found: warn

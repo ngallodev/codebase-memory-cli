@@ -183,6 +183,11 @@ installs the native executable, and stores timestamped benchmark evidence under
 `C:\cbm-benchmark`. See [`docs/WINDOWS_BENCHMARK_RUNBOOK.md`](docs/WINDOWS_BENCHMARK_RUNBOOK.md)
 for prerequisites and the full qualification path.
 
+To run the same build, install, and benchmark flow on a GitHub-hosted Windows
+runner, manually dispatch the **Manual Windows Benchmark** workflow from the
+desired branch. It uploads the complete benchmark evidence as a workflow
+artifact and requires no local Windows build.
+
 ## Human and machine output
 
 Human-readable output is the default. `--json` is the stable machine-oriented surface for the canonical commands in this slice.
