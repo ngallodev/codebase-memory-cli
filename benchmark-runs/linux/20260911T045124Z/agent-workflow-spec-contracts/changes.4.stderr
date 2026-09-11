@@ -1,0 +1,2 @@
+level=info msg=mem.allocator.owned classes=all
+level=info msg=mem.init budget_mb=145041 total_ram_mb=290082 source=ram_fraction

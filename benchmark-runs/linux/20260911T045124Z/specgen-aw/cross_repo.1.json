@@ -1,0 +1,1 @@
+{"status":"success","mode":"cross-repo-intelligence","project":"var-tmp-cbm-linux-benchmark-repos-specgen-aw","projects_scanned":1,"cross_http_calls":0,"cross_async_calls":0,"cross_channel":0,"cross_grpc_calls":0,"cross_graphql_calls":0,"cross_trpc_calls":0,"total_cross_edges":0,"elapsed_ms":106.333619}

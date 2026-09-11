@@ -1,0 +1,10 @@
+case	runs	min_ms	median_ms	max_ms
+architecture	5	146	150	188
+changes	5	1190	1278	1728
+cross_repo	1	3216	3216	3216
+index	1	6741	6741	6741
+outline	5	156	168	177
+search	5	2963	2971	3588
+secondary_index	1	20141	20141	20141
+snippet	5	2955	3193	3343
+status	5	2966	3368	3597

@@ -1,0 +1,9 @@
+file_path: src/specgen_contracts/cli.py
+results: 1  (cols: name label lines qn)
+  main Function 8-19 var-tmp-cbm-linux-benchmark-repos-agent-workflow-spec-contracts.src.specgen_contracts.cli.main
+total: 1
+offset: 0
+limit: 100
+returned: 1
+has_more: false
+

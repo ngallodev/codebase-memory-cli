@@ -1,0 +1,8 @@
+case	runs	min_ms	median_ms	max_ms
+architecture	5	227	242	264
+changes	5	1286	1352	1835
+index	1	14960	14960	14960
+outline	5	140	164	171
+search	5	2935	3046	3564
+snippet	5	2727	2870	3199
+status	5	2748	3234	3593
