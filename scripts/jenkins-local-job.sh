@@ -39,6 +39,9 @@ case "${1:-}" in
     else
       cli create-job "$job_name" < "$job_template"
     fi
+    if [[ "${JENKINS_INSTALL_POST_COMMIT_HOOK:-1}" == 1 ]]; then
+      "$root/scripts/install-jenkins-post-commit-hook.sh"
+    fi
     echo "configured $job_name"
     ;;
   inspect)

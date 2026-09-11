@@ -242,3 +242,32 @@ manifest in `docs/qualification/BENCHMARK_CORPUS.json`.
 Repository commits remain unchanged for the lifetime of a corpus generation. Advancing any corpus
 repository requires a new corpus-generation identifier and fresh baseline capture; results from
 different corpus generations are not valid regression comparisons.
+
+## Frozen corpus runners
+
+For release-candidate feature benchmarking, prefer the corpus orchestrators over invoking the
+single-repository harness by hand. Both platforms consume
+`docs/qualification/BENCHMARK_CORPUS.json`, use each repository's frozen `workload` and
+`operations`, and fail closed if a required operation does not complete successfully.
+
+Linux initialization/baseline example:
+
+```bash
+scripts/qualification/run-linux-benchmark-corpus.sh \
+  --binary /path/to/codebase-memory-cli \
+  --workspace-root /var/tmp/cbm-benchmark/repos \
+  --results-root /var/tmp/cbm-benchmark/results \
+  --codebase-memory-ref v0.11.0-rc.1 \
+  --initialize \
+  --repeats 5
+```
+
+After the corpus is frozen, omit `--initialize` and `--codebase-memory-ref` and point
+`--manifest` at the frozen manifest if it is not the repository-default manifest. The Linux
+runner writes one result directory per repository plus `corpus-results.json` and a corpus-level
+`RESULT` file. `RESULT=PASS` is emitted only when every manifest repository completes all of
+its required operations.
+
+Windows uses `scripts/qualification/run-windows-benchmark-corpus.ps1` with the same workload
+contract. Linux results are useful for methodology shakeout and Linux baselines; they do not
+replace native-Windows RC qualification or the Windows baseline generation.

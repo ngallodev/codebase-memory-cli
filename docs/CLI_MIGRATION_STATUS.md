@@ -432,3 +432,15 @@ Static/source audit only; no local compilation or test execution was performed.
 - `run-windows-benchmark-corpus.ps1` resolves moving initialization branches from `origin/<branch>` and freezes the resulting commit before benchmarking;
 - the promotion workflow checks out the exact qualified tag both when verifying evidence and when publishing npm/PyPI wrappers, preventing registry publication from a later default-branch revision;
 - the Windows benchmark runbook now accurately describes the external frozen-manifest evidence flow and the deliberate post-qualification commit that establishes the durable corpus generation for later releases.
+
+### CP90 — Linux benchmark corpus parity
+
+- Linux `benchmark-agent-workflows.sh` now uses the same fail-closed required-operation semantics
+  as the Windows benchmark harness and emits per-repository `RESULT=PASS` evidence only when every
+  configured operation succeeds.
+- Added `scripts/qualification/run-linux-benchmark-corpus.sh` to clone/fetch/freeze/validate and run
+  all five repositories from `BENCHMARK_CORPUS.json` in one command.
+- Linux and Windows corpus runners now consume the same manifest-defined operation/workload fields;
+  repository-specific file/query/symbol/base-branch settings are no longer Windows-only behavior.
+- Added `docs/LINUX_BENCHMARK_RUNBOOK.md`. Linux is a methodology/feature-parity preflight and does
+  not replace the native-Windows RC qualification or Windows BASELINE_ZERO evidence.

@@ -65,3 +65,13 @@ it): `smoke-test.sh` (CLI invariants; wrappers optionally provide a release fixt
 
 See `scripts/ci/README.md` for the CI plumbing and
 `test-infrastructure/README.md` for the venue map.
+
+## Local Jenkins post-commit hook
+
+`install-jenkins-post-commit-hook.sh` installs the local Git hook used for the
+two local Jenkins jobs. `jenkins-post-commit.sh` dispatches
+`release-tooling` to the focused release job with `CBM_TEST_SUITES`, and
+`main` to the full main job. Other branches are ignored. Set
+`CBM_JENKINS_POST_COMMIT=0` to disable dispatch,
+`JENKINS_POST_COMMIT_DRY_RUN=1` to inspect the decision, or include
+`[skip jenkins]` or `[skip ci]` in a commit message to skip one commit.
