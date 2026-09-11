@@ -43,13 +43,15 @@ pipeline {
         }
         stage('License gate') {
             steps {
-                sh '''
-                    set -eu
-                    export PATH="$WORKSPACE/.ci-venv/bin:$PATH"
-                    scripts/license-gate.sh --selftest
-                    scripts/license-gate.sh
-                    scripts/audit-license-provenance.py
-                '''
+                withCredentials([string(credentialsId: 'github-token', variable: 'GH_TOKEN')]) {
+                    sh '''
+                        set -eu
+                        export PATH="$WORKSPACE/.ci-venv/bin:$PATH"
+                        scripts/license-gate.sh --selftest
+                        scripts/license-gate.sh
+                        scripts/audit-license-provenance.py
+                    '''
+                }
             }
         }
         stage('Build') {
