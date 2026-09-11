@@ -48,7 +48,7 @@ pipeline {
                         set -eu
                         export PATH="$WORKSPACE/.ci-venv/bin:$PATH"
                         gh api user --jq .login >/dev/null
-                        gh api rate_limit --jq '.resources.core | "GitHub API rate limit: \(.remaining)/\(.limit) remaining"'
+                        gh api rate_limit --jq '"GitHub API rate limit: " + (.resources.core.remaining|tostring) + "/" + (.resources.core.limit|tostring) + " remaining"'
                         scripts/license-gate.sh --selftest
                         scripts/license-gate.sh
                         scripts/audit-license-provenance.py
