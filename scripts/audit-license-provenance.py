@@ -75,6 +75,8 @@ def gh_api(path):
     """Fetch one GitHub API path once per audit process."""
     r = subprocess.run(["gh", "api", path], capture_output=True, text=True)
     if r.returncode != 0:
+        detail = r.stderr.strip().replace("\n", " ")
+        print(f"GitHub API request failed ({path}): {detail}", file=sys.stderr)
         return None
     return r.stdout
 
