@@ -1807,7 +1807,7 @@ static int parse_return_or_with(parser_t *p, cbm_return_clause_t **out, bool is_
      * CBM_SZ_32 columns (execute_return_simple and its siblings). Bound the
      * parsed item count to that width so an over-wide RETURN is rejected here
      * instead of writing past those arrays downstream. */
-    if (r->count > CBM_SZ_32) {
+    if (r->count > (is_with ? CYP_MAX_VARS : CBM_SZ_32)) {
         free_return_clause(r);
         return CBM_NOT_FOUND;
     }
@@ -4160,17 +4160,29 @@ static void execute_with_clause(cbm_query_t *q, binding_t **bindings_ptr, int *b
 
 /* Project RETURN * — all bound variable properties */
 /* Collect all variable names from query patterns */
+/* A variable may be named in multiple patterns, but RETURN * projects it once. */
+static bool star_var_seen(const char **vars, int vc, const char *name) {
+    for (int i = 0; i < vc; i++) {
+        if (strcmp(vars[i], name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static int collect_pattern_vars(cbm_query_t *q, const char **vars, int max_vars) {
     int vc = 0;
     for (int pi = 0; pi < q->pattern_count; pi++) {
         for (int ni = 0; ni < q->patterns[pi].node_count && vc < max_vars; ni++) {
-            if (q->patterns[pi].nodes[ni].variable) {
-                vars[vc++] = q->patterns[pi].nodes[ni].variable;
+            const char *var = q->patterns[pi].nodes[ni].variable;
+            if (var && !star_var_seen(vars, vc, var)) {
+                vars[vc++] = var;
             }
         }
         for (int ri = 0; ri < q->patterns[pi].rel_count && vc < max_vars; ri++) {
-            if (q->patterns[pi].rels[ri].variable) {
-                vars[vc++] = q->patterns[pi].rels[ri].variable;
+            const char *var = q->patterns[pi].rels[ri].variable;
+            if (var && !star_var_seen(vars, vc, var)) {
+                vars[vc++] = var;
             }
         }
     }
@@ -4222,8 +4234,32 @@ static void project_star_row(binding_t *b, const char **vars, int vc, const char
     }
 }
 
+static void execute_return_star_after_with(cbm_query_t *q, binding_t *bindings, int bind_count,
+                                           int max_rows, result_builder_t *rb) {
+    cbm_return_clause_t *wc = q->with_clause;
+    char name_bufs[CYP_MAX_VARS][CBM_SZ_128];
+    const char *cols[CYP_MAX_VARS];
+    int col_n = wc->count < CYP_MAX_VARS ? wc->count : CYP_MAX_VARS;
+    for (int i = 0; i < col_n; i++) {
+        cols[i] = resolve_item_alias(&wc->items[i], name_bufs[i], sizeof(name_bufs[i]));
+    }
+    rb_set_columns(rb, cols, col_n);
+    for (int bi = 0; bi < bind_count && rb->row_count < max_rows; bi++) {
+        const char *vals[CYP_MAX_VARS];
+        for (int i = 0; i < col_n; i++) {
+            cbm_node_t *vn = binding_get(&bindings[bi], cols[i]);
+            vals[i] = vn && vn->name ? vn->name : "";
+        }
+        rb_add_row(rb, vals);
+    }
+}
+
 static void execute_return_star(cbm_query_t *q, binding_t *bindings, int bind_count, int max_rows,
                                 result_builder_t *rb) {
+    if (q->with_clause) {
+        execute_return_star_after_with(q, bindings, bind_count, max_rows, rb);
+        return;
+    }
     const char *vars[CBM_SZ_32];
     int vc = collect_pattern_vars(q, vars, CBM_SZ_32);
     build_star_columns(rb, vars, vc);
