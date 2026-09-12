@@ -6,6 +6,30 @@ set -euo pipefail
 # Activated automatically via scripts/setup.sh or manually:
 #   git config core.hooksPath scripts/hooks
 
+# Format staged C-family files before checking them. Refuse partially staged
+# files: re-staging a formatter rewrite would otherwise capture unrelated
+# working-tree edits.
+FORMATTER="${CLANG_FORMAT:-clang-format-20}"
+FORMAT_FILES=()
+while IFS= read -r file; do
+    [ -n "$file" ] && FORMAT_FILES+=("$file")
+done < <(git diff --cached --name-only --diff-filter=ACMR -- '*.c' '*.h')
+if [ "${#FORMAT_FILES[@]}" -gt 0 ]; then
+    command -v "$FORMATTER" >/dev/null 2>&1 || {
+        echo "pre-commit: required formatter not found: $FORMATTER" >&2
+        exit 1
+    }
+    for file in "${FORMAT_FILES[@]}"; do
+        if ! git diff --quiet -- "$file"; then
+            echo "pre-commit: $file has unstaged edits; stage or stash them before committing" >&2
+            exit 1
+        fi
+    done
+    echo "pre-commit: formatting ${#FORMAT_FILES[@]} staged C-family file(s)..."
+    "$FORMATTER" -i "${FORMAT_FILES[@]}"
+    git add -- "${FORMAT_FILES[@]}"
+fi
+
 echo "pre-commit: running all linters in parallel..."
 # clang-tidy runs diff-scoped (lint-tidy-diff, see scripts/lint-tidy-diff.sh):
 # the full lint-tidy sweep surfaces thousands of pre-existing findings that
