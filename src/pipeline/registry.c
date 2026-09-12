@@ -888,6 +888,42 @@ static const char *qualified_suffix_match(const qn_array_t *arr, const char *cal
     return match;
 }
 
+/* Guard name-only matches when a dotted callee begins with a type name. */
+static bool receiver_chain_admits(const char *callee_name, const char *candidate_qn) {
+    char dotted[CBM_SZ_512];
+    size_t w = 0;
+    for (const char *s = callee_name; *s && w + SKIP_ONE < sizeof(dotted);) {
+        if (s[0] == ':' && s[1] == ':') {
+            dotted[w++] = '.';
+            s += 2;
+        } else {
+            dotted[w++] = *s++;
+        }
+    }
+    dotted[w] = '\0';
+    const char *last_dot = strrchr(dotted, '.');
+    if (!last_dot || dotted[0] < 'A' || dotted[0] > 'Z') return true;
+    int has_underscore = 0, all_caps = 1;
+    for (const char *c = dotted; c < last_dot && *c != '.'; c++) {
+        if (*c == '_') has_underscore = 1;
+        else if (*c >= 'a' && *c <= 'z') { all_caps = 0; break; }
+    }
+    if (all_caps && has_underscore) return true;
+    const char *cand_last = strrchr(candidate_qn, '.');
+    if (!cand_last || cand_last == candidate_qn) return true;
+    const char *parent = cand_last;
+    while (parent > candidate_qn && parent[-1] != '.') parent--;
+    size_t parent_len = (size_t)(cand_last - parent);
+    for (const char *seg = dotted; seg < last_dot;) {
+        const char *end = strchr(seg, '.');
+        size_t len = (size_t)(end - seg);
+        if (len >= 2 && seg[len - 2] == '(' && seg[len - 1] == ')') len -= 2;
+        if (len == parent_len && strncmp(seg, parent, parent_len) == 0) return true;
+        seg = end + SKIP_ONE;
+    }
+    return false;
+}
+
 /* Strategy 3+4: Name lookup + suffix match */
 static cbm_resolution_t resolve_name_lookup(const cbm_registry_t *r, const char *callee_name,
                                             const char *module_qn, const char **import_vals,
@@ -913,6 +949,7 @@ static cbm_resolution_t resolve_name_lookup(const cbm_registry_t *r, const char 
 
     /* Strategy 3: unique name */
     if (arr->count == SKIP_ONE) {
+        if (!receiver_chain_admits(callee_name, arr->items[0])) return empty_result();
         double conf = CONF_UNIQUE_NAME;
         if (import_vals && import_count > 0 &&
             !is_import_reachable(arr->items[0], import_vals, import_count)) {
@@ -927,6 +964,7 @@ static cbm_resolution_t resolve_name_lookup(const cbm_registry_t *r, const char 
     }
     const char *best = best_by_import_distance((const char **)arr->items, arr->count, module_qn);
     if (best) {
+        if (!receiver_chain_admits(callee_name, best)) return empty_result();
         double conf = candidate_count_penalty(CONF_SUFFIX_MATCH, arr->count);
         return (cbm_resolution_t){best, "suffix_match", conf, arr->count};
     }

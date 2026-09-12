@@ -9518,6 +9518,55 @@ TEST(registry_confidence_suffix_match) {
     PASS();
 }
 
+TEST(registry_receiver_chain_refuses_library_unique_name_issue1893) {
+    cbm_registry_t *reg = cbm_registry_new();
+    cbm_registry_add(reg, "data", "HomeboxUI.PickedFile.data", "Variable");
+    cbm_resolution_t r = cbm_registry_resolve(reg, "URLSession.shared.data", "HomeboxUI.Net", NULL, NULL, 0);
+    ASSERT_NULL(r.qualified_name);
+    cbm_registry_free(reg);
+    PASS();
+}
+
+TEST(registry_receiver_chain_refuses_library_suffix_match_issue1893) {
+    cbm_registry_t *reg = cbm_registry_new();
+    cbm_registry_add(reg, "data", "HomeboxUI.PickedFile.data", "Variable");
+    cbm_registry_add(reg, "data", "HomeboxUI.Payload.data", "Variable");
+    cbm_resolution_t r = cbm_registry_resolve(reg, "URLSession.shared.data", "HomeboxUI.Net", NULL, NULL, 0);
+    ASSERT_NULL(r.qualified_name);
+    cbm_registry_free(reg);
+    PASS();
+}
+
+TEST(registry_receiver_chain_keeps_project_extension_issue1893) {
+    cbm_registry_t *reg = cbm_registry_new();
+    cbm_registry_add(reg, "startOfDayUTC", "AuthDTOs.Calendar.startOfDayUTC", "Method");
+    cbm_resolution_t r = cbm_registry_resolve(reg, "Calendar.utcGregorian.startOfDayUTC", "HomeboxUI.Stats", NULL, NULL, 0);
+    ASSERT_STR_EQ(r.qualified_name, "AuthDTOs.Calendar.startOfDayUTC");
+    ASSERT_STR_EQ(r.strategy, "unique_name");
+    cbm_registry_free(reg);
+    PASS();
+}
+
+TEST(registry_receiver_chain_ignores_lowercase_root_issue1893) {
+    cbm_registry_t *reg = cbm_registry_new();
+    cbm_registry_add(reg, "load", "HomeboxUI.EntityListViewModel.load", "Method");
+    cbm_resolution_t r = cbm_registry_resolve(reg, "vm.load", "HomeboxUI.Views", NULL, NULL, 0);
+    ASSERT_STR_EQ(r.qualified_name, "HomeboxUI.EntityListViewModel.load");
+    ASSERT_STR_EQ(r.strategy, "unique_name");
+    cbm_registry_free(reg);
+    PASS();
+}
+
+TEST(registry_receiver_chain_ignores_bare_name_issue1893) {
+    cbm_registry_t *reg = cbm_registry_new();
+    cbm_registry_add(reg, "helper", "proj.pkg.helper", "Function");
+    cbm_resolution_t r = cbm_registry_resolve(reg, "helper", "proj.other", NULL, NULL, 0);
+    ASSERT_STR_EQ(r.qualified_name, "proj.pkg.helper");
+    ASSERT_STR_EQ(r.strategy, "unique_name");
+    cbm_registry_free(reg);
+    PASS();
+}
+
 TEST(registry_fuzzy_confidence_single) {
     cbm_registry_t *reg = cbm_registry_new();
     cbm_registry_add(reg, "Handler", "proj.svc.Handler", "Function");
@@ -13840,6 +13889,11 @@ SUITE(pipeline) {
     RUN_TEST(registry_confidence_same_module);
     RUN_TEST(registry_confidence_unique_name);
     RUN_TEST(registry_confidence_suffix_match);
+    RUN_TEST(registry_receiver_chain_refuses_library_unique_name_issue1893);
+    RUN_TEST(registry_receiver_chain_refuses_library_suffix_match_issue1893);
+    RUN_TEST(registry_receiver_chain_keeps_project_extension_issue1893);
+    RUN_TEST(registry_receiver_chain_ignores_lowercase_root_issue1893);
+    RUN_TEST(registry_receiver_chain_ignores_bare_name_issue1893);
     RUN_TEST(registry_fuzzy_confidence_single);
     RUN_TEST(registry_fuzzy_confidence_distance);
     RUN_TEST(registry_negative_import_rejects);
