@@ -49,8 +49,10 @@ case "${1:-}" in
     test -r "$config" && rg -n '<triggers|pollSCM|release-tooling|file://' "$config"
     ;;
   trigger)
-    cli build "$job_name" -s
-    echo "triggered $jenkins_url/job/$job_name/"
+    # Do not attach the caller's lifetime to the build. Interrupting a local
+    # terminal while `build -s` waits propagates an abort to Jenkins.
+    cli build "$job_name"
+    echo "queued $jenkins_url/job/$job_name/"
     ;;
   *) echo "usage: $0 configure|inspect|trigger" >&2; exit 2 ;;
 esac
