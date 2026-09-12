@@ -212,7 +212,10 @@ static const char *cbm_string_read(void *payload, uint32_t byte, TSPoint point,
 /* CPU budget avoids false timeouts when a worker is descheduled under CI load;
  * the wall ceiling remains a backstop for genuinely stuck parses. */
 #define CBM_PARSE_WALL_CEILING_FACTOR 12ULL
-typedef struct { uint64_t cpu_deadline_ns; uint64_t wall_ceiling_ns; } CBMParseBudget;
+typedef struct {
+    uint64_t cpu_deadline_ns;
+    uint64_t wall_ceiling_ns;
+} CBMParseBudget;
 #ifdef CBM_ENABLE_TEST_SEAMS
 static CBM_TLS uint64_t tl_parse_wall_seam_offset_ns = 0;
 #endif

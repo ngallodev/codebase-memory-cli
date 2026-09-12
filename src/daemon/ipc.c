@@ -4311,9 +4311,8 @@ static BOOL CALLBACK win_resolve_local_admin_sid(PINIT_ONCE once, PVOID paramete
     HMODULE advapi = security->advapi;
     lsa_open_policy_fn lsa_open =
         (lsa_open_policy_fn)(void (*)(void))GetProcAddress(advapi, "LsaOpenPolicy");
-    lsa_query_information_policy_fn lsa_query =
-        (lsa_query_information_policy_fn)(void (*)(void))GetProcAddress(
-            advapi, "LsaQueryInformationPolicy");
+    lsa_query_information_policy_fn lsa_query = (lsa_query_information_policy_fn)(void (*)(
+        void))GetProcAddress(advapi, "LsaQueryInformationPolicy");
     lsa_free_memory_fn lsa_free =
         (lsa_free_memory_fn)(void (*)(void))GetProcAddress(advapi, "LsaFreeMemory");
     lsa_close_fn lsa_close = (lsa_close_fn)(void (*)(void))GetProcAddress(advapi, "LsaClose");
