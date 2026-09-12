@@ -389,25 +389,27 @@ TEST(daemon_bootstrap_uses_one_stable_per_account_endpoint) {
  * the default ancestry (%LOCALAPPDATA%, /private/tmp) cannot pass the
  * private-directory walk — otherwise every command fails, `config list`
  * included, and the operator cannot reconfigure their way out. CBM_RUNTIME_DIR
- * moves WHERE the rendezvous lives; it never relaxes HOW it is checked, so a
- * value that cannot be a private runtime parent must be refused rather than
- * silently replaced by the default. An explicit parent — the compile-time test
- * seam, the lifecycle guards' isolated namespace — keeps precedence over it. */
+ * moves WHERE the rendezvous lives; it never relaxes HOW it is checked. A
+ * missing explicit override is provisioned owner-private, while an unsafe
+ * existing parent is still refused rather than replaced by the default. An
+ * explicit parent — the compile-time test seam, the lifecycle guards' isolated
+ * namespace — keeps precedence over it. */
 TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous) {
     char override_parent[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char canonical_override[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char canonical_explicit[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char relocated_runtime[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char explicit_runtime[BOOTSTRAP_TEST_PATH_CAP] = {0};
-    char unusable[BOOTSTRAP_TEST_PATH_CAP] = {0};
+    char missing_parent[BOOTSTRAP_TEST_PATH_CAP] = {0};
+    char created_runtime[BOOTSTRAP_TEST_PATH_CAP] = {0};
     int written = snprintf(override_parent, sizeof(override_parent),
                            "%s/cbm-bootstrap-runtime-env-XXXXXX", cbm_tmpdir());
     if (written <= 0 || written >= (int)sizeof(override_parent) || !cbm_mkdtemp(override_parent)) {
         FAIL("could not create the override runtime parent");
     }
-    written = snprintf(unusable, sizeof(unusable), "%s/absent/nested", override_parent);
+    written = snprintf(missing_parent, sizeof(missing_parent), "%s/absent/nested", override_parent);
     bool prepared =
-        written > 0 && written < (int)sizeof(unusable) &&
+        written > 0 && written < (int)sizeof(missing_parent) &&
         cbm_canonical_path(override_parent, canonical_override, sizeof(canonical_override)) != 0 &&
         cbm_setenv("CBM_RUNTIME_DIR", override_parent, 1) == 0;
 
@@ -430,18 +432,32 @@ TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous) {
         (void)snprintf(explicit_runtime, sizeof(explicit_runtime), "%s", fixture.runtime_dir);
     }
 
-    /* A named parent that cannot pass validation is refused, never ignored. */
-    bool unusable_set = prepared && cbm_setenv("CBM_RUNTIME_DIR", unusable, 1) == 0;
-    cbm_daemon_ipc_endpoint_t *refused =
-        unusable_set ? cbm_daemon_bootstrap_endpoint_new(NULL) : NULL;
+    /* A missing named parent is created owner-private before endpoint setup. */
+    bool missing_set = prepared && cbm_setenv("CBM_RUNTIME_DIR", missing_parent, 1) == 0;
+    cbm_daemon_ipc_endpoint_t *created =
+        missing_set ? cbm_daemon_bootstrap_endpoint_new(NULL) : NULL;
+    if (created) {
+        (void)snprintf(created_runtime, sizeof(created_runtime), "%s",
+                       cbm_daemon_ipc_endpoint_runtime_dir(created));
+    }
 
     /* Restore before asserting: a failed assertion returns immediately, and a
      * leaked CBM_RUNTIME_DIR would follow every later suite in this process. */
     (void)cbm_unsetenv("CBM_RUNTIME_DIR");
-    cbm_daemon_ipc_endpoint_free(refused);
+    cbm_daemon_ipc_endpoint_free(created);
     cbm_daemon_ipc_endpoint_free(relocated);
     if (relocated_runtime[0] != '\0') {
         (void)cbm_rmdir(relocated_runtime);
+    }
+    if (created_runtime[0] != '\0') {
+        (void)cbm_rmdir(created_runtime);
+    }
+    (void)cbm_rmdir(missing_parent);
+    {
+        char absent_parent[BOOTSTRAP_TEST_PATH_CAP];
+        if (snprintf(absent_parent, sizeof(absent_parent), "%s/absent", override_parent) > 0) {
+            (void)cbm_rmdir(absent_parent);
+        }
     }
     if (explicit_started) {
         bootstrap_endpoint_fixture_finish(&fixture);
@@ -451,12 +467,13 @@ TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous) {
     ASSERT_TRUE(prepared);
     ASSERT_TRUE(explicit_started);
     ASSERT_TRUE(explicit_canonical);
-    ASSERT_TRUE(unusable_set);
+    ASSERT_TRUE(missing_set);
     ASSERT_NOT_NULL(relocated);
     ASSERT_TRUE(bootstrap_path_has_parent(relocated_runtime, canonical_override));
     ASSERT_TRUE(bootstrap_path_has_parent(explicit_runtime, canonical_explicit));
     ASSERT_FALSE(bootstrap_path_has_parent(explicit_runtime, canonical_override));
-    ASSERT_NULL(refused);
+    ASSERT_NOT_NULL(created);
+    ASSERT_TRUE(bootstrap_path_has_parent(created_runtime, missing_parent));
     PASS();
 }
 

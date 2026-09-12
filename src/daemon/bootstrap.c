@@ -266,10 +266,18 @@ cbm_daemon_ipc_endpoint_t *cbm_daemon_bootstrap_endpoint_new(const char *runtime
      * (daemon, bootstrap client, local CLI, index worker, activation), so no call
      * site can silently keep the default. */
     char override_parent[BOOTSTRAP_PATH_CAP];
-    const char *parent =
+    const char *configured_parent =
         runtime_parent
-            ? runtime_parent
+            ? NULL
             : bootstrap_runtime_parent_override(override_parent, sizeof(override_parent));
+    const char *parent = runtime_parent ? runtime_parent : configured_parent;
+    /* An explicit override is a private leaf, unlike the default system parent.
+     * Provision a missing override through the normal no-follow, owner-only
+     * path; never alter an existing parent. */
+    if (configured_parent && !cbm_is_dir(configured_parent) &&
+        !cbm_daemon_ipc_private_directory_secure(configured_parent)) {
+        return NULL;
+    }
     return cbm_daemon_ipc_endpoint_new(key, parent);
 }
 

@@ -973,8 +973,7 @@ static int run_named_cli(const cbm_cli_command_alias_t *alias, int argc, char **
                 printf(" [%s]", alias->positional_metavar);
             }
             printf(" [options]\n\n");
-            printf("The current repository/project is inferred when the underlying operation "
-                   "supports session context; use --project to select explicitly.\n\n");
+            printf("Use --project to select the indexed project.\n\n");
             return cbm_cli_print_tool_flags(alias->tool_name) == 0 ? 0 : SKIP_ONE;
         }
     }

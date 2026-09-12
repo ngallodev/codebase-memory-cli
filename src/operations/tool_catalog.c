@@ -344,7 +344,8 @@ static const tool_def_t TOOLS[] = {
      "always exact and the impacted_modules rollup always complete regardless.\"},"
      "\"base_branch\":{\"type\":"
      "\"string\",\"default\":\"main\"},\"since\":{\"type\":\"string\",\"description\":"
-     "\"Git ref or tag to compare from (e.g. HEAD~5, v0.5.0). Diffs <ref>...HEAD.\"},"
+     "\"Git ref or tag to compare from (e.g. HEAD~5, v0.5.0). Diffs <ref>...HEAD and includes "
+     "staged, unstaged, and untracked working-tree files.\"},"
      "\"format\":{\"type\":\"string\",\"enum\":[\"tree\",\"json\"],\"default\":\"tree\"}},"
      "\"required\":"
      "[\"project\"]}"},

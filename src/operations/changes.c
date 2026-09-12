@@ -720,6 +720,7 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
         cbm_sb_t sb;
         cbm_sb_init(&sb);
         cbm_tree_scalar_str(&sb, "base", base_branch);
+        cbm_tree_scalar_bool(&sb, "working_tree_included", true);
         if (merge_base[0]) {
             cbm_tree_scalar_str(&sb, "merge_base", merge_base);
         }
@@ -779,6 +780,7 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
         yyjson_mut_val *root_obj = yyjson_mut_obj(doc);
         yyjson_mut_doc_set_root(doc, root_obj);
         yyjson_mut_obj_add_strcpy(doc, root_obj, "base", base_branch);
+        yyjson_mut_obj_add_bool(doc, root_obj, "working_tree_included", true);
         if (merge_base[0]) {
             yyjson_mut_obj_add_strcpy(doc, root_obj, "merge_base", merge_base);
         }
