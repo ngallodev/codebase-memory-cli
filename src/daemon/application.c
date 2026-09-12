@@ -351,6 +351,14 @@ static uint64_t application_deadline_after(uint32_t timeout_ms) {
     return now > UINT64_MAX - timeout_ms ? UINT64_MAX : now + timeout_ms;
 }
 
+/* Windows stat() uses the active code page, so it cannot validate a UTF-8
+ * session root reliably. Keep canonicalisation in UTF-8 and use the portable
+ * filesystem shim for the existence/type check. */
+static bool application_canonical_directory_exists(const char *path) {
+    cbm_path_info_t info = {0};
+    return cbm_path_info_utf8(path, &info) == 0 && info.is_directory;
+}
+
 static _Noreturn void application_cleanup_force_terminate(const char *component) {
     /* In production this module is daemon-owned and the host log sink flushes
      * every record synchronously. Continuing would either lose the only retry
@@ -2308,9 +2316,7 @@ static cbm_daemon_runtime_application_status_t application_set_context(
     if (canonical && allowed_present) {
         canonical = cbm_canonical_path(allowed, canonical_allowed, sizeof(canonical_allowed));
     }
-    struct stat root_status;
-    canonical =
-        canonical && stat(canonical_root, &root_status) == 0 && S_ISDIR(root_status.st_mode);
+    canonical = canonical && application_canonical_directory_exists(canonical_root);
     bool set = canonical && cbm_operation_session_state_set_context(
                                 session->operation_session, canonical_root,
                                 allowed_present ? canonical_allowed : NULL, true);
@@ -3188,9 +3194,8 @@ static int application_background_index(cbm_daemon_application_t *application,
         return -1;
     }
     char canonical_root[APPLICATION_PATH_CAP];
-    struct stat root_status;
     if (!cbm_canonical_path(root_path, canonical_root, sizeof(canonical_root)) ||
-        stat(canonical_root, &root_status) != 0 || !S_ISDIR(root_status.st_mode)) {
+        !application_canonical_directory_exists(canonical_root)) {
         return -1;
     }
     yyjson_mut_doc *document = yyjson_mut_doc_new(NULL);

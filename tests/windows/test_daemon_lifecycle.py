@@ -24,9 +24,11 @@ import sys
 import tempfile
 
 
-def run_cli(binary, cache, args, timeout=60):
+def run_cli(binary, cache, args, timeout=60, extra_env=None):
     env = dict(os.environ)
     env["CBM_CACHE_DIR"] = cache
+    if extra_env:
+        env.update(extra_env)
     return subprocess.run([binary] + args, capture_output=True, timeout=timeout, env=env)
 
 
@@ -107,6 +109,26 @@ def main():
                   % output_text(stop_again)[:300])
             return 1
         print("PASS: stop retired the idle daemon; second stop was idempotent")
+        # A bare start has already achieved its requested daemon state when a
+        # UI handshake is refused; explicit UI requests remain fatal.
+        if "ui:" in start_text:
+            refused_env = {"CBM_TEST_DAEMON_UI_CONFIG_REFUSED": "1"}
+            refused = run_cli(binary, cache, ["daemon", "start"], extra_env=refused_env)
+            if refused.returncode != 0 or "warning" not in output_text(refused):
+                print("RED: refused UI configuration must not fail bare daemon start:\n%s"
+                      % output_text(refused)[:400])
+                return 1
+            stopped = run_cli(binary, cache, ["daemon", "stop"])
+            if stopped.returncode != 0:
+                print("RED: could not retire daemon after refused UI configuration")
+                return 1
+            demanded = run_cli(binary, cache, ["daemon", "start", "--port=45871"],
+                               extra_env=refused_env)
+            if demanded.returncode == 0:
+                print("RED: explicit UI request must fail when configuration is refused")
+                return 1
+            run_cli(binary, cache, ["daemon", "stop"])
+            print("PASS: UI refusal distinguishes bare and explicit daemon starts")
 
         print("\nGREEN: daemon lifecycle (status/start/recycle/stop) behaves.")
         return 0

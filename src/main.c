@@ -2541,6 +2541,20 @@ static int main_daemon_ctl_finish_ui_open(cbm_daemon_runtime_client_t **client_i
     return EXIT_SUCCESS;
 }
 
+static bool main_daemon_ctl_apply_ui_config(cbm_daemon_runtime_client_t *client,
+                                            uint8_t update_mask, int port) {
+#ifdef CBM_ENABLE_TEST_SEAMS
+    char forced[8];
+    if (cbm_safe_getenv("CBM_TEST_DAEMON_UI_CONFIG_REFUSED", forced, sizeof(forced), NULL) &&
+        forced[0] == '1') {
+        return false;
+    }
+#endif
+    return cbm_daemon_application_client_set_ui_config(client, update_mask, true, port,
+                                                       MAIN_CONNECT_TIMEOUT_MS) ==
+           CBM_DAEMON_RUNTIME_APPLICATION_OK;
+}
+
 static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpoint_t *endpoint,
                                const cbm_daemon_build_identity_t *identity,
                                const char *executable_path) {
@@ -2716,6 +2730,7 @@ static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpo
     /* The committed control connection satisfied the daemon's no-client
      * startup window; configure the UI before departing. */
     int ui_port = 0;
+    bool ui_configured = false;
     if ((CBM_EMBEDDED_FILE_COUNT > 0)) {
         cbm_ui_config_t ui_config;
         cbm_ui_config_load(&ui_config);
@@ -2723,14 +2738,19 @@ static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpo
         uint8_t update_mask = 0x03U; /* enabled + port */
         bool context_set =
             main_set_client_context(start_result.client, ".", NULL, NULL, MAIN_CONNECT_TIMEOUT_MS);
-        if (!context_set || cbm_daemon_application_client_set_ui_config(
-                                start_result.client, update_mask, true, ui_port,
-                                MAIN_CONNECT_TIMEOUT_MS) != CBM_DAEMON_RUNTIME_APPLICATION_OK) {
+        ui_configured = context_set &&
+                        main_daemon_ctl_apply_ui_config(start_result.client, update_mask, ui_port);
+        if (!ui_configured) {
+            if (requested_port > 0 || open_browser) {
+                (void)fprintf(stderr,
+                              "error: the daemon did not accept the UI configuration; browser was "
+                              "not opened\n");
+                (void)cbm_daemon_runtime_client_close(start_result.client, MAIN_CLOSE_TIMEOUT_MS);
+                return EXIT_FAILURE;
+            }
             (void)fprintf(stderr,
-                          "error: the daemon did not accept the UI configuration; browser was "
-                          "not opened\n");
-            (void)cbm_daemon_runtime_client_close(start_result.client, MAIN_CLOSE_TIMEOUT_MS);
-            return EXIT_FAILURE;
+                          "warning: the daemon started but did not accept the UI configuration; "
+                          "the UI is unavailable until the next `daemon start`\n");
         }
     } else if (requested_port > 0 || open_browser) {
         (void)fprintf(stderr, "warning: this binary was built without UI support; "
@@ -2748,7 +2768,7 @@ static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpo
     printf("It survives idle periods and session ends; `codebase-memory-cli daemon stop` "
            "retires it.\n");
     int ui_result =
-        (CBM_EMBEDDED_FILE_COUNT > 0)
+        (CBM_EMBEDDED_FILE_COUNT > 0 && ui_configured)
             ? main_daemon_ctl_finish_ui_open(&start_result.client, ui_port, open_browser)
             : EXIT_SUCCESS;
     if (start_result.client) {
