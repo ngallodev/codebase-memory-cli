@@ -220,6 +220,9 @@ typedef struct {
 static CBM_TLS uint64_t tl_parse_wall_seam_offset_ns = 0;
 #endif
 
+/* Tree-sitter fixes this callback ABI as TSParseState *, although this
+ * observer reads only the payload. */
+// cppcheck-suppress constParameterCallback
 static bool cbm_timeout_cb(TSParseState *state) {
     const CBMParseBudget *budget = (const CBMParseBudget *)state->payload;
     uint64_t wall = now_ns();
