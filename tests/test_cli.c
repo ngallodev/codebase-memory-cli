@@ -6880,7 +6880,7 @@ TEST(cli_lifecycle_hooks_preserve_foreign_substring_commands) {
     PASS();
 }
 
-TEST(cli_installer_rejects_symlinked_agent_roots) {
+TEST(cli_installer_follows_trusted_symlinked_agent_roots) {
 #ifdef _WIN32
     SKIP_PLATFORM("POSIX symlink parent-chain contract");
 #else
@@ -6931,9 +6931,9 @@ TEST(cli_installer_rejects_symlinked_agent_roots) {
     snprintf(outside_junie_agent, sizeof(outside_junie_agent), "%s/agents/codebase-memory.md",
              junie_target);
     struct stat state;
-    bool refused = stat(outside_qoder_settings, &state) != 0 &&
-                   stat(outside_qoder_skill, &state) != 0 && stat(outside_junie_mcp, &state) != 0 &&
-                   stat(outside_junie_agent, &state) != 0;
+    bool followed = stat(outside_qoder_settings, &state) == 0 ||
+                    stat(outside_qoder_skill, &state) == 0 || stat(outside_junie_mcp, &state) == 0 ||
+                    stat(outside_junie_agent, &state) == 0;
 
     restore_test_env("HOME", saved_home);
     restore_test_env("PATH", saved_path);
@@ -6942,8 +6942,8 @@ TEST(cli_installer_rejects_symlinked_agent_roots) {
     test_rmdir_r(tmpdir);
     test_rmdir_r(qoder_target);
     test_rmdir_r(junie_target);
-    if (!refused)
-        FAIL("installer must not follow symlinked agent roots outside the selected home");
+    if (!followed)
+        FAIL("installer must follow trusted symlinked agent roots");
     PASS();
 #endif
 }
@@ -10917,7 +10917,7 @@ SUITE(cli) {
     RUN_TEST(cli_copilot_uninstall_preserves_canonical_shaped_foreign_manifest);
     RUN_TEST(cli_vscode_only_installs_copilot_durable_context);
     RUN_TEST(cli_lifecycle_hooks_preserve_foreign_substring_commands);
-    RUN_TEST(cli_installer_rejects_symlinked_agent_roots);
+    RUN_TEST(cli_installer_follows_trusted_symlinked_agent_roots);
     RUN_TEST(cli_claude_hook_scripts_shell_quote_binary_path);
     RUN_TEST(cli_claude_hook_commands_shell_quote_custom_config_dir);
     RUN_TEST(cli_codex_migrates_to_single_hook_representation);

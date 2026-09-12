@@ -1343,7 +1343,7 @@ static main_build_identity_status_t main_build_identity(cbm_daemon_build_identit
      * only the resulting canonical path, so retargeting the original alias
      * cannot move storage after cohort admission. */
     bool cache_ready = cbm_canonical_path(cache, canonical_cache, sizeof(canonical_cache));
-    if (!cache_ready && cbm_mkdir_p(cache, 0700)) {
+    if (!cache_ready && cbm_mkdir_p_ex(cache, 0700, CBM_MKDIR_FOLLOW_OWNED)) {
         cache_ready = cbm_canonical_path(cache, canonical_cache, sizeof(canonical_cache));
     }
     if (!cache_ready || !cbm_is_dir(canonical_cache)) {
@@ -1929,7 +1929,7 @@ static char *main_local_cli_daemon_execute(const char *tool_name, const char *ar
                                            : "no CBM daemon connection for CLI execution");
         return NULL;
     }
-    if (bootstrap.daemon_spawned) {
+    if (bootstrap.daemon_spawned && cbm_log_get_level() <= CBM_LOG_INFO) {
         (void)fprintf(stderr, "hint: this command started a temporary CBM daemon. "
                               "`codebase-memory-cli daemon start` keeps one warm and removes this "
                               "startup cost from every CLI command.\n");

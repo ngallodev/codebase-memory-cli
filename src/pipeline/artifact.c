@@ -1141,7 +1141,7 @@ int cbm_artifact_import(const char *repo_path, const char *cache_db_path) {
     char *last_slash = strrchr(cache_dir, '/');
     if (last_slash) {
         *last_slash = '\0';
-        cbm_mkdir_p(cache_dir, ART_DIR_PERMS);
+        cbm_mkdir_p_ex(cache_dir, ART_DIR_PERMS, CBM_MKDIR_FOLLOW_OWNED);
     }
 
     artifact_file_error_t ioerr;

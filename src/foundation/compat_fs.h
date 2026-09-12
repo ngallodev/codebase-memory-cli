@@ -58,6 +58,8 @@ int cbm_pclose(FILE *f);
 
 /* Create directory (and parents). mode is ignored on Windows. Returns true on success. */
 bool cbm_mkdir_p(const char *path, int mode);
+enum { CBM_MKDIR_FOLLOW_OWNED = 1U << 0 };
+bool cbm_mkdir_p_ex(const char *path, int mode, unsigned int policy);
 
 /* Delete a file. Returns 0 on success. */
 int cbm_unlink(const char *path);

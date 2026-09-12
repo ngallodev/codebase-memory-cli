@@ -558,6 +558,11 @@ bool cbm_mkdir_p(const char *path, int mode) {
     return ok;
 }
 
+bool cbm_mkdir_p_ex(const char *path, int mode, unsigned int policy) {
+    (void)policy;
+    return cbm_mkdir_p(path, mode);
+}
+
 int cbm_unlink(const char *path) {
     wchar_t *wpath = cbm_path_to_wide(path);
     if (!wpath) {
@@ -837,24 +842,77 @@ FILE *cbm_fopen(const char *path, const char *mode) {
     return fopen(path, mode);
 }
 
-static int cbm_open_directory_component(int parent, const char *component, int flags) {
+static bool cbm_walk_link_trusted(uid_t owner, bool follow_owned) {
+    return owner == 0U || (follow_owned && owner == geteuid());
+}
+
+static bool cbm_walk_target_trusted(const struct stat *target) {
+    bool trusted_owner = target->st_uid == 0U || target->st_uid == geteuid();
+    bool world_writable = (target->st_mode & S_IWOTH) != 0;
+    bool sticky = (target->st_mode & S_ISVTX) != 0;
+    return S_ISDIR(target->st_mode) && trusted_owner && (!world_writable || sticky);
+}
+
+static bool cbm_read_trusted_link(int parent, const char *component, bool follow_owned, char *text,
+                                  size_t text_size) {
+    ssize_t length = 0;
+#if defined(__linux__) && defined(O_PATH)
+    int link = openat(parent, component, O_PATH | O_NOFOLLOW | O_CLOEXEC);
+    if (link < 0) return false;
+    struct stat state;
+    if (fstat(link, &state) == 0 && S_ISLNK(state.st_mode) &&
+        cbm_walk_link_trusted(state.st_uid, follow_owned)) {
+        length = readlinkat(link, "", text, text_size);
+    }
+    (void)close(link);
+#else
+    struct stat before, after;
+    if (fstatat(parent, component, &before, AT_SYMLINK_NOFOLLOW) != 0 ||
+        !S_ISLNK(before.st_mode) || !cbm_walk_link_trusted(before.st_uid, follow_owned))
+        return false;
+    length = readlinkat(parent, component, text, text_size);
+    if (fstatat(parent, component, &after, AT_SYMLINK_NOFOLLOW) != 0 ||
+        !S_ISLNK(after.st_mode) || after.st_dev != before.st_dev ||
+        after.st_ino != before.st_ino || after.st_uid != before.st_uid)
+        return false;
+#endif
+    if (length <= 0 || (size_t)length >= text_size) return false;
+    text[length] = '\0';
+    return true;
+}
+
+static int cbm_open_directory_component(int parent, const char *component, int flags,
+                                        bool follow_owned) {
     int descriptor = openat(parent, component, flags);
 #if defined(O_NOFOLLOW) && defined(AT_SYMLINK_NOFOLLOW)
     if (descriptor < 0) {
-        struct stat state;
-        if (fstatat(parent, component, &state, AT_SYMLINK_NOFOLLOW) == 0 &&
-            S_ISLNK(state.st_mode) && state.st_uid == 0U) {
-            descriptor = openat(parent, component, flags & ~O_NOFOLLOW);
+        char text[CBM_SZ_4K];
+        if (cbm_read_trusted_link(parent, component, follow_owned, text, sizeof(text))) {
+            int followed = openat(parent, text, flags & ~O_NOFOLLOW);
+            struct stat target;
+            if (followed >= 0 && fstat(followed, &target) == 0 &&
+                cbm_walk_target_trusted(&target)) {
+                descriptor = followed;
+            } else if (followed >= 0) {
+                (void)close(followed);
+            }
         }
     }
+#else
+    (void)follow_owned;
 #endif
     return descriptor;
 }
 
 bool cbm_mkdir_p(const char *path, int mode) {
+    return cbm_mkdir_p_ex(path, mode, 0U);
+}
+
+bool cbm_mkdir_p_ex(const char *path, int mode, unsigned int policy) {
     if (!path || path[0] == '\0') {
         return false;
     }
+    bool follow_owned = (policy & CBM_MKDIR_FOLLOW_OWNED) != 0U;
     char *tmp = strdup(path);
     if (!tmp) {
         return false;
@@ -887,12 +945,12 @@ bool cbm_mkdir_p(const char *path, int mode) {
             *separator = '\0';
         }
         if (cursor[0] != '\0' && strcmp(cursor, ".") != 0) {
-            int next = cbm_open_directory_component(directory, cursor, flags);
+            int next = cbm_open_directory_component(directory, cursor, flags, follow_owned);
             if (next < 0 && errno == ENOENT) {
                 if (mkdirat(directory, cursor, (mode_t)mode) != 0 && errno != EEXIST) {
                     ok = false;
                 } else {
-                    next = cbm_open_directory_component(directory, cursor, flags);
+                    next = cbm_open_directory_component(directory, cursor, flags, follow_owned);
                 }
             }
             if (ok && next < 0) {

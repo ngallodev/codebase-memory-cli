@@ -1517,7 +1517,7 @@ static int jl_ensure_parent(const char *path) {
     if (!parent) {
         return -1;
     }
-    int result = strcmp(parent, ".") == 0 || cbm_mkdir_p(parent, 0755) ? 0 : -1;
+    int result = strcmp(parent, ".") == 0 || cbm_mkdir_p_ex(parent, 0755, CBM_MKDIR_FOLLOW_OWNED) ? 0 : -1;
     free(parent);
     return result;
 }
