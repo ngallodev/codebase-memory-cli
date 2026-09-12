@@ -138,6 +138,16 @@ pipeline {
                 sh 'scripts/test.sh --tsan'
             }
         }
+        stage('Publish Jenkins qualification evidence') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'github-https-token',
+                                                   usernameVariable: 'GITHUB_USER',
+                                                   passwordVariable: 'GH_TOKEN')]) {
+                    sh 'GITHUB_REPOSITORY=ngallodev/codebase-memory-cli scripts/ci/publish-jenkins-evidence.sh'
+                }
+                archiveArtifacts artifacts: 'jenkins-evidence/**', fingerprint: true
+            }
+        }
         stage('Archive Linux CLI artifact') {
             steps {
                 sh '''

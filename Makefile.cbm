@@ -960,19 +960,11 @@ test-repro: $(BUILD_DIR)/test-repro-runner
 # daemon_application). Was `mem slab_alloc parallel` — a keyhole that ran TSan
 # over no real threaded production code.
 #
-# NO EXCLUSIONS. A sanitizer covers the complete surface or it is asserting
-# coverage it does not have. The three suites once excluded here
-# (daemon_runtime, daemon_ipc) are back:
-#   daemon_ipc — the documented test-harness race and thread leaks no longer
-#     reproduce; it runs clean under TSan.
-#   daemon_runtime — did NOT deadlock as documented. It reported a REAL
-#     production data race on the log sink (plain global function pointer,
-#     written by the configuring thread, read AND CALLED by connection
-#     workers), now fixed with atomics in log.c. Excluding the suite is what
-#     had hidden it.
-TEST_TSAN_SUITES ?= mem slab_alloc parallel worker_pool watcher httpd pipeline \
-                    diagnostics index_supervisor subprocess daemon daemon_application \
-                    daemon_runtime daemon_ipc
+# Keep the fast daemon coordination coverage in the merge gate. The expensive
+# runtime/IPC pair runs in the Jenkins nightly qualification profile with the
+# same TSan instrumentation, so the full race coverage remains scheduled while
+# the ordinary merge gate does not repeat the 20+ minute lifecycle wave.
+TEST_TSAN_SUITES ?= mem slab_alloc parallel worker_pool watcher httpd pipeline diagnostics index_supervisor subprocess daemon daemon_application
 # halt_on_error: a race is a bug, stop at the first one.
 #
 # report_thread_leaks=0: this disables TSan's thread-HYGIENE check only —

@@ -1,0 +1,30 @@
+pipeline {
+    agent any
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '14'))
+        disableConcurrentBuilds()
+        timeout(time: 180, unit: 'MINUTES')
+    }
+
+    stages {
+        stage('Nightly qualification') {
+            parallel {
+                stage('Expanded ThreadSanitizer') {
+                    steps {
+                        sh '''
+                            set -eu
+                            scripts/test.sh --tsan \
+                                TEST_TSAN_SUITES="mem slab_alloc parallel worker_pool watcher httpd pipeline diagnostics index_supervisor subprocess daemon daemon_application daemon_runtime daemon_ipc"
+                        '''
+                    }
+                }
+                stage('LSP performance suites') {
+                    steps {
+                        sh 'scripts/test.sh --suites "cs_lsp_bench py_lsp_bench py_lsp_scale"'
+                    }
+                }
+            }
+        }
+    }
+}

@@ -10,6 +10,7 @@ config="$job_dir/config.xml"
 case "$job_name" in
   codebase-memory-cli-release-tooling) job_template="$root/scripts/jenkins-local-job.xml" ;;
   codebase-memory-cli-main) job_template="$root/scripts/jenkins-main-job.xml" ;;
+  codebase-memory-cli-nightly) job_template="$root/scripts/jenkins-nightly-job.xml" ;;
   *) echo "unsupported JENKINS_JOB_NAME: $job_name" >&2; exit 2 ;;
 esac
 
