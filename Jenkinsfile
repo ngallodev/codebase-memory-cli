@@ -70,22 +70,42 @@ pipeline {
                 '''
             }
         }
-        stage('Test') {
+        stage('Prepare test runner') {
             steps {
                 sh '''
                     set -eu
-                    if [ -n "${CBM_TEST_SUITES:-}" ]; then
-                        # Explicit suite requests are the opt-in performance
-                        # path (for example cs_lsp_bench or py_lsp_scale).
-                        CBM_TEST_TIMINGS=1 scripts/test.sh --suites "$CBM_TEST_SUITES"
-                    else
-                        # Keep pure LSP ratio/scale benchmarks out of the
-                        # ordinary correctness gate. Incremental remains in
-                        # the default gate because it contains correctness
-                        # coverage, not just performance measurements.
-                        CBM_SKIP_PERF=1 CBM_TEST_TIMINGS=1 scripts/test.sh
-                    fi
+                    rm -rf build/c/test-logs
+                    CBM_TEST_PHASE=prepare CBM_SKIP_PERF=1 scripts/test.sh
                 '''
+            }
+        }
+        stage('Test shards') {
+            parallel {
+                stage('Test shard 1/3') {
+                    steps {
+                        sh 'CBM_TEST_PHASE=shard CBM_TEST_SHARD=1/3 CBM_TEST_LEG=jenkins-main CBM_TEST_LOG_DIR=build/c/test-logs/shard-1 CBM_SKIP_PERF=1 scripts/test.sh'
+                    }
+                }
+                stage('Test shard 2/3') {
+                    steps {
+                        sh 'CBM_TEST_PHASE=shard CBM_TEST_SHARD=2/3 CBM_TEST_LEG=jenkins-main CBM_TEST_LOG_DIR=build/c/test-logs/shard-2 CBM_SKIP_PERF=1 scripts/test.sh'
+                    }
+                }
+                stage('Test shard 3/3') {
+                    steps {
+                        sh 'CBM_TEST_PHASE=shard CBM_TEST_SHARD=3/3 CBM_TEST_LEG=jenkins-main CBM_TEST_LOG_DIR=build/c/test-logs/shard-3 CBM_SKIP_PERF=1 scripts/test.sh'
+                    }
+                }
+            }
+        }
+        stage('Verify test shards') {
+            steps {
+                sh 'scripts/ci/verify-shard-union.sh build/c/test-logs'
+            }
+        }
+        stage('Post-test gates') {
+            steps {
+                sh 'CBM_TEST_PHASE=post scripts/test.sh'
             }
         }
         stage('Package wrappers') {

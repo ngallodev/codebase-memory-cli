@@ -10,7 +10,7 @@ cd "$ROOT"
 
 usage() {
     cat <<'EOF'
-Usage: scripts/test.sh [--suites LIST] [--arch ARCH] [VAR=VAL ...]
+Usage: scripts/test.sh [--suites LIST] [--phase PHASE] [--arch ARCH] [VAR=VAL ...]
 
 The canonical test entry: identical in local CI, PR CI, dry run and release.
 DEFAULT (no --suites) is exactly what CI runs: static contract checks
@@ -29,6 +29,8 @@ Modes:
   --tsan         ThreadSanitizer leg (data-race gate): builds and runs the
                  widened TSan runner via make test-tsan — the same leg CI's
                  tsan jobs and the compose test-tsan service run.
+  --phase PHASE  Jenkins split phase: prepare, shard, or post. The default
+                 remains the complete venue gate.
 
 Options:
   --arch ARCH    Force target arch (arm64 | x86_64), e.g. under Rosetta.
@@ -64,6 +66,7 @@ EOF
 # silently swallowed — agents must know exactly what a run will do.
 SUITES=""
 TSAN=0
+PHASE="${CBM_TEST_PHASE:-full}"
 prev_arg=""
 for arg in "$@"; do
     case "$arg" in
@@ -71,6 +74,8 @@ for arg in "$@"; do
         --tsan) :;;
         --suites) :;; # next arg is the value, handled below
         --suites=*) SUITES="${arg#--suites=}" ;;
+        --phase) :;; # next arg is the value, handled below
+        --phase=*) PHASE="${arg#--phase=}" ;;
         --arch) :;; # next arg is the value, handled below
         --arch=*) :;; # handled below
         -*)
@@ -78,14 +83,14 @@ for arg in "$@"; do
             exit 2
             ;;
         arm64|x86_64)
-            if [[ "${prev_arg:-}" != "--arch" && "${prev_arg:-}" != "--suites" ]]; then
+            if [[ "${prev_arg:-}" != "--arch" && "${prev_arg:-}" != "--suites" && "${prev_arg:-}" != "--phase" ]]; then
                 echo "test.sh: unexpected argument '$arg' (did you mean --arch $arg?). Please consult --help." >&2
                 exit 2
             fi
             ;;
         *=*) :;; # VAR=VAL make passthrough, validated below
         *)
-            if [[ "${prev_arg:-}" != "--suites" ]]; then
+            if [[ "${prev_arg:-}" != "--suites" && "${prev_arg:-}" != "--phase" ]]; then
                 echo "test.sh: unexpected argument '$arg'. Please consult --help." >&2
                 exit 2
             fi
@@ -96,6 +101,7 @@ done
 for arg in "$@"; do
     case "$arg" in
         --tsan) TSAN=1 ;;
+        --phase=*) PHASE="${arg#--phase=}" ;;
         arm64|x86_64)
             if [[ "${prev_arg2:-}" == "--arch" ]]; then
                 export CBM_ARCH="$arg"
@@ -104,6 +110,8 @@ for arg in "$@"; do
         *)
             if [[ "${prev_arg2:-}" == "--suites" ]]; then
                 SUITES="$arg"
+            elif [[ "${prev_arg2:-}" == "--phase" ]]; then
+                PHASE="$arg"
             fi
             ;;
     esac
@@ -112,7 +120,7 @@ done
 # Normalize comma separation to the runner's space-separated argv form.
 SUITES="${SUITES//,/ }"
 case "${prev_arg:-}" in
-    --suites|--arch)
+    --suites|--phase|--arch)
         echo "test.sh: '$prev_arg' needs a value. Please consult --help." >&2
         exit 2
         ;;
@@ -153,16 +161,25 @@ for arg in "$@"; do
         arm64|x86_64) ;; # already handled
         --tsan) ;; # already handled
         --suites|--suites=*) ;; # already handled (value skipped via prev_arg below)
+        --phase|--phase=*) ;; # already handled (value skipped via prev_arg below)
         BUILD_DIR=*) BUILD_DIR="${arg#BUILD_DIR=}"; MAKE_ARGS+=("$arg") ;;
         SANITIZE=*) SANITIZE_GIVEN=1; MAKE_ARGS+=("$arg") ;;
         *=*)
-            if [[ "${prev_arg:-}" != "--suites" ]]; then
+            if [[ "${prev_arg:-}" != "--suites" && "${prev_arg:-}" != "--phase" ]]; then
                 MAKE_ARGS+=("$arg") # forward any VAR=VAL to make
             fi
+            ;;
+        *)
+            # --suites and --phase values are consumed by the parser above.
             ;;
     esac
     prev_arg="$arg"
 done
+
+case "$PHASE" in
+    full|prepare|shard|post) ;;
+    *) echo "test.sh: unknown phase '$PHASE' (expected prepare, shard, post)" >&2; exit 2 ;;
+esac
 
 # Platform default absorbed FROM CI (previously inline in _test.yml, so the
 # local arm64 leg silently built without it — that divergence is why the SQLite
@@ -175,6 +192,18 @@ if [ "$SANITIZE_GIVEN" -eq 0 ] && [ "${MSYSTEM:-}" = "CLANGARM64" ]; then
 fi
 
 print_env "test.sh"
+
+if [ "$PHASE" = "shard" ]; then
+    test -x "$BUILD_DIR/test-runner" || {
+        echo "test.sh: shard phase requires an existing $BUILD_DIR/test-runner" >&2
+        exit 1
+    }
+    exec bash "$ROOT/scripts/run-tests-parallel.sh" "$BUILD_DIR/test-runner"
+fi
+
+if [ "$PHASE" = "post" ]; then
+    exec bash "$ROOT/scripts/ci/test-post-gates.sh" "$BUILD_DIR"
+fi
 
 # ── TSan mode (--tsan): the data-race gate ──
 # One entry for every venue: CI's tsan jobs and the compose test-tsan service
@@ -269,6 +298,12 @@ bash "$ROOT/tests/test_language_count_contract.sh"
 
 echo "=== Step 0x: packaging version-metadata contract ==="
 bash "$ROOT/tests/test_version_metadata_contract.sh"
+
+if [ "$PHASE" = "prepare" ]; then
+    echo "=== Jenkins test preparation: build shared test runner ==="
+    make -j"$NPROC" -f Makefile.cbm "$BUILD_DIR/test-runner" ${MAKE_ARGS[@]+"${MAKE_ARGS[@]}"}
+    exit 0
+fi
 
 # Verify compiler supports target arch
 verify_compiler "$CC"

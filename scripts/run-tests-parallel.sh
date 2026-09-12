@@ -35,7 +35,7 @@ if [ -z "$JOBS" ]; then
     fi
 fi
 
-LOGDIR="$(dirname "$RUNNER")/test-logs"
+LOGDIR="${CBM_TEST_LOG_DIR:-$(dirname "$RUNNER")/test-logs}"
 rm -rf "$LOGDIR"
 mkdir -p "$LOGDIR"
 
