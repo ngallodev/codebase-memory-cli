@@ -858,7 +858,8 @@ static bool cbm_read_trusted_link(int parent, const char *component, bool follow
     ssize_t length = 0;
 #if defined(__linux__) && defined(O_PATH)
     int link = openat(parent, component, O_PATH | O_NOFOLLOW | O_CLOEXEC);
-    if (link < 0) return false;
+    if (link < 0)
+        return false;
     struct stat state;
     if (fstat(link, &state) == 0 && S_ISLNK(state.st_mode) &&
         cbm_walk_link_trusted(state.st_uid, follow_owned)) {
@@ -867,16 +868,17 @@ static bool cbm_read_trusted_link(int parent, const char *component, bool follow
     (void)close(link);
 #else
     struct stat before, after;
-    if (fstatat(parent, component, &before, AT_SYMLINK_NOFOLLOW) != 0 ||
-        !S_ISLNK(before.st_mode) || !cbm_walk_link_trusted(before.st_uid, follow_owned))
+    if (fstatat(parent, component, &before, AT_SYMLINK_NOFOLLOW) != 0 || !S_ISLNK(before.st_mode) ||
+        !cbm_walk_link_trusted(before.st_uid, follow_owned))
         return false;
     length = readlinkat(parent, component, text, text_size);
-    if (fstatat(parent, component, &after, AT_SYMLINK_NOFOLLOW) != 0 ||
-        !S_ISLNK(after.st_mode) || after.st_dev != before.st_dev ||
-        after.st_ino != before.st_ino || after.st_uid != before.st_uid)
+    if (fstatat(parent, component, &after, AT_SYMLINK_NOFOLLOW) != 0 || !S_ISLNK(after.st_mode) ||
+        after.st_dev != before.st_dev || after.st_ino != before.st_ino ||
+        after.st_uid != before.st_uid)
         return false;
 #endif
-    if (length <= 0 || (size_t)length >= text_size) return false;
+    if (length <= 0 || (size_t)length >= text_size)
+        return false;
     text[length] = '\0';
     return true;
 }

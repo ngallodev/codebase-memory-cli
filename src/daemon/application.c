@@ -1209,9 +1209,9 @@ static application_attempt_status_t application_job_run_attempt(cbm_daemon_appli
 
     cbm_daemon_application_worker_t worker = NULL;
     application_tmp_lock();
-    int start_result = application->worker_ops.start(
-        application->worker_ops.context, job->args_json, memory_budget_bytes, marker_path,
-        quarantine_path, &worker);
+    int start_result =
+        application->worker_ops.start(application->worker_ops.context, job->args_json,
+                                      memory_budget_bytes, marker_path, quarantine_path, &worker);
     application_tmp_unlock();
     if (start_result != 0 || !worker) {
         return application_job_cancel_requested(job) ? APPLICATION_ATTEMPT_CANCELLED
@@ -1709,8 +1709,10 @@ static size_t application_active_job_count_locked(cbm_daemon_application_t *appl
 static size_t application_worker_memory_slice_locked(cbm_daemon_application_t *application,
                                                      size_t *active_jobs_out) {
     size_t active = application_active_job_count_locked(application);
-    if (active == 0) active = 1;
-    if (active_jobs_out) *active_jobs_out = active;
+    if (active == 0)
+        active = 1;
+    if (active_jobs_out)
+        *active_jobs_out = active;
     return application->aggregate_memory_budget_bytes / active;
 }
 
@@ -1741,9 +1743,11 @@ static bool application_index_args_normalize_defaults(yyjson_mut_val *root) {
 static bool application_index_args_fold_repo_path(yyjson_mut_doc *document) {
     yyjson_mut_val *root = yyjson_mut_doc_get_root(document);
     yyjson_mut_val *repo_path = yyjson_mut_obj_get(root, "repo_path");
-    if (!repo_path || !yyjson_mut_is_str(repo_path)) return true;
+    if (!repo_path || !yyjson_mut_is_str(repo_path))
+        return true;
     char *folded = strdup(yyjson_mut_get_str(repo_path));
-    if (!folded) return false;
+    if (!folded)
+        return false;
     cbm_normalize_path_sep(folded);
     yyjson_mut_val *key = yyjson_mut_str(document, "repo_path");
     yyjson_mut_val *value = yyjson_mut_strcpy(document, folded);
