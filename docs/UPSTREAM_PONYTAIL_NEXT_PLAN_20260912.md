@@ -1,15 +1,17 @@
 # Ponytail next merge set — 2026-09-12
 
-Select only the remaining Cypher correctness pair, in upstream order:
+Select only the remaining Cypher correctness guard:
 
-`25a7aacc -> afc948ba`
+`25a7aacc`
 
 - `25a7aacc`: reject queries the parser did not fully consume, rather than
   returning a silently truncated interpretation.
-- `afc948ba`: reject names dropped by `WITH`, rather than projecting blanks.
 
-Both are direct correctness guards with focused `cypher` regression coverage.
-They are smaller and more immediate than language expansions, coverage-model
+The post-formatter refresh found `afc948ba` is already an ancestor of current
+`main`; do not duplicate it.
+
+This is a direct correctness guard with focused `cypher` regression coverage.
+It is smaller and more immediate than language expansions, coverage-model
 rewrites, logging policy, or speculative Clang 23 portability work. Before
 implementation, re-run reverse/normal applicability checks against current
 `main`, adapt only CLI-core code/tests, and validate `cypher`.
