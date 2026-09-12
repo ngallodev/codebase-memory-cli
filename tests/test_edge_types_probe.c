@@ -818,6 +818,20 @@ TEST(async_calls_celery_python) {
     PASS();
 }
 
+TEST(async_calls_celery_wall_stall_seam) {
+    static const EtFile f[] = {
+        {"celery/app.py", "class Celery:\n"
+         "    def send_task(self, name, args=None): return (name, args)\n\napp = Celery()\n"},
+        {"tasks/order_tasks.py", "from celery.app import app\n\n"
+         "def dispatch_order_created(order_id):\n"
+         "    return app.send_task('order_created', args=[order_id])\n"}};
+    cbm_setenv("CBM_TEST_WALL_STALL_ON", "celery/app.py", 1);
+    int ok = et_edge_present(f, 2, "ASYNC_CALLS", 1);
+    cbm_unsetenv("CBM_TEST_WALL_STALL_ON");
+    ASSERT_TRUE(ok);
+    PASS();
+}
+
 /* Sidekiq (Ruby) — "Sidekiq" substring in resolved QN */
 TEST(async_calls_sidekiq_ruby) {
     static const EtFile f[] = {
@@ -1600,6 +1614,7 @@ SUITE(edge_types_probe) {
 
     /* ASYNC_CALLS — message queue dispatch (5 brokers × languages) */
     RUN_TEST(async_calls_celery_python);
+    RUN_TEST(async_calls_celery_wall_stall_seam);
     RUN_TEST(async_calls_sidekiq_ruby);
     RUN_TEST(async_calls_kafkajs_ts);
     RUN_TEST(async_calls_sqs_go);

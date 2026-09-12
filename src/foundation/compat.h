@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 /* stdlib.h declares getenv (cbm_tmpdir) and, on Windows, _putenv_s (cbm_setenv/
  * cbm_unsetenv). The x86-64 mingw toolchain pulled it in transitively, but the
@@ -95,6 +96,9 @@ static inline int cbm_nanosleep(const struct timespec *req, struct timespec *rem
 #define cbm_clock_gettime clock_gettime
 #define cbm_nanosleep nanosleep
 #endif
+
+/* Per-calling-thread CPU time in nanoseconds. */
+uint64_t cbm_thread_cpu_time_ns(void);
 
 /* ── gmtime_r (Windows lacks it) ─────────────────────────────── */
 #ifdef _WIN32

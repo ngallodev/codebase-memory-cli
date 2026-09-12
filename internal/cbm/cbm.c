@@ -209,9 +209,21 @@ static const char *cbm_string_read(void *payload, uint32_t byte, TSPoint point,
 
 // --- Parse timeout callback ---
 
+/* CPU budget avoids false timeouts when a worker is descheduled under CI load;
+ * the wall ceiling remains a backstop for genuinely stuck parses. */
+#define CBM_PARSE_WALL_CEILING_FACTOR 12ULL
+typedef struct { uint64_t cpu_deadline_ns; uint64_t wall_ceiling_ns; } CBMParseBudget;
+#ifdef CBM_ENABLE_TEST_SEAMS
+static CBM_TLS uint64_t tl_parse_wall_seam_offset_ns = 0;
+#endif
+
 static bool cbm_timeout_cb(TSParseState *state) {
-    uint64_t deadline = *(uint64_t *)state->payload;
-    return now_ns() > deadline;
+    const CBMParseBudget *budget = (const CBMParseBudget *)state->payload;
+    uint64_t wall = now_ns();
+#ifdef CBM_ENABLE_TEST_SEAMS
+    wall += tl_parse_wall_seam_offset_ns;
+#endif
+    return cbm_thread_cpu_time_ns() > budget->cpu_deadline_ns || wall > budget->wall_ceiling_ns;
 }
 
 // --- Thread-local parser pool ---
@@ -1270,11 +1282,19 @@ CBMFileResult *cbm_extract_file_ex(const char *source, int source_len, CBMLangua
     };
 
     TSParseOptions opts = {0};
-    uint64_t deadline_ns = 0; // cppcheck-suppress unreadVariable
+    CBMParseBudget budget = {0}; // cppcheck-suppress unreadVariable
     if (timeout_micros > 0) {
-        deadline_ns = t0 + ((uint64_t)timeout_micros * USEC_TO_NSEC);
-        opts.payload = &deadline_ns;
+        uint64_t budget_ns = (uint64_t)timeout_micros * USEC_TO_NSEC;
+        budget.cpu_deadline_ns = cbm_thread_cpu_time_ns() + budget_ns;
+        budget.wall_ceiling_ns = t0 + budget_ns * CBM_PARSE_WALL_CEILING_FACTOR;
+        opts.payload = &budget;
         opts.progress_callback = cbm_timeout_cb;
+#ifdef CBM_ENABLE_TEST_SEAMS
+        tl_parse_wall_seam_offset_ns = 0;
+        const char *stall_on = getenv("CBM_TEST_WALL_STALL_ON");
+        if (stall_on && stall_on[0] && rel_path && strstr(rel_path, stall_on))
+            tl_parse_wall_seam_offset_ns = budget_ns + NSEC_PER_SEC;
+#endif
     }
 
     TSTree *tree = ts_parser_parse_with_options(parser, NULL, ts_input, opts);
