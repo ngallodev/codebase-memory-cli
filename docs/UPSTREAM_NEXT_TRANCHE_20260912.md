@@ -50,3 +50,7 @@ The second-wave plan is merged: core `d3bb290c`, daemon `c716cb7d`, and CLI
 already represented, and merged the missing Go binding and daemon activation
 behaviors as `e497dd0c` and `6e289d5a`. Exclude all of these from future
 candidate selection.
+
+The Ponytail pass then merged Cypher scope/capacity (`a7721244`) and receiver-
+chain registry guards (`e52b31cd`); cohort retry `9104feb6` was already in
+`3036e195`. Exclude those source hashes as well.

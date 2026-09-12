@@ -42,3 +42,13 @@ For each source commit: run reverse and normal `git apply --check`, adapt only
 the CLI-core hunk, keep the listed order, commit scoped changes, and report
 `git diff --check`, `scripts/build-dev.sh`, and focused results. Parent
 reviews/integrates only passing scoped commits. No push is authorized.
+
+## Completion update
+
+- Cypher scope/capacity: merged as `a7721244` after independent review.
+- Registry receiver chain: merged as `e52b31cd` after independent review.
+- Cohort retry `9104feb6`: already represented by `3036e195`; verified with
+  18 focused tests and intentionally not duplicated.
+
+Post-integration `cypher,pipeline,registry` validation passed. Exclude all
+five source hashes from future selections.

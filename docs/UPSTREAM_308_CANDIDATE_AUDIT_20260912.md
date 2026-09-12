@@ -119,3 +119,14 @@ The high-value vertical plan was then checked from each earliest prerequisite:
 
 The parent integration check passed `git diff --check`, incremental production
 build, and the selected pipeline/registry/import/daemon/CLI focused suites.
+
+## Ponytail completion update — 2026-09-12
+
+| Vertical | Upstream source | CLI disposition |
+|---|---|---|
+| Cypher live scope/capacity | `63b99976 -> 426e415f -> 04ba2fa3` | merged as `a7721244` |
+| Registry receiver chain | `2c76563a` | merged as `e52b31cd` |
+| Cohort handoff retry | `9104feb6` | already represented by `3036e195`; verified, no duplicate port |
+
+The next Ponytail candidate is the earlier remaining Cypher correctness pair
+`25a7aacc -> afc948ba`. Do not reselect the completed source hashes above.
