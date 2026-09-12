@@ -41,3 +41,17 @@ daemon_runtime,daemon_frontend,cli`.
    test evidence, and every intentionally omitted platform-only hunk.
 4. Parent independently reviews and integrates worker commits, then validates
    the combined tree. No push is part of this plan.
+
+## Completion record
+
+- Bounded Cypher trails: all six source commits were already ancestors of the
+  CLI baseline; no source delta was required.
+- Go struct binding: the first five source commits were ancestors; the missing
+  `349aecba` behavior was integrated as `e497dd0c`.
+- Daemon activation: seven source commits were ancestors; the missing
+  `8e70590d`, `9d4ac2b9`, and `1a6f80c3` behaviors were integrated together as
+  `6e289d5a`.
+
+The combined tree passed `git diff --check`, `scripts/build-dev.sh`, and the
+selected pipeline/registry/import/daemon/CLI focused suite command. No MCP,
+Jenkins, hook, remote, or push changes were made.

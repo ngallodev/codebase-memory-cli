@@ -102,3 +102,20 @@ Explicit gaps are excluded or categorized commits between an earliest prerequisi
 - OpenHands integration, Jenkins, and hook changes: explicitly rejected by scope.
 
 The 150 count is an audit inventory, not permission to bulk-cherry-pick. Each group needs reverse applicability checks, dependency review, and focused CLI validation before implementation.
+
+## Completion update — 2026-09-12
+
+The completed/planned second-wave sources are now merged on the CLI branch:
+`d3bb290c`, `c716cb7d`, and `fc9aeedc`. Do not select those source verticals
+again.
+
+The high-value vertical plan was then checked from each earliest prerequisite:
+
+| Vertical | Source-chain result | CLI result |
+|---|---|---|
+| Bounded Cypher trails | `8546070d -> 0c5ffa50 -> 0d97729c -> cd22487c -> b3d31ca0 -> 58ef9f19` all already ancestors | no delta needed |
+| Go struct extraction/binding | first five commits already ancestors; `349aecba` absent | merged as `e497dd0c` |
+| Daemon activation/rendezvous | seven commits already ancestors; `8e70590d`, `9d4ac2b9`, `1a6f80c3` absent | merged as `6e289d5a` |
+
+The parent integration check passed `git diff --check`, incremental production
+build, and the selected pipeline/registry/import/daemon/CLI focused suites.

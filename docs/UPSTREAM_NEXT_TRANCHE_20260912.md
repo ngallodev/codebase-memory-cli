@@ -42,3 +42,11 @@ applicability check; absence alone is not port authority.
 
 No MCP frontend code, MCP tests, OpenHands integration, Jenkins configuration,
 or hooks are included in the recommended set.
+
+## Completed status update
+
+The second-wave plan is merged: core `d3bb290c`, daemon `c716cb7d`, and CLI
+`fc9aeedc`. The subsequent high-value check found the bounded-trails sequence
+already represented, and merged the missing Go binding and daemon activation
+behaviors as `e497dd0c` and `6e289d5a`. Exclude all of these from future
+candidate selection.
