@@ -4696,6 +4696,25 @@ TEST(daemon_application_rejects_clean_exit_when_process_tree_is_not_contained) {
 }
 
 
+TEST(daemon_application_index_args_compare_repo_path_separator_equivalently) {
+    ASSERT_TRUE(cbm_daemon_application_index_args_equal_for_test(
+        "{\"repo_path\":\"C:\\\\repos\\\\cbm\"}",
+        "{\"repo_path\":\"C:/repos/cbm\"}"));
+    ASSERT_TRUE(cbm_daemon_application_index_args_equal_for_test(
+        "{\"repo_path\":\"C:\\\\repos\\\\cbm\",\"mode\":\"full\"}",
+        "{\"mode\":\"full\",\"repo_path\":\"C:/repos/cbm\"}"));
+    ASSERT_FALSE(cbm_daemon_application_index_args_equal_for_test(
+        "{\"repo_path\":\"C:\\\\repos\\\\cbm\"}",
+        "{\"repo_path\":\"C:/repos/cbm2\"}"));
+    ASSERT_FALSE(cbm_daemon_application_index_args_equal_for_test(
+        "{\"repo_path\":\"C:\\\\repos\\\\cbm\"}",
+        "{\"repo_path\":\"C:/repos/cbm/sub\"}"));
+    ASSERT_FALSE(cbm_daemon_application_index_args_equal_for_test(
+        "{\"repo_path\":\"C:\\\\repos\\\\cbm\",\"mode\":\"incremental\"}",
+        "{\"repo_path\":\"C:/repos/cbm\"}"));
+    PASS();
+}
+
 SUITE(daemon_application) {
     RUN_TEST(daemon_application_new_session_does_not_retain_initial_store);
     RUN_TEST(daemon_application_request_cancel_is_scoped_to_exact_token);
@@ -4738,6 +4757,7 @@ SUITE(daemon_application) {
     RUN_TEST(daemon_application_cancellation_between_recovery_attempts_stops_retry);
     RUN_TEST(daemon_application_thread_start_failure_rolls_back_job_reservation);
     RUN_TEST(daemon_application_queues_explicit_index_behind_physical_job_limit);
+    RUN_TEST(daemon_application_index_args_compare_repo_path_separator_equivalently);
     RUN_TEST(daemon_application_default_limit_admits_four_and_rejects_fifth);
     RUN_TEST(daemon_application_free_reports_retained_live_ownership);
     RUN_TEST(daemon_application_rejects_clean_exit_when_process_tree_is_not_contained);

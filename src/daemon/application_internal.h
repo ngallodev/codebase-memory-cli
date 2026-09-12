@@ -35,5 +35,6 @@ int cbm_daemon_application_background_initializes_for_test(void);
  * the physical job limit). Waiting for a delta here is the positive signal
  * that a request QUEUED rather than erroring or starting. */
 int cbm_daemon_application_busy_queue_waits_for_test(void);
+bool cbm_daemon_application_index_args_equal_for_test(const char *left, const char *right);
 
 #endif /* CBM_DAEMON_APPLICATION_INTERNAL_H */
