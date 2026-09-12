@@ -8,6 +8,7 @@
 #include "cli/legacy_agent_profiles.h"
 #include "cli/cli.h"
 #include "cli/activation_transaction.h"
+#include "cli/config_edit_path.h"
 #include "cli/config_json_like.h"
 #include "cli/config_text_edit.h"
 #include "cli/config_toml_edit.h"
@@ -5698,6 +5699,127 @@ static int cli_ensure_windows_user_path(const char *bin_dir, bool dry_run) {
     return CLI_OK;
 }
 
+/* Uninstall counterpart to cli_ensure_windows_user_path: remove exactly the
+ * install-dir segment install added, leaving every other segment byte-for-byte
+ * intact. Without this, every install/uninstall cycle leaves its entry behind
+ * and the current-user PATH grows without bound (#2117). Segment identity uses
+ * the same case- and trailing-separator-insensitive comparison as the install
+ * `present` scan, so we remove precisely what install would have de-duplicated.
+ * Returns CLI_OK when a segment was removed, CLI_TRUE when the directory was
+ * not present (nothing to do), CLI_ERR on a registry failure. dry_run reports
+ * without mutating. */
+static int cli_remove_windows_user_path(const char *bin_dir, bool dry_run) {
+    wchar_t *wide_dir = cli_windows_utf8_to_wide(bin_dir);
+    HKEY environment = NULL;
+    if (!wide_dir || cli_windows_open_user_path_key(&environment) != CLI_OK) {
+        free(wide_dir);
+        return CLI_ERR;
+    }
+
+    DWORD type = REG_EXPAND_SZ;
+    DWORD bytes = 0;
+    LONG queried = RegQueryValueExW(environment, L"Path", NULL, &type, NULL, &bytes);
+    if (queried == ERROR_FILE_NOT_FOUND) {
+        /* No user PATH value at all — nothing of ours to remove. */
+        RegCloseKey(environment);
+        free(wide_dir);
+        return CLI_TRUE;
+    }
+    if (queried != ERROR_SUCCESS || (type != REG_SZ && type != REG_EXPAND_SZ)) {
+        RegCloseKey(environment);
+        free(wide_dir);
+        return CLI_ERR;
+    }
+    size_t existing_capacity = (size_t)bytes / sizeof(wchar_t) + 1U;
+    wchar_t *existing = calloc(existing_capacity, sizeof(*existing));
+    if (!existing) {
+        RegCloseKey(environment);
+        free(wide_dir);
+        return CLI_ERR;
+    }
+    DWORD read_bytes = bytes;
+    if (RegQueryValueExW(environment, L"Path", NULL, &type, (BYTE *)existing, &read_bytes) !=
+        ERROR_SUCCESS) {
+        RegCloseKey(environment);
+        free(existing);
+        free(wide_dir);
+        return CLI_ERR;
+    }
+    existing[existing_capacity - 1U] = L'\0';
+
+    /* Rebuild the value from every segment that is NOT our directory. Kept
+     * segments keep their exact original characters; a single ';' rejoins
+     * consecutive kept segments so unrelated entries survive byte-for-byte and
+     * no stray separator is left where our entry used to be. The result is
+     * never longer than the input, so the input length bounds the buffer. */
+    size_t existing_length = wcslen(existing);
+    wchar_t *rebuilt = calloc(existing_length + 1U, sizeof(*rebuilt));
+    if (!rebuilt) {
+        RegCloseKey(environment);
+        free(existing);
+        free(wide_dir);
+        return CLI_ERR;
+    }
+    size_t out = 0;
+    bool removed = false;
+    bool wrote_segment = false;
+    const wchar_t *cursor = existing;
+    while (*cursor) {
+        const wchar_t *separator = wcschr(cursor, L';');
+        size_t length = separator ? (size_t)(separator - cursor) : wcslen(cursor);
+        if (cli_windows_path_segment_equal(cursor, length, wide_dir)) {
+            removed = true;
+        } else {
+            if (wrote_segment) {
+                rebuilt[out++] = L';';
+            }
+            memcpy(rebuilt + out, cursor, length * sizeof(*rebuilt));
+            out += length;
+            wrote_segment = true;
+        }
+        cursor = separator ? separator + 1 : cursor + length;
+    }
+    rebuilt[out] = L'\0';
+
+    if (!removed) {
+        RegCloseKey(environment);
+        free(rebuilt);
+        free(existing);
+        free(wide_dir);
+        return CLI_TRUE;
+    }
+    if (dry_run) {
+        RegCloseKey(environment);
+        free(rebuilt);
+        free(existing);
+        free(wide_dir);
+        return CLI_OK;
+    }
+    DWORD output_bytes = (DWORD)((out + 1U) * sizeof(*rebuilt));
+    LONG stored =
+        RegSetValueExW(environment, L"Path", 0, type, (const BYTE *)rebuilt, output_bytes);
+    RegCloseKey(environment);
+    free(rebuilt);
+    free(existing);
+    free(wide_dir);
+    if (stored != ERROR_SUCCESS) {
+        return CLI_ERR;
+    }
+    return CLI_OK;
+}
+
+#if defined(CBM_CLI_ENABLE_TEST_API)
+/* Thin seams so the hermetic Windows PATH unit test can drive the append and
+ * remove logic against a GUID-scoped scratch key (the CBM_TEST_WINDOWS_USER_
+ * PATH_RUN_ID seam) without touching the developer's live HKCU PATH. */
+int cbm_cli_ensure_windows_user_path_for_test(const char *bin_dir, bool dry_run) {
+    return cli_ensure_windows_user_path(bin_dir, dry_run);
+}
+int cbm_cli_remove_windows_user_path_for_test(const char *bin_dir, bool dry_run) {
+    return cli_remove_windows_user_path(bin_dir, dry_run);
+}
+#endif
+
 #endif
 
 /* ── Tar.gz / zip extraction (TEST-ONLY) ──────────────────────────
@@ -6049,6 +6171,12 @@ int cbm_remove_indexes(const char *home_dir) {
             if (cbm_unlink(path) == 0) {
                 count++;
             }
+            /* Remove the SQLite sidecars (-wal/-shm/-journal) for both the
+             * live and staged DBs. Idempotent and ENOENT-tolerant, so it runs
+             * even when the .db unlink failed -- an orphan -wal can outlive
+             * its .db. Sidecars are not indexes, so count is unchanged. */
+            cbm_remove_db_sidecars(path);
+            cbm_remove_db_sidecars(tmp_path);
         }
     }
     cbm_closedir(d);
@@ -6933,6 +7061,90 @@ static bool cbm_installing_hooks(void) {
 static int g_agent_install_errors = 0;
 static int g_agent_uninstall_errors = 0;
 
+/* Every agent configuration uninstall could not clean, kept for the closing
+ * summary. A cleanup failure no longer stops executable and index removal
+ * (#1954: one symlinked ~/.cursor/mcp.json left a 300 MB binary plus the whole
+ * cache behind), so the user needs ONE list of what is still theirs to fix,
+ * with the observed reason next to each file. */
+typedef struct {
+    char agent[64];
+    char operation[48];
+    char path[CLI_BUF_1K];
+    char reason[160];
+    char detail[160];
+} cbm_agent_config_failure_t;
+
+static cbm_agent_config_failure_t *g_agent_uninstall_failures = NULL;
+static int g_agent_uninstall_failure_count = 0;
+static int g_agent_uninstall_failure_cap = 0;
+
+static void agent_uninstall_failures_reset(void) {
+    free(g_agent_uninstall_failures);
+    g_agent_uninstall_failures = NULL;
+    g_agent_uninstall_failure_count = 0;
+    g_agent_uninstall_failure_cap = 0;
+}
+
+static void agent_uninstall_failure_record(const char *agent, const char *operation,
+                                           const char *path, const char *reason,
+                                           const char *detail) {
+    if (g_agent_uninstall_failure_count >= g_agent_uninstall_failure_cap) {
+        int ncap = g_agent_uninstall_failure_cap ? g_agent_uninstall_failure_cap * 2 : CLI_BUF_16;
+        cbm_agent_config_failure_t *grown =
+            realloc(g_agent_uninstall_failures, (size_t)ncap * sizeof(*grown));
+        if (!grown) {
+            return;
+        }
+        g_agent_uninstall_failures = grown;
+        g_agent_uninstall_failure_cap = ncap;
+    }
+    cbm_agent_config_failure_t *entry =
+        &g_agent_uninstall_failures[g_agent_uninstall_failure_count++];
+    (void)snprintf(entry->agent, sizeof(entry->agent), "%s", agent ? agent : "unknown");
+    (void)snprintf(entry->operation, sizeof(entry->operation), "%s",
+                   operation ? operation : "unknown");
+    (void)snprintf(entry->path, sizeof(entry->path), "%s", path ? path : "unknown");
+    (void)snprintf(entry->reason, sizeof(entry->reason), "%s", reason ? reason : "");
+    (void)snprintf(entry->detail, sizeof(entry->detail), "%s", detail ? detail : "");
+}
+
+/* The agent-configuration writers opt in to following user-owned symlinked
+ * config files under the user's configuration roots (#1954, decision C);
+ * every other caller of the config editors keeps refusing links. Cleared by
+ * the same command when its configuration work is done. */
+static void cli_config_follow_begin(const char *home) {
+    cbm_config_edit_path_follow_clear();
+    if (home && home[0]) {
+        (void)cbm_config_edit_path_follow_add_root(home);
+    }
+    const char *xdg_config = getenv("XDG_CONFIG_HOME");
+    if (xdg_config && xdg_config[0]) {
+        (void)cbm_config_edit_path_follow_add_root(xdg_config);
+    }
+}
+
+/* The closing list of what uninstall could not clean. Printed AFTER the
+ * executable and the indexes are gone, so nothing in it is a reason to keep
+ * the installation around — each line is one file the user removes an entry
+ * from by hand. */
+static void agent_uninstall_failures_report(bool dry_run) {
+    if (g_agent_uninstall_failure_count == 0) {
+        return;
+    }
+    (void)fprintf(stderr, "\nerror: uninstall %s with %d agent configuration(s) left uncleaned:\n",
+                  dry_run ? "dry-run finished" : "finished", g_agent_uninstall_failure_count);
+    for (int i = 0; i < g_agent_uninstall_failure_count; i++) {
+        const cbm_agent_config_failure_t *entry = &g_agent_uninstall_failures[i];
+        (void)fprintf(stderr, "  %s (%s): %s", entry->agent, entry->operation, entry->path);
+        if (entry->reason[0]) {
+            (void)fprintf(stderr, " reason=%s", entry->reason);
+        }
+        (void)fputs(entry->detail, stderr);
+        (void)fputc('\n', stderr);
+    }
+    (void)fputs("Remove the codebase-memory-mcp entries from these files by hand.\n", stderr);
+}
+
 static void plan_record(const char *agent, const char *kind, const char *path) {
     if (!g_install_plan || !path || !path[0]) {
         return;
@@ -6988,6 +7200,14 @@ static void describe_agent_config_target(const char *path, char *out, size_t out
                        : info.is_directory ? "directory"
                        : info.is_regular   ? "regular file"
                                            : "special file";
+    /* A refused symlink names the rule that refused it (#1954): the user
+     * then knows whether to fix ownership, the target, or the parent. */
+    char refusal[160];
+    if (info.is_symlink && cbm_config_edit_path_refusal(path, refusal, sizeof(refusal))) {
+        (void)snprintf(out, out_size, " (target: symlink, %lld bytes; not followed: %s)",
+                       (long long)info.size, refusal);
+        return;
+    }
     (void)snprintf(out, out_size, " (target: %s, %lld bytes)", kind, (long long)info.size);
 }
 
@@ -7005,6 +7225,9 @@ static void record_agent_config_error_with_reason(bool uninstalling, const char 
     }
     (void)fputs(detail, stderr);
     (void)fputc('\n', stderr);
+    if (uninstalling) {
+        agent_uninstall_failure_record(agent, operation, path, reason, detail);
+    }
 }
 
 static void record_agent_config_error(bool uninstalling, const char *agent, const char *operation,
@@ -8322,12 +8545,24 @@ static const char *g_client_selection = NULL;
 static bool cli_clients_apply_selection(const char *spec, cbm_detected_agents_t *detected);
 static void cli_clients_print_list(FILE *out);
 
+static int cbm_install_agent_configs_in_scope(const char *home, const char *binary_path, bool force,
+                                              bool dry_run, cbm_detected_agents_t *agents_in);
+
 int cbm_install_agent_configs(const char *home, const char *binary_path, bool force, bool dry_run) {
     g_agent_install_errors = 0;
     cbm_detected_agents_t agents = cbm_detect_agents(home);
     if (g_client_selection && !cli_clients_apply_selection(g_client_selection, &agents)) {
         return CLI_ERR;
     }
+    cli_config_follow_begin(home);
+    int result = cbm_install_agent_configs_in_scope(home, binary_path, force, dry_run, &agents);
+    cbm_config_edit_path_follow_clear();
+    return result;
+}
+
+static int cbm_install_agent_configs_in_scope(const char *home, const char *binary_path, bool force,
+                                              bool dry_run, cbm_detected_agents_t *agents_in) {
+    cbm_detected_agents_t agents = *agents_in;
     if (!g_install_plan) {
         print_detected_agents(&agents, home);
     }
@@ -10506,6 +10741,7 @@ static int cli_uninstall_activate(void *opaque) {
         return CLI_TRUE;
     }
 
+    cli_config_follow_begin(activation->home);
     if (activation->agents.claude_code) {
         uninstall_claude_code(activation->home, activation->dry_run);
     }
@@ -10513,14 +10749,51 @@ static int cli_uninstall_activate(void *opaque) {
     uninstall_editor_agents(&activation->agents, activation->home, activation->dry_run);
     uninstall_additional_agents(&activation->agents, activation->home, activation->dry_run);
     uninstall_agent_client_registry(activation->home, activation->dry_run);
+    cbm_config_edit_path_follow_clear();
 
-    if (g_agent_uninstall_errors != 0) {
-        cli_activation_transaction_abort_or_fail_stop(&activation->binary_transaction,
-                                                      "uninstall_transaction_config_cleanup_abort");
-        (void)fprintf(stderr, "error: one or more agent cleanup operations failed; executable "
-                              "and index removal were not started\n");
-        return CLI_ACTIVATION_PARTIAL;
+#ifdef _WIN32
+    /* #2117: install registers the install directory in the persistent
+     * current-user PATH; uninstall must take it back out, or every cycle leaves
+     * a stale entry and the PATH grows without bound. Remove only our segment.
+     * A registry hiccup here is a warning, never a hard failure: the user is
+     * removing the tool and must not be blocked from finishing over a cosmetic
+     * PATH edit. Suppress the mutation under the test-ops seam exactly as
+     * install does, so the CLI suite never touches the developer's real PATH. */
+    if (activation->bin_path && activation->bin_path[0]) {
+        const char *slash = strrchr(activation->bin_path, '/');
+        const char *backslash = strrchr(activation->bin_path, '\\');
+        if (backslash && (!slash || backslash > slash)) {
+            slash = backslash;
+        }
+        if (slash && slash != activation->bin_path) {
+            size_t dir_len = (size_t)(slash - activation->bin_path);
+            char bin_dir[CLI_BUF_1K];
+            if (dir_len < sizeof(bin_dir)) {
+                memcpy(bin_dir, activation->bin_path, dir_len);
+                bin_dir[dir_len] = '\0';
+                int path_rc = cli_remove_windows_user_path(
+                    bin_dir, activation->dry_run || g_cli_activation_test_ops_set);
+                if (path_rc == CLI_OK) {
+                    printf(activation->dry_run ? "\nWould remove %s from the current-user PATH\n"
+                                               : "\nRemoved %s from the current-user PATH\n",
+                           bin_dir);
+                } else if (path_rc == CLI_ERR) {
+                    (void)fprintf(stderr,
+                                  "warning: could not update the current-user PATH; %s may "
+                                  "remain on it\n",
+                                  bin_dir);
+                }
+            }
+        }
     }
+#endif
+
+    /* Agent-config failures are collected, never a gate: an entry the editors
+     * refuse to touch (a symlinked config, a foreign file, a malformed
+     * document) is the user's to fix by hand, and leaving a 300 MB executable
+     * plus every index behind because of it is the data-loss shape of #1954.
+     * The indexes and the executable go now; the failures are listed at the
+     * end and decide the exit code. */
 
     if (activation->delete_indexes && !activation->dry_run) {
         int expected = count_db_indexes(activation->home);
@@ -10622,6 +10895,7 @@ int cbm_cmd_uninstall(int argc, char **argv) {
     printf("codebase-memory-cli uninstall\n\n");
 
     g_agent_uninstall_errors = 0;
+    agent_uninstall_failures_reset();
     cbm_detected_agents_t agents = cbm_detect_agents(home);
 
     /* Confirm index removal outside the startup lock, but defer the mutation
@@ -10690,6 +10964,19 @@ int cbm_cmd_uninstall(int argc, char **argv) {
         (void)cli_activation_transaction_abort(&activation.binary_transaction);
     }
     if (activation_rc != CLI_OK) {
+        agent_uninstall_failures_reset();
+        return CLI_TRUE;
+    }
+
+    if (g_agent_uninstall_errors != 0) {
+        agent_uninstall_failures_report(dry_run);
+        agent_uninstall_failures_reset();
+        printf("\nUninstall finished with errors; the files listed above still hold "
+               "codebase-memory-mcp entries. Please restart your coding-agent sessions "
+               "to properly take this into account.\n");
+        if (dry_run) {
+            printf("(dry-run — no files were modified)\n");
+        }
         return CLI_TRUE;
     }
 
@@ -10698,7 +10985,7 @@ int cbm_cmd_uninstall(int argc, char **argv) {
     if (dry_run) {
         printf("(dry-run — no files were modified)\n");
     }
-    return g_agent_uninstall_errors == 0 ? 0 : CLI_TRUE;
+    return 0;
 }
 
 /* ── Subcommand: update ───────────────────────────────────────── */
