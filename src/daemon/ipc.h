@@ -91,9 +91,39 @@ bool cbm_daemon_ipc_private_directory_secure(const char *directory_path);
  * validation refusal (empty string when none). Diagnostic only — callers
  * append it to their error messages; policy decisions never read it. */
 const char *cbm_daemon_ipc_validation_detail(void);
+
+/* This process's most recent listener-publication failure: the stage that
+ * refused, the errno the failing step reported (0 when the step reported
+ * none), and the artifact path it was operating on ("" when no path applies).
+ * Every `daemon.ipc.listen_failed` log line carries the same three fields.
+ * Reset at the start of each listen attempt. Returns false while no failure
+ * has been recorded. Diagnostic only: the daemon host copies it into its
+ * durable start-failure record so a waiting client can name the cause instead
+ * of burning its full startup deadline (#1828). */
+enum {
+    CBM_DAEMON_IPC_LISTEN_FAILURE_STAGE_CAP = 32,
+    CBM_DAEMON_IPC_LISTEN_FAILURE_PATH_CAP = 4096
+};
+typedef struct {
+    char stage[CBM_DAEMON_IPC_LISTEN_FAILURE_STAGE_CAP];
+    int errno_value;
+    char path[CBM_DAEMON_IPC_LISTEN_FAILURE_PATH_CAP];
+} cbm_daemon_ipc_listen_failure_t;
+bool cbm_daemon_ipc_listen_failure_detail(cbm_daemon_ipc_listen_failure_t *out);
 #ifdef CBM_ENABLE_TEST_SEAMS
 /* #1537: seed the detail so a test can prove the CLI refusal surfaces it. */
 void cbm_daemon_ipc_set_validation_detail_for_testing(const char *detail);
+#endif
+
+#ifndef _WIN32
+/* #1830 seams (POSIX): expose the pure user-namespace owner decisions to
+ * tests without requiring a chown-able overflow-owned directory. */
+void cbm_daemon_ipc_posix_set_ancestor_overflow_uid_for_test(bool active,
+                                                             unsigned long overflow_uid);
+bool cbm_daemon_ipc_posix_uid_map_is_single_uid_for_test(const char *uid_map, unsigned long euid);
+bool cbm_daemon_ipc_posix_ancestor_stat_ok_for_test(unsigned long owner, unsigned int mode,
+                                                    unsigned long euid, bool overflow_active,
+                                                    unsigned long overflow_uid);
 #endif
 
 /* Create/validate an owner-only directory and securely open one regular
@@ -256,3 +286,10 @@ bool cbm_daemon_ipc_local_transition_begin_work(cbm_daemon_ipc_local_transition_
 bool cbm_daemon_ipc_local_transition_release(cbm_daemon_ipc_local_transition_t **transition_io);
 
 #endif /* CBM_DAEMON_IPC_H */
+#ifdef _WIN32
+/* #1705: run the daemon's directory-owner/ACE trust predicate against an
+ * arbitrary SID, so a test can assert THIS machine's built-in Administrator
+ * (RID-500) is trusted while a foreign S-1-5-21-*-500 is not. Returns false on
+ * any setup failure. Windows only. */
+bool cbm_daemon_ipc_win_sid_trusted_for_testing(void *sid);
+#endif
