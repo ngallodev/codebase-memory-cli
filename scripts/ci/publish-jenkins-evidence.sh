@@ -11,6 +11,19 @@ CONTEXT="${CBM_JENKINS_STATUS_CONTEXT:-jenkins/codebase-memory-cli-main/full-gat
 REVISION="${GIT_COMMIT:-$(git rev-parse HEAD)}"
 EVIDENCE_DIR="${CBM_JENKINS_EVIDENCE_DIR:-jenkins-evidence}"
 
+# Jenkins builds this checkout from the local working tree, so publish the
+# tested revision before asking GitHub to attach a SHA-bound status to it.
+PUSH_ASKPASS="$(mktemp)"
+trap 'rm -f "$PUSH_ASKPASS"' EXIT
+# shellcheck disable=SC2016 # The helper must expand its own prompt and token.
+printf '%s\n' '#!/bin/sh' 'case "$1" in' \
+    '*Username*) printf "%s\\n" x-access-token ;;' \
+    '*Password*) printf "%s\\n" "$GH_TOKEN" ;;' \
+    '*) exit 1 ;;' 'esac' > "$PUSH_ASKPASS"
+chmod 700 "$PUSH_ASKPASS"
+GIT_ASKPASS="$PUSH_ASKPASS" GIT_TERMINAL_PROMPT=0 \
+    git push "https://github.com/$REPOSITORY.git" 'HEAD:refs/heads/main'
+
 rm -rf "$EVIDENCE_DIR"
 mkdir -p "$EVIDENCE_DIR"
 
