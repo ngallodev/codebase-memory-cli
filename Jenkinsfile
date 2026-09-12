@@ -90,7 +90,14 @@ pipeline {
         }
         stage('Package wrappers') {
             steps {
-                sh 'scripts/ci/test-package-wrappers.sh'
+                sh '''
+                    set -eu
+                    # The local Jenkins service does not inherit interactive
+                    # shell profiles. Keep the toolchain location explicit;
+                    # the wrapper script verifies the exact go.mod version.
+                    export PATH="/usr/local/go/bin:$PATH"
+                    scripts/ci/test-package-wrappers.sh
+                '''
             }
         }
         stage('Thread sanitizer') {

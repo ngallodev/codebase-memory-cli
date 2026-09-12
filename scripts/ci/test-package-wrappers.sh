@@ -36,6 +36,13 @@ for tool in go npm; do
     fi
 done
 
+GO_REQUIRED=$(sed -n 's/^go[[:space:]]\+//p' "$ROOT/pkg/go/go.mod" | head -1)
+GO_ACTUAL=$(GOTOOLCHAIN=local go env GOVERSION 2>/dev/null | sed 's/^go//') || GO_ACTUAL=''
+if [ -z "$GO_REQUIRED" ] || [ "$GO_ACTUAL" != "$GO_REQUIRED" ]; then
+    echo "test-package-wrappers.sh: Go $GO_REQUIRED is required; found ${GO_ACTUAL:-missing}" >&2
+    exit 2
+fi
+
 PYTHON=()
 if command -v python3 >/dev/null 2>&1; then
     PYTHON=(python3)
