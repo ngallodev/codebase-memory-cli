@@ -753,7 +753,11 @@ $(BUILD_DIR)/%.test.o: %.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS_TEST) -Itests -Itests/repro -MMD -MP -MF $(@:.o=.d) -c -o $@ $<
 
-$(BUILD_DIR)/%.prod.o: %.c | $(BUILD_DIR)
+# The configuration stamp must finish before production objects start. Its
+# recipe may invalidate objects when TEST_SEAMS/SANITIZE changes; making it a
+# real prerequisite prevents a parallel make from compiling them and then
+# deleting them underneath the final link.
+$(BUILD_DIR)/%.prod.o: %.c $(BUILD_DIR)/.build-config | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS_PROD) -MMD -MP -MF $(@:.o=.d) -c -o $@ $<
 
@@ -1062,6 +1066,7 @@ $(BUILD_DIR)/.build-config: build-config-check | $(BUILD_DIR)
 	@printf '%s\n' '$(BUILD_CONFIG_SIG)' > $@.tmp
 	@if cmp -s $@.tmp $@; then rm -f $@.tmp; \
 	else mv -f $@.tmp $@; rm -f $(BUILD_DIR)/codebase-memory-cli; \
+		find $(BUILD_DIR) -type f -name '*.prod.o' -delete; \
 	echo "=== build config changed -> full rebuild: $(BUILD_CONFIG_SIG) ==="; fi
 
 $(BUILD_DIR)/codebase-memory-cli: $(PROD_SOURCE_OBJS) $(OBJS_VENDORED_PROD) $(BUILD_DIR)/.build-config $(PROJECT_HDRS) | $(BUILD_DIR)

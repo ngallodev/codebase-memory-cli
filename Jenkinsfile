@@ -80,20 +80,33 @@ pipeline {
             }
         }
         stage('Test shards') {
+            // Three shards share this 56-core host; nine workers each keeps
+            // the aggregate test fan-out at 27, below the requested 28-core cap.
             parallel {
+                stage('Build seam test binary') {
+                    steps {
+                        sh '''
+                            set -eu
+                            # The three test shards use 27 workers; keep the
+                            # concurrent seam compile within the 28-core cap.
+                            make -j1 -f Makefile.cbm cbm \
+                                TEST_SEAMS=1 BUILD_DIR=build/c-seams
+                        '''
+                    }
+                }
                 stage('Test shard 1/3') {
                     steps {
-                        sh 'CBM_TEST_PHASE=shard CBM_TEST_SHARD=1/3 CBM_TEST_LEG=jenkins-main CBM_TEST_LOG_DIR=build/c/test-logs/shard-1 CBM_SKIP_PERF=1 scripts/test.sh'
+                        sh 'CBM_TEST_PHASE=shard CBM_TEST_SHARD=1/3 CBM_TEST_LEG=jenkins-main CBM_TEST_LOG_DIR=build/c/test-logs/shard-1 CBM_TEST_PAR_JOBS=9 CBM_SKIP_PERF=1 scripts/test.sh'
                     }
                 }
                 stage('Test shard 2/3') {
                     steps {
-                        sh 'CBM_TEST_PHASE=shard CBM_TEST_SHARD=2/3 CBM_TEST_LEG=jenkins-main CBM_TEST_LOG_DIR=build/c/test-logs/shard-2 CBM_SKIP_PERF=1 scripts/test.sh'
+                        sh 'CBM_TEST_PHASE=shard CBM_TEST_SHARD=2/3 CBM_TEST_LEG=jenkins-main CBM_TEST_LOG_DIR=build/c/test-logs/shard-2 CBM_TEST_PAR_JOBS=9 CBM_SKIP_PERF=1 scripts/test.sh'
                     }
                 }
                 stage('Test shard 3/3') {
                     steps {
-                        sh 'CBM_TEST_PHASE=shard CBM_TEST_SHARD=3/3 CBM_TEST_LEG=jenkins-main CBM_TEST_LOG_DIR=build/c/test-logs/shard-3 CBM_SKIP_PERF=1 scripts/test.sh'
+                        sh 'CBM_TEST_PHASE=shard CBM_TEST_SHARD=3/3 CBM_TEST_LEG=jenkins-main CBM_TEST_LOG_DIR=build/c/test-logs/shard-3 CBM_TEST_PAR_JOBS=9 CBM_SKIP_PERF=1 scripts/test.sh'
                     }
                 }
             }
@@ -105,7 +118,7 @@ pipeline {
         }
         stage('Post-test gates') {
             steps {
-                sh 'CBM_TEST_PHASE=post scripts/test.sh'
+                sh 'CBM_TEST_PHASE=post CBM_TEST_SEAM_BINARY="$WORKSPACE/build/c-seams/codebase-memory-cli" scripts/test.sh'
             }
         }
         stage('Package wrappers') {

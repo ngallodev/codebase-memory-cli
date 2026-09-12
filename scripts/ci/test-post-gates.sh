@@ -13,9 +13,18 @@ if [ "${CBM_RUN_HANG_TEST:-0}" = "1" ]; then
     bash "$ROOT/tests/test_cpp_index_hang.sh"
 fi
 
-echo "=== Step 5: build worker-watchdog test binary ==="
-make -j"$NPROC" -f Makefile.cbm cbm TEST_SEAMS=1 BUILD_DIR="$BUILD_DIR"
-WATCHDOG_BINARY="$ROOT/$BUILD_DIR/codebase-memory-cli"
+echo "=== Step 5: prepare worker-watchdog test binary ==="
+if [ -n "${CBM_TEST_SEAM_BINARY:-}" ]; then
+    WATCHDOG_BINARY="$CBM_TEST_SEAM_BINARY"
+    test -x "$WATCHDOG_BINARY" || {
+        echo "missing prebuilt seam binary: $WATCHDOG_BINARY" >&2
+        exit 1
+    }
+    echo "Using prebuilt seam binary: $WATCHDOG_BINARY"
+else
+    make -j"$NPROC" -f Makefile.cbm cbm TEST_SEAMS=1 BUILD_DIR="$BUILD_DIR"
+    WATCHDOG_BINARY="$ROOT/$BUILD_DIR/codebase-memory-cli"
+fi
 
 echo "=== Step 5b: worker-mode watchdog regression (#845) ==="
 CBM_TEST_BINARY="$WATCHDOG_BINARY" bash "$ROOT/tests/test_worker_watchdog.sh"

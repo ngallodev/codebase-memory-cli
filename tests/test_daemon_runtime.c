@@ -98,6 +98,9 @@ static const char RUNTIME_CACHE_A[] =
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 #endif
 static char runtime_self_build[CBM_DAEMON_BUILD_FINGERPRINT_SIZE];
+static char runtime_shared_image[RUNTIME_TEST_PATH_CAP];
+static char runtime_shared_image_root[RUNTIME_TEST_PATH_CAP];
+static uint64_t runtime_shared_image_size;
 static atomic_bool runtime_conflict_log_fallback_seen;
 static atomic_bool runtime_activation_shutdown_log_seen;
 
@@ -502,6 +505,104 @@ static bool runtime_test_copy_self_image(const char *destination) {
     (void)destination;
     return false;
 #endif
+}
+
+/* The image-fingerprint tests need distinct pathnames, not distinct bytes.
+ * Keep one suite-owned image and use hard links for the path variants. This
+ * avoids copying the 500+ MiB sanitizer runner once per test. */
+static bool runtime_test_shared_image_prepare(void) {
+    if (runtime_shared_image[0] != '\0') {
+        return true;
+    }
+    int root_written = snprintf(runtime_shared_image_root, sizeof(runtime_shared_image_root),
+                                "%s/cbm-runtime-shared-XXXXXX", cbm_tmpdir());
+    if (root_written <= 0 || root_written >= (int)sizeof(runtime_shared_image_root) ||
+        !cbm_mkdtemp(runtime_shared_image_root)) {
+        runtime_shared_image_root[0] = '\0';
+        return false;
+    }
+    int image_written = snprintf(runtime_shared_image, sizeof(runtime_shared_image), "%s/image",
+                                 runtime_shared_image_root);
+    bool ready = image_written > 0 && image_written < (int)sizeof(runtime_shared_image) &&
+                 runtime_test_copy_self_image(runtime_shared_image);
+    if (!ready) {
+        (void)cbm_unlink(runtime_shared_image);
+        (void)cbm_rmdir(runtime_shared_image_root);
+        runtime_shared_image[0] = '\0';
+        runtime_shared_image_root[0] = '\0';
+        return false;
+    }
+#ifdef _WIN32
+    wchar_t *path = cbm_utf8_to_wide(runtime_shared_image);
+    HANDLE file = path ? CreateFileW(path, GENERIC_READ,
+                                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+                                     OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)
+                       : INVALID_HANDLE_VALUE;
+    free(path);
+    LARGE_INTEGER size = {0};
+    ready = file != INVALID_HANDLE_VALUE && GetFileSizeEx(file, &size) != 0;
+    if (file != INVALID_HANDLE_VALUE) {
+        (void)CloseHandle(file);
+    }
+    runtime_shared_image_size = ready ? (uint64_t)size.QuadPart : 0;
+#else
+    struct stat image_stat;
+    ready = stat(runtime_shared_image, &image_stat) == 0;
+    runtime_shared_image_size = ready ? (uint64_t)image_stat.st_size : 0;
+#endif
+    return ready && runtime_shared_image_size > 0;
+}
+
+static bool runtime_test_link_shared_image(const char *destination) {
+    if (!destination || !runtime_test_shared_image_prepare()) {
+        return false;
+    }
+#ifdef _WIN32
+    wchar_t *source_wide = cbm_utf8_to_wide(runtime_shared_image);
+    wchar_t *destination_wide = cbm_utf8_to_wide(destination);
+    bool linked = source_wide && destination_wide &&
+                  CreateHardLinkW(destination_wide, source_wide, NULL) != 0;
+    free(source_wide);
+    free(destination_wide);
+    return linked;
+#else
+    return link(runtime_shared_image, destination) == 0 && chmod(destination, 0700) == 0;
+#endif
+}
+
+static bool runtime_test_restore_shared_image(void) {
+    if (!runtime_shared_image[0]) {
+        return false;
+    }
+#ifdef _WIN32
+    wchar_t *path = cbm_utf8_to_wide(runtime_shared_image);
+    HANDLE file = path ? CreateFileW(path, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+                                     OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)
+                       : INVALID_HANDLE_VALUE;
+    free(path);
+    LARGE_INTEGER offset = {.QuadPart = (LONGLONG)runtime_shared_image_size};
+    bool restored = file != INVALID_HANDLE_VALUE &&
+                    SetFilePointerEx(file, offset, NULL, FILE_BEGIN) != 0 &&
+                    SetEndOfFile(file) != 0;
+    if (file != INVALID_HANDLE_VALUE) {
+        (void)CloseHandle(file);
+    }
+    return restored;
+#else
+    return truncate(runtime_shared_image, (off_t)runtime_shared_image_size) == 0;
+#endif
+}
+
+static void runtime_test_shared_image_cleanup(void) {
+    if (runtime_shared_image[0]) {
+        (void)cbm_unlink(runtime_shared_image);
+    }
+    if (runtime_shared_image_root[0]) {
+        (void)cbm_rmdir(runtime_shared_image_root);
+    }
+    runtime_shared_image[0] = '\0';
+    runtime_shared_image_root[0] = '\0';
+    runtime_shared_image_size = 0;
 }
 
 static bool runtime_test_paths_refer_to_same_file(const char *left, const char *right) {
@@ -2138,7 +2239,11 @@ TEST(daemon_runtime_activation_accepts_authenticated_different_build) {
                                                      "%s/foreign-activation", directory)
                                           : -1;
     bool copied = image_written > 0 && image_written < (int)sizeof(foreign_image) &&
+#ifdef __APPLE__
                   runtime_test_copy_self_image(foreign_image);
+#else
+                  runtime_test_link_shared_image(foreign_image);
+#endif
 #ifdef __APPLE__
     /* Appending an overlay invalidates Mach-O strict validation. A distinct
      * signing identifier changes the executable bytes while keeping the copy
@@ -3602,7 +3707,7 @@ TEST(daemon_runtime_disconnect_cancels_blocked_non_index_child_and_preserves_oth
                        git_written < (int)sizeof(fake_git) && marker_written > 0 &&
                        marker_written < (int)sizeof(marker) && cbm_mkdir_p(root, 0700) &&
                        cbm_mkdir_p(cache, 0700) && cbm_mkdir_p(bin, 0700) &&
-                       runtime_test_copy_self_image(fake_git);
+                       runtime_test_link_shared_image(fake_git);
 
     char path_bin[RUNTIME_TEST_PATH_CAP] = {0};
 #ifdef _WIN32
@@ -4606,7 +4711,7 @@ TEST(daemon_runtime_copied_image_fallback_accepts_identical_and_rejects_changed)
                                      : -1;
     bool identical_copied = identical_path_written > 0 &&
                             identical_path_written < (int)sizeof(identical_path) &&
-                            runtime_test_copy_self_image(identical_path);
+                            runtime_test_link_shared_image(identical_path);
     char identical_fingerprint[CBM_DAEMON_BUILD_FINGERPRINT_SIZE] = {0};
     bool identical_bytes =
         identical_copied &&
@@ -4632,7 +4737,7 @@ TEST(daemon_runtime_copied_image_fallback_accepts_identical_and_rejects_changed)
                                                : -1;
     bool changed_copied = changed_path_written > 0 &&
                           changed_path_written < (int)sizeof(changed_path) &&
-                          runtime_test_copy_self_image(changed_path) &&
+                          runtime_test_link_shared_image(changed_path) &&
                           runtime_test_append_image_marker(changed_path);
     char changed_fingerprint[CBM_DAEMON_BUILD_FINGERPRINT_SIZE] = {0};
     bool changed_bytes = changed_copied &&
@@ -4642,6 +4747,7 @@ TEST(daemon_runtime_copied_image_fallback_accepts_identical_and_rejects_changed)
     bool changed_ran = changed_bytes && runtime_test_run_hello_image(changed_path, &changed_fixture,
                                                                      &identity, &changed_exit);
     (void)cbm_unlink(changed_path);
+    (void)runtime_test_restore_shared_image();
     runtime_test_fixture_finish(&changed_fixture);
 #endif
 
@@ -4757,7 +4863,7 @@ TEST(daemon_runtime_process_fingerprint_never_hashes_replacement_path) {
      * exits when executed under the copied name. */
     setup = setup && image_written > 0 && image_written < (int)sizeof(image_path) &&
             replacement_written > 0 && replacement_written < (int)sizeof(replacement_path) &&
-            runtime_test_copy_self_image(image_path);
+            runtime_test_link_shared_image(image_path);
 
     FILE *replacement_file = setup ? cbm_fopen(replacement_path, "wb") : NULL;
     bool replacement_written_ok =
@@ -4972,6 +5078,10 @@ TEST(daemon_runtime_stop_refuses_while_committed_clients_exist) {
 }
 
 SUITE(daemon_runtime) {
+    if (!runtime_test_shared_image_prepare()) {
+        fprintf(stderr, "daemon_runtime shared image setup failed\n");
+        abort();
+    }
     RUN_TEST(daemon_runtime_permanent_service_survives_last_disconnect_until_stop);
     RUN_TEST(daemon_runtime_stop_refuses_while_committed_clients_exist);
     RUN_TEST(daemon_host_early_coordination_failure_is_durable);
@@ -5032,4 +5142,5 @@ SUITE(daemon_runtime) {
     RUN_TEST(daemon_runtime_mute_endpoint_holder_pid_is_reported);
     RUN_TEST(daemon_runtime_application_busy_cap_and_malformed_are_isolated);
     RUN_TEST(daemon_runtime_malformed_and_zero_cancel_close_only_offending_connections);
+    runtime_test_shared_image_cleanup();
 }
