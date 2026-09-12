@@ -7488,7 +7488,7 @@ static void install_copilot_durable_context(const char *home, const char *binary
         return;
     }
     bool hook_ok = true;
-        if (!dry_run && (!cbm_mkdir_p_ex(hooks_dir, CLI_OCTAL_PERM, CBM_MKDIR_FOLLOW_OWNED) ||
+    if (!dry_run && (!cbm_mkdir_p_ex(hooks_dir, CLI_OCTAL_PERM, CBM_MKDIR_FOLLOW_OWNED) ||
                      cbm_upsert_copilot_hooks(binary_path, hook_path) != CLI_OK)) {
         hook_ok = false;
         record_agent_config_error(false, "Copilot", "lifecycle_hook_install", hook_path);
@@ -8088,7 +8088,7 @@ static void install_cli_agent_configs(const cbm_detected_agents_t *agents, const
         if (!dry_run && !g_install_plan) {
             char cfg_dir[CLI_BUF_1K];
             snprintf(cfg_dir, sizeof(cfg_dir), "%s/.gemini/config", home);
-        cbm_mkdir_p_ex(cfg_dir, CLI_OCTAL_PERM, CBM_MKDIR_FOLLOW_OWNED);
+            cbm_mkdir_p_ex(cfg_dir, CLI_OCTAL_PERM, CBM_MKDIR_FOLLOW_OWNED);
         }
         install_generic_agent_config("Antigravity", ip, dry_run);
     }
@@ -12041,24 +12041,34 @@ static int cli_print_tool_flags_impl(const char *tool_name) {
                 size_t idx, max;
                 yyjson_val *choice;
                 yyjson_arr_foreach(choices, idx, max, choice) {
-                    if (idx > 0) fputc('|', stdout);
-                    if (yyjson_is_str(choice)) fputs(yyjson_get_str(choice), stdout);
+                    if (idx > 0)
+                        fputc('|', stdout);
+                    if (yyjson_is_str(choice))
+                        fputs(yyjson_get_str(choice), stdout);
                     else {
                         char *json = yyjson_val_write(choice, 0, NULL);
-                        if (json) { fputs(json, stdout); free(json); }
+                        if (json) {
+                            fputs(json, stdout);
+                            free(json);
+                        }
                     }
                 }
             } else {
                 fputs(type, stdout);
             }
             fputs(">", stdout);
-            if (req) fputs(" [required]", stdout);
+            if (req)
+                fputs(" [required]", stdout);
             if (default_value) {
                 fputs(" [default: ", stdout);
-                if (yyjson_is_str(default_value)) fputs(yyjson_get_str(default_value), stdout);
+                if (yyjson_is_str(default_value))
+                    fputs(yyjson_get_str(default_value), stdout);
                 else {
                     char *json = yyjson_val_write(default_value, 0, NULL);
-                    if (json) { fputs(json, stdout); free(json); }
+                    if (json) {
+                        fputs(json, stdout);
+                        free(json);
+                    }
                 }
                 fputc(']', stdout);
             }
