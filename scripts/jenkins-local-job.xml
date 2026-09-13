@@ -1,6 +1,6 @@
 <?xml version='1.1' encoding='UTF-8'?>
 <flow-definition plugin="workflow-job">
-  <description>Fast incremental codebase-memory-cli release-tooling build and test.</description>
+  <description>Fast selective-shard codebase-memory-cli release-tooling build and test.</description>
   <properties>
     <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty>
       <abortPrevious>false</abortPrevious>
@@ -10,7 +10,7 @@
         <hudson.model.StringParameterDefinition>
           <name>CBM_TEST_SUITES</name>
           <defaultValue>cli daemon daemon_ipc pipeline</defaultValue>
-          <description>Focused incremental test suites for release-tooling. Leave empty only to run the full gate manually.</description>
+          <description>Selected suites are built once and run in safe parallel shards. Leave empty only to run the full gate manually.</description>
           <trim>true</trim>
         </hudson.model.StringParameterDefinition>
       </parameterDefinitions>

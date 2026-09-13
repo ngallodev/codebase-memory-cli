@@ -160,12 +160,47 @@ arena hash_table dyn_array str_intern log str_util workspace platform diagnostic
                 sh 'CBM_TEST_PHASE=post CBM_TEST_SEAM_BINARY="$WORKSPACE/build/c-seams/codebase-memory-cli" scripts/test.sh'
             }
         }
-        stage('Focused tests') {
+        stage('Prepare focused test runner') {
             when {
                 expression { params.CBM_TEST_SUITES?.trim() }
             }
             steps {
-                sh 'scripts/test.sh --suites "$CBM_TEST_SUITES"'
+                sh '''
+                    set -eu
+                    make -j"$(nproc)" -f Makefile.cbm build/c/test-runner
+                '''
+            }
+        }
+        stage('Focused test shards') {
+            when {
+                expression { params.CBM_TEST_SUITES?.trim() }
+            }
+            steps {
+                script {
+                    def suites = params.CBM_TEST_SUITES.trim().split(/[\s,]+/).findAll { it }
+                    if (!suites || !suites.every { it ==~ /[a-z0-9_]+/ }) {
+                        error('CBM_TEST_SUITES must contain only suite names')
+                    }
+
+                    // Daemon-family suites share runtime/endpoint assumptions;
+                    // keep them in one quiet shard and distribute the rest.
+                    def daemonNames = ['cli', 'daemon', 'daemon_ipc', 'daemon_runtime',
+                                       'daemon_application', 'daemon_bootstrap',
+                                       'daemon_frontend', 'index_supervisor', 'watcher']
+                    def daemon = suites.findAll { it in daemonNames }
+                    def other = suites.findAll { !(it in daemonNames) }
+                    def groups = [daemon, other].findAll { !it.isEmpty() }
+                    def branches = [:]
+                    groups.eachWithIndex { group, index ->
+                        def shardSuites = group.join(' ')
+                        branches["Focused shard ${index + 1}/${groups.size()}"] = {
+                            withEnv(["CBM_FOCUSED_SUITE_ARGS=${shardSuites}"]) {
+                                sh 'build/c/test-runner $CBM_FOCUSED_SUITE_ARGS'
+                            }
+                        }
+                    }
+                    parallel branches
+                }
             }
         }
         stage('Package wrappers') {
