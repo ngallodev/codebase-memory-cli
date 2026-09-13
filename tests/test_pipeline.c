@@ -7887,7 +7887,7 @@ TEST(pipeline_global_extension_config_change_forces_full) {
     char repo[512], config_root[512], app_dir[768], config_path[1024], db_path[512];
     snprintf(repo, sizeof(repo), "%s/repo", tmp);
     snprintf(config_root, sizeof(config_root), "%s/config-root", tmp);
-    snprintf(app_dir, sizeof(app_dir), "%s/codebase-memory-mcp", config_root);
+    snprintf(app_dir, sizeof(app_dir), "%s/codebase-memory-cli", config_root);
     snprintf(config_path, sizeof(config_path), "%s/config.json", app_dir);
     snprintf(db_path, sizeof(db_path), "%s/config.db", tmp);
     ASSERT_EQ(th_mkdir_p(repo), 0);

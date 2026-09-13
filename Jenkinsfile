@@ -4,6 +4,8 @@ pipeline {
     parameters {
         string(name: 'CBM_RELEASE_VERSION', defaultValue: '',
                description: 'Optional version passed to the release build, for example v0.11.0-rc.2')
+        string(name: 'CBM_TEST_SUITES', defaultValue: 'cli daemon daemon_ipc pipeline',
+               description: 'Focused incremental test suites; leave empty for the full gate')
     }
 
     options {
@@ -71,6 +73,9 @@ pipeline {
             }
         }
         stage('Prepare test runner') {
+            when {
+                expression { !params.CBM_TEST_SUITES?.trim() }
+            }
             steps {
                 sh '''
                     set -eu
@@ -80,6 +85,9 @@ pipeline {
             }
         }
         stage('Test shards') {
+            when {
+                expression { !params.CBM_TEST_SUITES?.trim() }
+            }
             // Three shards share this 56-core host; nine workers each keeps
             // the aggregate test fan-out at 27, below the requested 28-core cap.
             parallel {
@@ -112,16 +120,33 @@ pipeline {
             }
         }
         stage('Verify test shards') {
+            when {
+                expression { !params.CBM_TEST_SUITES?.trim() }
+            }
             steps {
                 sh 'scripts/ci/verify-shard-union.sh build/c/test-logs'
             }
         }
         stage('Post-test gates') {
+            when {
+                expression { !params.CBM_TEST_SUITES?.trim() }
+            }
             steps {
                 sh 'CBM_TEST_PHASE=post CBM_TEST_SEAM_BINARY="$WORKSPACE/build/c-seams/codebase-memory-cli" scripts/test.sh'
             }
         }
+        stage('Focused tests') {
+            when {
+                expression { params.CBM_TEST_SUITES?.trim() }
+            }
+            steps {
+                sh 'scripts/test.sh --suites "$CBM_TEST_SUITES"'
+            }
+        }
         stage('Package wrappers') {
+            when {
+                expression { !params.CBM_TEST_SUITES?.trim() }
+            }
             steps {
                 sh '''
                     set -eu
@@ -134,11 +159,17 @@ pipeline {
             }
         }
         stage('Thread sanitizer') {
+            when {
+                expression { !params.CBM_TEST_SUITES?.trim() }
+            }
             steps {
                 sh 'scripts/test.sh --tsan'
             }
         }
         stage('Publish Jenkins qualification evidence') {
+            when {
+                expression { !params.CBM_TEST_SUITES?.trim() }
+            }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'github-https-token',
                                                    usernameVariable: 'GITHUB_USER',
@@ -149,6 +180,9 @@ pipeline {
             }
         }
         stage('Archive Linux CLI artifact') {
+            when {
+                expression { !params.CBM_TEST_SUITES?.trim() }
+            }
             steps {
                 sh '''
                     set -eu
