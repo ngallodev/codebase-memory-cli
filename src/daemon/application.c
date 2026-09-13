@@ -1713,7 +1713,7 @@ static size_t application_worker_memory_slice_locked(cbm_daemon_application_t *a
         active = 1;
     if (active_jobs_out)
         *active_jobs_out = active;
-    return application->aggregate_memory_budget_bytes / active;
+    return application->aggregate_memory_budget_bytes / application->physical_job_limit;
 }
 
 /* Compare the effective index request, not its JSON spelling. yyjson's deep

@@ -130,3 +130,34 @@ build, and the selected pipeline/registry/import/daemon/CLI focused suites.
 
 The next Ponytail candidate is the earlier remaining Cypher correctness pair
 `25a7aacc -> afc948ba`. Do not reselect the completed source hashes above.
+
+## MCP refresh — 34 new non-merge commits (2026-09-13)
+
+Source window: the next 34 non-merge commits at `codebase-memory-mcp` `main`,
+from `3c854ae2` through `09c0e88a`. This refresh is a candidate list only;
+it does not authorize a bulk merge. Ponytail screening excluded formatting,
+tests-only, documentation-only, dependency-only, represented, MCP-only,
+OpenHands, and already-tracked work before selecting the following verticals.
+
+| Priority | Upstream commit(s) | Disposition | Why / dependency boundary |
+|---|---|---|---|
+| 1 | `91e31211` | **adapt — high value** | Closes the pipeline staging create-to-lock race. Shared `src/pipeline/**`; carry the full lock-before-visible change and regression test, not a partial cherry-pick. |
+| 2 | `9a460b38` | **adapt — high value** | Moves SHA-256 message-schedule scratch out of a per-block stack frame, reducing ASan use-after-return overhead. Shared foundation code; retain existing digest vectors. |
+| 3 | `09c0e88a -> 1ad52f5f` | **adapt — security CI** | Fails CodeQL alert reads closed and grants reusable-workflow permissions. Confirm this fork's callers/workflow names first; do not add upstream links or Jenkins behavior. |
+| 4 | `8c2692c1` | **clean — dependency security** | Bumps Graph UI Vitest to 4.1.11. Select only with package-lock verification. |
+| 5 | `fa99ff64` | **adapt — test throughput** | Reduces a proven idle wait in the CLI activation negative probe and marks `cli` as slow for scheduler budgeting. Reassess against this fork's activation fixture before porting. |
+| 6 | `013e1f7e` | **adapt — large CLI safety** | Prevents an activation targeting another HOME/cache namespace from draining the active cohort. The upstream diff crosses excluded MCP supervisor code, so port only CLI-neutral cohort-scope logic after caller mapping. |
+
+### Represented, rejected, or not independently useful
+
+- Already represented/integrated: `52701625`, `6091db71`, `0567dc70`,
+  `8116672a`, `df579830`, `61884951`, `4fa11d1a`, `557cb010`, `91c63be5`,
+  `8134712d`, `ecfb9642`, `a3c24a71`, `7bf366f6`, `8135be28`, and `3c854ae2`.
+- MCP-only or MCP-coupled: `f6a29270`, `9ef7da8c`, `e45d7051`, `208ee99c`,
+  `262ab012`, and `3a4160b4`; retain the CLI fork exclusion.
+- No standalone value: `eeff3f19`, `e65bc6b7`, `7e73b48e` (format/docs),
+  `92cb3b9a` (test-only), and `aacf96a2` (installer wording only).
+
+The refresh adds six potential verticals: two core safety/performance fixes,
+one CI security pair, one dependency update, one test-throughput adaptation,
+and one large scoped activation safety adaptation.
