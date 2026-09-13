@@ -60,6 +60,16 @@ pipeline {
                 }
             }
         }
+        stage('Stop active CBM daemon') {
+            steps {
+                sh '''
+                    set -eu
+                    if command -v codebase-memory-cli >/dev/null 2>&1; then
+                        codebase-memory-cli daemon stop >/dev/null 2>&1 || true
+                    fi
+                '''
+            }
+        }
         stage('Build') {
             steps {
                 sh '''
@@ -197,6 +207,16 @@ pipeline {
                 '''
                 archiveArtifacts artifacts: 'jenkins-artifacts/codebase-memory-cli-linux-amd64/**', fingerprint: true
             }
+        }
+    }
+    post {
+        always {
+            sh '''
+                set -eu
+                if command -v codebase-memory-cli >/dev/null 2>&1; then
+                    codebase-memory-cli daemon start >/dev/null 2>&1 || true
+                fi
+            '''
         }
     }
 }
