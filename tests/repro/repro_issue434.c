@@ -98,8 +98,7 @@ TEST(repro_issue434_persistence_honored_on_first_create) {
 
     /* Build the MCP JSON args with persistence=true */
     char args[700];
-    snprintf(args, sizeof(args),
-             "{\"repo_path\":\"%s\",\"persistence\":true}", lp.tmpdir);
+    snprintf(args, sizeof(args), "{\"repo_path\":\"%s\",\"persistence\":true}", lp.tmpdir);
 
     /* Create an MCP server and run index_repository with persistence=true.
      * This is the exact production code path that Cursor/VSCode calls. */
@@ -146,10 +145,10 @@ TEST(repro_issue434_persistence_honored_on_first_create) {
     /* Clean up the cache DB the pipeline wrote */
     if (proj) {
         const char *home = getenv("HOME");
-        if (!home) home = "/tmp";
+        if (!home)
+            home = "/tmp";
         char dbpath[600];
-        snprintf(dbpath, sizeof(dbpath), "%s/.cache/codebase-memory-mcp/%s.db",
-                 home, proj);
+        snprintf(dbpath, sizeof(dbpath), "%s/.cache/codebase-memory-cli/%s.db", home, proj);
         unlink(dbpath);
         free(proj);
     }

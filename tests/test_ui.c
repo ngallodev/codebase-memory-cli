@@ -124,9 +124,9 @@ TEST(config_save_atomically_replaces_a_complete_generation) {
     char old_bytes[512] = {0};
 #ifdef _WIN32
     DWORD old_length = 0;
-    bool old_read = ReadFile(old_handle, old_bytes, (DWORD)sizeof(old_bytes) - 1U, &old_length,
-                             NULL) != 0 &&
-                    old_length > 0;
+    bool old_read =
+        ReadFile(old_handle, old_bytes, (DWORD)sizeof(old_bytes) - 1U, &old_length, NULL) != 0 &&
+        old_length > 0;
     bool old_closed = CloseHandle(old_handle) != 0;
 #else
     size_t old_length = fread(old_bytes, 1, sizeof(old_bytes) - 1, old_handle);
@@ -202,7 +202,7 @@ TEST(config_corrupt_file) {
 
     /* Ensure directory exists (portable — no system("mkdir -p")) */
     char dir[1024];
-    snprintf(dir, sizeof(dir), "%s/.cache/codebase-memory-mcp", td);
+    snprintf(dir, sizeof(dir), "%s/.cache/codebase-memory-cli", td);
     cbm_mkdir_p(dir, 0755);
 
     FILE *f = fopen(path, "w");
@@ -238,7 +238,7 @@ TEST(config_missing_fields) {
     cbm_ui_config_path(path, (int)sizeof(path));
 
     char dir[1024];
-    snprintf(dir, sizeof(dir), "%s/.cache/codebase-memory-mcp", td);
+    snprintf(dir, sizeof(dir), "%s/.cache/codebase-memory-cli", td);
     cbm_mkdir_p(dir, 0755);
 
     FILE *f = fopen(path, "w");

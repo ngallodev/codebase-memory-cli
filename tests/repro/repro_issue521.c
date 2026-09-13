@@ -56,7 +56,8 @@ typedef struct {
 
 static void r521_fwd_slashes(char *p) {
     for (; *p; p++) {
-        if (*p == '\\') *p = '/';
+        if (*p == '\\')
+            *p = '/';
     }
 }
 
@@ -68,7 +69,8 @@ typedef struct {
 static cbm_store_t *r521_index_files(R521Proj *lp, const R521File *files, int nfiles) {
     memset(lp, 0, sizeof(*lp));
     snprintf(lp->tmpdir, sizeof(lp->tmpdir), "/tmp/cbm_r521_XXXXXX");
-    if (!cbm_mkdtemp(lp->tmpdir)) return NULL;
+    if (!cbm_mkdtemp(lp->tmpdir))
+        return NULL;
     r521_fwd_slashes(lp->tmpdir);
 
     for (int i = 0; i < nfiles; i++) {
@@ -82,43 +84,54 @@ static cbm_store_t *r521_index_files(R521Proj *lp, const R521File *files, int nf
             *slash = '/';
         }
         FILE *f = fopen(path, "wb");
-        if (!f) return NULL;
+        if (!f)
+            return NULL;
         fputs(files[i].content, f);
         fclose(f);
     }
 
     lp->project = cbm_project_name_from_path(lp->tmpdir);
-    if (!lp->project) return NULL;
+    if (!lp->project)
+        return NULL;
 
     const char *home = getenv("HOME");
-    if (!home) home = "/tmp";
+    if (!home)
+        home = "/tmp";
     char cache_dir[512];
-    snprintf(cache_dir, sizeof(cache_dir), "%s/.cache/codebase-memory-mcp", home);
+    snprintf(cache_dir, sizeof(cache_dir), "%s/.cache/codebase-memory-cli", home);
     cbm_mkdir(cache_dir);
     snprintf(lp->dbpath, sizeof(lp->dbpath), "%s/%s.db", cache_dir, lp->project);
     unlink(lp->dbpath);
 
     lp->srv = cbm_test_operation_host_new(NULL);
-    if (!lp->srv) return NULL;
+    if (!lp->srv)
+        return NULL;
 
     char args[700];
     snprintf(args, sizeof(args), "{\"repo_path\":\"%s\"}", lp->tmpdir);
     char *resp = cbm_test_operation_execute(lp->srv, "index_repository", args);
-    if (resp) free(resp);
+    if (resp)
+        free(resp);
 
     return cbm_store_open_path(lp->dbpath);
 }
 
 static void r521_cleanup(R521Proj *lp, cbm_store_t *store) {
-    if (store) cbm_store_close(store);
-    if (lp->srv) { cbm_test_operation_host_free(lp->srv); lp->srv = NULL; }
-    free(lp->project); lp->project = NULL;
+    if (store)
+        cbm_store_close(store);
+    if (lp->srv) {
+        cbm_test_operation_host_free(lp->srv);
+        lp->srv = NULL;
+    }
+    free(lp->project);
+    lp->project = NULL;
     th_rmtree(lp->tmpdir);
     unlink(lp->dbpath);
     char wal[600], shm[600];
     snprintf(wal, sizeof(wal), "%s-wal", lp->dbpath);
     snprintf(shm, sizeof(shm), "%s-shm", lp->dbpath);
-    unlink(wal); unlink(shm);
+    unlink(wal);
+    unlink(shm);
 }
 
 /* Count Route nodes in the indexed project. Returns -1 on error. */
@@ -153,35 +166,27 @@ static int r521_count_routes(cbm_store_t *store, const char *project) {
  */
 TEST(repro_issue521_no_route_from_config_url) {
     static const R521File files[] = {
-        {
-            "config.yaml",
-            "auth:\n"
-            "  jwks_url: \"https://auth.example.com/.well-known/jwks.json\"\n"
-            "upstream:\n"
-            "  order_service_url: \"http://order-service:8080/v2/orders/{id}\"\n"
-        },
-        {
-            "dependabot.yml",
-            "version: 2\n"
-            "registries:\n"
-            "  terraform-registry:\n"
-            "    type: terraform-registry\n"
-            "    url: https://app.terraform.io\n"
-            "updates:\n"
-            "  - package-ecosystem: terraform\n"
-            "    directory: \"/\"\n"
-            "    schedule:\n"
-            "      interval: weekly\n"
-        },
-        {
-            "compose.yaml",
-            "services:\n"
-            "  app:\n"
-            "    image: myapp:latest\n"
-            "    healthcheck:\n"
-            "      test: [\"CMD-SHELL\", \"curl --fail http://localhost:9000/ || exit 1\"]\n"
-            "      interval: 30s\n"
-        },
+        {"config.yaml", "auth:\n"
+                        "  jwks_url: \"https://auth.example.com/.well-known/jwks.json\"\n"
+                        "upstream:\n"
+                        "  order_service_url: \"http://order-service:8080/v2/orders/{id}\"\n"},
+        {"dependabot.yml", "version: 2\n"
+                           "registries:\n"
+                           "  terraform-registry:\n"
+                           "    type: terraform-registry\n"
+                           "    url: https://app.terraform.io\n"
+                           "updates:\n"
+                           "  - package-ecosystem: terraform\n"
+                           "    directory: \"/\"\n"
+                           "    schedule:\n"
+                           "      interval: weekly\n"},
+        {"compose.yaml",
+         "services:\n"
+         "  app:\n"
+         "    image: myapp:latest\n"
+         "    healthcheck:\n"
+         "      test: [\"CMD-SHELL\", \"curl --fail http://localhost:9000/ || exit 1\"]\n"
+         "      interval: 30s\n"},
     };
 
     R521Proj lp;
