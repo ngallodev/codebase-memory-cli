@@ -66,14 +66,12 @@ TEST(userconfig_global_via_env) {
     snprintf(cfg_dir, sizeof(cfg_dir), "%s/uctest_global_xdg", userconfig_tmpdir);
 
     char app_dir[512];
-    snprintf(app_dir, sizeof(app_dir), "%s/codebase-memory-mcp", cfg_dir);
+    snprintf(app_dir, sizeof(app_dir), "%s/codebase-memory-cli", cfg_dir);
     cbm_mkdir_p(app_dir, 0755);
 
     char global_path[768];
     snprintf(global_path, sizeof(global_path), "%s/config.json", app_dir);
-    ASSERT_EQ(
-        write_json(global_path, "{\"extra_extensions\":{\".twig\":\"html\"}}"),
-        0);
+    ASSERT_EQ(write_json(global_path, "{\"extra_extensions\":{\".twig\":\"html\"}}"), 0);
 
 #ifdef _WIN32
     char old_appdata[512] = "";
@@ -109,14 +107,12 @@ TEST(userconfig_project_wins_over_global) {
     snprintf(xdg_dir, sizeof(xdg_dir), "%s/uctest_priority_xdg", userconfig_tmpdir);
 
     char app_dir[512];
-    snprintf(app_dir, sizeof(app_dir), "%s/codebase-memory-mcp", xdg_dir);
+    snprintf(app_dir, sizeof(app_dir), "%s/codebase-memory-cli", xdg_dir);
     cbm_mkdir_p(app_dir, 0755);
 
     char global_path[768];
     snprintf(global_path, sizeof(global_path), "%s/config.json", app_dir);
-    ASSERT_EQ(
-        write_json(global_path, "{\"extra_extensions\":{\".xyz\":\"python\"}}"),
-        0);
+    ASSERT_EQ(write_json(global_path, "{\"extra_extensions\":{\".xyz\":\"python\"}}"), 0);
 
     char proj_dir[256];
     snprintf(proj_dir, sizeof(proj_dir), "%s/uctest_priority_proj", userconfig_tmpdir);
@@ -124,9 +120,7 @@ TEST(userconfig_project_wins_over_global) {
 
     char proj_path[512];
     snprintf(proj_path, sizeof(proj_path), "%s/.codebase-memory.json", proj_dir);
-    ASSERT_EQ(
-        write_json(proj_path, "{\"extra_extensions\":{\".xyz\":\"rust\"}}"),
-        0);
+    ASSERT_EQ(write_json(proj_path, "{\"extra_extensions\":{\".xyz\":\"rust\"}}"), 0);
 
     cbm_setenv("XDG_CONFIG_HOME", xdg_dir, 1);
     cbm_userconfig_t *cfg = cbm_userconfig_load(proj_dir);
@@ -153,8 +147,7 @@ TEST(userconfig_unknown_lang_skipped) {
     snprintf(proj, sizeof(proj), "%s/.codebase-memory.json", dir);
     /* "klingon" is not a valid language; ".wasm" should be silently skipped */
     ASSERT_EQ(
-        write_json(proj,
-                   "{\"extra_extensions\":{\".wasm\":\"klingon\",\".mjs\":\"javascript\"}}"),
+        write_json(proj, "{\"extra_extensions\":{\".wasm\":\"klingon\",\".mjs\":\"javascript\"}}"),
         0);
 
     cbm_userconfig_t *cfg = cbm_userconfig_load(dir);
@@ -193,9 +186,7 @@ TEST(userconfig_integration_override) {
 
     char proj[512];
     snprintf(proj, sizeof(proj), "%s/.codebase-memory.json", dir);
-    ASSERT_EQ(
-        write_json(proj, "{\"extra_extensions\":{\".blade.php\":\"php\"}}"),
-        0);
+    ASSERT_EQ(write_json(proj, "{\"extra_extensions\":{\".blade.php\":\"php\"}}"), 0);
 
     cbm_userconfig_t *cfg = cbm_userconfig_load(dir);
     ASSERT_NOT_NULL(cfg);

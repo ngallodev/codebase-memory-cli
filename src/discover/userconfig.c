@@ -2,8 +2,8 @@
  * userconfig.c — User-defined extension→language mappings.
  *
  * Reads extra_extensions from:
- *   Global:  $XDG_CONFIG_HOME/codebase-memory-mcp/config.json
- *            (falls back to ~/.config/codebase-memory-mcp/config.json)
+ *   Global:  $XDG_CONFIG_HOME/codebase-memory-cli/config.json
+ *            (falls back to ~/.config/codebase-memory-cli/config.json)
  *   Project: {repo_root}/.codebase-memory.json
  *
  * Project config wins over global. Unknown language values warn and are
