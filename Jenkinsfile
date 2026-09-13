@@ -4,8 +4,10 @@ pipeline {
     parameters {
         string(name: 'CBM_RELEASE_VERSION', defaultValue: '',
                description: 'Optional version passed to the release build, for example v0.11.0-rc.2')
-        string(name: 'CBM_TEST_SUITES', defaultValue: 'cli daemon daemon_ipc pipeline',
-               description: 'Focused incremental test suites; leave empty for the full gate')
+        string(name: 'CBM_TEST_SUITES', defaultValue: '',
+               description: '''Focused incremental test suites; leave blank for the full gate.
+Reference list (space-separated):
+arena hash_table dyn_array str_intern log str_util workspace platform diagnostics complexity subprocess private_file_lock lock_registry dump_verify ac extraction extraction_inheritance extraction_imports parse_coverage grammar_regression grammar_labels grammar_imports store_nodes store_edges store_search store_bulk store_pragmas store_checkpoint dump_verify_io cypher index_supervisor daemon project_lock version_cohort daemon_version daemon_runtime daemon_application daemon_bootstrap daemon_ipc language userconfig gitignore git_context discover graph_buffer registry pipeline importance index_format pipeline_semantic_manifest_repro call_reference_contract call_reference_language_complex_contract repro_call_scope_usages repro_call_argument_usages repro_reference_precision repro_call_argument_matrix_a repro_call_argument_matrix_b repro_call_node_behaviors repro_language_registry repro_call_node_manifest repro_lsp_ordered_signatures repro_lsp_ordered_local repro_ts_overload_return_chains repro_harness_cleanup repro_runner_filter cross_repo index_resilience fqn route_canon path_alias watcher lz4 zstd sqlite_writer artifact scope type_rep go_lsp c_lsp php_lsp cs_lsp cs_lsp_bench perl_lsp py_lsp kotlin_lsp rust_lsp py_lsp_bench py_lsp_stress py_lsp_scale ts_lsp java_lsp java_lsp_coverage store_arch traces configlink infrascan cli agent_clients legacy_agent_profiles config_json_like config_toml_edit config_yaml_edit config_text_edit activation_transaction system_info worker_pool parallel repro_lexical_binding_precision slab_alloc mem ui httpd security yaml semantic ast_profile simhash stack_overflow_a stack_overflow_b stack_overflow_c integration lang_contract edge_imports edge_structural lsp_resolution_probe node_creation_probe edge_types_probe convergence_probe matrix_known_classes matrix_new_constructs grammar_probe_a grammar_probe_b grammar_probe_c grammar_probe_d grammar_probe_e grammar_probe_f grammar_probe_g incremental''')
     }
 
     options {
@@ -64,8 +66,10 @@ pipeline {
             steps {
                 sh '''
                     set -eu
-                    if command -v codebase-memory-cli >/dev/null 2>&1; then
-                        codebase-memory-cli daemon stop >/dev/null 2>&1 || true
+                    rm -f .jenkins-installed-cli
+                    installed_cli="$HOME/.local/bin/codebase-memory-cli"
+                    if [ -x "$installed_cli" ]; then
+                        "$installed_cli" daemon stop >/dev/null 2>&1 || true
                     fi
                 '''
             }
@@ -79,6 +83,17 @@ pipeline {
                     else
                         scripts/build.sh
                     fi
+                '''
+            }
+        }
+        stage('Install built CLI') {
+            steps {
+                sh '''
+                    set -eu
+                    install_dir="$HOME/.local/bin"
+                    mkdir -p "$install_dir"
+                    install -m 0755 build/c/codebase-memory-cli "$install_dir/codebase-memory-cli"
+                    printf '%s\n' "$install_dir/codebase-memory-cli" > .jenkins-installed-cli
                 '''
             }
         }
@@ -213,8 +228,9 @@ pipeline {
         always {
             sh '''
                 set -eu
-                if command -v codebase-memory-cli >/dev/null 2>&1; then
-                    codebase-memory-cli daemon start >/dev/null 2>&1 || true
+                if [ -s .jenkins-installed-cli ]; then
+                    installed_cli=$(cat .jenkins-installed-cli)
+                    "$installed_cli" daemon start >/dev/null 2>&1 || true
                 fi
             '''
         }
