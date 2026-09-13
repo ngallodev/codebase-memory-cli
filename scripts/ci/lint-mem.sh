@@ -15,6 +15,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-CLANG_TIDY_BIN="${1:-${CLANG_TIDY:-clang-tidy}}"
+CLANG_TIDY_BIN="${1:-${CLANG_TIDY:-clang-tidy-22}}"
 
 exec make -f Makefile.cbm lint-mem-ci CLANG_TIDY="$CLANG_TIDY_BIN"

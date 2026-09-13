@@ -168,7 +168,7 @@ static const char CLI_ACTIVATION_REFUSED_MESSAGE[] =
     "error: this is NOT a running-session problem — the reservation itself "
     "failed (coordination lock, leftover state, or permissions). Nothing needs "
     "to be closed. Check the errors above, and report this with the output of "
-    "'ls -la \"${CBM_CACHE_DIR:-$HOME/.cache/codebase-memory-mcp}\"' if it "
+    "'ls -la \"${CBM_CACHE_DIR:-$HOME/.cache/codebase-memory-cli}\"' if it "
     "persists.";
 static const char CLI_ACTIVATION_PARTIAL_MESSAGE[] =
     "error: activation stopped after one or more agent configuration or "

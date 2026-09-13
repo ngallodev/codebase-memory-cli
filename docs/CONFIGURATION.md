@@ -1,18 +1,18 @@
 # Configuration Reference
 
-This page documents the configuration and persisted runtime files used by `codebase-memory-cli`. Several filesystem paths retain the historical `codebase-memory-mcp` name for compatibility; those paths do not represent an MCP product interface.
+This page documents the configuration and persisted runtime files used by `codebase-memory-cli`.
 
 ## At a Glance
 
 | Purpose | Path | Format | Notes |
 |---|---|---|---|
-| Global custom extension mapping | `$XDG_CONFIG_HOME/codebase-memory-mcp/config.json` | JSON | Falls back to `~/.config/codebase-memory-mcp/config.json` when `XDG_CONFIG_HOME` is unset. |
+| Global custom extension mapping | `$XDG_CONFIG_HOME/codebase-memory-cli/config.json` | JSON | Falls back to `~/.config/codebase-memory-cli/config.json` when `XDG_CONFIG_HOME` is unset. |
 | Per-project custom extension mapping | `{repo_root}/.codebase-memory.json` | JSON | Overrides conflicting global `extra_extensions` entries. |
-| CLI-managed runtime settings | `${CBM_CACHE_DIR:-~/.cache/codebase-memory-mcp}/_config.db` | SQLite | Written by `codebase-memory-cli config set/reset`. |
-| UI settings | `${CBM_CACHE_DIR:-~/.cache/codebase-memory-mcp}/config.json` | JSON | Stores `ui_enabled` and `ui_port`. |
-| Daemon operation log | `${CBM_CACHE_DIR:-~/.cache/codebase-memory-mcp}/logs/cbm-daemon.log` | Structured log | Durable daemon lifecycle, watcher/indexing, UI, resource, and error events. |
-| Admission conflict log | `${CBM_CACHE_DIR:-~/.cache/codebase-memory-mcp}/logs/daemon-conflicts.ndjson` | NDJSON | Exact-build, ABI, and canonical-cache conflicts. |
-| Activation log | `${CBM_CACHE_DIR:-~/.cache/codebase-memory-mcp}/logs/activation-events.ndjson` | NDJSON | Install/update/uninstall activation progress and outcomes. |
+| CLI-managed runtime settings | `${CBM_CACHE_DIR:-~/.cache/codebase-memory-cli}/_config.db` | SQLite | Written by `codebase-memory-cli config set/reset`. |
+| UI settings | `${CBM_CACHE_DIR:-~/.cache/codebase-memory-cli}/config.json` | JSON | Stores `ui_enabled` and `ui_port`. |
+| Daemon operation log | `${CBM_CACHE_DIR:-~/.cache/codebase-memory-cli}/logs/cbm-daemon.log` | Structured log | Durable daemon lifecycle, watcher/indexing, UI, resource, and error events. |
+| Admission conflict log | `${CBM_CACHE_DIR:-~/.cache/codebase-memory-cli}/logs/daemon-conflicts.ndjson` | NDJSON | Exact-build, ABI, and canonical-cache conflicts. |
+| Activation log | `${CBM_CACHE_DIR:-~/.cache/codebase-memory-cli}/logs/activation-events.ndjson` | NDJSON | Install/update/uninstall activation progress and outcomes. |
 
 CBM resolves `CBM_CACHE_DIR` to a canonical per-account path before using any of these locations. The log directory and files are private to the account.
 
@@ -25,13 +25,13 @@ Two optional JSON files let you map additional file extensions to built-in langu
 Default path:
 
 ```text
-$XDG_CONFIG_HOME/codebase-memory-mcp/config.json
+$XDG_CONFIG_HOME/codebase-memory-cli/config.json
 ```
 
 Fallback when `XDG_CONFIG_HOME` is unset:
 
 ```text
-~/.config/codebase-memory-mcp/config.json
+~/.config/codebase-memory-cli/config.json
 ```
 
 ### Per-project config
@@ -67,7 +67,7 @@ Notes:
 The `config` subcommand stores runtime settings in a small SQLite database:
 
 ```text
-${CBM_CACHE_DIR:-~/.cache/codebase-memory-mcp}/_config.db
+${CBM_CACHE_DIR:-~/.cache/codebase-memory-cli}/_config.db
 ```
 
 Inspect or change values with the CLI:
@@ -105,7 +105,7 @@ Current keys:
 The optional built-in graph UI stores its settings in:
 
 ```text
-${CBM_CACHE_DIR:-~/.cache/codebase-memory-mcp}/config.json
+${CBM_CACHE_DIR:-~/.cache/codebase-memory-cli}/config.json
 ```
 
 Current format:
@@ -130,7 +130,7 @@ These environment variables affect runtime behavior:
 | Variable | Default | Description |
 |---|---|---|
 | `CBM_ALLOWED_ROOT` | *(unset)* | Confine `index_repository` to paths within this directory. When set, a `repo_path` that resolves (after symlink / `..` resolution) outside this root is refused, and the same check now applies to the graph UI's `POST /api/index` route rather than only to one request path. Unset imposes no *containment* restriction — but see the always-on limits below, which apply whether or not this is set. Useful when agentic callers operate in a repository and indexing scope must remain human-controlled. |
-| `CBM_CACHE_DIR` | `~/.cache/codebase-memory-mcp` | Override the cache directory used for indexes, `_config.db`, and UI `config.json`. |
+| `CBM_CACHE_DIR` | `~/.cache/codebase-memory-cli` | Override the cache directory used for indexes, `_config.db`, and UI `config.json`. |
 | `CBM_DIAGNOSTICS` | `false` | Enable periodic `snapshot.json` and retained `trajectory.ndjson` below a fresh owner-private directory in the system temp directory. The daemon records the randomized paths in the `diagnostics.start` discovery record (a single JSON line) in `${CBM_CACHE_DIR}/logs/cbm-daemon.log`; that one record is emitted even when `CBM_LOG_LEVEL` suppresses ordinary logging, so the paths always remain discoverable. |
 | `CBM_DOWNLOAD_URL` | GitHub releases | Override the update download URL. |
 | `CBM_LOG_LEVEL` | `info` | Set the log level to `debug`, `info`, `warn`, `error`, or `none` (or `0`-`4`). One-shot CLI messages use that command's stderr; retained detached-runtime events use `${CBM_CACHE_DIR}/logs/cbm-daemon.log`. |

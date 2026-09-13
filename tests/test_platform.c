@@ -43,8 +43,7 @@ TEST(platform_file_apis_survive_max_path_overflow) {
     ASSERT_NOT_NULL(cbm_mkdtemp(base));
 
     enum { LONG_SEGMENTS = 5 };
-    static const char segment[] =
-        "segment-abcdefghijklmnopqrstuvwxyz0123456789-abcdefghijklmnop";
+    static const char segment[] = "segment-abcdefghijklmnopqrstuvwxyz0123456789-abcdefghijklmnop";
     char deep[CBM_SZ_1K];
     written = snprintf(deep, sizeof(deep), "%s", base);
     ASSERT_TRUE(written > 0 && written < (int)sizeof(deep));
@@ -419,6 +418,34 @@ TEST(platform_cache_dir_rejects_truncated_override) {
     PASS();
 }
 
+TEST(platform_cache_dir_defaults_to_cli_root) {
+    const char *saved_home = getenv("HOME");
+    const char *saved_cache = getenv("CBM_CACHE_DIR");
+    char *saved_home_copy = saved_home ? strdup(saved_home) : NULL;
+    char *saved_cache_copy = saved_cache ? strdup(saved_cache) : NULL;
+    ASSERT_EQ(cbm_setenv("HOME", "/tmp/cbm-platform-home", 1), 0);
+    ASSERT_EQ(cbm_unsetenv("CBM_CACHE_DIR"), 0);
+
+    const char *resolved = cbm_resolve_cache_dir();
+    bool is_cli_root =
+        resolved && strcmp(resolved, "/tmp/cbm-platform-home/.cache/codebase-memory-cli") == 0;
+
+    if (saved_home_copy) {
+        (void)cbm_setenv("HOME", saved_home_copy, 1);
+    } else {
+        (void)cbm_unsetenv("HOME");
+    }
+    if (saved_cache_copy) {
+        (void)cbm_setenv("CBM_CACHE_DIR", saved_cache_copy, 1);
+    } else {
+        (void)cbm_unsetenv("CBM_CACHE_DIR");
+    }
+    free(saved_home_copy);
+    free(saved_cache_copy);
+    ASSERT_TRUE(is_cli_root);
+    PASS();
+}
+
 #ifdef _WIN32
 /* cbm_safe_getenv reads Windows' wide environment as UTF-8. Its matching
  * setter must update that same wide environment; _putenv_s alone interprets
@@ -700,6 +727,7 @@ SUITE(platform) {
     RUN_TEST(platform_mmap_nonexistent);
     RUN_TEST(platform_path_helpers_use_per_thread_storage);
     RUN_TEST(platform_cache_dir_rejects_truncated_override);
+    RUN_TEST(platform_cache_dir_defaults_to_cli_root);
 #ifdef _WIN32
     RUN_TEST(platform_setenv_preserves_utf8_in_wide_environment);
     RUN_TEST(platform_windows_empty_environment_is_read_and_unset_idempotently);

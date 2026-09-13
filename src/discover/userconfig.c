@@ -331,7 +331,7 @@ cbm_userconfig_t *cbm_userconfig_load(const char *repo_path) {
     const char *cfg_base = cbm_app_config_dir();
     const char *cfg_fallback = cfg_base ? cfg_base : "/tmp";
     char global_path[PATH_BUF_SZ];
-    snprintf(global_path, sizeof(global_path), "%s/codebase-memory-mcp/config.json", cfg_fallback);
+    snprintf(global_path, sizeof(global_path), "%s/codebase-memory-cli/config.json", cfg_fallback);
 
     if (load_config_file(global_path, &entries, &count, cfg->global_source_sha256) != 0) {
         for (int i = 0; i < count; i++) {

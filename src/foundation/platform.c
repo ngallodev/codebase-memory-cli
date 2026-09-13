@@ -586,7 +586,7 @@ const char *cbm_resolve_cache_dir(void) {
     if (!home) {
         return NULL;
     }
-    int written = snprintf(buf, sizeof(buf), "%s/.cache/codebase-memory-mcp", home);
+    int written = snprintf(buf, sizeof(buf), "%s/.cache/codebase-memory-cli", home);
     if (written <= 0 || (size_t)written >= sizeof(buf)) {
         buf[0] = '\0';
         return NULL;

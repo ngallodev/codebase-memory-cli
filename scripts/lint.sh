@@ -28,8 +28,7 @@ Options:
   --ci            CI mode: cppcheck + clang-format only (no clang-tidy) —
                   exactly what _lint.yml gates on. `make lint-ci` uses this.
   VAR=VAL         Forwarded to make, e.g. CLANG_FORMAT=clang-format-20.
-                  NOTE: the project formatter is the Homebrew LLVM build; a
-                  standalone clang-format-20 produces false whole-file drift.
+                  The pinned formatter is clang-format-20.
   -h, --help      This text.
 EOF
 }

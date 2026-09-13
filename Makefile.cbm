@@ -1101,11 +1101,9 @@ clean-c:
 
 # ── Linting ─────────────────────────────────────────────────────
 
-# clang-tidy and clang-format: use Homebrew LLVM on macOS, overridable via make args
-# e.g. make lint-format CLANG_FORMAT=clang-format-18
-LLVM_BIN := $(shell brew --prefix llvm 2>/dev/null)/bin
-CLANG_TIDY ?= $(shell [ -x "$(LLVM_BIN)/clang-tidy" ] && echo "$(LLVM_BIN)/clang-tidy" || echo clang-tidy)
-CLANG_FORMAT ?= $(shell [ -x "$(LLVM_BIN)/clang-format" ] && echo "$(LLVM_BIN)/clang-format" || echo clang-format)
+# Pinned lint toolchain; callers may override either binary explicitly.
+CLANG_TIDY ?= clang-tidy-22
+CLANG_FORMAT ?= clang-format-20
 CPPCHECK ?= cppcheck
 # Cppcheck is the long pole in the CI lint gate. Its own worker pool is safer
 # than partitioning LINT_SRCS across separate invocations because diagnostics,
