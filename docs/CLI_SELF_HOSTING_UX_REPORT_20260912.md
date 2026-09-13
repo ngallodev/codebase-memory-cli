@@ -24,7 +24,7 @@ build/c/codebase-memory-cli index . --mode moderate \
 | `doctor --deep --json` | works | Healthy after secure directories were pre-created; useful structured diagnosis. |
 | Index | works | Moderate index completed; project appeared in `projects --json`. |
 | Search | works | BM25 search returned ranked symbols with source location. |
-| Architecture | works | Overview reported 20,646 nodes, 130,806 edges, 10 languages, and package rollups. |
+| Architecture | works | Overview reported 20,646 nodes, 130,806 edges, a ten-language mix, and package rollups. |
 | Outline, schema, snippet | works | JSON output is machine-friendly; ambiguous short names provide useful suggestions. |
 | Cypher query | works | Simple node-count query returned expected rows. |
 | Changes | works, with caveat | Correctly reports uncommitted files, but that can mask the previous-commit comparison. |
