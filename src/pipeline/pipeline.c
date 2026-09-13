@@ -190,6 +190,7 @@ struct cbm_pipeline {
     /* Committed graph size at dump time (-1 = dump did not run). #334 gate axis. */
     int committed_nodes;
     int committed_edges;
+    cbm_pipeline_metrics_t metrics;
 
     /* #769: set when a stale-format index was routed through the one-time
      * full rebuild, so the operation response can surface the migration. */
@@ -504,6 +505,11 @@ void cbm_pipeline_get_committed_counts(const cbm_pipeline_t *p, int *nodes, int 
     if (edges) {
         *edges = p ? p->committed_edges : -1;
     }
+}
+
+void cbm_pipeline_get_metrics(const cbm_pipeline_t *p, cbm_pipeline_metrics_t *out) {
+    if (out)
+        *out = p ? p->metrics : (cbm_pipeline_metrics_t){0};
 }
 
 void cbm_pipeline_set_committed_counts(cbm_pipeline_t *p, int nodes, int edges) {
@@ -2247,6 +2253,8 @@ static int cbm_pipeline_run_staged(cbm_pipeline_t *p) {
     int rc = cbm_discover_ex2(p->repo_path, &opts, &files, &file_count, &p->excluded_dirs,
                               &p->excluded_count, &p->ignored_files, &p->ignored_count,
                               &p->ignored_total);
+    p->metrics.discovery_ms += elapsed_ms(t0);
+    p->metrics.files = file_count;
     if (rc != 0) {
         cbm_log_error("pipeline.err", "phase", "discover", "rc", itoa_buf(rc));
     }
@@ -2558,6 +2566,8 @@ int cbm_pipeline_run(cbm_pipeline_t *p) {
     if (!p) {
         return CBM_NOT_FOUND;
     }
+    p->metrics = (cbm_pipeline_metrics_t){0};
+    uint64_t staged_at = cbm_now_ms();
     char *final_path = resolve_db_path(p);
     if (!final_path || !ensure_db_parent(final_path)) {
         free(final_path);
@@ -2590,7 +2600,10 @@ int cbm_pipeline_run(cbm_pipeline_t *p) {
         free(final_path);
         return CBM_NOT_FOUND;
     }
+    p->metrics.staging_ms = cbm_now_ms() - staged_at;
+    uint64_t indexed_at = cbm_now_ms();
     int rc = cbm_pipeline_run_staged(p);
+    p->metrics.index_ms = cbm_now_ms() - indexed_at;
     free(p->db_path);
     p->db_path = configured_db_path;
 
@@ -2611,6 +2624,7 @@ int cbm_pipeline_run(cbm_pipeline_t *p) {
         free(final_path);
         return CBM_PIPELINE_ABORT_PRESERVE_DB;
     }
+    uint64_t published_at = cbm_now_ms();
     if (seal_staging_db(staging_path) != 0) {
         cleanup_staging_db(staging_path);
         free(staging_path);
@@ -2661,6 +2675,7 @@ int cbm_pipeline_run(cbm_pipeline_t *p) {
     }
 
     rc = export_after_publish(p, final_path);
+    p->metrics.publish_ms = cbm_now_ms() - published_at;
     free(staging_path);
     free(final_path);
     return rc;

@@ -30,6 +30,14 @@ typedef struct cbm_gbuf cbm_gbuf_t;
 
 typedef struct cbm_pipeline cbm_pipeline_t;
 
+typedef struct {
+    uint64_t discovery_ms;
+    uint64_t index_ms;
+    uint64_t staging_ms;
+    uint64_t publish_ms;
+    int files;
+} cbm_pipeline_metrics_t;
+
 /* ── Index mode ─────────────────────────────────────────────────── */
 
 #ifndef CBM_INDEX_MODE_T_DEFINED
@@ -103,6 +111,9 @@ bool cbm_pipeline_had_format_migration(const cbm_pipeline_t *p);
 /* Committed node/edge counts captured at dump time (-1 when dump did not run).
  * Nodes are the #334 plausibility-gate axis; edges are informational only. */
 void cbm_pipeline_get_committed_counts(const cbm_pipeline_t *p, int *nodes, int *edges);
+
+/* One-run timings/counts for an opted-in caller; all fields are zero before run. */
+void cbm_pipeline_get_metrics(const cbm_pipeline_t *p, cbm_pipeline_metrics_t *out);
 
 /* ── Per-file indexing failures (Stage 2 / Track B) ─────────────── */
 

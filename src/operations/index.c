@@ -4,6 +4,7 @@
 #include "operations/project_arg.h"
 
 #include "foundation/compat_fs.h"
+#include "foundation/compat.h"
 #include "foundation/constants.h"
 #include "foundation/dump_verify.h"
 #include "foundation/log.h"
@@ -54,6 +55,75 @@ static bool index_bool_arg(const char *args_json, const char *key) {
     if (doc)
         yyjson_doc_free(doc);
     return out;
+}
+
+static bool index_db_path(const char *project, char *out, size_t out_size);
+
+static bool index_write_metrics(const char *path, const char *mode, const char *project,
+                                const cbm_pipeline_t *pipeline, int rc) {
+    if (!path || !path[0])
+        return true;
+    cbm_pipeline_metrics_t timing = {0};
+    cbm_pipeline_get_metrics(pipeline, &timing);
+    int nodes = 0, edges = 0;
+    cbm_pipeline_get_committed_counts(pipeline, &nodes, &edges);
+    char db[CBM_SZ_1K] = {0};
+    struct stat st = {0};
+    bool have_db = index_db_path(project, db, sizeof(db)) && stat(db, &st) == 0;
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
+    yyjson_mut_val *times = doc ? yyjson_mut_obj(doc) : NULL,
+                   *waits = doc ? yyjson_mut_obj(doc) : NULL;
+    yyjson_mut_val *memory = doc ? yyjson_mut_obj(doc) : NULL,
+                   *counts = doc ? yyjson_mut_obj(doc) : NULL;
+    if (!doc || !root || !times || !waits || !memory || !counts) {
+        if (doc)
+            yyjson_mut_doc_free(doc);
+        return false;
+    }
+    yyjson_mut_doc_set_root(doc, root);
+    yyjson_mut_obj_add_uint(doc, root, "schema_version", 1);
+#ifdef CBM_VERSION
+    yyjson_mut_obj_add_str(doc, root, "source_revision", CBM_VERSION);
+#else
+    yyjson_mut_obj_add_str(doc, root, "source_revision", "unknown");
+#endif
+    yyjson_mut_obj_add_str(doc, root, "index_mode", mode ? mode : "full");
+    yyjson_mut_obj_add_str(doc, root, "outcome",
+                           rc == 0                                ? "success"
+                           : rc == CBM_PIPELINE_ABORT_PRESERVE_DB ? "cancelled"
+                                                                  : "failed");
+    yyjson_mut_obj_add_uint(doc, times, "discovery_ms", timing.discovery_ms);
+    yyjson_mut_obj_add_uint(doc, times, "index_ms", timing.index_ms);
+    yyjson_mut_obj_add_uint(doc, times, "staging_ms", timing.staging_ms);
+    yyjson_mut_obj_add_uint(doc, times, "publish_ms", timing.publish_ms);
+    yyjson_mut_obj_add_val(doc, root, "wall_times", times);
+    yyjson_mut_obj_add_uint(doc, waits, "queue_ms", 0);
+    yyjson_mut_obj_add_uint(doc, waits, "lock_ms", 0);
+    yyjson_mut_obj_add_val(doc, root, "waits", waits);
+    yyjson_mut_obj_add_uint(doc, memory, "worker_peak_rss_bytes", cbm_mem_peak_rss());
+    yyjson_mut_obj_add_uint(doc, memory, "worker_aggregate_rss_bytes", cbm_mem_rss());
+    yyjson_mut_obj_add_val(doc, root, "memory", memory);
+    yyjson_mut_obj_add_int(doc, counts, "files", timing.files);
+    yyjson_mut_obj_add_int(doc, counts, "definitions", nodes > 0 ? nodes : 0);
+    yyjson_mut_obj_add_int(doc, counts, "edges", edges > 0 ? edges : 0);
+    yyjson_mut_obj_add_uint(doc, counts, "database_bytes", have_db ? (uint64_t)st.st_size : 0);
+    yyjson_mut_obj_add_val(doc, root, "counts", counts);
+    char *json = yyjson_mut_write(doc, 0, NULL);
+    yyjson_mut_doc_free(doc);
+    if (!json)
+        return false;
+    char temporary[CBM_SZ_4K];
+    int formatted = snprintf(temporary, sizeof(temporary), "%s.tmp.XXXXXX", path);
+    int fd = formatted > 0 && (size_t)formatted < sizeof(temporary) ? cbm_mkstemp(temporary) : -1;
+    FILE *file = fd >= 0 ? fdopen(fd, "wb") : NULL;
+    bool wrote = file && fputs(json, file) >= 0;
+    bool closed = file && fclose(file) == 0;
+    bool ok = wrote && closed && cbm_rename_replace(temporary, path) == 0;
+    if (!ok && fd >= 0)
+        (void)cbm_unlink(temporary);
+    free(json);
+    return ok;
 }
 
 static cbm_operation_result_t index_text_error(const char *message) {
@@ -460,16 +530,19 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
                                                  const cbm_operation_runtime_t *runtime) {
     char *mode_text = index_string_arg(args_json, "mode");
     char *name = index_string_arg(args_json, "name");
+    char *metrics_out = index_string_arg(args_json, "metrics_out");
     char *mutation_project = cbm_project_name_from_path(name && name[0] ? name : repo_path);
     if (!mutation_project) {
         free(mode_text);
         free(name);
+        free(metrics_out);
         return index_text_error("could not resolve index project name");
     }
     if (!runtime || !runtime->mutation_begin || !runtime->mutation_end ||
         !runtime->mutation_begin(runtime->mutation_context, mutation_project)) {
         free(mode_text);
         free(name);
+        free(metrics_out);
         free(mutation_project);
         return index_text_error("index operation blocked by another mutation for this project");
     }
@@ -477,6 +550,7 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
         runtime->mutation_end(runtime->mutation_context, mutation_project);
         free(mode_text);
         free(name);
+        free(metrics_out);
         free(mutation_project);
         return index_text_error("index operation cancelled for this request");
     }
@@ -485,12 +559,16 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
         mode = CBM_MODE_FAST;
     else if (mode_text && !strcmp(mode_text, "moderate"))
         mode = CBM_MODE_MODERATE;
+    const char *mode_name = mode == CBM_MODE_FAST       ? "fast"
+                            : mode == CBM_MODE_MODERATE ? "moderate"
+                                                        : "full";
     free(mode_text);
     bool persistence = index_bool_arg(args_json, "persistence");
     cbm_pipeline_t *pipeline = cbm_pipeline_new(repo_path, NULL, mode);
     if (!pipeline) {
         runtime->mutation_end(runtime->mutation_context, mutation_project);
         free(name);
+        free(metrics_out);
         free(mutation_project);
         return index_text_error("failed to create pipeline");
     }
@@ -519,6 +597,9 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
     int error_count = 0;
     cbm_pipeline_get_file_errors(pipeline, &errors, &error_count);
     cbm_mem_collect();
+    if (!index_write_metrics(metrics_out, mode_name, project, pipeline, rc))
+        rc = rc ? rc : CBM_NOT_FOUND;
+    free(metrics_out);
     if (runtime->project_invalidate)
         runtime->project_invalidate(runtime->project_invalidate_context, project);
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);

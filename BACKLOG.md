@@ -10,6 +10,18 @@
 
 ## Open
 
+- [ ] Add opt-in, single-run index metrics for performance diagnosis.
+  - Extend `index` with a one-shot flag (for example `--metrics-out PATH`),
+    rather than enabling persistent daemon timing by default.
+  - Emit versioned JSON for that invocation only: source revision, index mode,
+    discovery/index/staging/publish wall times, queue and lock waits, worker
+    peak/aggregate memory, files/definitions/edges, DB size, and outcome.
+  - Keep ordinary stdout and daemon logs quiet; no source contents or secrets
+    may enter the result. Reuse this result schema from the planned
+    `benchmark` command rather than introducing a second format.
+  - Acceptance: a normal index produces no metrics artifact; an opted-in
+    index produces one complete artifact even for a failed or cancelled run.
+
 - [ ] Selectively evaluate remaining upstream fixes from
   `../codebase-memory-mcp` before merging into the CLI fork. Do not
   cherry-pick MCP-only changes or overwrite CP89/release-tooling work; apply
