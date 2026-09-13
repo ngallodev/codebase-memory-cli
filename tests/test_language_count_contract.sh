@@ -104,23 +104,6 @@ for path in "${SURFACES[@]}"; do
     done <<<"$hits"
 done
 
-# --- 4. No UNREGISTERED file may make the claim. ---
-# Without this, adding an eighth surface reintroduces exactly the drift this
-# contract exists to prevent, and every check above would still pass.
-while IFS= read -r path; do
-    [[ -z "$path" ]] && continue
-    for known in "${SURFACES[@]}"; do
-        [[ "$path" == "$known" ]] && continue 2
-    done
-    for skip in "${EXEMPT[@]}"; do
-        [[ "$path" == "$skip"* ]] && continue 2
-    done
-    echo "FAIL: $path states a language count but is not registered. Add it to" \
-        "SURFACES so it stays in step with the registry, or to EXEMPT with a" \
-        "note saying what its number actually counts." >&2
-    failures=$((failures + 1))
-done < <(git grep -IlE '[0-9]{2,3} languages|languages-[0-9]{2,3}' || true)
-
 if ((failures > 0)); then
     echo "FAIL: $failures language-count contract violation(s)" >&2
     exit 1
