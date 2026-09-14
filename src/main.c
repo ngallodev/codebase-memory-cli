@@ -67,6 +67,7 @@ enum {
 #include "foundation/diagnostics.h"
 #include "foundation/platform.h"
 #include "foundation/workspace.h"
+#include "foundation/str_util.h"
 #include "foundation/compat.h"
 #include "foundation/compat_fs.h"
 #include "foundation/compat_thread.h"
@@ -711,6 +712,26 @@ static char *main_canonical_cli_args_with_project(const char *tool_name, const c
             yyjson_doc_free(doc);
             return NULL;
         }
+    }
+    const char *cache_dir = cbm_resolve_cache_dir();
+    if (!cache_dir || !cbm_validate_project_name(default_project)) {
+        return NULL;
+    }
+    char db_path[MAIN_PATH_CAP];
+    int db_len = snprintf(db_path, sizeof(db_path), "%s/%s.db", cache_dir, default_project);
+    if (db_len <= 0 || (size_t)db_len >= sizeof(db_path)) {
+        return NULL;
+    }
+    cbm_store_t *store = cbm_store_open_path_query(db_path);
+    if (!store) {
+        return NULL;
+    }
+    cbm_project_t indexed = {0};
+    bool indexed_ok = cbm_store_get_project(store, default_project, &indexed) == CBM_STORE_OK;
+    cbm_project_free_fields(&indexed);
+    cbm_store_close(store);
+    if (!indexed_ok) {
+        return NULL;
     }
     const char *project = default_project;
     yyjson_mut_doc *mut = yyjson_doc_mut_copy(doc, NULL);
@@ -2129,6 +2150,21 @@ static void main_daemon_ctl_print_clients(const uint32_t *pids, uint8_t count, u
     }
 }
 
+static void main_daemon_ctl_print_status_json(bool active,
+                                              const cbm_daemon_runtime_status_t *status) {
+    if (!active) {
+        printf("{\"active\":false,\"status\":\"not_running\"}\n");
+        return;
+    }
+    printf("{\"active\":true,\"status\":\"active\",\"permanent\":%s,"
+           "\"pid\":%lu,\"clients\":%u,\"committed_clients\":%u,\"stopping\":%s,"
+           "\"version\":\"%s\",\"build\":\"%s\"}\n",
+           status->permanent ? "true" : "false", (unsigned long)status->daemon_pid,
+           (unsigned)status->client_count, (unsigned)status->committed_clients,
+           status->stopping ? "true" : "false", status->semantic_version,
+           status->build_fingerprint);
+}
+
 #ifdef _WIN32
 typedef SOCKET main_daemon_ctl_socket_t;
 #define MAIN_DAEMON_CTL_BAD_SOCKET INVALID_SOCKET
@@ -2559,6 +2595,7 @@ static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpo
                                const char *executable_path) {
     const char *subcommand = NULL;
     bool open_browser = false;
+    bool json_output = false;
     int requested_port = 0;
     bool arguments_valid = true;
     for (int index = 1; index < argc; index++) {
@@ -2570,6 +2607,8 @@ static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpo
             subcommand = argv[index];
         } else if (strcmp(argv[index], "--open") == 0) {
             open_browser = true;
+        } else if (strcmp(argv[index], "--json") == 0) {
+            json_output = true;
         } else if (strncmp(argv[index], "--port=", 7) == 0) {
             requested_port = atoi(argv[index] + 7);
             if (requested_port <= 0 || requested_port >= MAIN_MAX_PORT) {
@@ -2584,7 +2623,7 @@ static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpo
     }
     if (!arguments_valid || !subcommand) {
         (void)fprintf(stderr, "usage: codebase-memory-cli daemon <start|stop|status> "
-                              "[--open] [--port=N]\n");
+                              "[--json] [--open] [--port=N]\n");
         return EXIT_FAILURE;
     }
 
@@ -2594,6 +2633,10 @@ static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpo
 
     if (strcmp(subcommand, "status") == 0) {
         if (!active) {
+            if (json_output) {
+                main_daemon_ctl_print_status_json(false, &status);
+                return EXIT_FAILURE;
+            }
             if (status.muted_endpoint_holder_pid != 0) {
                 /* Alive process, dead runtime (2026-08-29 zombie class).
                  * "not running" here sent the operator hunting through
@@ -2611,6 +2654,10 @@ static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpo
             printf("hint: `codebase-memory-cli daemon start` keeps a daemon warm so CLI "
                    "commands and hooks skip the per-command startup cost.\n");
             return EXIT_FAILURE;
+        }
+        if (json_output) {
+            main_daemon_ctl_print_status_json(true, &status);
+            return EXIT_SUCCESS;
         }
         printf("daemon: active (%s)\n", status.permanent ? "permanent" : "session-managed");
         printf("  pid: %lu\n", (unsigned long)status.daemon_pid);

@@ -221,6 +221,21 @@ static cbm_operation_result_t execute_projects(const char *args_json) {
         if (!project_db_file(entry->name)) {
             continue;
         }
+        char db_path[4096];
+        if (snprintf(db_path, sizeof(db_path), "%s/%s", cache_dir, entry->name) >=
+            (int)sizeof(db_path)) {
+            continue;
+        }
+        cbm_store_t *candidate = cbm_store_open_path_query(db_path);
+        char project_name[1024];
+        bool valid =
+            candidate && primary_project_name(candidate, project_name, sizeof(project_name));
+        if (candidate) {
+            cbm_store_close(candidate);
+        }
+        if (!valid) {
+            continue;
+        }
         if (count == capacity) {
             size_t next = capacity ? capacity * 2U : 32U;
             char **grown = realloc(names, next * sizeof(*names));
