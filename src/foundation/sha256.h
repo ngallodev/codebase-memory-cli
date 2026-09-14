@@ -17,6 +17,10 @@ typedef struct {
     uint64_t bitlen;
     uint8_t buf[64];
     size_t buflen;
+    /* Message-schedule scratch for one compression round. Keeping it in the
+     * context avoids ASan's use-after-return fake-stack allocation for a
+     * 256-byte transform-frame local on every input block. */
+    uint32_t sched[64];
 } cbm_sha256_ctx;
 
 void cbm_sha256_init(cbm_sha256_ctx *c);
