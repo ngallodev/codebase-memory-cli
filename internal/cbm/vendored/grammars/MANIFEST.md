@@ -85,6 +85,7 @@ Re-vendoring from upstream must re-apply these.
 | rescript   | `rescript/scanner.c`, deserialize | guard `memcpy(state, buffer, n_bytes)` with `if (n_bytes > 0)` | UBSan: zero-length `memcpy` with a NULL `buffer` / `n_bytes == 0` on empty-state deserialize (formal UB, harmless). The sibling serialize copies a fixed `sizeof(ScannerState)` (always > 0, non-NULL src) and needs no guard. |
 | purescript | `purescript/scanner.c`, serialize | guard `memcpy(buffer, indents->data, to_copy)` with `if (to_copy > 0)` | UBSan: zero-length `memcpy` with a NULL/0-size source when the indent vector is empty (formal UB, harmless) |
 | plsql      | `plsql/parser.c`, include         | `#include <tree_sitter/parser.h>` → `#include "tree_sitter/parser.h"` | The older ABI-14 generator emits angle brackets; every other vendored grammar uses the quoted form, which resolves the per-grammar `tree_sitter/` header from the including file's directory |
+| properties | `properties/scanner.c`, whole file | move the `reached_eof` flag out of a file-scope `static bool` and into a per-parser payload allocated by `..._external_scanner_create()` | Data race: upstream's process-wide flag can suppress the `FAKE_EOL` needed by another concurrent parser, leaving `.properties` indexing stuck at EOF. The serialize/deserialize wire format remains the returned length. Re-apply this patch when re-vendoring pinned upstream `6310671b24d4` |
 
 ## Vendored from verified upstream
 
