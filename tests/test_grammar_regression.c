@@ -17,6 +17,10 @@
 #include "cbm.h"
 #include "grammar_cases.h"
 
+#include <pthread.h>
+#include <sched.h>
+#include <stdatomic.h>
+
 static int reg_has_def_any(CBMFileResult *r, const char *name) {
     for (int i = 0; i < r->defs.count; i++) {
         if (strcmp(r->defs.items[i].name, name) == 0)
@@ -401,6 +405,43 @@ TEST(grammar_regression_all) {
     PASS();
 }
 
+typedef struct {
+    atomic_int *ready;
+    atomic_int *failures;
+} PropertiesParallelArgs;
+
+static void *properties_parallel_worker(void *arg) {
+    PropertiesParallelArgs *args = arg;
+    atomic_fetch_add(args->ready, 1);
+    while (atomic_load(args->ready) != 8)
+        sched_yield();
+    for (int i = 0; i < 8; i++) {
+        CBMFileResult *r = extract("# generated probe\nalpha=one\nbeta=two\ngamma=three\n",
+                                   CBM_LANG_PROPERTIES, "parallel", "probe.properties");
+        if (!r)
+            atomic_fetch_add(args->failures, 1);
+        cbm_free_result(r);
+    }
+    return NULL;
+}
+
+TEST(properties_scanner_parallel_extract) {
+    enum { WORKERS = 8 };
+    pthread_t threads[WORKERS];
+    atomic_int ready = 0;
+    atomic_int failures = 0;
+    PropertiesParallelArgs args = {.ready = &ready, .failures = &failures};
+    for (int i = 0; i < WORKERS; i++)
+        ASSERT_EQ(pthread_create(&threads[i], NULL, properties_parallel_worker, &args), 0);
+    while (atomic_load(&ready) != WORKERS)
+        sched_yield();
+    for (int i = 0; i < WORKERS; i++)
+        ASSERT_EQ(pthread_join(threads[i], NULL), 0);
+    ASSERT_EQ(atomic_load(&failures), 0);
+    PASS();
+}
+
 void suite_grammar_regression(void) {
     RUN_TEST(grammar_regression_all);
+    RUN_TEST(properties_scanner_parallel_extract);
 }
