@@ -59,18 +59,18 @@ License summary:
 - `clojure` ([sogaiu/tree-sitter-clojure](https://github.com/sogaiu/tree-sitter-clojure)) is **CC0-1.0**;
   `fennel` is **CC0-1.0**; `jinja2` and `just` are **Apache-2.0**;
   `pine` is **ISC** (declared by its upstream).
-- The grammars authored in-house for this project (`chialisp`, `cobol`, `form`,
-  `janet`, `magma`, `protobuf`, `wolfram`) are **MIT** under the project's own
+- The grammars authored in-house in the upstream DeusData project (`chialisp`, `cobol`, `form`,
+  `janet`, `magma`, `protobuf`, `wolfram`) are **MIT** under the upstream project's own
   license, (c) DeusData. Each ships the repository's own LICENSE, byte-identical
   to the root copy; they carry no third-party copyright because there is no
   third party. `chialisp` is a generic s-expression grammar for the Chia
-  smart-coin language, written for this project because no usable public
+  smart-coin language, written for the upstream project because no usable public
   grammar exists; its source and corpus tests live in
   `tools/tree-sitter-chialisp/`.
 - Seven further grammars (`arkts`, `assembly`, `cfml`,
   `cfscript`, `dotenv`, `pine`, `qml`) are self-maintained forks that retain
   their original upstream authors' licenses — see the manifest for per-grammar
-  provenance. `arkts` is a first-party derivative of
+  provenance. `arkts` is an upstream DeusData first-party derivative of
   [tree-sitter/tree-sitter-typescript](https://github.com/tree-sitter/tree-sitter-typescript)
   (MIT, (c) 2017 Max Brunsfeld; on the
   [tree-sitter-javascript](https://github.com/tree-sitter/tree-sitter-javascript)
@@ -122,7 +122,7 @@ raising the Unix VFS `MAX_PATHNAME` ceiling from 512 to 4096 to match
 CBM's 4 KiB path support). Patches must be reapplied on every upstream
 refresh and are covered by `scripts/vendored-checksums.txt`.
 
-The graph-UI HTTP server is a first-party implementation
+The graph-UI HTTP server is an upstream DeusData first-party implementation
 (`src/ui/httpd.c` + `src/ui/http_server.c`) — no third-party HTTP library
 is used.
 
@@ -141,7 +141,7 @@ See `vendored/nomic/NOTICE` for the exact derivation procedure
 ## Hybrid LSP — Reference Language Servers
 
 The Hybrid LSP layer (`internal/cbm/lsp/`) is an original C implementation
-written for this project. **It contains no source code from any language
+from the upstream DeusData project and is inherited by this fork. **It contains no source code from any language
 server.** Its type-resolution behavior is structurally inspired by, and
 validated for output compatibility against, the published behavior of the
 following language servers and language specifications. They are listed here
