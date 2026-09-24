@@ -309,6 +309,6 @@ See [`SECURITY.md`](SECURITY.md) and [`docs/SECURITY-DISCLOSURE.md`](docs/SECURI
 - [`docs/RELEASE_QUALIFICATION_PLAN.md`](docs/RELEASE_QUALIFICATION_PLAN.md) — build, platform, benchmark, and release gates.
 - [`docs/CLI_ONLY_MIGRATION_PLAN.md`](docs/CLI_ONLY_MIGRATION_PLAN.md) — historical rationale and scope of the MCP removal.
 
-## License
+## License and upstream attribution
 
-MIT. See [`LICENSE`](LICENSE).
+MIT. The root [`LICENSE`](LICENSE) preserves the upstream `Copyright (c) 2025 DeusData` notice. See [`UPSTREAM_ATTRIBUTION.md`](UPSTREAM_ATTRIBUTION.md) for the explicit distinction between inherited DeusData work and modifications made in this fork.
