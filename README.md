@@ -3,16 +3,26 @@
 **Portfolio case study:** https://ngallodev-software.uk/projects/codebase-memory-cli  
 **Documentation:** https://ngallodev.github.io/codebase-memory-cli/
 
-Codebase Memory CLI builds a persistent structural knowledge graph of a source
-repository and exposes it through a local command-line interface for coding
-agents and humans.
+> **Upstream attribution:** this repository is a **modified fork** of
+> [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp),
+> originally authored and maintained by **DeusData**. The upstream project
+> supplies the original architecture and substantial implementation, including
+> the code-intelligence engine, tree-sitter parsing, persistent knowledge graph,
+> indexing/storage pipeline, daemon/watcher foundation, language support, and
+> related capabilities. This fork does **not** claim original authorship of
+> those systems. The upstream MIT copyright is preserved in [LICENSE](LICENSE).
+> See [UPSTREAM_ATTRIBUTION.md](UPSTREAM_ATTRIBUTION.md) for the explicit
+> upstream/fork boundary.
 
-This repository is a fork and C port of
-[Codebase Memory MCP](https://github.com/DeusData/codebase-memory-mcp). The
-fork keeps the code-intelligence engine, but removes the MCP server and its
-third-party MCP integration surface. It exists for workplace environments
-where policy prohibits using third-party MCP servers while still allowing a
-local, auditable developer tool.
+Codebase Memory CLI is a CLI-first modification of that upstream project. Its
+purpose is narrower: remove the supported MCP server/integration surface, make
+the CLI the product boundary, and adapt agent-facing CLI/JSON integration,
+installation/security behavior, and qualification around that boundary for
+environments where third-party MCP servers are prohibited.
+
+The underlying code-intelligence product remains substantially upstream work;
+this repository should be read as a modified fork, not as an independently
+originated implementation.
 
 The product executable is `codebase-memory-cli`. Running it with no command shows CLI help; there is no supported MCP stdio server entry point.
 
@@ -215,7 +225,7 @@ Release scanning policy: Microsoft `!ml` tolerance is the only tolerated detecti
 
 ## Indexing and language support
 
-The existing indexing engine is intentionally unchanged by the CLI-first migration. It parses 162 languages and includes:
+The upstream indexing engine is intentionally preserved through the CLI-first migration. The capabilities below originate substantially in DeusData/codebase-memory-mcp; this fork exposes them through the modified CLI-first product boundary:
 
 - tree-sitter-based extraction across the project’s supported grammar set;
 - hybrid LSP semantic enrichment for selected languages;
@@ -259,10 +269,7 @@ agent skill ─┼──> CLI / hooks ──> protocol-neutral operations ──
 agent hooks ─┘
 ```
 
-The CLI, hooks, daemon, supervised workers, watcher, and UI dispatch through
-the operation and runtime layers. Index supervision, project mutation locks,
-version-cohort checks, process containment, memory limits, cancellation, store
-recovery, and secure local coordination are part of the application itself.
+The CLI-first fork changes how the inherited application is exposed and integrated. The daemon, supervised workers, watcher, UI, graph/index engine, and much of the underlying runtime architecture originate upstream in DeusData/codebase-memory-mcp. Fork-specific work should be understood as modifications around the product boundary, CLI/JSON surfaces, MCP removal, integration/install behavior, security tightening, and qualification—not original authorship of the upstream architecture.
 
 ## Build
 
