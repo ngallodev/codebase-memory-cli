@@ -1,5 +1,12 @@
 # Third-Party Licenses
 
+> **Project provenance:** Codebase Memory CLI is itself a modified fork of
+> [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp).
+> The original project, architecture, and substantial implementation are
+> upstream work by DeusData. The upstream MIT copyright is preserved in
+> [LICENSE](LICENSE), and the fork boundary is documented in
+> [UPSTREAM_ATTRIBUTION.md](UPSTREAM_ATTRIBUTION.md).
+
 This project vendors third-party code. We are grateful to the authors and
 maintainers of these projects for making their work freely available.
 Every vendored component directory carries the upstream `LICENSE`
