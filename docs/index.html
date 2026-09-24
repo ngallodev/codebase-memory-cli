@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>codebase-memory-cli — Local Code Intelligence for AI Coding Agents</title>
-    <meta name="description" content="codebase-memory-cli is an open-source local code-intelligence CLI that indexes codebases into a persistent knowledge graph for fast structural search, tracing, source retrieval, coverage checks, and architecture queries. 162 languages, Hybrid LSP type resolution, local semantic vector search, code-clone detection, and a native runtime with deterministic machine-readable output.">
+    <title>codebase-memory-cli — Modified CLI-first fork of DeusData/codebase-memory-mcp</title>
+    <meta name="description" content="codebase-memory-cli is a modified CLI-first fork of DeusData/codebase-memory-mcp. DeusData authored the upstream code-intelligence engine and architecture; this fork changes the supported integration boundary by removing the MCP server surface and adapting the project for local CLI use.">
     <meta name="keywords" content="code intelligence CLI, knowledge graph, tree-sitter, Hybrid LSP, semantic code search, code embeddings, code clone detection, cross-repo analysis, data-flow analysis, Claude Code, Codex CLI, Gemini CLI, Cursor, Zed, code exploration, token reduction, call graph, dead code detection">
     <meta name="author" content="DeusData">
+    <meta name="maintainer" content="Nathan Gallo">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
     <meta name="theme-color" content="#0d1117">
 
     <!-- Open Graph -->
-    <meta property="og:title" content="codebase-memory-cli — Local Code Intelligence for AI Coding Agents">
-    <meta property="og:description" content="Index any codebase into a persistent knowledge graph. AI agents answer structural questions with ~120x fewer tokens. 162 languages, Hybrid LSP, sub-1ms queries, native executable with verified assets.">
+    <meta property="og:title" content="codebase-memory-cli — Modified CLI-first fork of Codebase Memory MCP">
+    <meta property="og:description" content="Modified CLI-first fork of DeusData/codebase-memory-mcp. The upstream architecture and code-intelligence engine are DeusData work; this fork removes the supported MCP server/integration surface and adapts the project for CLI-first use.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://deusdata.github.io/codebase-memory-mcp/">
+    <meta property="og:url" content="https://ngallodev.github.io/codebase-memory-cli/">
     <meta property="og:image" content="https://deusdata.github.io/codebase-memory-mcp/graph-ui-screenshot.png">
     <meta property="og:image:width" content="1538">
     <meta property="og:image:height" content="932">
@@ -23,11 +24,11 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="codebase-memory-cli — Code Intelligence for AI Coding Agents">
-    <meta name="twitter:description" content="Index any codebase into a knowledge graph. ~120x fewer tokens for AI code exploration. 162 languages, Hybrid LSP, sub-1ms queries, native executable with verified assets.">
+    <meta name="twitter:title" content="codebase-memory-cli — Modified CLI-first fork">
+    <meta name="twitter:description" content="Modified CLI-first fork of DeusData/codebase-memory-mcp; upstream architecture and code-intelligence engine by DeusData.">
     <meta name="twitter:image" content="https://deusdata.github.io/codebase-memory-mcp/graph-ui-screenshot.png">
 
-    <link rel="canonical" href="https://deusdata.github.io/codebase-memory-mcp/">
+    <link rel="canonical" href="https://ngallodev.github.io/codebase-memory-cli/">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230d1117'/%3E%3Cg stroke='%2358a6ff' stroke-width='2'%3E%3Cline x1='9' y1='9' x2='23' y2='16'/%3E%3Cline x1='23' y1='16' x2='10' y2='24'/%3E%3Cline x1='9' y1='9' x2='10' y2='24'/%3E%3C/g%3E%3Cg fill='%2358a6ff'%3E%3Ccircle cx='9' cy='9' r='3.5'/%3E%3Ccircle cx='23' cy='16' r='3.5'/%3E%3Ccircle cx='10' cy='24' r='3.5'/%3E%3C/g%3E%3C/svg%3E">
 
     <!-- Structured data: SoftwareApplication (the tool) -->
@@ -41,10 +42,10 @@
       "applicationSubCategory": "Developer command-line code intelligence",
       "operatingSystem": "macOS, Linux, Windows",
       "softwareVersion": "0.8.1",
-      "description": "An open-source local code-intelligence CLI that indexes a codebase into a persistent structural knowledge graph for search, call tracing, exact source retrieval, coverage checks, architecture queries, and change analysis. Parses 162 languages via tree-sitter with Hybrid LSP semantic type resolution for selected language families and ships as a native executable.",
-      "url": "https://deusdata.github.io/codebase-memory-mcp/",
-      "downloadUrl": "https://github.com/DeusData/codebase-memory-mcp/releases/latest",
-      "codeRepository": "https://github.com/DeusData/codebase-memory-mcp",
+      "description": "A modified CLI-first fork of DeusData/codebase-memory-mcp. DeusData authored the upstream code-intelligence engine and architecture; this fork changes the supported integration boundary by removing the MCP server surface and adapting the project for local CLI use.",
+      "url": "https://ngallodev.github.io/codebase-memory-cli/",
+      "codeRepository": "https://github.com/ngallodev/codebase-memory-cli",
+      "isBasedOn": "https://github.com/DeusData/codebase-memory-mcp",
       "programmingLanguage": "C",
       "license": "https://opensource.org/licenses/MIT",
       "isAccessibleForFree": true,
@@ -74,6 +75,11 @@
         "@type": "Organization",
         "name": "DeusData",
         "url": "https://github.com/DeusData"
+      },
+      "maintainer": {
+        "@type": "Person",
+        "name": "Nathan Gallo",
+        "url": "https://github.com/ngallodev"
       },
       "citation": {
         "@type": "ScholarlyArticle",
@@ -125,7 +131,7 @@
           "name": "What is codebase-memory-cli?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "codebase-memory-cli is an open-source local code-intelligence command-line application that indexes a codebase into a persistent structural knowledge graph. Coding agents and humans use deterministic CLI operations to search symbols, retrieve exact source, trace relationships, check index coverage, and inspect architecture. It parses 162 languages and ships as a native executable."
+            "text": "codebase-memory-cli is a modified CLI-first fork of DeusData/codebase-memory-mcp. DeusData authored the upstream architecture and substantial code-intelligence implementation. The fork removes the supported MCP server/integration surface and adapts the inherited project for CLI-first use in restricted environments."
           }
         },
         {
@@ -421,6 +427,15 @@
     </style>
 </head>
 <body>
+    <div style="background:#161b22;border-bottom:1px solid #30363d;padding:14px 24px;color:#c9d1d9;font-size:14px;line-height:1.55">
+      <strong>Fork attribution:</strong>
+      codebase-memory-cli is a <strong>modified fork</strong> of
+      <a href="https://github.com/DeusData/codebase-memory-mcp">DeusData/codebase-memory-mcp</a>.
+      DeusData authored the upstream architecture and substantial code-intelligence implementation.
+      This fork changes the supported product boundary to CLI-first use and does not claim original
+      authorship of the inherited engine or architecture.
+      <a href="https://github.com/ngallodev/codebase-memory-cli/blob/main/UPSTREAM_ATTRIBUTION.md">Full attribution</a>.
+    </div>
 
 <nav>
     <div class="container">
