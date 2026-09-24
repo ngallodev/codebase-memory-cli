@@ -3,7 +3,7 @@
 **Portfolio case study:** https://ngallodev-software.uk/projects/codebase-memory-cli  
 **Documentation:** https://ngallodev.github.io/codebase-memory-cli/
 
-## Quick summary
+## Summary
 
 - **What it is:** a **modified fork** of [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp), not an independently originated code-intelligence system.
 - **Upstream credit:** DeusData authored the original architecture and substantial implementation, including the graph/index engine, parser pipeline, storage, daemon/watcher foundation, and broad language support.
