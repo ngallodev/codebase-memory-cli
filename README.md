@@ -1,5 +1,8 @@
 # Codebase Memory CLI
 
+**Portfolio case study:** https://ngallodev-software.uk/projects/codebase-memory-cli  
+**Documentation:** https://ngallodev.github.io/codebase-memory-cli/
+
 Codebase Memory CLI builds a persistent structural knowledge graph of a source
 repository and exposes it through a local command-line interface for coding
 agents and humans.
