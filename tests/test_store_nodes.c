@@ -2030,6 +2030,31 @@ TEST(store_count_nodes_unknown_project) {
     PASS();
 }
 
+TEST(store_count_failed_read_is_error) {
+    cbm_store_t *s = cbm_store_open_memory();
+    ASSERT_NOT_NULL(s);
+    cbm_store_upsert_project(s, "test", "/tmp/test");
+
+    cbm_node_t n = {.project = "test",
+                    .label = "File",
+                    .name = "main.c",
+                    .qualified_name = "test.main.c",
+                    .file_path = "main.c"};
+    cbm_store_upsert_node(s, &n);
+    ASSERT_EQ(cbm_store_count_nodes(s, "test"), 1);
+    ASSERT_EQ(cbm_store_count_edges(s, "test"), 0);
+
+    /* Count statements are cached above; dropping the tables makes sqlite3_step
+     * fail instead of failing statement preparation. */
+    ASSERT_EQ(cbm_store_exec(s, "DROP TABLE nodes;"), CBM_STORE_OK);
+    ASSERT_EQ(cbm_store_exec(s, "DROP TABLE edges;"), CBM_STORE_OK);
+    ASSERT_EQ(cbm_store_count_nodes(s, "test"), CBM_STORE_ERR);
+    ASSERT_EQ(cbm_store_count_edges(s, "test"), CBM_STORE_ERR);
+
+    cbm_store_close(s);
+    PASS();
+}
+
 /* ── Index coverage (#963) ──────────────────────────────────────── */
 
 /* Round-trip + deleted-file prune + shadow miss-graph materialization +
@@ -2432,4 +2457,5 @@ SUITE(store_nodes) {
     RUN_TEST(store_node_properties_special_chars);
     RUN_TEST(store_delete_nodes_nonexistent);
     RUN_TEST(store_count_nodes_unknown_project);
+    RUN_TEST(store_count_failed_read_is_error);
 }
