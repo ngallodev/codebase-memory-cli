@@ -9,7 +9,9 @@
 #include "test_framework.h"
 #include "test_helpers.h"
 #include "foundation/mem.h" // cbm_mem_init/budget (back-pressure futile-nap test)
+#include "foundation/arena.h"
 #include "pipeline/pipeline.h"
+#include "pipeline/lsp_surface.h"
 #include "pipeline/pipeline_internal.h"
 #include "pipeline/artifact.h"
 #include "store/store.h"
@@ -13008,6 +13010,31 @@ TEST(pipeline_lsp_surface_persisted_and_body_edit_invariant) {
     PASS();
 }
 
+TEST(pipeline_lsp_surface_decode_preserves_array_order_and_nulls) {
+    const char *json =
+        "{\"v\":1,\"lsp\":["
+        "{\"qn\":\"first\",\"sn\":\"one\",\"lb\":\"Function\",\"rt\":null,\"spt\":[\"A\",null,\"C\"]},"
+        "{\"qn\":\"second\",\"sn\":\"two\",\"lb\":\"Method\",\"rt\":\"Receiver\",\"spt\":[\"D\"]},"
+        "{\"qn\":\"third\",\"sn\":\"three\",\"lb\":\"Class\",\"rt\":null,\"spt\":[]}]}";
+    CBMArena arena;
+    cbm_arena_init(&arena);
+    CBMLSPDef *defs = NULL;
+    ASSERT_EQ(cbm_lsp_surface_defs_from_json(&arena, json, &defs), 3);
+    ASSERT_NOT_NULL(defs);
+    ASSERT_STR_EQ(defs[0].qualified_name, "first");
+    ASSERT_STR_EQ(defs[1].qualified_name, "second");
+    ASSERT_STR_EQ(defs[2].qualified_name, "third");
+    ASSERT_TRUE(defs[0].receiver_type == NULL);
+    ASSERT_STR_EQ(defs[1].receiver_type, "Receiver");
+    ASSERT_EQ(defs[0].signature_param_count, 3);
+    ASSERT_STR_EQ(defs[0].signature_param_types[0], "A");
+    ASSERT_STR_EQ(defs[0].signature_param_types[1], "?");
+    ASSERT_STR_EQ(defs[0].signature_param_types[2], "C");
+    ASSERT_EQ(defs[2].signature_param_count, 0);
+    cbm_arena_destroy(&arena);
+    PASS();
+}
+
 TEST(pipeline_ensemble_routing_edges) {
     char tmpdir[256];
     snprintf(tmpdir, sizeof(tmpdir), "/tmp/cbm_ens_XXXXXX");
@@ -13662,6 +13689,7 @@ TEST(pipeline_objectscript_export_range_join_keeps_one_trailing_marker) {
 #endif
 
 SUITE(pipeline) {
+    RUN_TEST(pipeline_lsp_surface_decode_preserves_array_order_and_nulls);
     RUN_TEST(pipeline_lsp_surface_persisted_and_body_edit_invariant);
     /* Index lock */
     RUN_TEST(pipeline_lock_try_acquire);
