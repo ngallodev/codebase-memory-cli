@@ -2781,6 +2781,13 @@ static cyp_partial_t eval_condition_partial(const cbm_condition_t *c, binding_t 
     if (c->variable && !binding_get(b, c->variable) && !binding_get_edge(b, c->variable)) {
         return CYP_PARTIAL_UNKNOWN;
     }
+    /* Multi-arg function: any unbound variable arg makes it UNKNOWN. */
+    for (int i = 0; c->func && i < c->arg_count; i++) {
+        const char *av = c->args[i].variable;
+        if (av && !binding_get(b, av) && !binding_get_edge(b, av)) {
+            return CYP_PARTIAL_UNKNOWN;
+        }
+    }
     return eval_condition(c, b) ? CYP_PARTIAL_TRUE : CYP_PARTIAL_FALSE;
 }
 
@@ -3841,6 +3848,10 @@ static void distinct_list_add(char ***list, int *count, const char *val) {
     }
     int idx = (*count)++;
     *list = safe_realloc(*list, (size_t)(idx + SKIP_ONE) * sizeof(char *));
+    if (!*list) {
+        *count = 0; /* safe_realloc freed the old list */
+        return;
+    }
     (*list)[idx] = heap_strdup(val);
 }
 
@@ -3998,10 +4009,33 @@ static int with_agg_find_or_create(with_agg_t **aggs, int *agg_cnt, int *agg_cap
     return found;
 }
 
+/* True when the aggregate's argument is bound (COUNT skips unbound OPTIONAL). */
+static bool binding_has_value(binding_t *b, const char *var, const char *prop) {
+    if (!var || strcmp(var, "*") == 0) {
+        return true;
+    }
+    char full[CBM_SZ_256];
+    if (prop) {
+        (void)snprintf(full, sizeof(full), "%s.%s", var, prop);
+    } else {
+        (void)snprintf(full, sizeof(full), "%s", var);
+    }
+    for (int i = 0; i < b->var_count; i++) {
+        if (strcmp(b->var_names[i], full) == 0) {
+            return true;
+        }
+    }
+    return binding_get_edge(b, var) != NULL || binding_get(b, var) != NULL;
+}
+
 /* Accumulate aggregation values for a binding */
 static void with_agg_accumulate(with_agg_t *agg, cbm_return_clause_t *wc, binding_t *b) {
     for (int ci = 0; ci < wc->count; ci++) {
         if (!is_aggregate_func(wc->items[ci].func)) {
+            continue;
+        }
+        if (strcmp(wc->items[ci].func, "COUNT") == 0 &&
+            !binding_has_value(b, wc->items[ci].variable, wc->items[ci].property)) {
             continue;
         }
         agg->counts[ci]++;
@@ -4432,24 +4466,6 @@ static void ret_agg_init_group(ret_agg_entry_t *entry, const char *key, int item
 }
 
 /* Accumulate a binding into RETURN aggregation */
-static bool binding_has_value(binding_t *b, const char *var, const char *prop) {
-    if (!var || strcmp(var, "*") == 0) {
-        return true;
-    }
-    char full[CBM_SZ_256];
-    if (prop) {
-        snprintf(full, sizeof(full), "%s.%s", var, prop);
-    } else {
-        snprintf(full, sizeof(full), "%s", var);
-    }
-    for (int i = 0; i < b->var_count; i++) {
-        if (strcmp(b->var_names[i], full) == 0) {
-            return true;
-        }
-    }
-    return binding_get_edge(b, var) != NULL || binding_get(b, var) != NULL;
-}
-
 static void ret_agg_accumulate(ret_agg_entry_t *entry, cbm_return_clause_t *ret, binding_t *b) {
     for (int ci = 0; ci < ret->count; ci++) {
         if (!is_aggregate_func(ret->items[ci].func)) {
