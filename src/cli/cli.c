@@ -1652,14 +1652,21 @@ static bool cbm_json_mcp_command_path_probe_safe(const char *command) {
 #endif
 
 #ifdef CBM_CLI_ENABLE_TEST_API
+#ifdef _WIN32
+/* Read only by the Windows command-path probe. */
 static CBM_TLS int *g_mcp_command_path_probe_counter = NULL;
+#endif
 
 bool cbm_legacy_command_path_probe_safe_for_testing(const char *command, bool windows) {
     return cbm_json_mcp_command_path_probe_safe_for_platform(command, windows);
 }
 
 void cbm_set_mcp_command_path_probe_counter_for_testing(int *counter) {
+#ifdef _WIN32
     g_mcp_command_path_probe_counter = counter;
+#else
+    (void)counter;
+#endif
 }
 #endif
 
@@ -4746,29 +4753,6 @@ static int cbm_remove_owned_hook_script(const char *path, const char *expected_c
  * a missing/old/hung binary results in a silent exit 0 (issue #362/#288).
  * The CLI-owned filename is intentionally distinct from MCP-era hook files so
  * side-by-side installs never adopt or rewrite the MCP hook namespace. */
-/* #929 (Windows): remove the pre-.cmd extensionless twin only when its bytes
- * match a current or released installer-owned script. Modified/foreign files
- * at the reserved path are preserved. POSIX keeps the extensionless name,
- * where legacy == current, so no separate cleanup is needed there. */
-#ifdef _WIN32
-static int cbm_remove_owned_legacy_hook_script(const char *hooks_dir, const char *legacy_name,
-                                               const char *current_script,
-                                               const char *const *released_scripts,
-                                               size_t released_script_count) {
-    if (!hooks_dir || !legacy_name || !current_script) {
-        return CLI_ERR;
-    }
-    char legacy_path[CLI_BUF_1K];
-    int written = snprintf(legacy_path, sizeof(legacy_path), "%s/%s", hooks_dir, legacy_name);
-    if (written <= 0 || (size_t)written >= sizeof(legacy_path)) {
-        return CLI_ERR;
-    }
-    int result = cbm_text_remove_owned_document_any(legacy_path, current_script, released_scripts,
-                                                    released_script_count);
-    return result < CLI_OK ? CLI_ERR : CLI_OK;
-}
-#endif
-
 bool cbm_install_hook_gate_script(const char *home, const char *binary_path) {
     if (!home || !binary_path) {
         return false;

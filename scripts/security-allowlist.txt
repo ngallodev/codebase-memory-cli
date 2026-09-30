@@ -29,6 +29,12 @@ NETWORK:src/main.c:connect:1:loopback-v4:main_daemon_ctl_socket_connected:single
 # Format: WRITE:file:expected-count:justification
 WRITE:src/main.c:3:supervised worker response path; cache-scoped hook notice marker; test-seam-only browser-open marker at the caller-supplied test path
 WRITE:src/daemon/application.c:1:recovery truncates only its private uniquely-created per-job marker file
+WRITE:src/cli/config_json_like.c:1:Windows exclusive-create (wbx) sibling temp file for atomic agent config replace
+WRITE:src/cli/config_text_edit.c:1:Windows exclusive-create (w+bx) sibling temp file for atomic agent config replace
+WRITE:src/cli/config_yaml_edit.c:1:Windows exclusive-create (wbx) sibling temp file for atomic agent config replace
+WRITE:src/foundation/compat_fs.c:1:stream_copy_file fallback of the copy helper; destination chosen by the caller
+WRITE:src/foundation/mem.c:1:opt-in allocator stats dump to the user-set CBM_MEM_STATS_OUT path
+WRITE:src/operations/index.c:1:index error log in the cache logs/ directory, or the user-set CBM_INDEX_LOG path
 
 # ── CLI: update command (user-initiated, interactive) ──────────────────────
 src/cli/cli.c:cbm_popen:sha256 checksum verification (update cmd)

@@ -8,6 +8,9 @@
 #include "foundation/compat_fs.h"
 #include "foundation/platform.h"
 #include "foundation/sha256.h"
+#ifdef _WIN32
+#include "foundation/win_utf8.h"
+#endif
 
 #include <stdlib.h>
 
