@@ -312,6 +312,25 @@ static const ext_entry_t EXT_TABLE[] = {
     {".xsd", CBM_LANG_XML},
     {".xsl", CBM_LANG_XML},
     {".svg", CBM_LANG_XML},
+    /* MSBuild project system. */
+    {".csproj", CBM_LANG_XML},
+    {".vbproj", CBM_LANG_XML},
+    {".fsproj", CBM_LANG_XML},
+    {".props", CBM_LANG_XML},
+    {".targets", CBM_LANG_XML},
+    {".nuspec", CBM_LANG_XML},
+    {".slnx", CBM_LANG_XML},
+    {".runsettings", CBM_LANG_XML},
+    /* .NET resource files. */
+    {".resx", CBM_LANG_XML},
+    /* XAML views. */
+    {".xaml", CBM_LANG_XML},
+    {".axaml", CBM_LANG_XML},
+    /* Application manifests. */
+    {".plist", CBM_LANG_XML},
+    {".xcprivacy", CBM_LANG_XML},
+    {".manifest", CBM_LANG_XML},
+    {".appxmanifest", CBM_LANG_XML},
 
     /* YAML */
     {".yaml", CBM_LANG_YAML},
