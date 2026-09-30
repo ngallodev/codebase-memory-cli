@@ -570,6 +570,7 @@ static bool runtime_test_link_shared_image(const char *destination) {
 #endif
 }
 
+#ifdef __linux__ /* only the Linux changed-image case restores the image */
 static bool runtime_test_restore_shared_image(void) {
     if (!runtime_shared_image[0]) {
         return false;
@@ -592,6 +593,7 @@ static bool runtime_test_restore_shared_image(void) {
     return truncate(runtime_shared_image, (off_t)runtime_shared_image_size) == 0;
 #endif
 }
+#endif
 
 static void runtime_test_shared_image_cleanup(void) {
     if (runtime_shared_image[0]) {
