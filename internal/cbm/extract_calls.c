@@ -258,10 +258,28 @@ static char *extract_constructor_callee(CBMArena *a, TSNode node, const char *so
     return NULL;
 }
 
+/* tree-sitter-typescript parses `await f<T>()` as a call_expression whose
+ * function field is the await_expression; unwrap it to reach the callee.
+ * Gated on the JS/TS grammars: other languages' await_expression nodes are
+ * not call wrappers. */
+static TSNode unwrap_await_callee(TSNode node) {
+    if (ts_node_is_null(node) || strcmp(ts_node_type(node), "await_expression") != 0 ||
+        ts_node_named_child_count(node) == 0) {
+        return node;
+    }
+    const TSLanguage *tl = ts_node_language(node);
+    if (tl != cbm_ts_language(CBM_LANG_TYPESCRIPT) && tl != cbm_ts_language(CBM_LANG_TSX) &&
+        tl != cbm_ts_language(CBM_LANG_JAVASCRIPT)) {
+        return node;
+    }
+    return ts_node_named_child(node, 0);
+}
+
 // Try common field-based callee resolution (function, name, method fields).
 static char *extract_callee_from_fields(CBMArena *a, TSNode node, const char *source) {
     // Try "function" field
     TSNode func_node = ts_node_child_by_field_name(node, TS_FIELD("function"));
+    func_node = unwrap_await_callee(func_node);
     if (!ts_node_is_null(func_node)) {
         const char *fk = ts_node_type(func_node);
         if (strcmp(fk, "selector_expression") == 0) {
@@ -3435,6 +3453,7 @@ static CBMPrimaryCalleeSelection select_primary_callee(CBMExtractCtx *ctx, TSNod
     }
 
     selection.expr = language_specific_callee_expr(ctx->language, node);
+    selection.expr = unwrap_await_callee(selection.expr);
     if (is_dynamic_callee_expr(ctx, selection.expr)) {
         selection.expr = (TSNode){0};
         return selection;
