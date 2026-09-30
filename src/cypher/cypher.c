@@ -2750,6 +2750,103 @@ static bool eval_where(const cbm_where_clause_t *w, binding_t *b) {
     return is_and;
 }
 
+/* Three-valued WHERE evaluation for the early (seed-row) pass in
+ * execute_single: only the first MATCH alias is bound there, so a leaf on
+ * any other alias is UNKNOWN rather than true. The two-valued evaluator
+ * returns true for an unbound alias, which NOT / XOR then invert -- pruning
+ * every seed before relationship expansion (distilled from PR #1245). The
+ * full evaluation reruns after expansion (Step 3), so the early pass only has
+ * to prune on a definite false. Allocation-free, O(expression nodes). */
+typedef enum { CYP_PARTIAL_FALSE = 0, CYP_PARTIAL_TRUE, CYP_PARTIAL_UNKNOWN } cyp_partial_t;
+
+static cyp_partial_t partial_and(cyp_partial_t l, cyp_partial_t r) {
+    if (l == CYP_PARTIAL_FALSE || r == CYP_PARTIAL_FALSE) {
+        return CYP_PARTIAL_FALSE;
+    }
+    return (l == CYP_PARTIAL_TRUE && r == CYP_PARTIAL_TRUE) ? CYP_PARTIAL_TRUE
+                                                            : CYP_PARTIAL_UNKNOWN;
+}
+
+static cyp_partial_t partial_or(cyp_partial_t l, cyp_partial_t r) {
+    if (l == CYP_PARTIAL_TRUE || r == CYP_PARTIAL_TRUE) {
+        return CYP_PARTIAL_TRUE;
+    }
+    return (l == CYP_PARTIAL_FALSE && r == CYP_PARTIAL_FALSE) ? CYP_PARTIAL_FALSE
+                                                              : CYP_PARTIAL_UNKNOWN;
+}
+
+/* A condition whose alias is not bound yet is UNKNOWN; a literal-only LHS
+ * (func condition with no variable arg) has nothing to wait for. */
+static cyp_partial_t eval_condition_partial(const cbm_condition_t *c, binding_t *b) {
+    if (c->variable && !binding_get(b, c->variable) && !binding_get_edge(b, c->variable)) {
+        return CYP_PARTIAL_UNKNOWN;
+    }
+    /* Multi-arg function: any unbound variable arg makes it UNKNOWN. */
+    for (int i = 0; c->func && i < c->arg_count; i++) {
+        const char *av = c->args[i].variable;
+        if (av && !binding_get(b, av) && !binding_get_edge(b, av)) {
+            return CYP_PARTIAL_UNKNOWN;
+        }
+    }
+    return eval_condition(c, b) ? CYP_PARTIAL_TRUE : CYP_PARTIAL_FALSE;
+}
+
+static cyp_partial_t eval_expr_partial(const cbm_expr_t *e, // NOLINT(misc-no-recursion)
+                                       binding_t *b) {
+    if (!e) {
+        return CYP_PARTIAL_TRUE;
+    }
+    if (e->type == EXPR_CONDITION) {
+        return eval_condition_partial(&e->cond, b);
+    }
+    cyp_partial_t left = eval_expr_partial(e->left, b);
+    if (e->type == EXPR_NOT) {
+        if (left == CYP_PARTIAL_UNKNOWN) {
+            return CYP_PARTIAL_UNKNOWN;
+        }
+        return left == CYP_PARTIAL_TRUE ? CYP_PARTIAL_FALSE : CYP_PARTIAL_TRUE;
+    }
+    /* Same short-circuits as eval_expr: a definite left decides AND / OR. */
+    if (e->type == EXPR_AND && left == CYP_PARTIAL_FALSE) {
+        return CYP_PARTIAL_FALSE;
+    }
+    if (e->type == EXPR_OR && left == CYP_PARTIAL_TRUE) {
+        return CYP_PARTIAL_TRUE;
+    }
+    cyp_partial_t right = eval_expr_partial(e->right, b);
+    if (e->type == EXPR_AND) {
+        return partial_and(left, right);
+    }
+    if (e->type == EXPR_OR) {
+        return partial_or(left, right);
+    }
+    /* EXPR_XOR */
+    if (left == CYP_PARTIAL_UNKNOWN || right == CYP_PARTIAL_UNKNOWN) {
+        return CYP_PARTIAL_UNKNOWN;
+    }
+    return left != right ? CYP_PARTIAL_TRUE : CYP_PARTIAL_FALSE;
+}
+
+static cyp_partial_t eval_where_partial(const cbm_where_clause_t *w, binding_t *b) {
+    if (!w) {
+        return CYP_PARTIAL_TRUE;
+    }
+    if (w->root) {
+        return eval_expr_partial(w->root, b);
+    }
+    /* Legacy flat evaluation */
+    if (w->count == 0) {
+        return CYP_PARTIAL_TRUE;
+    }
+    bool is_and = (w->op && strcmp(w->op, "AND") == 0) != 0;
+    cyp_partial_t result = is_and ? CYP_PARTIAL_TRUE : CYP_PARTIAL_FALSE;
+    for (int i = 0; i < w->count; i++) {
+        cyp_partial_t r = eval_condition_partial(&w->conditions[i], b);
+        result = is_and ? partial_and(result, r) : partial_or(result, r);
+    }
+    return result;
+}
+
 /* Check if a string value looks like a regex pattern. */
 static bool looks_like_regex(const char *s) {
     if (!s) {
@@ -3751,6 +3848,10 @@ static void distinct_list_add(char ***list, int *count, const char *val) {
     }
     int idx = (*count)++;
     *list = safe_realloc(*list, (size_t)(idx + SKIP_ONE) * sizeof(char *));
+    if (!*list) {
+        *count = 0; /* safe_realloc freed the old list */
+        return;
+    }
     (*list)[idx] = heap_strdup(val);
 }
 
@@ -3908,10 +4009,33 @@ static int with_agg_find_or_create(with_agg_t **aggs, int *agg_cnt, int *agg_cap
     return found;
 }
 
+/* True when the aggregate's argument is bound (COUNT skips unbound OPTIONAL). */
+static bool binding_has_value(binding_t *b, const char *var, const char *prop) {
+    if (!var || strcmp(var, "*") == 0) {
+        return true;
+    }
+    char full[CBM_SZ_256];
+    if (prop) {
+        (void)snprintf(full, sizeof(full), "%s.%s", var, prop);
+    } else {
+        (void)snprintf(full, sizeof(full), "%s", var);
+    }
+    for (int i = 0; i < b->var_count; i++) {
+        if (strcmp(b->var_names[i], full) == 0) {
+            return true;
+        }
+    }
+    return binding_get_edge(b, var) != NULL || binding_get(b, var) != NULL;
+}
+
 /* Accumulate aggregation values for a binding */
 static void with_agg_accumulate(with_agg_t *agg, cbm_return_clause_t *wc, binding_t *b) {
     for (int ci = 0; ci < wc->count; ci++) {
         if (!is_aggregate_func(wc->items[ci].func)) {
+            continue;
+        }
+        if (strcmp(wc->items[ci].func, "COUNT") == 0 &&
+            !binding_has_value(b, wc->items[ci].variable, wc->items[ci].property)) {
             continue;
         }
         agg->counts[ci]++;
@@ -4345,6 +4469,10 @@ static void ret_agg_init_group(ret_agg_entry_t *entry, const char *key, int item
 static void ret_agg_accumulate(ret_agg_entry_t *entry, cbm_return_clause_t *ret, binding_t *b) {
     for (int ci = 0; ci < ret->count; ci++) {
         if (!is_aggregate_func(ret->items[ci].func)) {
+            continue;
+        }
+        if (strcmp(ret->items[ci].func, "COUNT") == 0 &&
+            !binding_has_value(b, ret->items[ci].variable, ret->items[ci].property)) {
             continue;
         }
         entry->counts[ci]++;
@@ -4885,7 +5013,7 @@ static int execute_single(cbm_store_t *store, cbm_query_t *q, const char *projec
         binding_t b = {0};
         b.store = store;
         binding_set(&b, var_name, &scanned[i]);
-        bool pass = !q->where || eval_where(q->where, &b);
+        bool pass = eval_where_partial(q->where, &b) != CYP_PARTIAL_FALSE;
         if (pass) {
             bindings[bind_count++] = b;
         } else {
