@@ -741,6 +741,32 @@ TEST(tslsp_await_generic_call_issue2210) {
     PASS();
 }
 
+TEST(tslsp_await_generic_call_type_issue2210) {
+    CBMFileResult *r =
+        extract_ts("class Foo { method(): void {} }\n"
+                   "function load<T>(): Foo { return new Foo(); }\n"
+                   "async function go() { const v = await load<Foo>(); v.method(); }\n");
+    ASSERT_NOT_NULL(r);
+    ASSERT_GTE(require_resolved(r, ".go", "Foo.method"), 0);
+    cbm_free_result(r);
+    PASS();
+}
+
+TEST(tslsp_await_generic_member_call_issue2210) {
+    CBMFileResult *r = extract_ts("class Foo { method(): void {} }\n"
+                                  "class Api { run<T>(): Foo { return new Foo(); } }\n"
+                                  "async function go() {\n"
+                                  "  const obj = new Api();\n"
+                                  "  const v = await obj.run<Foo>();\n"
+                                  "  v.method();\n"
+                                  "}\n");
+    ASSERT_NOT_NULL(r);
+    ASSERT_GTE(require_resolved(r, ".go", "Api.run"), 0);
+    ASSERT_GTE(require_resolved(r, ".go", "Foo.method"), 0);
+    cbm_free_result(r);
+    PASS();
+}
+
 TEST(tslsp_generic_identity_inference) {
     CBMFileResult *r = extract_ts("function identity<T>(x: T): T { return x; }\n"
                                   "class Box { use(): void {} }\n"
@@ -4331,6 +4357,8 @@ SUITE(ts_lsp) {
     RUN_TEST(tslsp_await_generic_call_issue2210);
 
     /* Category 11: generics deeper */
+    RUN_TEST(tslsp_await_generic_call_type_issue2210);
+    RUN_TEST(tslsp_await_generic_member_call_issue2210);
     RUN_TEST(tslsp_generic_identity_inference);
     RUN_TEST(tslsp_generic_array_map_chain);
     RUN_TEST(tslsp_generic_promise_resolve);
