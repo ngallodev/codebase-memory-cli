@@ -551,6 +551,7 @@ static const cbm_cli_command_alias_t CLI_COMMAND_ALIASES[] = {
      "Search source text with graph context"},
     {"outline", "get_file_outline", "--file-path", "PATH", "List indexed symbols in a source file"},
     {"delete-project", "delete_project", "--project", "PROJECT", "Delete an indexed project"},
+    {"manage-adr", "manage_adr", NULL, NULL, "Read and update the project ADR"},
     {"compare", "compare_graphs", NULL, NULL, "Compare two indexed project snapshots"},
     {"ingest-traces", "ingest_traces", NULL, NULL, "Accept runtime trace observations"},
 };
@@ -1037,6 +1038,28 @@ static int run_named_cli(const cbm_cli_command_alias_t *alias, int argc, char **
     return result;
 }
 
+static bool dispatch_named_help(int argc, char **argv, cbm_project_lock_manager_t *project_locks,
+                                main_local_maintenance_context_t *maintenance_context,
+                                int *result) {
+    if (argc <= SKIP_ONE) {
+        return false;
+    }
+    const cbm_cli_command_alias_t *alias = cli_command_alias_find(argv[SKIP_ONE]);
+    if (!alias) {
+        return false;
+    }
+    for (int i = SKIP_ONE + SKIP_ONE; i < argc; i++) {
+        if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+            cbm_mem_init_with_cap(cbm_mem_ram_fraction_for_total(cbm_system_info().total_ram),
+                                  cbm_index_worker_memory_budget_bytes());
+            *result = run_named_cli(alias, argc - SKIP_ONE - SKIP_ONE, argv + SKIP_ONE + SKIP_ONE,
+                                    project_locks, maintenance_context);
+            return true;
+        }
+    }
+    return false;
+}
+
 /* ── Help ───────────────────────────────────────────────────────── */
 
 static void print_help(void) {
@@ -1178,11 +1201,17 @@ static int main_run_allow_root(int argc, char **argv) {
     return 0;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): existing central command dispatcher
 static int handle_subcommand(int argc, char **argv, cbm_project_lock_manager_t *project_locks,
                              main_local_maintenance_context_t *maintenance_context) {
     if (argc <= 1) {
         print_help();
         return 0;
+    }
+    /* A named command owns its --help before global help is considered. */
+    int named_help_result = 0;
+    if (dispatch_named_help(argc, argv, project_locks, maintenance_context, &named_help_result)) {
+        return named_help_result;
     }
     /* First scan: global flags */
     for (int i = SKIP_ONE; i < argc; i++) {

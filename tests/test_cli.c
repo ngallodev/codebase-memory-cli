@@ -1449,7 +1449,8 @@ TEST(cli_install_config_failure_keeps_published_binary) {
     struct stat binary_status;
     bool binary_published = stat(bin_target, &binary_status) == 0;
     struct stat guarded_status;
-    bool refused_asset_preserved = stat(factory_hooks, &guarded_status) == 0 && S_ISDIR(guarded_status.st_mode);
+    bool refused_asset_preserved =
+        stat(factory_hooks, &guarded_status) == 0 && S_ISDIR(guarded_status.st_mode);
     restore_test_env("PATH", old_path);
     restore_test_env("SHELL", old_shell);
     cli_activation_restore_env(old_home, old_cache);
@@ -2447,8 +2448,6 @@ TEST(cli_codex_instructions) {
  *  Editor MCP config tests (Cursor/Windsurf/Gemini)
  * ═══════════════════════════════════════════════════════════════════ */
 
-
-
 /* The OS-reported running image is positive prior-install identity. An update
  * may replace that exact command without probing it or granting the same
  * authority to uninstall/remove paths. */
@@ -2471,14 +2470,16 @@ TEST(cli_editor_mcp_rejects_unsafe_windows_probe_namespaces) {
     ASSERT_FALSE(
         cbm_legacy_command_path_probe_safe_for_testing("/mnt/remote/codebase-memory-mcp", false));
     ASSERT_FALSE(cbm_legacy_command_path_probe_safe_for_testing("/tmp/codebase-memory-mcp", false));
-    ASSERT_TRUE(cbm_legacy_command_path_probe_safe_for_testing("C:/local/codebase-memory-mcp", true));
+    ASSERT_TRUE(
+        cbm_legacy_command_path_probe_safe_for_testing("C:/local/codebase-memory-mcp", true));
     ASSERT_TRUE(
         cbm_legacy_command_path_probe_safe_for_testing("D:\\local\\codebase-memory-mcp", true));
     ASSERT_FALSE(
         cbm_legacy_command_path_probe_safe_for_testing("//server/share/codebase-memory-mcp", true));
     ASSERT_FALSE(cbm_legacy_command_path_probe_safe_for_testing(
         "\\\\server\\share\\codebase-memory-mcp", true));
-    ASSERT_FALSE(cbm_legacy_command_path_probe_safe_for_testing("//?/C:/codebase-memory-mcp", true));
+    ASSERT_FALSE(
+        cbm_legacy_command_path_probe_safe_for_testing("//?/C:/codebase-memory-mcp", true));
     ASSERT_FALSE(
         cbm_legacy_command_path_probe_safe_for_testing("\\\\.\\pipe\\codebase-memory-mcp", true));
     PASS();
@@ -2498,10 +2499,6 @@ TEST(cli_editor_mcp_rejects_unsafe_windows_probe_namespaces) {
 /* A same-named entry with a FOREIGN shape (members we never write, e.g. env)
  * is somebody's deliberate configuration: upsert must keep refusing to touch
  * it. Pins the protective half of the ownership check. */
-
-
-
-
 
 TEST(cli_goose_block_carries_required_name_issue1675) {
     /* goose's ExtensionConfig::Stdio declares `name` as a required serde field
@@ -2523,14 +2520,6 @@ TEST(cli_goose_block_carries_required_name_issue1675) {
     ASSERT(strstr(block, "name:") == NULL);
     PASS();
 }
-
-
-
-
-
-
-
-
 
 TEST(cli_openclaw_compaction_preserves_user_owned_section) {
     char tmpdir[256];
@@ -2627,7 +2616,8 @@ TEST(cli_openclaw_profile_uses_profile_state_and_default_workspace) {
 
     cbm_detected_agents_t agents = cbm_detect_agents(tmpdir);
     char *asset_plan = cbm_build_install_plan_json(tmpdir, "/usr/local/bin/codebase-memory-cli");
-    char *hook_plan = cbm_build_hook_install_plan_json(tmpdir, "/usr/local/bin/codebase-memory-cli");
+    char *hook_plan =
+        cbm_build_hook_install_plan_json(tmpdir, "/usr/local/bin/codebase-memory-cli");
     bool correct = agents.openclaw && asset_plan && hook_plan &&
                    strstr(hook_plan, "/.openclaw-work/openclaw.json") &&
                    strstr(asset_plan, "/.openclaw/workspace-work/AGENTS.md") &&
@@ -2681,16 +2671,9 @@ TEST(cli_openclaw_uninstall_removes_compaction_when_workspace_is_ambiguous) {
  *  VS Code MCP config tests
  * ═══════════════════════════════════════════════════════════════════ */
 
-
-
-
 /* ═══════════════════════════════════════════════════════════════════
  *  Zed MCP config tests
  * ═══════════════════════════════════════════════════════════════════ */
-
-
-
-
 
 /* ═══════════════════════════════════════════════════════════════════
  *  PATH management tests (port of TestCLI_InstallPATHAppend)
@@ -3299,7 +3282,8 @@ TEST(cli_special_hook_failures_propagate_from_install_and_uninstall) {
     char *saved_path = save_test_env("PATH");
     cbm_setenv("HOME", tmpdir, 1);
     cbm_setenv("PATH", tmpdir, 1);
-    int install_rc = cbm_install_agent_hooks_for_testing(tmpdir, "/opt/codebase-memory-mcp", false, false);
+    int install_rc =
+        cbm_install_agent_hooks_for_testing(tmpdir, "/opt/codebase-memory-mcp", false, false);
     char *args[] = {"-n"};
     int uninstall_rc = cli_test_cmd_uninstall(1, args);
 
@@ -3542,13 +3526,50 @@ TEST(cli_detect_agents_finds_cursor_issue222) {
 /* Supported-agent metadata must track the real installer surface. */
 TEST(cli_supported_agent_surfaces_match_installers) {
     const char *const required_agents[] = {
-        "Claude Code", "Codex CLI", "Gemini CLI", "Zed", "OpenCode", "Antigravity", "Aider",
-        "KiloCode", "VS Code", "Cursor", "Windsurf", "Augment / Auggie", "OpenClaw", "Kiro",
-        "Junie", "Hermes", "OpenHands", "Cline", "Warp", "Qwen Code", "GitHub Copilot CLI",
-        "Factory Droid", "Crush", "Goose", "Mistral Vibe", "Grok Build", "Qoder CLI",
-        "Kimi Code CLI", "GitLab Duo CLI", "Rovo Dev CLI", "Amp", "Devin CLI / Local",
-        "Tabnine", "Continue / cn", "Visual Studio", "TRAE", "Roo Code", "Amazon Q Developer IDE",
-        "CodeBuddy Code CLI", "IBM Bob IDE", "IBM Bob Shell", "Pochi", "Pi", "Sourcegraph Cody",
+        "Claude Code",
+        "Codex CLI",
+        "Gemini CLI",
+        "Zed",
+        "OpenCode",
+        "Antigravity",
+        "Aider",
+        "KiloCode",
+        "VS Code",
+        "Cursor",
+        "Windsurf",
+        "Augment / Auggie",
+        "OpenClaw",
+        "Kiro",
+        "Junie",
+        "Hermes",
+        "OpenHands",
+        "Cline",
+        "Warp",
+        "Qwen Code",
+        "GitHub Copilot CLI",
+        "Factory Droid",
+        "Crush",
+        "Goose",
+        "Mistral Vibe",
+        "Grok Build",
+        "Qoder CLI",
+        "Kimi Code CLI",
+        "GitLab Duo CLI",
+        "Rovo Dev CLI",
+        "Amp",
+        "Devin CLI / Local",
+        "Tabnine",
+        "Continue / cn",
+        "Visual Studio",
+        "TRAE",
+        "Roo Code",
+        "Amazon Q Developer IDE",
+        "CodeBuddy Code CLI",
+        "IBM Bob IDE",
+        "IBM Bob Shell",
+        "Pochi",
+        "Pi",
+        "Sourcegraph Cody",
         "Oh My Pi (omp)",
     };
     ASSERT_EQ(sizeof(required_agents) / sizeof(required_agents[0]), 45U);
@@ -3556,7 +3577,8 @@ TEST(cli_supported_agent_surfaces_match_installers) {
     char *data = read_test_file_alloc("README.md");
     if (!data)
         FAIL("could not read README.md for supported-agent contract");
-    if (!strstr(data, "CLI-first skills") || !strstr(data, "**never installs hooks**") || !strstr(data, "does not create, migrate, or remove `codebase-memory-mcp`")) {
+    if (!strstr(data, "CLI-first skills") || !strstr(data, "**never installs hooks**") ||
+        !strstr(data, "does not create, migrate, or remove `codebase-memory-mcp`")) {
         free(data);
         FAIL("README must describe the current CLI-first integration contract");
     }
@@ -3603,7 +3625,9 @@ TEST(cli_supported_agent_surfaces_match_installers) {
     if (!data)
         FAIL("could not read docs/llms.txt for supported-agent contract");
     if (!strstr(data, "CLI-first skills") ||
-        !strstr(data, "Neither lifecycle surface creates, migrates, adopts, or removes MCP registrations")) {
+        !strstr(
+            data,
+            "Neither lifecycle surface creates, migrates, adopts, or removes MCP registrations")) {
         free(data);
         FAIL("llms.txt must describe the current CLI-first integration contract");
     }
@@ -3633,14 +3657,20 @@ TEST(cli_new_agent_install_plans_use_documented_paths) {
 #endif
 
     const char *const dirs[] = {
-        ".hermes", ".openhands", ".cline", ".qwen", ".copilot", ".factory",
+        ".hermes",
+        ".openhands",
+        ".cline",
+        ".qwen",
+        ".copilot",
+        ".factory",
         ".config/crush",
 #ifdef _WIN32
         "AppData/Roaming/Block/goose/config",
 #else
         ".config/goose",
 #endif
-        ".vibe", ".grok",
+        ".vibe",
+        ".grok",
     };
     char path[768];
     for (size_t i = 0; i < sizeof(dirs) / sizeof(dirs[0]); i++) {
@@ -3653,35 +3683,58 @@ TEST(cli_new_agent_install_plans_use_documented_paths) {
     write_test_file(path, "{}\n");
 
     char *asset_json = cbm_build_install_plan_json(tmpdir, "/usr/local/bin/codebase-memory-cli");
-    char *hook_json = cbm_build_hook_install_plan_json(tmpdir, "/usr/local/bin/codebase-memory-cli");
-    size_t combined_len = (asset_json ? strlen(asset_json) : 0U) + (hook_json ? strlen(hook_json) : 0U) + 2U;
+    char *hook_json =
+        cbm_build_hook_install_plan_json(tmpdir, "/usr/local/bin/codebase-memory-cli");
+    size_t combined_len =
+        (asset_json ? strlen(asset_json) : 0U) + (hook_json ? strlen(hook_json) : 0U) + 2U;
     char *json = calloc(combined_len, 1U);
-    if (json) snprintf(json, combined_len, "%s\n%s", asset_json ? asset_json : "", hook_json ? hook_json : "");
+    if (json)
+        snprintf(json, combined_len, "%s\n%s", asset_json ? asset_json : "",
+                 hook_json ? hook_json : "");
     free(asset_json);
     free(hook_json);
     const char *const required[] = {
-        "\"hermes\"", "/.hermes/config.yaml", "/.hermes/skills/codebase-memory-cli/SKILL.md",
-        "\"openhands\"", "/.agents/skills/codebase-memory-cli/SKILL.md",
-        "\"cline\"", "/.cline/rules/codebase-memory-cli.md",
+        "\"hermes\"",
+        "/.hermes/config.yaml",
+        "/.hermes/skills/codebase-memory-cli/SKILL.md",
+        "\"openhands\"",
+        "/.agents/skills/codebase-memory-cli/SKILL.md",
+        "\"cline\"",
+        "/.cline/rules/codebase-memory-cli.md",
         "/.cline/skills/codebase-memory-cli/SKILL.md",
-        "\"qwen\"", "/.qwen/QWEN.md", "/.qwen/settings.json",
+        "\"qwen\"",
+        "/.qwen/QWEN.md",
+        "/.qwen/settings.json",
         "/.qwen/skills/codebase-memory-cli/SKILL.md",
-        "\"copilot-cli\"", "/.copilot/copilot-instructions.md",
-        "/.copilot/hooks/codebase-memory-cli.json", "/.copilot/skills/codebase-memory-cli/SKILL.md",
-        "\"factory-droid\"", "/.factory/AGENTS.md",
+        "\"copilot-cli\"",
+        "/.copilot/copilot-instructions.md",
+        "/.copilot/hooks/codebase-memory-cli.json",
+        "/.copilot/skills/codebase-memory-cli/SKILL.md",
+        "\"factory-droid\"",
+        "/.factory/AGENTS.md",
         "/.factory/skills/codebase-memory-cli/SKILL.md",
 #ifndef _WIN32
         "/.factory/hooks.json",
 #endif
-        "\"crush\"", "/.config/crush/crush.json", "/.config/crush/codebase-memory.md",
-        "\"goose\"", "/.config/goose/.goosehints",
-        "\"mistral-vibe\"", "/.vibe/AGENTS.md", "/.vibe/skills/codebase-memory-cli/SKILL.md",
-        "\"grok\"", "/.grok/rules/codebase-memory.md",
+        "\"crush\"",
+        "/.config/crush/crush.json",
+        "/.config/crush/codebase-memory.md",
+        "\"goose\"",
+        "/.config/goose/.goosehints",
+        "\"mistral-vibe\"",
+        "/.vibe/AGENTS.md",
+        "/.vibe/skills/codebase-memory-cli/SKILL.md",
+        "\"grok\"",
+        "/.grok/rules/codebase-memory.md",
         "/.grok/skills/codebase-memory-cli/SKILL.md",
     };
     const char *const forbidden[] = {
-        "/.openhands/mcp.json", "/.cline/mcp.json", "/settings/cline_mcp_settings.json",
-        "/.copilot/mcp-config.json", "/.factory/mcp.json", "/.grok/config.toml",
+        "/.openhands/mcp.json",
+        "/.cline/mcp.json",
+        "/settings/cline_mcp_settings.json",
+        "/.copilot/mcp-config.json",
+        "/.factory/mcp.json",
+        "/.grok/config.toml",
         "/.grok/agents/codebase-memory.md",
     };
     const char *missing = NULL;
@@ -3698,8 +3751,8 @@ TEST(cli_new_agent_install_plans_use_documented_paths) {
     }
     bool has_json = json != NULL;
     if (missing || unexpected)
-        fprintf(stderr, "CLI-first plan diag missing=%s unexpected=%s\n",
-                missing ? missing : "-", unexpected ? unexpected : "-");
+        fprintf(stderr, "CLI-first plan diag missing=%s unexpected=%s\n", missing ? missing : "-",
+                unexpected ? unexpected : "-");
     free(json);
     restore_test_env("COPILOT_HOME", saved_copilot);
     restore_test_env("CRUSH_GLOBAL_CONFIG", saved_crush);
@@ -3709,7 +3762,8 @@ TEST(cli_new_agent_install_plans_use_documented_paths) {
     test_rmdir_r(tmpdir);
 
     if (!has_json || missing || unexpected)
-        FAIL("new agent plan must contain current CLI-first integrations and no fresh MCP registrations");
+        FAIL("new agent plan must contain current CLI-first integrations and no fresh MCP "
+             "registrations");
     PASS();
 }
 
@@ -3775,7 +3829,8 @@ TEST(cli_install_preserves_hook_entries_when_scripts_unowned_issue1387) {
         "# SessionStart hook: remind agent to use codebase-memory-mcp tools.\n"
         "echo my-extra-team-reminder\n";
     char session_path[768];
-    snprintf(session_path, sizeof(session_path), "%s/codebase-memory-cli-session-reminder", hooks_dir);
+    snprintf(session_path, sizeof(session_path), "%s/codebase-memory-cli-session-reminder",
+             hooks_dir);
     write_test_file(session_path, unowned_session);
 
     static const char settings_before[] =
@@ -3980,7 +4035,8 @@ TEST(cli_cline_data_dir_only_redirects_data_state) {
 
     char *plan = cbm_build_install_plan_json(tmpdir, "/opt/codebase-memory-cli");
     bool plan_ok = plan && strstr(plan, rules) && strstr(plan, skill) && !strstr(plan, cli_mcp) &&
-                   !strstr(plan, ide_mcp) && !strstr(plan, wrong_rules) && !strstr(plan, wrong_skill);
+                   !strstr(plan, ide_mcp) && !strstr(plan, wrong_rules) &&
+                   !strstr(plan, wrong_skill);
     for (size_t i = 0U; plan_ok && i < sizeof(hook_events) / sizeof(hook_events[0]); i++) {
         plan_ok = strstr(plan, hook_paths[i]) == NULL;
     }
@@ -3989,14 +4045,13 @@ TEST(cli_cline_data_dir_only_redirects_data_state) {
     int install_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-cli", false, false);
     struct stat state;
     const char *const instruction_terms[] = {"Codebase Memory", "codebase-memory-cli search",
-                                              "codebase-memory-cli trace"};
+                                             "codebase-memory-cli trace"};
     const char *const skill_terms[] = {"name: codebase-memory", "codebase-memory-cli search",
-                                        "codebase-memory-cli trace", "coverage"};
-    bool installed = install_rc == 0 &&
-                     test_file_contains_all(rules, instruction_terms, 3U) &&
-                     test_file_contains_all(skill, skill_terms, 4U) &&
-                     stat(cli_mcp, &state) != 0 && stat(ide_mcp, &state) != 0 &&
-                     stat(wrong_rules, &state) != 0 && stat(wrong_skill, &state) != 0;
+                                       "codebase-memory-cli trace", "coverage"};
+    bool installed = install_rc == 0 && test_file_contains_all(rules, instruction_terms, 3U) &&
+                     test_file_contains_all(skill, skill_terms, 4U) && stat(cli_mcp, &state) != 0 &&
+                     stat(ide_mcp, &state) != 0 && stat(wrong_rules, &state) != 0 &&
+                     stat(wrong_skill, &state) != 0;
     for (size_t i = 0U; installed && i + 1U < sizeof(hook_events) / sizeof(hook_events[0]); i++) {
         installed = stat(hook_paths[i], &state) != 0;
     }
@@ -4007,8 +4062,8 @@ TEST(cli_cline_data_dir_only_redirects_data_state) {
     char *argv[] = {"uninstall", "--yes"};
     int uninstall_rc = cli_test_cmd_uninstall(2, argv);
     preserved_hook = read_test_file_alloc(hook_paths[3]);
-    bool removed = stat(skill, &state) != 0 && preserved_hook &&
-                   strcmp(preserved_hook, modified_hook) == 0;
+    bool removed =
+        stat(skill, &state) != 0 && preserved_hook && strcmp(preserved_hook, modified_hook) == 0;
     free(preserved_hook);
 
     restore_test_env("HOME", saved_home);
@@ -4050,7 +4105,8 @@ TEST(cli_warp_installs_shared_skill_without_mcp_or_permissions) {
 
     char skill_path[640];
     char warp_mcp[640];
-    snprintf(skill_path, sizeof(skill_path), "%s/.agents/skills/codebase-memory-cli/SKILL.md", tmpdir);
+    snprintf(skill_path, sizeof(skill_path), "%s/.agents/skills/codebase-memory-cli/SKILL.md",
+             tmpdir);
     snprintf(warp_mcp, sizeof(warp_mcp), "%s/.warp/mcp.json", tmpdir);
     char *plan = cbm_build_install_plan_json(tmpdir, "/opt/codebase-memory-mcp");
     yyjson_doc *plan_doc = plan ? yyjson_read(plan, strlen(plan), 0) : NULL;
@@ -4168,19 +4224,19 @@ TEST(cli_junie_current_durable_context_contract) {
     char *agent_after_install = read_test_file_alloc(agent_path);
     char *settings_after_install = read_test_file_alloc(settings_path);
     struct stat state;
-    bool installed = first_rc == 0 && skill_once &&
-                     strstr(skill_once, "codebase-memory-cli search") &&
-                     strstr(skill_once, "codebase-memory-cli trace") &&
-                     strstr(skill_once, "coverage") && stat(mcp_path, &state) != 0 &&
-                     agent_after_install && strcmp(agent_after_install, foreign_agent) == 0 &&
-                     settings_after_install && strcmp(settings_after_install, foreign_settings) == 0;
+    bool installed =
+        first_rc == 0 && skill_once && strstr(skill_once, "codebase-memory-cli search") &&
+        strstr(skill_once, "codebase-memory-cli trace") && strstr(skill_once, "coverage") &&
+        stat(mcp_path, &state) != 0 && agent_after_install &&
+        strcmp(agent_after_install, foreign_agent) == 0 && settings_after_install &&
+        strcmp(settings_after_install, foreign_settings) == 0;
     free(agent_after_install);
     free(settings_after_install);
 
     int second_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-cli", false, false);
     char *skill_twice = read_test_file_alloc(skill_path);
-    bool idempotent = second_rc == 0 && skill_once && skill_twice &&
-                      strcmp(skill_once, skill_twice) == 0;
+    bool idempotent =
+        second_rc == 0 && skill_once && skill_twice && strcmp(skill_once, skill_twice) == 0;
     free(skill_once);
     free(skill_twice);
 
@@ -4213,7 +4269,8 @@ TEST(cli_junie_current_durable_context_contract) {
                 "reinstall_rc=%d modified_rc=%d modified_preserved=%d\n",
                 plan_ok, installed, idempotent, exact_uninstall_rc, exact_removed, reinstall_rc,
                 modified_uninstall_rc, modified_preserved);
-        FAIL("Junie must install only CLI-first skill context and preserve foreign agent/settings files");
+        FAIL("Junie must install only CLI-first skill context and preserve foreign agent/settings "
+             "files");
     }
     PASS();
 }
@@ -4356,8 +4413,8 @@ TEST(cli_hermes_stable_shell_context_contract) {
         fprintf(stderr,
                 "Hermes diag plan=%d rc=%d/%d merged=%d exact_rc=%d exact_removed=%d "
                 "reinstall_rc=%d modified_rc=%d modified_preserved=%d hook_modified=%d\n",
-                plan_ok, first_rc, second_rc, merged, exact_uninstall_rc, exact_removed, reinstall_rc,
-                modified_uninstall_rc, modified_preserved, hook_was_modified);
+                plan_ok, first_rc, second_rc, merged, exact_uninstall_rc, exact_removed,
+                reinstall_rc, modified_uninstall_rc, modified_preserved, hook_was_modified);
         FAIL("Hermes must merge one consent-preserving pre_llm_call shell hook and remove only "
              "its canonical owned entry");
     }
@@ -4455,7 +4512,8 @@ TEST(cli_dry_run_predicts_refused_hook_script_issue1387) {
         redirected = dup2(fileno(capture), STDOUT_FILENO) >= 0;
     }
     if (redirected) {
-        (void)cbm_install_agent_hooks_for_testing(tmpdir, "/opt/other/codebase-memory-mcp", false, true);
+        (void)cbm_install_agent_hooks_for_testing(tmpdir, "/opt/other/codebase-memory-mcp", false,
+                                                  true);
         fflush(stdout);
         (void)dup2(saved_stdout, STDOUT_FILENO);
     }
@@ -4494,9 +4552,13 @@ TEST(cli_agent_client_registry_routes_plan_install_and_uninstall) {
     if (!cbm_mkdtemp(tmpdir))
         FAIL("cbm_mkdtemp failed");
 
-    const char *const env_names[] = {"HOME", "PATH", "CBM_ROO_CONFIG_PATH",
-                                     "CBM_CODY_CONFIG_PATH", "PI_CODING_AGENT_DIR",
-                                     "XDG_CONFIG_HOME", "APPDATA"};
+    const char *const env_names[] = {"HOME",
+                                     "PATH",
+                                     "CBM_ROO_CONFIG_PATH",
+                                     "CBM_CODY_CONFIG_PATH",
+                                     "PI_CODING_AGENT_DIR",
+                                     "XDG_CONFIG_HOME",
+                                     "APPDATA"};
     char *saved_env[sizeof(env_names) / sizeof(env_names[0])];
     for (size_t i = 0U; i < sizeof(env_names) / sizeof(env_names[0]); i++) {
         saved_env[i] = save_test_env(env_names[i]);
@@ -4509,8 +4571,11 @@ TEST(cli_agent_client_registry_routes_plan_install_and_uninstall) {
     snprintf(qoder_dir, sizeof(qoder_dir), "%s/.qoder", tmpdir);
     snprintf(amazon_dir, sizeof(amazon_dir), "%s/.aws/amazonq/agents", tmpdir);
     snprintf(pi_dir, sizeof(pi_dir), "%s/.pi/agent", tmpdir);
-    test_mkdirp(bin_dir); test_mkdirp(explicit_dir); test_mkdirp(qoder_dir);
-    test_mkdirp(amazon_dir); test_mkdirp(pi_dir);
+    test_mkdirp(bin_dir);
+    test_mkdirp(explicit_dir);
+    test_mkdirp(qoder_dir);
+    test_mkdirp(amazon_dir);
+    test_mkdirp(pi_dir);
 
     char qoder_command[640], pi_command[640], qoder_settings[640], qoder_skill[640];
     char qoder_agent[640], amazon_config[640], pi_instructions[640], pi_skill[640], pi_mcp[640];
@@ -4537,7 +4602,8 @@ TEST(cli_agent_client_registry_routes_plan_install_and_uninstall) {
     write_test_file(qoder_command, "#!/bin/sh\nexit 0\n");
     write_test_file(pi_command, "#!/bin/sh\nexit 0\n");
 #ifndef _WIN32
-    chmod(qoder_command, 0700); chmod(pi_command, 0700);
+    chmod(qoder_command, 0700);
+    chmod(pi_command, 0700);
 #endif
     const char *qoder_foreign = "{\"theme\":\"dark\"}\n";
     const char *amazon_foreign = "{\"keep\":\"amazon\"}\n";
@@ -4548,7 +4614,8 @@ TEST(cli_agent_client_registry_routes_plan_install_and_uninstall) {
     write_test_file(roo_config, roo_foreign);
     write_test_file(cody_config, cody_foreign);
 
-    cbm_setenv("HOME", tmpdir, 1); cbm_setenv("PATH", bin_dir, 1);
+    cbm_setenv("HOME", tmpdir, 1);
+    cbm_setenv("PATH", bin_dir, 1);
     cbm_setenv("CBM_ROO_CONFIG_PATH", roo_config, 1);
     cbm_setenv("CBM_CODY_CONFIG_PATH", cody_config, 1);
 
@@ -4558,42 +4625,55 @@ TEST(cli_agent_client_registry_routes_plan_install_and_uninstall) {
     yyjson_doc *hook_doc = hook_plan ? yyjson_read(hook_plan, strlen(hook_plan), 0) : NULL;
     yyjson_val *root = plan_doc ? yyjson_doc_get_root(plan_doc) : NULL;
     yyjson_val *hook_root = hook_doc ? yyjson_doc_get_root(hook_doc) : NULL;
-    bool plan_ok = root && hook_root && test_json_string_array_contains(root, "skill_files_planned", qoder_skill) &&
-                   test_plan_hook_contains(hook_root, "Qoder CLI", qoder_settings) &&
-                   test_json_string_array_contains(root, "instruction_files_planned", pi_instructions) &&
-                   test_json_string_array_contains(root, "skill_files_planned", pi_skill) &&
-                   !test_json_string_array_contains(root, "agent_files_planned", qoder_agent) &&
-                   plan && !strstr(plan, amazon_config) && !strstr(plan, roo_config) &&
-                   !strstr(plan, cody_config) && !strstr(plan, pi_mcp);
-    yyjson_doc_free(plan_doc); yyjson_doc_free(hook_doc); free(plan); free(hook_plan);
+    bool plan_ok =
+        root && hook_root &&
+        test_json_string_array_contains(root, "skill_files_planned", qoder_skill) &&
+        test_plan_hook_contains(hook_root, "Qoder CLI", qoder_settings) &&
+        test_json_string_array_contains(root, "instruction_files_planned", pi_instructions) &&
+        test_json_string_array_contains(root, "skill_files_planned", pi_skill) &&
+        !test_json_string_array_contains(root, "agent_files_planned", qoder_agent) && plan &&
+        !strstr(plan, amazon_config) && !strstr(plan, roo_config) && !strstr(plan, cody_config) &&
+        !strstr(plan, pi_mcp);
+    yyjson_doc_free(plan_doc);
+    yyjson_doc_free(hook_doc);
+    free(plan);
+    free(hook_plan);
 
     int install_rc = cbm_install_agent_configs(tmpdir, binary_path, false, false);
-    if (install_rc == 0) install_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
+    if (install_rc == 0)
+        install_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
     char *qoder_data = read_test_file_alloc(qoder_settings);
     yyjson_doc *qdoc = qoder_data ? yyjson_read(qoder_data, strlen(qoder_data), 0) : NULL;
     yyjson_val *qroot = qdoc ? yyjson_doc_get_root(qdoc) : NULL;
     yyjson_val *hooks = qroot ? yyjson_obj_get(qroot, "hooks") : NULL;
     struct stat state;
-    bool qoder_ok = qoder_data && strstr(qoder_data, "\"theme\"") && hooks &&
-                    yyjson_obj_get(hooks, "SessionStart") && yyjson_obj_get(hooks, "SubagentStart") &&
-                    yyjson_obj_get(hooks, "PostToolUse") && strstr(qoder_data, "hook-augment") &&
-                    strstr(qoder_data, "--dialect qoder") && !strstr(qoder_data, "mcpServers") &&
-                    stat(qoder_agent, &state) != 0 &&
-                    test_file_contains_all(qoder_skill,
-                        (const char *const[]){"codebase-memory-cli search", "codebase-memory-cli trace", "coverage"}, 3U);
-    yyjson_doc_free(qdoc); free(qoder_data);
-    bool pi_ok = test_file_contains_all(pi_instructions,
-                                       (const char *const[]){"codebase-memory-cli search", "coverage"}, 2U) &&
-                 test_file_contains_all(pi_skill,
-                                       (const char *const[]){"codebase-memory-cli search", "coverage"}, 2U) &&
-                 stat(pi_mcp, &state) != 0;
+    bool qoder_ok =
+        qoder_data && strstr(qoder_data, "\"theme\"") && hooks &&
+        yyjson_obj_get(hooks, "SessionStart") && yyjson_obj_get(hooks, "SubagentStart") &&
+        yyjson_obj_get(hooks, "PostToolUse") && strstr(qoder_data, "hook-augment") &&
+        strstr(qoder_data, "--dialect qoder") && !strstr(qoder_data, "mcpServers") &&
+        stat(qoder_agent, &state) != 0 &&
+        test_file_contains_all(qoder_skill,
+                               (const char *const[]){"codebase-memory-cli search",
+                                                     "codebase-memory-cli trace", "coverage"},
+                               3U);
+    yyjson_doc_free(qdoc);
+    free(qoder_data);
+    bool pi_ok =
+        test_file_contains_all(
+            pi_instructions, (const char *const[]){"codebase-memory-cli search", "coverage"}, 2U) &&
+        test_file_contains_all(
+            pi_skill, (const char *const[]){"codebase-memory-cli search", "coverage"}, 2U) &&
+        stat(pi_mcp, &state) != 0;
     char *amazon_after = read_test_file_alloc(amazon_config);
     char *roo_after = read_test_file_alloc(roo_config);
     char *cody_after = read_test_file_alloc(cody_config);
-    bool foreign_untouched = amazon_after && roo_after && cody_after &&
-                             strcmp(amazon_after, amazon_foreign) == 0 &&
-                             strcmp(roo_after, roo_foreign) == 0 && strcmp(cody_after, cody_foreign) == 0;
-    free(amazon_after); free(roo_after); free(cody_after);
+    bool foreign_untouched =
+        amazon_after && roo_after && cody_after && strcmp(amazon_after, amazon_foreign) == 0 &&
+        strcmp(roo_after, roo_foreign) == 0 && strcmp(cody_after, cody_foreign) == 0;
+    free(amazon_after);
+    free(roo_after);
+    free(cody_after);
 
     char *argv[] = {"uninstall", "--yes"};
     int uninstall_rc = cli_test_cmd_uninstall(2, argv);
@@ -4608,14 +4688,18 @@ TEST(cli_agent_client_registry_routes_plan_install_and_uninstall) {
     cleanup_ok = cleanup_ok && amazon_after && roo_after && cody_after &&
                  strcmp(amazon_after, amazon_foreign) == 0 && strcmp(roo_after, roo_foreign) == 0 &&
                  strcmp(cody_after, cody_foreign) == 0;
-    free(amazon_after); free(roo_after); free(cody_after);
+    free(amazon_after);
+    free(roo_after);
+    free(cody_after);
 
     for (size_t i = 0U; i < sizeof(env_names) / sizeof(env_names[0]); i++)
         restore_test_env(env_names[i], saved_env[i]);
     test_rmdir_r(tmpdir);
     if (!plan_ok || install_rc != 0 || !qoder_ok || !pi_ok || !foreign_untouched ||
         uninstall_rc != 0 || !cleanup_ok) {
-        fprintf(stderr, "registry CLI-first diag plan=%d install=%d qoder=%d pi=%d foreign=%d uninstall=%d cleanup=%d\n",
+        fprintf(stderr,
+                "registry CLI-first diag plan=%d install=%d qoder=%d pi=%d foreign=%d uninstall=%d "
+                "cleanup=%d\n",
                 plan_ok, install_rc, qoder_ok, pi_ok, foreign_untouched, uninstall_rc, cleanup_ok);
         FAIL("registry must route current Qoder/Pi integrations without creating legacy MCP state");
     }
@@ -4631,7 +4715,8 @@ TEST(cli_registry_installs_kimi_rovo_amp_durable_context) {
     const char *const env_names[] = {"HOME", "PATH", "KIMI_CODE_HOME", "XDG_CONFIG_HOME"};
     char *saved_env[sizeof(env_names) / sizeof(env_names[0])];
     for (size_t i = 0U; i < sizeof(env_names) / sizeof(env_names[0]); i++) {
-        saved_env[i] = save_test_env(env_names[i]); cbm_unsetenv(env_names[i]);
+        saved_env[i] = save_test_env(env_names[i]);
+        cbm_unsetenv(env_names[i]);
     }
 
     char kimi_home[512], rovo_home[512], amp_home[512], xdg_home[512];
@@ -4639,9 +4724,14 @@ TEST(cli_registry_installs_kimi_rovo_amp_durable_context) {
     snprintf(rovo_home, sizeof(rovo_home), "%s/.rovodev", tmpdir);
     snprintf(amp_home, sizeof(amp_home), "%s/.config/amp", tmpdir);
     snprintf(xdg_home, sizeof(xdg_home), "%s/xdg-decoy", tmpdir);
-    test_mkdirp(kimi_home); test_mkdirp(rovo_home); test_mkdirp(amp_home); test_mkdirp(xdg_home);
-    cbm_setenv("HOME", tmpdir, 1); cbm_setenv("PATH", tmpdir, 1);
-    cbm_setenv("KIMI_CODE_HOME", kimi_home, 1); cbm_setenv("XDG_CONFIG_HOME", xdg_home, 1);
+    test_mkdirp(kimi_home);
+    test_mkdirp(rovo_home);
+    test_mkdirp(amp_home);
+    test_mkdirp(xdg_home);
+    cbm_setenv("HOME", tmpdir, 1);
+    cbm_setenv("PATH", tmpdir, 1);
+    cbm_setenv("KIMI_CODE_HOME", kimi_home, 1);
+    cbm_setenv("XDG_CONFIG_HOME", xdg_home, 1);
 
     char binary_path[640], kimi_mcp[640], kimi_config[640], kimi_instructions[640], kimi_skill[640];
     char rovo_mcp[640], rovo_instructions[640], rovo_skill[640], rovo_agent[640];
@@ -4661,14 +4751,17 @@ TEST(cli_registry_installs_kimi_rovo_amp_durable_context) {
     snprintf(rovo_agent, sizeof(rovo_agent), "%s/subagents/codebase-memory.md", rovo_home);
     snprintf(amp_mcp, sizeof(amp_mcp), "%s/.config/agents/skills/codebase-memory/mcp.json", tmpdir);
     snprintf(amp_instructions, sizeof(amp_instructions), "%s/AGENTS.md", amp_home);
-    snprintf(amp_skill, sizeof(amp_skill), "%s/.config/agents/skills/codebase-memory-cli/SKILL.md", tmpdir);
+    snprintf(amp_skill, sizeof(amp_skill), "%s/.config/agents/skills/codebase-memory-cli/SKILL.md",
+             tmpdir);
 
     const char *kimi_personal = "# Personal Kimi guidance\n";
     const char *kimi_config_personal = "theme = \"dark\"\n";
     const char *rovo_personal = "# Personal Rovo guidance\n";
     const char *amp_personal = "# Personal Amp guidance\n";
-    write_test_file(kimi_instructions, kimi_personal); write_test_file(kimi_config, kimi_config_personal);
-    write_test_file(rovo_instructions, rovo_personal); write_test_file(amp_instructions, amp_personal);
+    write_test_file(kimi_instructions, kimi_personal);
+    write_test_file(kimi_config, kimi_config_personal);
+    write_test_file(rovo_instructions, rovo_personal);
+    write_test_file(amp_instructions, amp_personal);
 
     char *plan = cbm_build_install_plan_json(tmpdir, binary_path);
     char *hook_plan = cbm_build_hook_install_plan_json(tmpdir, binary_path);
@@ -4676,7 +4769,8 @@ TEST(cli_registry_installs_kimi_rovo_amp_durable_context) {
     yyjson_doc *hook_doc = hook_plan ? yyjson_read(hook_plan, strlen(hook_plan), 0) : NULL;
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *hook_root = hook_doc ? yyjson_doc_get_root(hook_doc) : NULL;
-    bool plan_ok = root && hook_root && plan && hook_plan && !strstr(plan, xdg_home) &&
+    bool plan_ok =
+        root && hook_root && plan && hook_plan && !strstr(plan, xdg_home) &&
         !strstr(hook_plan, xdg_home) &&
         test_plan_hook_contains(hook_root, "Kimi Code CLI", kimi_config) &&
         test_json_string_array_contains(root, "instruction_files_planned", kimi_instructions) &&
@@ -4687,61 +4781,93 @@ TEST(cli_registry_installs_kimi_rovo_amp_durable_context) {
         test_json_string_array_contains(root, "skill_files_planned", amp_skill) &&
         !test_json_string_array_contains(root, "agent_files_planned", rovo_agent) &&
         !strstr(plan, kimi_mcp) && !strstr(plan, rovo_mcp) && !strstr(plan, amp_mcp);
-    yyjson_doc_free(doc); yyjson_doc_free(hook_doc); free(plan); free(hook_plan);
+    yyjson_doc_free(doc);
+    yyjson_doc_free(hook_doc);
+    free(plan);
+    free(hook_plan);
 
     int first_rc = cbm_install_agent_configs(tmpdir, binary_path, false, false);
-    if (first_rc == 0) first_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
-    char *k1 = read_test_file_alloc(kimi_instructions); char *kc1 = read_test_file_alloc(kimi_config);
-    char *r1 = read_test_file_alloc(rovo_instructions); char *a1 = read_test_file_alloc(amp_instructions);
+    if (first_rc == 0)
+        first_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
+    char *k1 = read_test_file_alloc(kimi_instructions);
+    char *kc1 = read_test_file_alloc(kimi_config);
+    char *r1 = read_test_file_alloc(rovo_instructions);
+    char *a1 = read_test_file_alloc(amp_instructions);
     struct stat state;
-    bool installed = first_rc == 0 && k1 && kc1 && r1 && a1 &&
-        strstr(k1, kimi_personal) && strstr(k1, "codebase-memory-cli search") &&
-        strstr(kc1, kimi_config_personal) && strstr(kc1, "UserPromptSubmit") &&
-        strstr(kc1, "--dialect kimi") && strstr(r1, rovo_personal) &&
-        strstr(r1, "codebase-memory-cli search") && strstr(a1, amp_personal) &&
-        strstr(a1, "codebase-memory-cli search") &&
-        test_file_contains_all(kimi_skill, (const char *const[]){"codebase-memory-cli search", "coverage"}, 2U) &&
-        test_file_contains_all(rovo_skill, (const char *const[]){"codebase-memory-cli search", "coverage"}, 2U) &&
-        test_file_contains_all(amp_skill, (const char *const[]){"codebase-memory-cli search", "coverage"}, 2U) &&
+    bool installed =
+        first_rc == 0 && k1 && kc1 && r1 && a1 && strstr(k1, kimi_personal) &&
+        strstr(k1, "codebase-memory-cli search") && strstr(kc1, kimi_config_personal) &&
+        strstr(kc1, "UserPromptSubmit") && strstr(kc1, "--dialect kimi") &&
+        strstr(r1, rovo_personal) && strstr(r1, "codebase-memory-cli search") &&
+        strstr(a1, amp_personal) && strstr(a1, "codebase-memory-cli search") &&
+        test_file_contains_all(
+            kimi_skill, (const char *const[]){"codebase-memory-cli search", "coverage"}, 2U) &&
+        test_file_contains_all(
+            rovo_skill, (const char *const[]){"codebase-memory-cli search", "coverage"}, 2U) &&
+        test_file_contains_all(
+            amp_skill, (const char *const[]){"codebase-memory-cli search", "coverage"}, 2U) &&
         stat(kimi_mcp, &state) != 0 && stat(rovo_mcp, &state) != 0 && stat(amp_mcp, &state) != 0 &&
         stat(rovo_agent, &state) != 0;
 
     int second_rc = cbm_install_agent_configs(tmpdir, binary_path, false, false);
-    if (second_rc == 0) second_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
-    char *k2 = read_test_file_alloc(kimi_instructions); char *kc2 = read_test_file_alloc(kimi_config);
-    char *r2 = read_test_file_alloc(rovo_instructions); char *a2 = read_test_file_alloc(amp_instructions);
+    if (second_rc == 0)
+        second_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
+    char *k2 = read_test_file_alloc(kimi_instructions);
+    char *kc2 = read_test_file_alloc(kimi_config);
+    char *r2 = read_test_file_alloc(rovo_instructions);
+    char *a2 = read_test_file_alloc(amp_instructions);
     bool idempotent = second_rc == 0 && k1 && k2 && kc1 && kc2 && r1 && r2 && a1 && a2 &&
-                      strcmp(k1,k2)==0 && strcmp(kc1,kc2)==0 && strcmp(r1,r2)==0 && strcmp(a1,a2)==0;
-    free(k1); free(k2); free(kc1); free(kc2); free(r1); free(r2); free(a1); free(a2);
+                      strcmp(k1, k2) == 0 && strcmp(kc1, kc2) == 0 && strcmp(r1, r2) == 0 &&
+                      strcmp(a1, a2) == 0;
+    free(k1);
+    free(k2);
+    free(kc1);
+    free(kc2);
+    free(r1);
+    free(r2);
+    free(a1);
+    free(a2);
 
     char *argv[] = {"uninstall", "--yes"};
     int uninstall_rc = cli_test_cmd_uninstall(2, argv);
-    char *ku = read_test_file_alloc(kimi_instructions); char *kcu = read_test_file_alloc(kimi_config);
-    char *ru = read_test_file_alloc(rovo_instructions); char *au = read_test_file_alloc(amp_instructions);
-    bool cleaned = uninstall_rc == 0 && ku && kcu && ru && au &&
-                   strcmp(ku, kimi_personal) == 0 && strcmp(ru, rovo_personal) == 0 &&
-                   strcmp(au, amp_personal) == 0 && strstr(kcu, kimi_config_personal) &&
-                   !strstr(kcu, "--dialect kimi") && stat(kimi_skill, &state) != 0 &&
-                   stat(rovo_skill, &state) != 0 && stat(amp_skill, &state) != 0;
-    free(ku); free(kcu); free(ru); free(au);
+    char *ku = read_test_file_alloc(kimi_instructions);
+    char *kcu = read_test_file_alloc(kimi_config);
+    char *ru = read_test_file_alloc(rovo_instructions);
+    char *au = read_test_file_alloc(amp_instructions);
+    bool cleaned = uninstall_rc == 0 && ku && kcu && ru && au && strcmp(ku, kimi_personal) == 0 &&
+                   strcmp(ru, rovo_personal) == 0 && strcmp(au, amp_personal) == 0 &&
+                   strstr(kcu, kimi_config_personal) && !strstr(kcu, "--dialect kimi") &&
+                   stat(kimi_skill, &state) != 0 && stat(rovo_skill, &state) != 0 &&
+                   stat(amp_skill, &state) != 0;
+    free(ku);
+    free(kcu);
+    free(ru);
+    free(au);
 
     int reinstall_rc = cbm_install_agent_configs(tmpdir, binary_path, false, false);
-    if (reinstall_rc == 0) reinstall_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
+    if (reinstall_rc == 0)
+        reinstall_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
     const char *modified_kimi_skill = "---\nname: codebase-memory\n---\nUser-owned Kimi skill.\n";
     const char *modified_amp_skill = "---\nname: codebase-memory\n---\nUser-owned Amp skill.\n";
-    write_test_file(kimi_skill, modified_kimi_skill); write_test_file(amp_skill, modified_amp_skill);
+    write_test_file(kimi_skill, modified_kimi_skill);
+    write_test_file(amp_skill, modified_amp_skill);
     int modified_uninstall_rc = cli_test_cmd_uninstall(2, argv);
-    char *ks = read_test_file_alloc(kimi_skill); char *as = read_test_file_alloc(amp_skill);
+    char *ks = read_test_file_alloc(kimi_skill);
+    char *as = read_test_file_alloc(amp_skill);
     bool modified_preserved = reinstall_rc == 0 && modified_uninstall_rc == 0 && ks && as &&
-                              strcmp(ks, modified_kimi_skill) == 0 && strcmp(as, modified_amp_skill) == 0;
-    free(ks); free(as);
+                              strcmp(ks, modified_kimi_skill) == 0 &&
+                              strcmp(as, modified_amp_skill) == 0;
+    free(ks);
+    free(as);
 
     for (size_t i = 0U; i < sizeof(env_names) / sizeof(env_names[0]); i++)
         restore_test_env(env_names[i], saved_env[i]);
     test_rmdir_r(tmpdir);
     if (!plan_ok || !installed || !idempotent || !cleaned || !modified_preserved) {
-        fprintf(stderr, "Kimi/Rovo/Amp CLI-first diag plan=%d installed=%d idem=%d cleaned=%d modified=%d\n",
-                plan_ok, installed, idempotent, cleaned, modified_preserved);
+        fprintf(
+            stderr,
+            "Kimi/Rovo/Amp CLI-first diag plan=%d installed=%d idem=%d cleaned=%d modified=%d\n",
+            plan_ok, installed, idempotent, cleaned, modified_preserved);
         FAIL("Kimi, Rovo, and Amp must install CLI-first durable context with exact-owned cleanup");
     }
     PASS();
@@ -4753,13 +4879,15 @@ TEST(cli_registry_routes_omp_via_profile_and_pi_coding_agent_dir) {
     if (!cbm_mkdtemp(tmpdir))
         FAIL("cbm_mkdtemp failed");
 
-    const char *const env_names[] = {"HOME", "PATH", "OMP_PROFILE", "PI_CODING_AGENT_DIR",
-                                     "XDG_CONFIG_HOME", "APPDATA"};
+    const char *const env_names[] = {
+        "HOME", "PATH", "OMP_PROFILE", "PI_CODING_AGENT_DIR", "XDG_CONFIG_HOME", "APPDATA"};
     char *saved_env[sizeof(env_names) / sizeof(env_names[0])];
     for (size_t i = 0U; i < sizeof(env_names) / sizeof(env_names[0]); i++) {
-        saved_env[i] = save_test_env(env_names[i]); cbm_unsetenv(env_names[i]);
+        saved_env[i] = save_test_env(env_names[i]);
+        cbm_unsetenv(env_names[i]);
     }
-    cbm_setenv("HOME", tmpdir, 1); cbm_setenv("PATH", tmpdir, 1);
+    cbm_setenv("HOME", tmpdir, 1);
+    cbm_setenv("PATH", tmpdir, 1);
 
     char default_dir[640], profile_dir[640], relocated_dir[640];
     char default_skill[768], profile_skill[768], relocated_skill[768];
@@ -4768,16 +4896,22 @@ TEST(cli_registry_routes_omp_via_profile_and_pi_coding_agent_dir) {
     snprintf(default_dir, sizeof(default_dir), "%s/.omp/agent", tmpdir);
     snprintf(profile_dir, sizeof(profile_dir), "%s/.omp/profiles/work/agent", tmpdir);
     snprintf(relocated_dir, sizeof(relocated_dir), "%s/custom-agent", tmpdir);
-    snprintf(default_skill, sizeof(default_skill), "%s/skills/codebase-memory-cli/SKILL.md", default_dir);
-    snprintf(profile_skill, sizeof(profile_skill), "%s/skills/codebase-memory-cli/SKILL.md", profile_dir);
-    snprintf(relocated_skill, sizeof(relocated_skill), "%s/skills/codebase-memory-cli/SKILL.md", relocated_dir);
+    snprintf(default_skill, sizeof(default_skill), "%s/skills/codebase-memory-cli/SKILL.md",
+             default_dir);
+    snprintf(profile_skill, sizeof(profile_skill), "%s/skills/codebase-memory-cli/SKILL.md",
+             profile_dir);
+    snprintf(relocated_skill, sizeof(relocated_skill), "%s/skills/codebase-memory-cli/SKILL.md",
+             relocated_dir);
     snprintf(default_mcp, sizeof(default_mcp), "%s/mcp.json", default_dir);
     snprintf(profile_mcp, sizeof(profile_mcp), "%s/mcp.json", profile_dir);
     snprintf(relocated_mcp, sizeof(relocated_mcp), "%s/mcp.json", relocated_dir);
     snprintf(default_agent, sizeof(default_agent), "%s/agents/codebase-memory.md", default_dir);
     snprintf(profile_agent, sizeof(profile_agent), "%s/agents/codebase-memory.md", profile_dir);
-    snprintf(relocated_agent, sizeof(relocated_agent), "%s/agents/codebase-memory.md", relocated_dir);
-    test_mkdirp(default_dir); test_mkdirp(profile_dir); test_mkdirp(relocated_dir);
+    snprintf(relocated_agent, sizeof(relocated_agent), "%s/agents/codebase-memory.md",
+             relocated_dir);
+    test_mkdirp(default_dir);
+    test_mkdirp(profile_dir);
+    test_mkdirp(relocated_dir);
 
     char *plan = cbm_build_install_plan_json(tmpdir, "/opt/codebase-memory-cli");
     yyjson_doc *doc = plan ? yyjson_read(plan, strlen(plan), 0) : NULL;
@@ -4785,31 +4919,44 @@ TEST(cli_registry_routes_omp_via_profile_and_pi_coding_agent_dir) {
     bool default_ok = plan && strstr(plan, "\"omp\"") &&
                       test_json_string_array_contains(root, "skill_files_planned", default_skill) &&
                       !strstr(plan, default_mcp) && !strstr(plan, default_agent);
-    yyjson_doc_free(doc); free(plan);
+    yyjson_doc_free(doc);
+    free(plan);
 
     cbm_setenv("OMP_PROFILE", "work", 1);
     plan = cbm_build_install_plan_json(tmpdir, "/opt/codebase-memory-cli");
-    doc = plan ? yyjson_read(plan, strlen(plan), 0) : NULL; root = doc ? yyjson_doc_get_root(doc) : NULL;
+    doc = plan ? yyjson_read(plan, strlen(plan), 0) : NULL;
+    root = doc ? yyjson_doc_get_root(doc) : NULL;
     bool profile_ok = plan && strstr(plan, "\"omp\"") &&
                       test_json_string_array_contains(root, "skill_files_planned", profile_skill) &&
-                      !strstr(plan, default_skill) && !strstr(plan, profile_mcp) && !strstr(plan, profile_agent);
-    yyjson_doc_free(doc); free(plan); cbm_unsetenv("OMP_PROFILE");
+                      !strstr(plan, default_skill) && !strstr(plan, profile_mcp) &&
+                      !strstr(plan, profile_agent);
+    yyjson_doc_free(doc);
+    free(plan);
+    cbm_unsetenv("OMP_PROFILE");
 
     cbm_setenv("PI_CODING_AGENT_DIR", relocated_dir, 1);
     plan = cbm_build_install_plan_json(tmpdir, "/opt/codebase-memory-cli");
-    doc = plan ? yyjson_read(plan, strlen(plan), 0) : NULL; root = doc ? yyjson_doc_get_root(doc) : NULL;
-    bool relocated_ok = plan && strstr(plan, "\"omp\"") &&
-                        test_json_string_array_contains(root, "skill_files_planned", relocated_skill) &&
-                        !strstr(plan, relocated_mcp) && !strstr(plan, relocated_agent);
-    yyjson_doc_free(doc); free(plan); cbm_unsetenv("PI_CODING_AGENT_DIR");
+    doc = plan ? yyjson_read(plan, strlen(plan), 0) : NULL;
+    root = doc ? yyjson_doc_get_root(doc) : NULL;
+    bool relocated_ok =
+        plan && strstr(plan, "\"omp\"") &&
+        test_json_string_array_contains(root, "skill_files_planned", relocated_skill) &&
+        !strstr(plan, relocated_mcp) && !strstr(plan, relocated_agent);
+    yyjson_doc_free(doc);
+    free(plan);
+    cbm_unsetenv("PI_CODING_AGENT_DIR");
 
     cbm_setenv("OMP_PROFILE", "bad;name", 1);
     plan = cbm_build_install_plan_json(tmpdir, "/opt/codebase-memory-cli");
-    doc = plan ? yyjson_read(plan, strlen(plan), 0) : NULL; root = doc ? yyjson_doc_get_root(doc) : NULL;
-    bool fallback_ok = plan && strstr(plan, "\"omp\"") &&
-                       test_json_string_array_contains(root, "skill_files_planned", default_skill) &&
-                       !strstr(plan, profile_skill);
-    yyjson_doc_free(doc); free(plan); cbm_unsetenv("OMP_PROFILE");
+    doc = plan ? yyjson_read(plan, strlen(plan), 0) : NULL;
+    root = doc ? yyjson_doc_get_root(doc) : NULL;
+    bool fallback_ok =
+        plan && strstr(plan, "\"omp\"") &&
+        test_json_string_array_contains(root, "skill_files_planned", default_skill) &&
+        !strstr(plan, profile_skill);
+    yyjson_doc_free(doc);
+    free(plan);
+    cbm_unsetenv("OMP_PROFILE");
 
     struct stat state;
     bool plan_clean = stat(default_skill, &state) != 0 && stat(profile_skill, &state) != 0 &&
@@ -4819,13 +4966,13 @@ TEST(cli_registry_routes_omp_via_profile_and_pi_coding_agent_dir) {
         restore_test_env(env_names[i], saved_env[i]);
     test_rmdir_r(tmpdir);
     if (!default_ok || !profile_ok || !relocated_ok || !fallback_ok || !plan_clean) {
-        fprintf(stderr, "OMP CLI-first plan diag default=%d profile=%d relocated=%d fallback=%d clean=%d\n",
+        fprintf(stderr,
+                "OMP CLI-first plan diag default=%d profile=%d relocated=%d fallback=%d clean=%d\n",
                 default_ok, profile_ok, relocated_ok, fallback_ok, plan_clean);
         FAIL("OMP plan must resolve effective agent directories for its CLI-first skill only");
     }
     PASS();
 }
-
 
 TEST(cli_registry_omp_named_profile_install_and_uninstall_preserve_user_content) {
     char tmpdir[256];
@@ -4833,8 +4980,8 @@ TEST(cli_registry_omp_named_profile_install_and_uninstall_preserve_user_content)
     if (!cbm_mkdtemp(tmpdir))
         FAIL("cbm_mkdtemp failed");
 
-    const char *const env_names[] = {"HOME", "PATH", "OMP_PROFILE", "PI_CODING_AGENT_DIR",
-                                     "XDG_CONFIG_HOME", "APPDATA"};
+    const char *const env_names[] = {
+        "HOME", "PATH", "OMP_PROFILE", "PI_CODING_AGENT_DIR", "XDG_CONFIG_HOME", "APPDATA"};
     char *saved_env[sizeof(env_names) / sizeof(env_names[0])];
     for (size_t i = 0U; i < sizeof(env_names) / sizeof(env_names[0]); i++) {
         saved_env[i] = save_test_env(env_names[i]);
@@ -4870,10 +5017,10 @@ TEST(cli_registry_omp_named_profile_install_and_uninstall_preserve_user_content)
     bool installed =
         install_rc == 0 && (!installed_mcp || !strstr(installed_mcp, "codebase-memory-mcp")) &&
         installed_instructions && strcmp(installed_instructions, user_instructions) == 0 &&
-        test_file_contains_all(skill_path,
-                               (const char *const[]){"codebase-memory-cli search",
-                                                   "codebase-memory-cli coverage"},
-                               2U) &&
+        test_file_contains_all(
+            skill_path,
+            (const char *const[]){"codebase-memory-cli search", "codebase-memory-cli coverage"},
+            2U) &&
         stat(scout_path, &state) != 0 && stat(verify_path, &state) != 0 &&
         stat(auditor_path, &state) != 0;
     free(installed_mcp);
@@ -4890,12 +5037,12 @@ TEST(cli_registry_omp_named_profile_install_and_uninstall_preserve_user_content)
     char *preserved_instructions = read_test_file_alloc(instructions_path);
     char *preserved_verify = read_test_file_alloc(verify_path);
     char *mcp_after = read_test_file_alloc(mcp_path);
-    bool uninstalled =
-        uninstall_rc == 0 && preserved_instructions &&
-        strcmp(preserved_instructions, user_instructions) == 0 && preserved_verify &&
-        strcmp(preserved_verify, modified_verify) == 0 && stat(skill_path, &state) != 0 &&
-        stat(scout_path, &state) != 0 && stat(auditor_path, &state) != 0 &&
-        (!mcp_after || !strstr(mcp_after, "codebase-memory-mcp"));
+    bool uninstalled = uninstall_rc == 0 && preserved_instructions &&
+                       strcmp(preserved_instructions, user_instructions) == 0 && preserved_verify &&
+                       strcmp(preserved_verify, modified_verify) == 0 &&
+                       stat(skill_path, &state) != 0 && stat(scout_path, &state) != 0 &&
+                       stat(auditor_path, &state) != 0 &&
+                       (!mcp_after || !strstr(mcp_after, "codebase-memory-mcp"));
     free(preserved_instructions);
     free(preserved_verify);
     free(mcp_after);
@@ -4904,7 +5051,8 @@ TEST(cli_registry_omp_named_profile_install_and_uninstall_preserve_user_content)
         restore_test_env(env_names[i], saved_env[i]);
     test_rmdir_r(tmpdir);
     if (!installed || !uninstalled)
-        FAIL("OMP CLI-first lifecycle must install only the skill and preserve user instructions/modified legacy profiles");
+        FAIL("OMP CLI-first lifecycle must install only the skill and preserve user "
+             "instructions/modified legacy profiles");
     PASS();
 }
 
@@ -4914,8 +5062,8 @@ TEST(cli_registry_omp_relocated_dry_run_is_non_mutating) {
     if (!cbm_mkdtemp(tmpdir))
         FAIL("cbm_mkdtemp failed");
 
-    const char *const env_names[] = {"HOME", "PATH", "OMP_PROFILE", "PI_CODING_AGENT_DIR",
-                                     "XDG_CONFIG_HOME", "APPDATA"};
+    const char *const env_names[] = {
+        "HOME", "PATH", "OMP_PROFILE", "PI_CODING_AGENT_DIR", "XDG_CONFIG_HOME", "APPDATA"};
     char *saved_env[sizeof(env_names) / sizeof(env_names[0])];
     for (size_t i = 0U; i < sizeof(env_names) / sizeof(env_names[0]); i++) {
         saved_env[i] = save_test_env(env_names[i]);
@@ -4969,7 +5117,8 @@ TEST(cli_registry_installs_gitlab_and_devin_lifecycle_context) {
     if (!cbm_mkdtemp(tmpdir))
         FAIL("cbm_mkdtemp failed");
 
-    const char *const env_names[] = {"HOME", "PATH", "XDG_CONFIG_HOME", "GLAB_CONFIG_DIR", "APPDATA"};
+    const char *const env_names[] = {"HOME", "PATH", "XDG_CONFIG_HOME", "GLAB_CONFIG_DIR",
+                                     "APPDATA"};
     char *saved_env[sizeof(env_names) / sizeof(env_names[0])];
     for (size_t i = 0U; i < sizeof(env_names) / sizeof(env_names[0]); i++) {
         saved_env[i] = save_test_env(env_names[i]);
@@ -5033,45 +5182,53 @@ TEST(cli_registry_installs_gitlab_and_devin_lifecycle_context) {
     bool hook_plan_ok = test_plan_hook_contains(hook_root, "GitLab Duo CLI", gitlab_hooks) &&
                         test_plan_hook_contains(hook_root, "Devin CLI / Local", devin_config);
 #endif
-    bool plan_ok = plan && hook_plan_ok &&
-                   !test_json_string_array_contains(plan_root, "config_files_planned", gitlab_mcp) &&
-                   !test_json_string_array_contains(plan_root, "config_files_planned", devin_config) &&
-                   test_json_string_array_contains(plan_root, "instruction_files_planned", devin_agents) &&
-                   test_json_string_array_contains(plan_root, "skill_files_planned", devin_skill);
+    bool plan_ok =
+        plan && hook_plan_ok &&
+        !test_json_string_array_contains(plan_root, "config_files_planned", gitlab_mcp) &&
+        !test_json_string_array_contains(plan_root, "config_files_planned", devin_config) &&
+        test_json_string_array_contains(plan_root, "instruction_files_planned", devin_agents) &&
+        test_json_string_array_contains(plan_root, "skill_files_planned", devin_skill);
     yyjson_doc_free(plan_doc);
     yyjson_doc_free(hook_doc);
     free(plan);
     free(hook_plan);
 
     int first_rc = cbm_install_agent_configs(tmpdir, binary_path, false, false);
-    if (first_rc == 0) first_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
+    if (first_rc == 0)
+        first_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
     int second_rc = cbm_install_agent_configs(tmpdir, binary_path, false, false);
-    if (second_rc == 0) second_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
+    if (second_rc == 0)
+        second_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
     char *gitlab_data = read_test_file_alloc(gitlab_hooks);
     char *devin_data = read_test_file_alloc(devin_config);
     char *devin_agents_data = read_test_file_alloc(devin_agents);
     char *gitlab_mcp_data = read_test_file_alloc(gitlab_mcp);
 #ifdef _WIN32
     bool gitlab_hook_installed = gitlab_data && strcmp(gitlab_data, gitlab_original) == 0;
-    bool devin_hooks_installed = devin_data && strstr(devin_data, "theme_mode") &&
-                                 !strstr(devin_data, "--dialect devin");
+    bool devin_hooks_installed =
+        devin_data && strstr(devin_data, "theme_mode") && !strstr(devin_data, "--dialect devin");
 #else
     bool gitlab_hook_installed = gitlab_data && strstr(gitlab_data, "/usr/bin/user-hook") &&
                                  strstr(gitlab_data, "hook-augment") &&
                                  test_count_substring(gitlab_data, "hook-augment") == 1U;
-    bool devin_hooks_installed = devin_data && strstr(devin_data, "theme_mode") &&
-                                 strstr(devin_data, "SessionStart") &&
-                                 strstr(devin_data, "UserPromptSubmit") &&
-                                 strstr(devin_data, "PostCompaction") &&
-                                 test_count_substring(devin_data, "--dialect devin") == 3U;
+    bool devin_hooks_installed =
+        devin_data && strstr(devin_data, "theme_mode") && strstr(devin_data, "SessionStart") &&
+        strstr(devin_data, "UserPromptSubmit") && strstr(devin_data, "PostCompaction") &&
+        test_count_substring(devin_data, "--dialect devin") == 3U;
 #endif
     bool installed = first_rc == 0 && second_rc == 0 && gitlab_hook_installed &&
-                     devin_hooks_installed && (!gitlab_mcp_data || !strstr(gitlab_mcp_data, "codebase-memory-mcp")) &&
+                     devin_hooks_installed &&
+                     (!gitlab_mcp_data || !strstr(gitlab_mcp_data, "codebase-memory-mcp")) &&
                      devin_agents_data && strstr(devin_agents_data, devin_personal) &&
                      strstr(devin_agents_data, "codebase-memory-cli search") &&
                      test_file_contains_all(devin_skill,
-                                            (const char *const[]){"codebase-memory-cli search", "codebase-memory-cli coverage"}, 2U);
-    free(gitlab_data); free(devin_data); free(devin_agents_data); free(gitlab_mcp_data);
+                                            (const char *const[]){"codebase-memory-cli search",
+                                                                  "codebase-memory-cli coverage"},
+                                            2U);
+    free(gitlab_data);
+    free(devin_data);
+    free(devin_agents_data);
+    free(gitlab_mcp_data);
 
     char *argv[] = {"uninstall", "--yes"};
     int uninstall_rc = cli_test_cmd_uninstall(2, argv);
@@ -5083,21 +5240,24 @@ TEST(cli_registry_installs_gitlab_and_devin_lifecycle_context) {
     bool gitlab_clean = gitlab_data && strcmp(gitlab_data, gitlab_original) == 0;
 #else
     bool gitlab_clean = gitlab_data && strstr(gitlab_data, "/usr/bin/user-hook") &&
-                        strstr(gitlab_data, "\"keep\":true") && !strstr(gitlab_data, "hook-augment");
+                        strstr(gitlab_data, "\"keep\":true") &&
+                        !strstr(gitlab_data, "hook-augment");
 #endif
-    bool devin_clean = devin_data && strstr(devin_data, "theme_mode") &&
-                       !strstr(devin_data, "--dialect devin") && devin_agents_data &&
-                       strstr(devin_agents_data, devin_personal) &&
-                       !strstr(devin_agents_data, "codebase-memory-cli search") &&
-                       stat(devin_skill, &state) != 0;
+    bool devin_clean =
+        devin_data && strstr(devin_data, "theme_mode") && !strstr(devin_data, "--dialect devin") &&
+        devin_agents_data && strstr(devin_agents_data, devin_personal) &&
+        !strstr(devin_agents_data, "codebase-memory-cli search") && stat(devin_skill, &state) != 0;
     bool cleaned = uninstall_rc == 0 && gitlab_clean && devin_clean;
-    free(gitlab_data); free(devin_data); free(devin_agents_data);
+    free(gitlab_data);
+    free(devin_data);
+    free(devin_agents_data);
 
     for (size_t i = 0U; i < sizeof(env_names) / sizeof(env_names[0]); i++)
         restore_test_env(env_names[i], saved_env[i]);
     test_rmdir_r(tmpdir);
     if (!plan_ok || !installed || !cleaned)
-        FAIL("GitLab/Devin CLI-first integration must plan/install lifecycle context without fresh MCP registration and clean only owned content");
+        FAIL("GitLab/Devin CLI-first integration must plan/install lifecycle context without fresh "
+             "MCP registration and clean only owned content");
     PASS();
 }
 
@@ -5120,8 +5280,10 @@ TEST(cli_registry_hook_cleanup_is_independent_from_mcp_ownership) {
     snprintf(qoder_settings, sizeof(qoder_settings), "%s/settings.json", qoder_dir);
     snprintf(devin_config, sizeof(devin_config), "%s/config.json", devin_dir);
     snprintf(binary_path, sizeof(binary_path), "%s/.local/bin/codebase-memory-cli", tmpdir);
-    test_mkdirp(qoder_dir); test_mkdirp(devin_dir);
-    const char *foreign = "{\"mcpServers\":{\"codebase-memory-mcp\":{\"command\":\"/foreign/cbm\"}}}\n";
+    test_mkdirp(qoder_dir);
+    test_mkdirp(devin_dir);
+    const char *foreign =
+        "{\"mcpServers\":{\"codebase-memory-mcp\":{\"command\":\"/foreign/cbm\"}}}\n";
     write_test_file(qoder_settings, foreign);
     write_test_file(devin_config, foreign);
     cbm_setenv("HOME", tmpdir, 1);
@@ -5147,7 +5309,8 @@ TEST(cli_registry_hook_cleanup_is_independent_from_mcp_ownership) {
 
     write_test_file(qoder_settings, "{}\n");
     write_test_file(devin_config, "{}\n");
-    bool modified_ready = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false) == 0;
+    bool modified_ready =
+        cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false) == 0;
     const char *const modified_dialects[] = {"--dialect Xoder", "--dialect Xevin"};
     for (size_t i = 0U; i < 2U; i++) {
         char *data = read_test_file_alloc(paths[i]);
@@ -5171,7 +5334,8 @@ TEST(cli_registry_hook_cleanup_is_independent_from_mcp_ownership) {
         restore_test_env(env_names[i], saved_env[i]);
     test_rmdir_r(tmpdir);
     if (!ready || !independent_cleanup || !modified_ready || !modified_preserved)
-        FAIL("Qoder/Devin hook ownership must be exact and independent from preserved foreign MCP data");
+        FAIL("Qoder/Devin hook ownership must be exact and independent from preserved foreign MCP "
+             "data");
     PASS();
 }
 #endif
@@ -5246,7 +5410,10 @@ TEST(cli_registry_installs_codebuddy_bob_and_pochi_durable_context) {
         FAIL("cbm_mkdtemp failed");
     const char *const env_names[] = {"HOME", "PATH", "XDG_CONFIG_HOME"};
     char *saved_env[3];
-    for (size_t i = 0U; i < 3U; i++) { saved_env[i] = save_test_env(env_names[i]); cbm_unsetenv(env_names[i]); }
+    for (size_t i = 0U; i < 3U; i++) {
+        saved_env[i] = save_test_env(env_names[i]);
+        cbm_unsetenv(env_names[i]);
+    }
 
     char bin_dir[512], bob_command[640], codebuddy_dir[512], bob_dir[512], pochi_dir[512];
     snprintf(bin_dir, sizeof(bin_dir), "%s/bin", tmpdir);
@@ -5258,7 +5425,10 @@ TEST(cli_registry_installs_codebuddy_bob_and_pochi_durable_context) {
 #else
     snprintf(bob_command, sizeof(bob_command), "%s/bob", bin_dir);
 #endif
-    test_mkdirp(bin_dir); test_mkdirp(codebuddy_dir); test_mkdirp(bob_dir); test_mkdirp(pochi_dir);
+    test_mkdirp(bin_dir);
+    test_mkdirp(codebuddy_dir);
+    test_mkdirp(bob_dir);
+    test_mkdirp(pochi_dir);
     write_test_file(bob_command, "#!/bin/sh\nexit 0\n");
 #ifndef _WIN32
     chmod(bob_command, 0700);
@@ -5269,8 +5439,10 @@ TEST(cli_registry_installs_codebuddy_bob_and_pochi_durable_context) {
     char pochi_mcp[640], pochi_rules[640], pochi_skill[640], pochi_agent[640];
     snprintf(codebuddy_mcp, sizeof(codebuddy_mcp), "%s/.mcp.json", codebuddy_dir);
     snprintf(codebuddy_memory, sizeof(codebuddy_memory), "%s/CODEBUDDY.md", codebuddy_dir);
-    snprintf(codebuddy_skill, sizeof(codebuddy_skill), "%s/skills/codebase-memory-cli/SKILL.md", codebuddy_dir);
-    snprintf(codebuddy_agent, sizeof(codebuddy_agent), "%s/agents/codebase-memory.md", codebuddy_dir);
+    snprintf(codebuddy_skill, sizeof(codebuddy_skill), "%s/skills/codebase-memory-cli/SKILL.md",
+             codebuddy_dir);
+    snprintf(codebuddy_agent, sizeof(codebuddy_agent), "%s/agents/codebase-memory.md",
+             codebuddy_dir);
     snprintf(bob_ide_mcp, sizeof(bob_ide_mcp), "%s/mcp.json", bob_dir);
     snprintf(bob_shell_mcp, sizeof(bob_shell_mcp), "%s/mcp_settings.json", bob_dir);
     snprintf(bob_rule, sizeof(bob_rule), "%s/rules/codebase-memory.md", bob_dir);
@@ -5286,10 +5458,13 @@ TEST(cli_registry_installs_codebuddy_bob_and_pochi_durable_context) {
     const char *pochi_personal = "# Personal Pochi rule\n";
     write_test_file(codebuddy_memory, codebuddy_personal);
     write_test_file(bob_ide_mcp, "{\"keep\":\"bob-ide\"}\n");
-    char bob_rules_dir[640]; snprintf(bob_rules_dir, sizeof(bob_rules_dir), "%s/rules", bob_dir); test_mkdirp(bob_rules_dir);
+    char bob_rules_dir[640];
+    snprintf(bob_rules_dir, sizeof(bob_rules_dir), "%s/rules", bob_dir);
+    test_mkdirp(bob_rules_dir);
     write_test_file(bob_rule, bob_personal);
     write_test_file(pochi_rules, pochi_personal);
-    cbm_setenv("HOME", tmpdir, 1); cbm_setenv("PATH", bin_dir, 1);
+    cbm_setenv("HOME", tmpdir, 1);
+    cbm_setenv("PATH", bin_dir, 1);
     char binary_path[640];
 #ifdef _WIN32
     snprintf(binary_path, sizeof(binary_path), "%s/.local/bin/codebase-memory-cli.exe", tmpdir);
@@ -5301,47 +5476,65 @@ TEST(cli_registry_installs_codebuddy_bob_and_pochi_durable_context) {
     bool plan_ok = plan && strstr(plan, codebuddy_memory) && strstr(plan, codebuddy_skill) &&
                    strstr(plan, bob_rule) && strstr(plan, bob_skill) && strstr(plan, pochi_rules) &&
                    strstr(plan, pochi_skill) && !strstr(plan, codebuddy_mcp) &&
-                   !strstr(plan, bob_ide_mcp) && !strstr(plan, bob_shell_mcp) && !strstr(plan, pochi_mcp) &&
-                   !strstr(plan, codebuddy_agent) && !strstr(plan, bob_agent) && !strstr(plan, pochi_agent);
+                   !strstr(plan, bob_ide_mcp) && !strstr(plan, bob_shell_mcp) &&
+                   !strstr(plan, pochi_mcp) && !strstr(plan, codebuddy_agent) &&
+                   !strstr(plan, bob_agent) && !strstr(plan, pochi_agent);
     free(plan);
 
     int first_rc = cbm_install_agent_configs(tmpdir, binary_path, false, false);
     int second_rc = cbm_install_agent_configs(tmpdir, binary_path, false, false);
     struct stat state;
     char *bob_legacy = read_test_file_alloc(bob_ide_mcp);
-    bool codebuddy_installed = test_file_contains_all(codebuddy_memory,
+    bool codebuddy_installed =
+        test_file_contains_all(
+            codebuddy_memory,
             (const char *const[]){codebuddy_personal, "codebase-memory-cli search"}, 2U) &&
-        test_file_contains_all(codebuddy_skill,
-            (const char *const[]){"codebase-memory-cli search", "codebase-memory-cli coverage"}, 2U) &&
+        test_file_contains_all(
+            codebuddy_skill,
+            (const char *const[]){"codebase-memory-cli search", "codebase-memory-cli coverage"},
+            2U) &&
         stat(codebuddy_mcp, &state) != 0 && stat(codebuddy_agent, &state) != 0;
-    bool bob_installed = bob_legacy && strstr(bob_legacy, "bob-ide") && !strstr(bob_legacy, "codebase-memory-mcp") &&
+    bool bob_installed =
+        bob_legacy && strstr(bob_legacy, "bob-ide") && !strstr(bob_legacy, "codebase-memory-mcp") &&
         stat(bob_shell_mcp, &state) != 0 &&
-        test_file_contains_all(bob_rule, (const char *const[]){bob_personal, "codebase-memory-cli search"}, 2U) &&
-        test_file_contains_all(bob_skill, (const char *const[]){"codebase-memory-cli coverage"}, 1U) &&
+        test_file_contains_all(
+            bob_rule, (const char *const[]){bob_personal, "codebase-memory-cli search"}, 2U) &&
+        test_file_contains_all(bob_skill, (const char *const[]){"codebase-memory-cli coverage"},
+                               1U) &&
         stat(bob_agent, &state) != 0;
-    bool pochi_installed = stat(pochi_mcp, &state) != 0 &&
-        test_file_contains_all(pochi_rules, (const char *const[]){pochi_personal, "codebase-memory-cli search"}, 2U) &&
-        test_file_contains_all(pochi_skill, (const char *const[]){"codebase-memory-cli coverage"}, 1U) &&
+    bool pochi_installed =
+        stat(pochi_mcp, &state) != 0 &&
+        test_file_contains_all(
+            pochi_rules, (const char *const[]){pochi_personal, "codebase-memory-cli search"}, 2U) &&
+        test_file_contains_all(pochi_skill, (const char *const[]){"codebase-memory-cli coverage"},
+                               1U) &&
         stat(pochi_agent, &state) != 0;
     free(bob_legacy);
-    bool installed = first_rc == 0 && second_rc == 0 && codebuddy_installed && bob_installed && pochi_installed;
+    bool installed =
+        first_rc == 0 && second_rc == 0 && codebuddy_installed && bob_installed && pochi_installed;
 
     char *argv[] = {"uninstall", "--yes"};
     int uninstall_rc = cli_test_cmd_uninstall(2, argv);
     char *codebuddy_after = read_test_file_alloc(codebuddy_memory);
     char *bob_after = read_test_file_alloc(bob_rule);
     char *pochi_after = read_test_file_alloc(pochi_rules);
-    bool cleaned = uninstall_rc == 0 && codebuddy_after && strstr(codebuddy_after, codebuddy_personal) &&
-                   !strstr(codebuddy_after, "codebase-memory-cli search") && bob_after && strstr(bob_after, bob_personal) &&
-                   !strstr(bob_after, "codebase-memory-cli search") && pochi_after && strstr(pochi_after, pochi_personal) &&
-                   !strstr(pochi_after, "codebase-memory-cli search") && stat(codebuddy_skill, &state) != 0 &&
-                   stat(bob_skill, &state) != 0 && stat(pochi_skill, &state) != 0;
-    free(codebuddy_after); free(bob_after); free(pochi_after);
+    bool cleaned =
+        uninstall_rc == 0 && codebuddy_after && strstr(codebuddy_after, codebuddy_personal) &&
+        !strstr(codebuddy_after, "codebase-memory-cli search") && bob_after &&
+        strstr(bob_after, bob_personal) && !strstr(bob_after, "codebase-memory-cli search") &&
+        pochi_after && strstr(pochi_after, pochi_personal) &&
+        !strstr(pochi_after, "codebase-memory-cli search") && stat(codebuddy_skill, &state) != 0 &&
+        stat(bob_skill, &state) != 0 && stat(pochi_skill, &state) != 0;
+    free(codebuddy_after);
+    free(bob_after);
+    free(pochi_after);
 
-    for (size_t i = 0U; i < 3U; i++) restore_test_env(env_names[i], saved_env[i]);
+    for (size_t i = 0U; i < 3U; i++)
+        restore_test_env(env_names[i], saved_env[i]);
     test_rmdir_r(tmpdir);
     if (!plan_ok || !installed || !cleaned)
-        FAIL("CodeBuddy, Bob, and Pochi must use CLI-first durable instructions/skills without fresh MCP or tier-profile creation");
+        FAIL("CodeBuddy, Bob, and Pochi must use CLI-first durable instructions/skills without "
+             "fresh MCP or tier-profile creation");
     PASS();
 }
 
@@ -5395,7 +5588,8 @@ TEST(cli_codex_respects_codex_home) {
 
     cbm_detected_agents_t agents = cbm_detect_agents(tmpdir);
     char *json = cbm_build_install_plan_json(tmpdir, "/usr/local/bin/codebase-memory-cli");
-    char *hook_json = cbm_build_hook_install_plan_json(tmpdir, "/usr/local/bin/codebase-memory-cli");
+    char *hook_json =
+        cbm_build_hook_install_plan_json(tmpdir, "/usr/local/bin/codebase-memory-cli");
     char expected_config[640];
     char expected_instructions[640];
     snprintf(expected_config, sizeof(expected_config), "%s/config.toml", codex_home);
@@ -5448,7 +5642,8 @@ TEST(cli_grok_respects_grok_home) {
     if (!agents.grok)
         FAIL("Grok Build detection must honor GROK_HOME");
     if (!planned || !no_hooks)
-        FAIL("Grok install plan must place CLI-first rules and skill under GROK_HOME and never plan a hook");
+        FAIL("Grok install plan must place CLI-first rules and skill under GROK_HOME and never "
+             "plan a hook");
     PASS();
 }
 
@@ -5548,7 +5743,8 @@ TEST(cli_opencode_honors_custom_config) {
     char *json = cbm_build_install_plan_json(tmpdir, "/usr/local/bin/codebase-memory-cli");
     char expected_instructions[640];
     char expected_skill[640];
-    snprintf(expected_instructions, sizeof(expected_instructions), "%s/.config/opencode/AGENTS.md", tmpdir);
+    snprintf(expected_instructions, sizeof(expected_instructions), "%s/.config/opencode/AGENTS.md",
+             tmpdir);
     snprintf(expected_skill, sizeof(expected_skill),
              "%s/.config/opencode/skills/codebase-memory-cli/SKILL.md", tmpdir);
     bool plans_custom = agents.opencode && json && strstr(json, expected_instructions) &&
@@ -5585,17 +5781,19 @@ TEST(cli_opencode_prefers_existing_jsonc_config_discussion1560) {
     cbm_unsetenv("OPENCODE_CONFIG");
 
     char *json = cbm_build_install_plan_json(tmpdir, "/usr/local/bin/codebase-memory-cli");
-    bool targets_jsonc = json && strstr(json, "/.config/opencode/AGENTS.md") != NULL &&
-                         strstr(json, "/.config/opencode/skills/codebase-memory-cli/SKILL.md") != NULL &&
-                         strstr(json, "/.config/opencode/opencode.jsonc") == NULL &&
-                         strstr(json, "/.config/opencode/opencode.json") == NULL;
+    bool targets_jsonc =
+        json && strstr(json, "/.config/opencode/AGENTS.md") != NULL &&
+        strstr(json, "/.config/opencode/skills/codebase-memory-cli/SKILL.md") != NULL &&
+        strstr(json, "/.config/opencode/opencode.jsonc") == NULL &&
+        strstr(json, "/.config/opencode/opencode.json") == NULL;
 
     free(json);
     restore_test_env("PATH", saved_path);
     restore_test_env("OPENCODE_CONFIG", saved_file);
     test_rmdir_r(tmpdir);
     if (!targets_jsonc)
-        FAIL("OpenCode CLI-first install must preserve existing JSONC config and plan only durable context");
+        FAIL("OpenCode CLI-first install must preserve existing JSONC config and plan only durable "
+             "context");
     PASS();
 }
 
@@ -5675,7 +5873,8 @@ TEST(cli_opencode_config_dir_detects_without_retargeting_global_json) {
     restore_test_env("OPENCODE_CONFIG_DIR", saved_dir);
     test_rmdir_r(tmpdir);
     if (!correct)
-        FAIL("OPENCODE_CONFIG_DIR may detect OpenCode but must not retarget CLI-first durable writes");
+        FAIL("OPENCODE_CONFIG_DIR may detect OpenCode but must not retarget CLI-first durable "
+             "writes");
     PASS();
 }
 
@@ -5760,14 +5959,15 @@ TEST(cli_relative_kiro_and_hermes_homes_never_target_root) {
     cbm_setenv("HERMES_HOME", "relative-hermes", 1);
 
     char *json = cbm_build_install_plan_json(tmpdir, "/usr/local/bin/codebase-memory-cli");
-    char *hook_json = cbm_build_hook_install_plan_json(tmpdir, "/usr/local/bin/codebase-memory-cli");
+    char *hook_json =
+        cbm_build_hook_install_plan_json(tmpdir, "/usr/local/bin/codebase-memory-cli");
     char expected_kiro[512];
     char expected_hermes[512];
     snprintf(expected_kiro, sizeof(expected_kiro), "%s/.kiro/steering/codebase-memory.md", tmpdir);
     snprintf(expected_hermes, sizeof(expected_hermes), "%s/.hermes/config.yaml", tmpdir);
-    bool safe = json && hook_json && strstr(json, expected_kiro) && strstr(hook_json, expected_hermes) &&
-                !strstr(json, "\"/steering/codebase-memory.md\"") &&
-                !strstr(hook_json, "\"/config.yaml\"");
+    bool safe =
+        json && hook_json && strstr(json, expected_kiro) && strstr(hook_json, expected_hermes) &&
+        !strstr(json, "\"/steering/codebase-memory.md\"") && !strstr(hook_json, "\"/config.yaml\"");
 
     free(json);
     free(hook_json);
@@ -5809,20 +6009,22 @@ TEST(cli_fresh_cli_only_yaml_and_toml_agents_create_parent_dirs) {
         path, (const char *const[]){"pre_llm_call:", "hook-augment", "--dialect hermes"}, 3);
     snprintf(path, sizeof(path), "%s/.config/goose/.goosehints", tmpdir);
     installed = installed && test_file_contains_all(
-                               path, (const char *const[]){"codebase-memory-cli", "coverage"}, 2);
+                                 path, (const char *const[]){"codebase-memory-cli", "coverage"}, 2);
     snprintf(path, sizeof(path), "%s/.vibe/AGENTS.md", tmpdir);
     installed = installed && test_file_contains_all(
-                               path, (const char *const[]){"codebase-memory-cli", "search"}, 2);
+                                 path, (const char *const[]){"codebase-memory-cli", "search"}, 2);
     snprintf(path, sizeof(path), "%s/.vibe/skills/codebase-memory-cli/SKILL.md", tmpdir);
-    installed = installed && test_file_contains_all(
-                               path, (const char *const[]){"Codebase Memory", "codebase-memory-cli"}, 2);
+    installed =
+        installed && test_file_contains_all(
+                         path, (const char *const[]){"Codebase Memory", "codebase-memory-cli"}, 2);
 
     for (size_t i = 0; i < sizeof(env_names) / sizeof(env_names[0]); i++) {
         restore_test_env(env_names[i], saved_env[i]);
     }
     test_rmdir_r(tmpdir);
     if (!installed)
-        FAIL("CLI-first Hermes, Goose, and Vibe installs must create parents for their current durable artifacts");
+        FAIL("CLI-first Hermes, Goose, and Vibe installs must create parents for their current "
+             "durable artifacts");
     PASS();
 }
 
@@ -5884,15 +6086,18 @@ TEST(cli_augment_installs_session_context_and_subagent) {
 #else
     snprintf(binary, sizeof(binary), "%s/codebase-memory-cli", bin_dir);
 #endif
-    test_mkdirp(augment_dir); test_mkdirp(bin_dir);
+    test_mkdirp(augment_dir);
+    test_mkdirp(bin_dir);
     write_test_file(binary, "#!/bin/sh\nexit 0\n");
 #ifndef _WIN32
     chmod(binary, 0755);
 #endif
     char *saved_home = save_test_env("HOME"), *saved_path = save_test_env("PATH");
-    cbm_setenv("HOME", tmpdir, 1); cbm_setenv("PATH", tmpdir, 1);
+    cbm_setenv("HOME", tmpdir, 1);
+    cbm_setenv("PATH", tmpdir, 1);
     int install_rc = cbm_install_agent_configs(tmpdir, binary, false, false);
-    if (install_rc == 0) install_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary, false, false);
+    if (install_rc == 0)
+        install_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary, false, false);
 
     char settings_path[640], rule_path[640], scout_path[640], agent_path[640], auditor_path[640];
     char session_script_path[640], coverage_script_path[640];
@@ -5900,50 +6105,73 @@ TEST(cli_augment_installs_session_context_and_subagent) {
     snprintf(rule_path, sizeof(rule_path), "%s/rules/codebase-memory.md", augment_dir);
     snprintf(scout_path, sizeof(scout_path), "%s/agents/codebase-memory-scout.md", augment_dir);
     snprintf(agent_path, sizeof(agent_path), "%s/agents/codebase-memory.md", augment_dir);
-    snprintf(auditor_path, sizeof(auditor_path), "%s/agents/codebase-memory-auditor.md", augment_dir);
+    snprintf(auditor_path, sizeof(auditor_path), "%s/agents/codebase-memory-auditor.md",
+             augment_dir);
 #ifdef _WIN32
-    snprintf(session_script_path, sizeof(session_script_path), "%s/hooks/codebase-memory-cli-session.ps1", augment_dir);
-    snprintf(coverage_script_path, sizeof(coverage_script_path), "%s/hooks/codebase-memory-cli-coverage.ps1", augment_dir);
+    snprintf(session_script_path, sizeof(session_script_path),
+             "%s/hooks/codebase-memory-cli-session.ps1", augment_dir);
+    snprintf(coverage_script_path, sizeof(coverage_script_path),
+             "%s/hooks/codebase-memory-cli-coverage.ps1", augment_dir);
 #else
-    snprintf(session_script_path, sizeof(session_script_path), "%s/hooks/codebase-memory-cli-session.sh", augment_dir);
-    snprintf(coverage_script_path, sizeof(coverage_script_path), "%s/hooks/codebase-memory-cli-coverage.sh", augment_dir);
+    snprintf(session_script_path, sizeof(session_script_path),
+             "%s/hooks/codebase-memory-cli-session.sh", augment_dir);
+    snprintf(coverage_script_path, sizeof(coverage_script_path),
+             "%s/hooks/codebase-memory-cli-coverage.sh", augment_dir);
 #endif
     char *settings = read_test_file_alloc(settings_path), *rule = read_test_file_alloc(rule_path);
-    char *session_script = read_test_file_alloc(session_script_path), *coverage_script = read_test_file_alloc(coverage_script_path);
+    char *session_script = read_test_file_alloc(session_script_path),
+         *coverage_script = read_test_file_alloc(coverage_script_path);
     struct stat state;
-    bool settings_ok = settings && !strstr(settings, "mcpServers") && strstr(settings, "SessionStart") &&
-                       strstr(settings, "PostToolUse") && strstr(settings, "\"matcher\": \"view\"");
+    bool settings_ok = settings && !strstr(settings, "mcpServers") &&
+                       strstr(settings, "SessionStart") && strstr(settings, "PostToolUse") &&
+                       strstr(settings, "\"matcher\": \"view\"");
     bool context_ok = rule && strstr(rule, "codebase-memory-cli search") &&
-                      strstr(rule, "codebase-memory-cli coverage") && session_script && strstr(session_script, binary) &&
-                      strstr(session_script, "hook-augment") && coverage_script && strstr(coverage_script, binary) &&
-                      strstr(coverage_script, "--dialect augment") && stat(scout_path, &state) != 0 &&
-                      stat(agent_path, &state) != 0 && stat(auditor_path, &state) != 0;
+                      strstr(rule, "codebase-memory-cli coverage") && session_script &&
+                      strstr(session_script, binary) && strstr(session_script, "hook-augment") &&
+                      coverage_script && strstr(coverage_script, binary) &&
+                      strstr(coverage_script, "--dialect augment") &&
+                      stat(scout_path, &state) != 0 && stat(agent_path, &state) != 0 &&
+                      stat(auditor_path, &state) != 0;
 #ifndef _WIN32
-    context_ok = context_ok && stat(session_script_path, &state) == 0 && (state.st_mode & S_IXUSR) != 0 &&
-                 stat(coverage_script_path, &state) == 0 && (state.st_mode & S_IXUSR) != 0;
+    context_ok = context_ok && stat(session_script_path, &state) == 0 &&
+                 (state.st_mode & S_IXUSR) != 0 && stat(coverage_script_path, &state) == 0 &&
+                 (state.st_mode & S_IXUSR) != 0;
 #endif
-    free(settings); free(rule); free(session_script); free(coverage_script);
+    free(settings);
+    free(rule);
+    free(session_script);
+    free(coverage_script);
 
     char *asset_plan = cbm_build_install_plan_json(tmpdir, binary);
     char *hook_plan = cbm_build_hook_install_plan_json(tmpdir, binary);
-    size_t plan_len = (asset_plan ? strlen(asset_plan) : 0U) + (hook_plan ? strlen(hook_plan) : 0U) + 2U;
+    size_t plan_len =
+        (asset_plan ? strlen(asset_plan) : 0U) + (hook_plan ? strlen(hook_plan) : 0U) + 2U;
     char *plan = calloc(plan_len, 1U);
-    if (plan) snprintf(plan, plan_len, "%s\n%s", asset_plan ? asset_plan : "", hook_plan ? hook_plan : "");
-    free(asset_plan); free(hook_plan);
+    if (plan)
+        snprintf(plan, plan_len, "%s\n%s", asset_plan ? asset_plan : "",
+                 hook_plan ? hook_plan : "");
+    free(asset_plan);
+    free(hook_plan);
     bool plan_ok = plan && strstr(plan, settings_path) && strstr(plan, rule_path) &&
                    strstr(plan, session_script_path) && strstr(plan, coverage_script_path) &&
-                   !strstr(plan, scout_path) && !strstr(plan, agent_path) && !strstr(plan, auditor_path);
+                   !strstr(plan, scout_path) && !strstr(plan, agent_path) &&
+                   !strstr(plan, auditor_path);
     free(plan);
 
     char *args[] = {"-n"};
     int uninstall_rc = cli_test_cmd_uninstall(1, args);
     char *settings_after = read_test_file_alloc(settings_path);
-    bool removed = (!settings_after || (!strstr(settings_after, "SessionStart") && !strstr(settings_after, "PostToolUse"))) &&
-                   stat(session_script_path, &state) != 0 && stat(coverage_script_path, &state) != 0;
+    bool removed =
+        (!settings_after ||
+         (!strstr(settings_after, "SessionStart") && !strstr(settings_after, "PostToolUse"))) &&
+        stat(session_script_path, &state) != 0 && stat(coverage_script_path, &state) != 0;
     free(settings_after);
-    restore_test_env("HOME", saved_home); restore_test_env("PATH", saved_path); test_rmdir_r(tmpdir);
+    restore_test_env("HOME", saved_home);
+    restore_test_env("PATH", saved_path);
+    test_rmdir_r(tmpdir);
     if (install_rc != 0 || uninstall_rc != 0 || !settings_ok || !context_ok || !plan_ok || !removed)
-        FAIL("Augment must use CLI-first instructions plus SessionStart/PostToolUse coverage hooks without fresh MCP or agents");
+        FAIL("Augment must use CLI-first instructions plus SessionStart/PostToolUse coverage hooks "
+             "without fresh MCP or agents");
     PASS();
 }
 
@@ -6106,34 +6334,40 @@ TEST(cli_hook_ownership_requires_exact_command_identity) {
     snprintf(settings, sizeof(settings), "%s/settings.json", claude_dir);
     test_mkdirp(claude_dir);
     char *saved_home = save_test_env("HOME"), *saved_claude = save_test_env("CLAUDE_CONFIG_DIR");
-    cbm_setenv("HOME", tmpdir, 1); cbm_setenv("CLAUDE_CONFIG_DIR", claude_dir, 1);
-    ASSERT_EQ(cbm_resolve_claude_hook_command_for_testing("codebase-memory-cli-discovery-gate", false,
-                                                          exact_command, sizeof(exact_command)),
+    cbm_setenv("HOME", tmpdir, 1);
+    cbm_setenv("CLAUDE_CONFIG_DIR", claude_dir, 1);
+    ASSERT_EQ(cbm_resolve_claude_hook_command_for_testing("codebase-memory-cli-discovery-gate",
+                                                          false, exact_command,
+                                                          sizeof(exact_command)),
               0);
     snprintf(foreign, sizeof(foreign),
              "{\"hooks\":{"
              "\"PreToolUse\":[{\"matcher\":\"Grep|Glob|Read\",\"hooks\":[{"
              "\"type\":\"command\",\"command\":\"echo %s user-owned-claude\"}]}],"
              "\"BeforeTool\":[{\"matcher\":\"google_web_search|grep_search\",\"hooks\":[{"
-             "\"type\":\"command\",\"command\":\"echo codebase-memory-mcp search_graph user-owned-gemini\"}]}]}}\n",
+             "\"type\":\"command\",\"command\":\"echo codebase-memory-mcp search_graph "
+             "user-owned-gemini\"}]}]}}\n",
              exact_command);
     write_test_file(settings, foreign);
     int install_claude = cbm_upsert_claude_hooks(settings);
     int install_gemini = cbm_upsert_gemini_hooks(settings);
     char *after_install = read_test_file_alloc(settings);
     bool install_preserved = after_install && strstr(after_install, "user-owned-claude") &&
-        strstr(after_install, "user-owned-gemini") && strstr(after_install, "Code discovery: prefer codebase-memory-cli");
+                             strstr(after_install, "user-owned-gemini") &&
+                             strstr(after_install, "Code discovery: prefer codebase-memory-cli");
     free(after_install);
 
     int remove_claude = cbm_remove_claude_hooks(settings);
     int remove_gemini = cbm_remove_gemini_hooks(settings);
     char *after_remove = read_test_file_alloc(settings);
     bool remove_preserved = after_remove && strstr(after_remove, "user-owned-claude") &&
-        strstr(after_remove, "user-owned-gemini") &&
-        strstr(after_remove, exact_command) &&
-        !strstr(after_remove, "Code discovery: prefer codebase-memory-cli");
+                            strstr(after_remove, "user-owned-gemini") &&
+                            strstr(after_remove, exact_command) &&
+                            !strstr(after_remove, "Code discovery: prefer codebase-memory-cli");
     free(after_remove);
-    restore_test_env("HOME", saved_home); restore_test_env("CLAUDE_CONFIG_DIR", saved_claude); test_rmdir_r(tmpdir);
+    restore_test_env("HOME", saved_home);
+    restore_test_env("CLAUDE_CONFIG_DIR", saved_claude);
+    test_rmdir_r(tmpdir);
     if (install_claude != 0 || install_gemini != 0 || remove_claude != 0 || remove_gemini != 0 ||
         !install_preserved || !remove_preserved)
         FAIL("hook ownership must require exact command identity, not a matching substring");
@@ -6178,8 +6412,8 @@ TEST(cli_gemini_hook_upgrade_migrates_released_exact_commands) {
         int session_upsert = cbm_upsert_gemini_session_hooks(settings);
         char *upgraded = read_test_file_alloc(settings);
         bool preserved_on_upsert = upgraded && strstr(upgraded, legacy_before_commands[i]) &&
-                        strstr(upgraded, "grep/file-read; run index_repository first") &&
-                        strstr(upgraded, "codebase-memory-cli");
+                                   strstr(upgraded, "grep/file-read; run index_repository first") &&
+                                   strstr(upgraded, "codebase-memory-cli");
         free(upgraded);
 
         write_test_file(settings, legacy_json);
@@ -6187,16 +6421,18 @@ TEST(cli_gemini_hook_upgrade_migrates_released_exact_commands) {
         int session_remove = cbm_remove_gemini_session_hooks(settings);
         char *removed = read_test_file_alloc(settings);
         bool legacy_preserved = removed && strstr(removed, legacy_before_commands[i]) &&
-                              strstr(removed, "grep/file-read; run index_repository first") &&
-                              !strstr(removed, "Code discovery: prefer codebase-memory-cli");
+                                strstr(removed, "grep/file-read; run index_repository first") &&
+                                !strstr(removed, "Code discovery: prefer codebase-memory-cli");
         free(removed);
         all_preserved = all_preserved && before_upsert == 0 && session_upsert == 0 &&
-                       before_remove == 0 && session_remove == 0 && preserved_on_upsert && legacy_preserved;
+                        before_remove == 0 && session_remove == 0 && preserved_on_upsert &&
+                        legacy_preserved;
     }
     test_rmdir_r(tmpdir);
 
     if (!all_preserved)
-        FAIL("Gemini CLI hooks must preserve MCP-era command identities while owning only CLI commands");
+        FAIL("Gemini CLI hooks must preserve MCP-era command identities while owning only CLI "
+             "commands");
     PASS();
 }
 
@@ -6209,9 +6445,11 @@ TEST(cli_uninstall_preserves_hook_script_with_modified_binary) {
     char script_path[640];
     snprintf(claude_dir, sizeof(claude_dir), "%s/.claude", tmpdir);
 #ifdef _WIN32
-    snprintf(script_path, sizeof(script_path), "%s/hooks/codebase-memory-cli-session-reminder.cmd", claude_dir);
+    snprintf(script_path, sizeof(script_path), "%s/hooks/codebase-memory-cli-session-reminder.cmd",
+             claude_dir);
 #else
-    snprintf(script_path, sizeof(script_path), "%s/hooks/codebase-memory-cli-session-reminder", claude_dir);
+    snprintf(script_path, sizeof(script_path), "%s/hooks/codebase-memory-cli-session-reminder",
+             claude_dir);
 #endif
     test_mkdirp(claude_dir);
 
@@ -6395,8 +6633,9 @@ TEST(cli_claude_subagent_hook) {
     const char *d = read_test_file(cfg);
     ASSERT_NOT_NULL(d);
     ASSERT(strstr(d, "SubagentStart") != NULL);
-    ASSERT(strstr(d, "\"*\"") != NULL);                 /* match-all matcher */
-    ASSERT(strstr(d, "codebase-memory-cli-subagent-reminder") != NULL); /* points at the hook script */
+    ASSERT(strstr(d, "\"*\"") != NULL); /* match-all matcher */
+    ASSERT(strstr(d, "codebase-memory-cli-subagent-reminder") !=
+           NULL); /* points at the hook script */
 
     /* Idempotent: a second upsert must not duplicate our entry. */
     ASSERT_EQ(cbm_upsert_claude_subagent_hooks(cfg), 0);
@@ -6437,8 +6676,9 @@ TEST(cli_claude_hook_mutation_converges_mixed_owned_duplicates) {
 
     char *saved_config = save_test_env("CLAUDE_CONFIG_DIR");
     cbm_setenv("CLAUDE_CONFIG_DIR", config_dir, 1);
-    ASSERT_EQ(cbm_resolve_claude_hook_command_for_testing("codebase-memory-cli-subagent-reminder", false,
-                                                          current_command, sizeof(current_command)),
+    ASSERT_EQ(cbm_resolve_claude_hook_command_for_testing("codebase-memory-cli-subagent-reminder",
+                                                          false, current_command,
+                                                          sizeof(current_command)),
               0);
     snprintf(original, sizeof(original),
              "{\"hooks\":{\"SubagentStart\":["
@@ -6451,10 +6691,11 @@ TEST(cli_claude_hook_mutation_converges_mixed_owned_duplicates) {
     write_test_file(cfg, original);
     int upsert_rc = cbm_upsert_claude_subagent_hooks(cfg);
     char *after_upsert = read_test_file_alloc(cfg);
-    bool converged = upsert_rc == 0 && after_upsert &&
-                     test_count_substring(after_upsert, "codebase-memory-cli-subagent-reminder") == 1U &&
-                     strstr(after_upsert, "cbm-subagent-reminder") &&
-                     strstr(after_upsert, "echo user-subagent-hook");
+    bool converged =
+        upsert_rc == 0 && after_upsert &&
+        test_count_substring(after_upsert, "codebase-memory-cli-subagent-reminder") == 1U &&
+        strstr(after_upsert, "cbm-subagent-reminder") &&
+        strstr(after_upsert, "echo user-subagent-hook");
     free(after_upsert);
 
     write_test_file(cfg, original);
@@ -6494,15 +6735,15 @@ TEST(cli_claude_subagent_hook_preserves_user_entry) {
     ASSERT_EQ(cbm_upsert_claude_subagent_hooks(cfg), 0);
     const char *d = read_test_file(cfg);
     ASSERT_NOT_NULL(d);
-    ASSERT(strstr(d, "echo user-subagent-hook") != NULL); /* user's hook untouched */
-    ASSERT(strstr(d, "codebase-memory-cli-subagent-reminder") != NULL);   /* ours added */
+    ASSERT(strstr(d, "echo user-subagent-hook") != NULL);               /* user's hook untouched */
+    ASSERT(strstr(d, "codebase-memory-cli-subagent-reminder") != NULL); /* ours added */
 
     /* Remove CMM's hook: the user's entry must still be intact, ours gone. */
     ASSERT_EQ(cbm_remove_claude_subagent_hooks(cfg), 0);
     d = read_test_file(cfg);
     ASSERT_NOT_NULL(d);
-    ASSERT(strstr(d, "echo user-subagent-hook") != NULL); /* user's hook preserved */
-    ASSERT_NULL(strstr(d, "codebase-memory-cli-subagent-reminder"));      /* only ours removed */
+    ASSERT(strstr(d, "echo user-subagent-hook") != NULL);            /* user's hook preserved */
+    ASSERT_NULL(strstr(d, "codebase-memory-cli-subagent-reminder")); /* only ours removed */
 
     test_rmdir_r(tmpdir);
     PASS();
@@ -6573,12 +6814,15 @@ TEST(cli_claude_lifecycle_hooks_delegate_to_augmenter) {
     char subagent_path[640];
     char settings_path[640];
 #ifdef _WIN32
-    snprintf(session_path, sizeof(session_path), "%s/hooks/codebase-memory-cli-session-reminder.cmd", config_dir);
-    snprintf(subagent_path, sizeof(subagent_path), "%s/hooks/codebase-memory-cli-subagent-reminder.cmd",
-             config_dir);
+    snprintf(session_path, sizeof(session_path),
+             "%s/hooks/codebase-memory-cli-session-reminder.cmd", config_dir);
+    snprintf(subagent_path, sizeof(subagent_path),
+             "%s/hooks/codebase-memory-cli-subagent-reminder.cmd", config_dir);
 #else
-    snprintf(session_path, sizeof(session_path), "%s/hooks/codebase-memory-cli-session-reminder", config_dir);
-    snprintf(subagent_path, sizeof(subagent_path), "%s/hooks/codebase-memory-cli-subagent-reminder", config_dir);
+    snprintf(session_path, sizeof(session_path), "%s/hooks/codebase-memory-cli-session-reminder",
+             config_dir);
+    snprintf(subagent_path, sizeof(subagent_path), "%s/hooks/codebase-memory-cli-subagent-reminder",
+             config_dir);
 #endif
     snprintf(settings_path, sizeof(settings_path), "%s/settings.json", config_dir);
     char *session = read_test_file_alloc(session_path);
@@ -6740,13 +6984,20 @@ TEST(cli_vscode_only_installs_copilot_durable_context) {
 #endif
     test_mkdirp(code_user);
     char *saved_home = save_test_env("HOME"), *saved_path = save_test_env("PATH");
-    char *saved_copilot = save_test_env("COPILOT_HOME"), *saved_xdg = save_test_env("XDG_CONFIG_HOME");
+    char *saved_copilot = save_test_env("COPILOT_HOME"),
+         *saved_xdg = save_test_env("XDG_CONFIG_HOME");
     char *saved_appdata = save_test_env("APPDATA");
-    cbm_setenv("HOME", tmpdir, 1); cbm_setenv("PATH", tmpdir, 1); cbm_unsetenv("COPILOT_HOME");
+    cbm_setenv("HOME", tmpdir, 1);
+    cbm_setenv("PATH", tmpdir, 1);
+    cbm_unsetenv("COPILOT_HOME");
 #if !defined(__APPLE__) && !defined(_WIN32)
-    char xdg[512]; snprintf(xdg, sizeof(xdg), "%s/.config", tmpdir); cbm_setenv("XDG_CONFIG_HOME", xdg, 1);
+    char xdg[512];
+    snprintf(xdg, sizeof(xdg), "%s/.config", tmpdir);
+    cbm_setenv("XDG_CONFIG_HOME", xdg, 1);
 #elif defined(_WIN32)
-    char appdata[512]; snprintf(appdata, sizeof(appdata), "%s/AppData/Roaming", tmpdir); cbm_setenv("APPDATA", appdata, 1);
+    char appdata[512];
+    snprintf(appdata, sizeof(appdata), "%s/AppData/Roaming", tmpdir);
+    cbm_setenv("APPDATA", appdata, 1);
 #endif
     char binary[640];
 #ifdef _WIN32
@@ -6757,22 +7008,27 @@ TEST(cli_vscode_only_installs_copilot_durable_context) {
     cbm_install_agent_configs(tmpdir, binary, false, false);
     cbm_install_agent_hooks_for_testing(tmpdir, binary, false, false);
     int second_install_rc = cbm_install_agent_configs(tmpdir, binary, false, false);
-    if (second_install_rc == 0) second_install_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary, false, false);
+    if (second_install_rc == 0)
+        second_install_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary, false, false);
 
-    char hook_path[640], skill_path[640], agents_dir[640], agent_path[640], mcp_path[640], instructions_path[640];
+    char hook_path[640], skill_path[640], agents_dir[640], agent_path[640], mcp_path[640],
+        instructions_path[640];
     snprintf(hook_path, sizeof(hook_path), "%s/.copilot/hooks/codebase-memory-cli.json", tmpdir);
-    snprintf(skill_path, sizeof(skill_path), "%s/.copilot/skills/codebase-memory-cli/SKILL.md", tmpdir);
+    snprintf(skill_path, sizeof(skill_path), "%s/.copilot/skills/codebase-memory-cli/SKILL.md",
+             tmpdir);
     snprintf(agents_dir, sizeof(agents_dir), "%s/.copilot/agents", tmpdir);
     snprintf(agent_path, sizeof(agent_path), "%s/codebase-memory.agent.md", agents_dir);
     snprintf(mcp_path, sizeof(mcp_path), "%s/.copilot/mcp-config.json", tmpdir);
-    snprintf(instructions_path, sizeof(instructions_path), "%s/.copilot/copilot-instructions.md", tmpdir);
+    snprintf(instructions_path, sizeof(instructions_path), "%s/.copilot/copilot-instructions.md",
+             tmpdir);
     char *hook = read_test_file_alloc(hook_path), *skill = read_test_file_alloc(skill_path);
     struct stat state;
     bool installed = second_install_rc == 0 && hook && strstr(hook, "sessionStart") &&
-        strstr(hook, "subagentStart") && strstr(hook, "--dialect copilot") && skill &&
-        strstr(skill, "codebase-memory-cli search") && stat(agent_path, &state) != 0 &&
-        stat(mcp_path, &state) != 0 && stat(instructions_path, &state) != 0;
-    free(hook); free(skill);
+                     strstr(hook, "subagentStart") && strstr(hook, "--dialect copilot") && skill &&
+                     strstr(skill, "codebase-memory-cli search") && stat(agent_path, &state) != 0 &&
+                     stat(mcp_path, &state) != 0 && stat(instructions_path, &state) != 0;
+    free(hook);
+    free(skill);
 
     /* Verify legacy tier cleanup preserves content that is not an exact shipped profile. */
     test_mkdirp(agents_dir);
@@ -6785,11 +7041,15 @@ TEST(cli_vscode_only_installs_copilot_durable_context) {
                           preserved && strcmp(preserved, modified) == 0;
     free(preserved);
 
-    restore_test_env("HOME", saved_home); restore_test_env("PATH", saved_path);
-    restore_test_env("COPILOT_HOME", saved_copilot); restore_test_env("XDG_CONFIG_HOME", saved_xdg);
-    restore_test_env("APPDATA", saved_appdata); test_rmdir_r(tmpdir);
+    restore_test_env("HOME", saved_home);
+    restore_test_env("PATH", saved_path);
+    restore_test_env("COPILOT_HOME", saved_copilot);
+    restore_test_env("XDG_CONFIG_HOME", saved_xdg);
+    restore_test_env("APPDATA", saved_appdata);
+    test_rmdir_r(tmpdir);
     if (rc != 0 || !installed || !ownership_safe)
-        FAIL("VS Code-only installs must receive current Copilot skill/hooks without fresh MCP or tier profiles, and legacy cleanup must preserve modified files");
+        FAIL("VS Code-only installs must receive current Copilot skill/hooks without fresh MCP or "
+             "tier profiles, and legacy cleanup must preserve modified files");
     PASS();
 }
 
@@ -6925,15 +7185,15 @@ TEST(cli_installer_follows_trusted_symlinked_agent_roots) {
     char outside_junie_agent[512];
     snprintf(outside_qoder_settings, sizeof(outside_qoder_settings), "%s/settings.json",
              qoder_target);
-    snprintf(outside_qoder_skill, sizeof(outside_qoder_skill), "%s/skills/codebase-memory-cli/SKILL.md",
-             qoder_target);
+    snprintf(outside_qoder_skill, sizeof(outside_qoder_skill),
+             "%s/skills/codebase-memory-cli/SKILL.md", qoder_target);
     snprintf(outside_junie_mcp, sizeof(outside_junie_mcp), "%s/mcp/mcp.json", junie_target);
     snprintf(outside_junie_agent, sizeof(outside_junie_agent), "%s/agents/codebase-memory.md",
              junie_target);
     struct stat state;
     bool followed = stat(outside_qoder_settings, &state) == 0 ||
-                    stat(outside_qoder_skill, &state) == 0 || stat(outside_junie_mcp, &state) == 0 ||
-                    stat(outside_junie_agent, &state) == 0;
+                    stat(outside_qoder_skill, &state) == 0 ||
+                    stat(outside_junie_mcp, &state) == 0 || stat(outside_junie_agent, &state) == 0;
 
     restore_test_env("HOME", saved_home);
     restore_test_env("PATH", saved_path);
@@ -7207,8 +7467,8 @@ TEST(cli_codex_preflight_reports_heading_and_reason) {
         redirected =
             dup2(fileno(capture), STDOUT_FILENO) >= 0 && dup2(fileno(capture), STDERR_FILENO) >= 0;
         if (redirected) {
-            install_rc =
-                cbm_install_agent_hooks_for_testing(tmpdir, "/opt/codebase-memory-mcp", false, false);
+            install_rc = cbm_install_agent_hooks_for_testing(tmpdir, "/opt/codebase-memory-mcp",
+                                                             false, false);
         }
         fflush(NULL);
         (void)dup2(saved_stdout, STDOUT_FILENO);
@@ -7287,10 +7547,10 @@ TEST(cli_hook_augment_context_tracks_search_json_shape) {
     ASSERT_NOT_NULL(srv);
 
     /* The exact request ha_build_args produces: format:"json". */
-    char *envelope =
-        cbm_test_operation_execute(srv, "search_graph",
-                            "{\"project\":\"hookproj\",\"name_pattern\":\".*someIndexedSymbol.*\"," 
-                            "\"limit\":5,\"format\":\"json\"}");
+    char *envelope = cbm_test_operation_execute(
+        srv, "search_graph",
+        "{\"project\":\"hookproj\",\"name_pattern\":\".*someIndexedSymbol.*\","
+        "\"limit\":5,\"format\":\"json\"}");
     ASSERT_NOT_NULL(envelope);
 
     bool is_error = true;
@@ -7348,8 +7608,8 @@ TEST(cli_hook_augment_bash_pretooluse_reaches_augmenter) {
     cbm_setenv("CBM_CACHE_DIR", cache, 1);
     char input[1400];
     snprintf(input, sizeof(input),
-             "{\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Bash\"," 
-             "\"cwd\":\"%s\",\"tool_input\":{" 
+             "{\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Bash\","
+             "\"cwd\":\"%s\",\"tool_input\":{"
              "\"command\":\"rg -n someIndexedSymbol .\"}}",
              repo);
     char *output = cbm_hook_augment_process(NULL, input);
@@ -7939,11 +8199,11 @@ TEST(cli_upgrade_migrates_released_claude_hook_scripts) {
     char *subagent = read_test_file_alloc(subagent_path);
     char *settings = read_test_file_alloc(settings_path);
     bool preserved = rc == 0 && gate && strcmp(gate, legacy_gate) == 0 && session &&
-                    strcmp(session, legacy_session) == 0 && subagent &&
-                    strcmp(subagent, legacy_subagent) == 0 &&
-                    (!settings || (!strstr(settings, "cbm-code-discovery-gate") &&
-                                   !strstr(settings, "cbm-session-reminder") &&
-                                   !strstr(settings, "cbm-subagent-reminder")));
+                     strcmp(session, legacy_session) == 0 && subagent &&
+                     strcmp(subagent, legacy_subagent) == 0 &&
+                     (!settings || (!strstr(settings, "cbm-code-discovery-gate") &&
+                                    !strstr(settings, "cbm-session-reminder") &&
+                                    !strstr(settings, "cbm-subagent-reminder")));
     free(gate);
     free(session);
     free(subagent);
@@ -8423,29 +8683,17 @@ TEST(cli_detect_agents_none_found) {
  *  Group B: MCP Config Upsert — Codex TOML
  * ═══════════════════════════════════════════════════════════════════ */
 
-
-
-
-
-
 /* ═══════════════════════════════════════════════════════════════════
  *  Group B: MCP Config Upsert — Zed (corrected format)
  * ═══════════════════════════════════════════════════════════════════ */
-
-
 
 /* ═══════════════════════════════════════════════════════════════════
  *  Group B: MCP Config Upsert — OpenCode
  * ═══════════════════════════════════════════════════════════════════ */
 
-
-
-
 /* ═══════════════════════════════════════════════════════════════════
  *  Group B: MCP Config Upsert — Antigravity
  * ═══════════════════════════════════════════════════════════════════ */
-
-
 
 /* ═══════════════════════════════════════════════════════════════════
  *  Group C: Instructions File Upsert
@@ -8738,10 +8986,11 @@ TEST(cli_hook_gate_script_no_predictable_tmp_issue384) {
 
     char script_path[512];
 #ifdef _WIN32
-    snprintf(script_path, sizeof(script_path), "%s/.claude/hooks/codebase-memory-cli-discovery-gate.cmd",
-             tmpdir);
+    snprintf(script_path, sizeof(script_path),
+             "%s/.claude/hooks/codebase-memory-cli-discovery-gate.cmd", tmpdir);
 #else
-    snprintf(script_path, sizeof(script_path), "%s/.claude/hooks/codebase-memory-cli-discovery-gate", tmpdir);
+    snprintf(script_path, sizeof(script_path),
+             "%s/.claude/hooks/codebase-memory-cli-discovery-gate", tmpdir);
 #endif
     const char *data = read_test_file(script_path);
     ASSERT_NOT_NULL(data);
@@ -8789,7 +9038,8 @@ TEST(cli_hook_scripts_platform_shape_issue929) {
 
     char script_path[512];
 #ifdef _WIN32
-    snprintf(script_path, sizeof(script_path), "%s/codebase-memory-cli-discovery-gate.cmd", hooks_dir);
+    snprintf(script_path, sizeof(script_path), "%s/codebase-memory-cli-discovery-gate.cmd",
+             hooks_dir);
     const char *data = read_test_file(script_path);
     ASSERT_NOT_NULL(data);
     ASSERT(strncmp(data, "@echo off", 9) == 0); /* cmd, not bash */
@@ -9301,9 +9551,10 @@ TEST(cli_upsert_claude_hook_replace) {
     char settingspath[512];
     snprintf(settingspath, sizeof(settingspath), "%s/settings.json", tmpdir);
     /* Pre-existing CMM hook with an OLD matcher (pre-#963) + old message */
-    write_test_file(settingspath, "{\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Grep|Glob\","
-                                  "\"hooks\":[{\"type\":\"command\","
-                                  "\"command\":\"~/.claude/hooks/codebase-memory-cli-discovery-gate\"}]}]}}");
+    write_test_file(settingspath,
+                    "{\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Grep|Glob\","
+                    "\"hooks\":[{\"type\":\"command\","
+                    "\"command\":\"~/.claude/hooks/codebase-memory-cli-discovery-gate\"}]}]}}");
 
     int rc = cbm_upsert_claude_hooks(settingspath);
     ASSERT_EQ(rc, 0);
@@ -10048,6 +10299,11 @@ TEST(cli_build_args_json_bad_positional_errors_issue680) {
 TEST(cli_print_tool_help_issue680) {
     ASSERT_EQ(cbm_cli_print_tool_help("index_repository"), 0);
     ASSERT_EQ(cbm_cli_print_tool_help("nope_not_a_tool"), -1);
+    const char *adr_schema = cbm_tool_catalog_input_schema("manage_adr");
+    ASSERT_NOT_NULL(adr_schema);
+    ASSERT(strstr(adr_schema, "outline") != NULL);
+    ASSERT(strstr(adr_schema, "section_limit") != NULL);
+    ASSERT(strstr(adr_schema, "section_offset") != NULL);
     PASS();
 }
 
@@ -10623,7 +10879,6 @@ TEST(cli_update_only_names_an_installer_that_exists_issue1632) {
     PASS();
 }
 
-
 TEST(cli_cp78_install_and_hook_plans_are_disjoint) {
     char tmpdir[256];
     snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-cp78-plan-XXXXXX");
@@ -10638,15 +10893,14 @@ TEST(cli_cp78_install_and_hook_plans_are_disjoint) {
     char *assets = cbm_build_install_plan_json(tmpdir, "/opt/codebase-memory-cli");
     char *hooks = cbm_build_hook_install_plan_json(tmpdir, "/opt/codebase-memory-cli");
 
-    bool ok = assets && hooks && strstr(assets, "\"surface\": \"assets\"") &&
-              strstr(hooks, "\"surface\": \"hooks\"") &&
-              strstr(assets, "codebase-memory-cli/SKILL.md") &&
-              !strstr(assets, "codebase-memory-cli-discovery-gate") &&
-              !strstr(assets, "codebase-memory-cli-session-reminder") &&
-              strstr(hooks, "codebase-memory-cli-discovery-gate") &&
-              strstr(hooks, "codebase-memory-cli-session-reminder") &&
-              !strstr(hooks, "codebase-memory-cli/SKILL.md") &&
-              !strstr(hooks, "codebase-memory-mcp");
+    bool ok =
+        assets && hooks && strstr(assets, "\"surface\": \"assets\"") &&
+        strstr(hooks, "\"surface\": \"hooks\"") && strstr(assets, "codebase-memory-cli/SKILL.md") &&
+        !strstr(assets, "codebase-memory-cli-discovery-gate") &&
+        !strstr(assets, "codebase-memory-cli-session-reminder") &&
+        strstr(hooks, "codebase-memory-cli-discovery-gate") &&
+        strstr(hooks, "codebase-memory-cli-session-reminder") &&
+        !strstr(hooks, "codebase-memory-cli/SKILL.md") && !strstr(hooks, "codebase-memory-mcp");
 
     free(assets);
     free(hooks);
