@@ -16,9 +16,8 @@
 #include "test_framework.h"
 #include "cbm.h"
 #include "grammar_cases.h"
+#include "../src/foundation/compat_thread.h"
 
-#include <pthread.h>
-#include <sched.h>
 #include <stdatomic.h>
 
 static int reg_has_def_any(CBMFileResult *r, const char *name) {
@@ -406,37 +405,48 @@ TEST(grammar_regression_all) {
 }
 
 typedef struct {
-    atomic_int *ready;
+    atomic_bool *go;
     atomic_int *failures;
 } PropertiesParallelArgs;
 
 static void *properties_parallel_worker(void *arg) {
     PropertiesParallelArgs *args = arg;
-    atomic_fetch_add(args->ready, 1);
-    while (atomic_load(args->ready) != 8)
-        sched_yield();
+    while (!atomic_load(args->go)) {}
     for (int i = 0; i < 8; i++) {
         CBMFileResult *r = extract("# generated probe\nalpha=one\nbeta=two\ngamma=three\n",
                                    CBM_LANG_PROPERTIES, "parallel", "probe.properties");
-        if (!r)
+        if (!r) {
+            atomic_fetch_add(args->failures, 1);
+            continue;
+        }
+        if (r->has_error || r->parse_incomplete || !reg_has_def_any(r, "alpha") ||
+            !reg_has_def_any(r, "beta") || !reg_has_def_any(r, "gamma"))
             atomic_fetch_add(args->failures, 1);
         cbm_free_result(r);
     }
+    cbm_destroy_thread_parser();
     return NULL;
 }
 
 TEST(properties_scanner_parallel_extract) {
     enum { WORKERS = 8 };
-    pthread_t threads[WORKERS];
-    atomic_int ready = 0;
+    cbm_thread_t threads[WORKERS];
+    atomic_bool go = false;
     atomic_int failures = 0;
-    PropertiesParallelArgs args = {.ready = &ready, .failures = &failures};
-    for (int i = 0; i < WORKERS; i++)
-        ASSERT_EQ(pthread_create(&threads[i], NULL, properties_parallel_worker, &args), 0);
-    while (atomic_load(&ready) != WORKERS)
-        sched_yield();
-    for (int i = 0; i < WORKERS; i++)
-        ASSERT_EQ(pthread_join(threads[i], NULL), 0);
+    PropertiesParallelArgs args = {.go = &go, .failures = &failures};
+    int started = 0;
+    int create_error = 0;
+    for (; started < WORKERS; started++) {
+        create_error = cbm_thread_create(&threads[started], 0, properties_parallel_worker, &args);
+        if (create_error != 0)
+            break;
+    }
+    atomic_store(&go, true);
+    int join_errors = 0;
+    for (int i = 0; i < started; i++)
+        join_errors += cbm_thread_join(&threads[i]) != 0;
+    ASSERT_EQ(create_error, 0);
+    ASSERT_EQ(join_errors, 0);
     ASSERT_EQ(atomic_load(&failures), 0);
     PASS();
 }
