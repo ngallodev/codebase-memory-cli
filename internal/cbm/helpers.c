@@ -500,6 +500,13 @@ typedef struct {
 enum { KS_SLOTS = 512, KS_SLOT_MASK = 511, KS_PROBE = 8 };
 static CBM_TLS ks_slot_t ks_cache[KS_SLOTS];
 
+void cbm_destroy_thread_kind_cache(void) {
+    for (int i = 0; i < KS_SLOTS; i++) {
+        free(ks_cache[i].bits);
+        memset(&ks_cache[i], 0, sizeof(ks_cache[i]));
+    }
+}
+
 static ks_slot_t *ks_build(const TSLanguage *lang, const char *const *types, ks_slot_t *s) {
     s->lang = lang;
     s->types = types;

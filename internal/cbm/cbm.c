@@ -391,6 +391,7 @@ void cbm_reset_thread_parser(void) {
 
 void cbm_destroy_thread_parser(void) {
     // Full cleanup: delete the parser. Call on worker thread exit.
+    cbm_destroy_thread_kind_cache();
     if (tl_parser) {
         ts_parser_delete(tl_parser);
         tl_parser = NULL;

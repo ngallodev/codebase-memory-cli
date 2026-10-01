@@ -3,6 +3,8 @@
 
 #include "cbm.h"
 
+void cbm_destroy_thread_kind_cache(void);
+
 // Portable memmem: find first occurrence of `needle` (needle_len bytes) within
 // `haystack` (haystack_len bytes). Returns a pointer into haystack, or NULL.
 // Hand-rolled so it compiles identically on all platforms (GNU/BSD-only
