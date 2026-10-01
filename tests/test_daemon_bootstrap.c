@@ -398,6 +398,7 @@ TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous) {
     char override_parent[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char canonical_override[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char canonical_explicit[BOOTSTRAP_TEST_PATH_CAP] = {0};
+    char canonical_missing[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char relocated_runtime[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char explicit_runtime[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char missing_parent[BOOTSTRAP_TEST_PATH_CAP] = {0};
@@ -439,6 +440,9 @@ TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous) {
     if (created) {
         (void)snprintf(created_runtime, sizeof(created_runtime), "%s",
                        cbm_daemon_ipc_endpoint_runtime_dir(created));
+        /* The endpoint reports the canonical path; on macOS the temp root is
+         * under /var, which resolves to /private/var. */
+        (void)cbm_canonical_path(missing_parent, canonical_missing, sizeof(canonical_missing));
     }
 
     /* Restore before asserting: a failed assertion returns immediately, and a
@@ -473,7 +477,7 @@ TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous) {
     ASSERT_TRUE(bootstrap_path_has_parent(explicit_runtime, canonical_explicit));
     ASSERT_FALSE(bootstrap_path_has_parent(explicit_runtime, canonical_override));
     ASSERT_NOT_NULL(created);
-    ASSERT_TRUE(bootstrap_path_has_parent(created_runtime, missing_parent));
+    ASSERT_TRUE(bootstrap_path_has_parent(created_runtime, canonical_missing));
     PASS();
 }
 
@@ -961,6 +965,8 @@ typedef struct {
     char parent[BOOTSTRAP_TEST_PATH_CAP];
     cbm_daemon_build_identity_t identity;
     pid_t children[BOOTSTRAP_ENOSPC_MAX_CHILDREN];
+    int exit_status[BOOTSTRAP_ENOSPC_MAX_CHILDREN];
+    bool reaped[BOOTSTRAP_ENOSPC_MAX_CHILDREN];
     size_t child_count;
     size_t spawn_calls;
 } bootstrap_enospc_host_t;
@@ -996,19 +1002,32 @@ static bool bootstrap_enospc_host_spawn(void *opaque,
         int run_result = endpoint ? cbm_daemon_host_run(&config) : 0;
         _exit(run_result == -1 ? 0 : 50);
     }
-    state->children[state->child_count++] = child;
+    /* SYNCHRONOUS on purpose (ported from upstream). The daemon host writes
+     * its start-failure record and only then releases its lifetime reservation
+     * and exits, so once it is reaped "record on disk, reservation released" is
+     * a stable state. Returning while the host was still running let the
+     * client fail fast on the record and the reaper SIGKILL a host that had not
+     * exited yet, counting it as a nonzero exit on slow runners. */
+    size_t slot = state->child_count++;
+    state->children[slot] = child;
+    int status = 0;
+    pid_t waited;
+    do {
+        waited = waitpid(child, &status, 0);
+    } while (waited < 0 && errno == EINTR);
+    state->reaped[slot] = waited == child;
+    state->exit_status[slot] = status;
     return true;
 }
 
 static void bootstrap_enospc_reap(bootstrap_enospc_host_t *state, int *nonzero_exits) {
     *nonzero_exits = 0;
     for (size_t i = 0; i < state->child_count; i++) {
-        int status = 0;
-        pid_t waited;
-        do {
-            waited = waitpid(state->children[i], &status, WNOHANG);
-        } while (waited < 0 && errno == EINTR);
-        if (waited == 0) {
+        int status = state->exit_status[i];
+        if (!state->reaped[i]) {
+            /* Only reachable when the synchronous wait in the spawn itself
+             * failed; never leave a host behind. */
+            pid_t waited;
             (void)kill(state->children[i], SIGKILL);
             do {
                 waited = waitpid(state->children[i], &status, 0);

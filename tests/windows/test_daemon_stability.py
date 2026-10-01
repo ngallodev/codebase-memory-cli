@@ -177,6 +177,17 @@ def section_start_status_port(binary, work):
         kill_pid(daemon_pid)
 
 
+def make_probe_repo(work):
+    """A one-file repo for daemon-backed one-shots. Read-only commands such as
+    `projects` run in-process in the CLI-first build and never spawn a daemon,
+    so the cold/warm hint checks drive a mutating command (`index`)."""
+    repo = os.path.join(work, "probe-repo")
+    os.makedirs(repo, exist_ok=True)
+    with open(os.path.join(repo, "probe.py"), "w", encoding="utf-8") as handle:
+        handle.write("def probe():\n    return 1\n")
+    return repo
+
+
 def section_crash_recovery(binary, work):
     cache = os.path.join(work, "cache-crash")
     os.makedirs(cache, exist_ok=True)
@@ -193,7 +204,7 @@ def section_crash_recovery(binary, work):
             print("RED: after kill -9 of pid %d the stale daemon state never cleared "
                   "(`daemon status` kept reporting it)" % daemon_pid)
             return False
-        cold = run_cli(binary, cache, ["projects", "--json"], timeout=90)
+        cold = run_cli(binary, cache, ["index", make_probe_repo(work)], timeout=90)
         if cold.returncode != 0 or "daemon start" not in out_text(cold):
             print("RED: a cold one-shot after the daemon crash should succeed with the "
                   "startup-tax hint:\n%s" % out_text(cold)[:400])

@@ -36,6 +36,17 @@ def output_text(result):
     return ((result.stdout or b"") + (result.stderr or b"")).decode("utf-8", "replace")
 
 
+def make_probe_repo(work):
+    """A one-file repo for daemon-backed one-shots. Read-only commands such as
+    `projects` run in-process in the CLI-first build and never spawn a daemon,
+    so the cold/warm hint checks drive a mutating command (`index`)."""
+    repo = os.path.join(work, "probe-repo")
+    os.makedirs(repo, exist_ok=True)
+    with open(os.path.join(repo, "probe.py"), "w", encoding="utf-8") as handle:
+        handle.write("def probe():\n    return 1\n")
+    return repo
+
+
 def force_kill(pid):
     if not pid:
         return
@@ -66,7 +77,8 @@ def main():
             return 1
         print("PASS: status reports not-running before any daemon exists")
 
-        cold = run_cli(binary, cache, ["projects", "--json"])
+        probe_repo = make_probe_repo(work)
+        cold = run_cli(binary, cache, ["index", probe_repo])
         cold_text = output_text(cold)
         if cold.returncode != 0 or "daemon start" not in cold_text:
             print("RED: a cold one-shot cli command should succeed and hint at "
@@ -84,7 +96,7 @@ def main():
             return 1
         print("PASS: daemon start reported permanent pid %d" % daemon_pid)
 
-        warm = run_cli(binary, cache, ["projects", "--json"])
+        warm = run_cli(binary, cache, ["index", probe_repo])
         warm_text = output_text(warm)
         if warm.returncode != 0 or "daemon start" in warm_text:
             print("RED: a warm cli one-shot should recycle the daemon without the "

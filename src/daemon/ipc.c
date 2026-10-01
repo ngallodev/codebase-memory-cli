@@ -4366,6 +4366,18 @@ static bool win_sid_trusted(win_security_t *security, PSID sid) {
            win_sid_is_trusted_installer((const uint8_t *)sid, (size_t)sid_length);
 }
 
+#ifdef CBM_ENABLE_TEST_SEAMS
+bool cbm_daemon_ipc_win_sid_trusted_for_testing(void *sid) {
+    win_security_t security;
+    if (!win_security_init(&security)) {
+        return false;
+    }
+    bool trusted = win_sid_trusted(&security, (PSID)sid);
+    win_security_destroy(&security);
+    return trusted;
+}
+#endif
+
 /* AppContainer identities: package SIDs (S-1-15-2-*) and capability SIDs
  * (S-1-15-3-*), under the APP_PACKAGE identifier authority (15).
  *
