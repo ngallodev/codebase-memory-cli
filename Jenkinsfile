@@ -22,6 +22,7 @@ arena hash_table dyn_array str_intern log str_util workspace platform diagnostic
                 sh '''
                     set -eu
                     rm -f .jenkins-installed-cli
+                    python3 tests/test_jenkins_daemon_recovery.py
                     scripts/lint.sh --ci CLANG_FORMAT=clang-format-20
                 '''
             }
@@ -69,6 +70,8 @@ arena hash_table dyn_array str_intern log str_util workspace platform diagnostic
                     set -eu
                     installed_cli="$HOME/.local/bin/codebase-memory-cli"
                     if [ -x "$installed_cli" ]; then
+                        # Record recovery before stopping, even if Build or Install fails.
+                        printf '%s\n' "$installed_cli" > .jenkins-installed-cli
                         "$installed_cli" daemon stop >/dev/null 2>&1 || true
                     fi
                 '''
@@ -265,7 +268,7 @@ arena hash_table dyn_array str_intern log str_util workspace platform diagnostic
                 set -eu
                 if [ -s .jenkins-installed-cli ]; then
                     installed_cli=$(cat .jenkins-installed-cli)
-                    "$installed_cli" daemon start >/dev/null 2>&1 || true
+                    "$installed_cli" daemon start >/dev/null 2>&1
                 fi
             '''
         }
