@@ -2166,21 +2166,30 @@ static void main_daemon_ctl_print_status_json(bool active,
         return;
     }
     yyjson_mut_doc_set_root(doc, root);
-    yyjson_mut_obj_add_bool(doc, root, "active", true);
-    yyjson_mut_obj_add_str(doc, root, "status", "active");
-    yyjson_mut_obj_add_bool(doc, root, "permanent", status->permanent);
-    yyjson_mut_obj_add_uint(doc, root, "pid", (unsigned long)status->daemon_pid);
-    yyjson_mut_obj_add_uint(doc, root, "clients", (unsigned)status->client_count);
-    yyjson_mut_obj_add_uint(doc, root, "committed_clients", (unsigned)status->committed_clients);
-    yyjson_mut_obj_add_bool(doc, root, "stopping", status->stopping);
-    yyjson_mut_obj_add_strcpy(doc, root, "version", status->semantic_version);
-    yyjson_mut_obj_add_strcpy(doc, root, "build", status->build_fingerprint);
+    bool ok = true;
+    ok = ok && yyjson_mut_obj_add_bool(doc, root, "active", true);
+    ok = ok && yyjson_mut_obj_add_str(doc, root, "status", "active");
+    ok = ok && yyjson_mut_obj_add_bool(doc, root, "permanent", status->permanent);
+    ok = ok && yyjson_mut_obj_add_uint(doc, root, "pid", (unsigned long)status->daemon_pid);
+    ok = ok && yyjson_mut_obj_add_uint(doc, root, "clients", (unsigned)status->client_count);
+    ok = ok && yyjson_mut_obj_add_uint(doc, root, "committed_clients",
+                                       (unsigned)status->committed_clients);
+    ok = ok && yyjson_mut_obj_add_bool(doc, root, "stopping", status->stopping);
+    ok = ok && yyjson_mut_obj_add_strcpy(doc, root, "version", status->semantic_version);
+    ok = ok && yyjson_mut_obj_add_strcpy(doc, root, "build", status->build_fingerprint);
+    if (!ok) {
+        yyjson_mut_doc_free(doc);
+        (void)fprintf(stderr, "error: could not build status JSON\n");
+        return;
+    }
     char *json = yyjson_mut_write(doc, 0, NULL);
     yyjson_mut_doc_free(doc);
-    if (json) {
-        printf("%s\n", json);
-        free(json);
+    if (!json) {
+        (void)fprintf(stderr, "error: could not serialize status JSON\n");
+        return;
     }
+    printf("%s\n", json);
+    free(json);
 }
 
 #ifdef _WIN32

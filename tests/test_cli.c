@@ -8908,7 +8908,7 @@ TEST(cli_windows_claude_lifecycle_migrates_only_exact_owned_legacy_state) {
     free(initial_json);
     yyjson_mut_doc_free(initial_doc);
 
-    int install_rc = seeded ? cbm_install_agent_configs(tmpdir, binary_path, false, false) : -1;
+    int install_rc = seeded ? cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false) : -1;
     char *installed_settings = read_test_file_alloc(settings_path);
     yyjson_doc *installed_doc =
         installed_settings ? yyjson_read(installed_settings, strlen(installed_settings), 0) : NULL;
@@ -9009,7 +9009,7 @@ TEST(cli_windows_claude_hook_scripts_migrate_and_uninstall_all_owned_shapes) {
     };
     char *current_scripts[sizeof(current_names) / sizeof(current_names[0])] = {0};
 
-    int initial_install_rc = cbm_install_agent_configs(tmpdir, binary_path, false, false);
+    int initial_install_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
     bool current_scripts_ready = initial_install_rc == 0;
     for (size_t i = 0U; i < sizeof(current_names) / sizeof(current_names[0]); i++) {
         char current_path[768];
@@ -9022,7 +9022,7 @@ TEST(cli_windows_claude_hook_scripts_migrate_and_uninstall_all_owned_shapes) {
     }
 
     int current_upgrade_rc =
-        current_scripts_ready ? cbm_install_agent_configs(tmpdir, binary_path, false, false) : -1;
+        current_scripts_ready ? cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false) : -1;
     bool current_legacy_removed = current_upgrade_rc == 0;
     for (size_t i = 0U; i < sizeof(legacy_names) / sizeof(legacy_names[0]); i++) {
         char current_path[768];
@@ -9049,7 +9049,7 @@ TEST(cli_windows_claude_hook_scripts_migrate_and_uninstall_all_owned_shapes) {
     }
 
     int released_upgrade_rc =
-        released_ready ? cbm_install_agent_configs(tmpdir, binary_path, false, false) : -1;
+        released_ready ? cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false) : -1;
     bool released_legacy_removed = released_upgrade_rc == 0;
     for (size_t i = 0U; i < sizeof(legacy_names) / sizeof(legacy_names[0]); i++) {
         char legacy_path[768];

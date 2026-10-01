@@ -809,7 +809,7 @@ TEST(index_metrics_out_outside_root_refused) {
         FAIL("mkdtemp failed");
     }
     rh_to_fwd_slashes(lp.tmpdir);
-    char outside[64];
+    char outside[256];
     snprintf(outside, sizeof(outside), "/tmp/cbm_resil_out_XXXXXX");
     if (!cbm_mkdtemp(outside)) {
         FAIL("mkdtemp failed");

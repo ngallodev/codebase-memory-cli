@@ -77,6 +77,18 @@ cbm_dir_t *cbm_opendir(const char *path) {
 
     d->find_handle = FindFirstFileW(d->wide_pattern, &d->find_data);
     if (d->find_handle == INVALID_HANDLE_VALUE) {
+        /* Map the Win32 error so callers can tell a missing directory
+         * (ENOENT) from a real failure, as on POSIX. */
+        DWORD werr = GetLastError();
+        if (werr == ERROR_FILE_NOT_FOUND || werr == ERROR_PATH_NOT_FOUND) {
+            errno = ENOENT;
+        } else if (werr == ERROR_ACCESS_DENIED) {
+            errno = EACCES;
+        } else if (werr == ERROR_DIRECTORY) {
+            errno = ENOTDIR;
+        } else {
+            errno = EIO;
+        }
         free(d);
         return NULL;
     }
