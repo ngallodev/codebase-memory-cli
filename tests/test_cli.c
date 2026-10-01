@@ -8841,9 +8841,9 @@ TEST(cli_windows_claude_lifecycle_migrates_only_exact_owned_legacy_state) {
     test_mkdirp(hooks_dir);
 
     const char *const script_names[] = {
-        "cbm-code-discovery-gate",
-        "cbm-session-reminder",
-        "cbm-subagent-reminder",
+        "codebase-memory-cli-discovery-gate",
+        "codebase-memory-cli-session-reminder",
+        "codebase-memory-cli-subagent-reminder",
     };
     const char *foreign_script = "@echo off\r\necho user-owned-hook\r\n";
     for (size_t i = 0U; i < sizeof(script_names) / sizeof(script_names[0]); i++) {
@@ -8870,15 +8870,15 @@ TEST(cli_windows_claude_lifecycle_migrates_only_exact_owned_legacy_state) {
     char subagent_released[1024] = {0};
     bool commands_ready =
         cbm_resolve_claude_hook_command_for_testing(
-            "cbm-session-reminder.cmd", true, session_current, sizeof(session_current)) == 0 &&
-        cbm_resolve_claude_hook_command_for_testing("cbm-session-reminder", false, session_previous,
+            "codebase-memory-cli-session-reminder.cmd", true, session_current, sizeof(session_current)) == 0 &&
+        cbm_resolve_claude_hook_command_for_testing("codebase-memory-cli-session-reminder", false, session_previous,
                                                     sizeof(session_previous)) == 0 &&
         cbm_resolve_claude_hook_command_for_testing(
-            "cbm-subagent-reminder.cmd", true, subagent_current, sizeof(subagent_current)) == 0 &&
+            "codebase-memory-cli-subagent-reminder.cmd", true, subagent_current, sizeof(subagent_current)) == 0 &&
         cbm_resolve_claude_hook_command_for_testing(
-            "cbm-subagent-reminder", false, subagent_previous, sizeof(subagent_previous)) == 0;
-    snprintf(session_released, sizeof(session_released), "%s/cbm-session-reminder", hooks_dir);
-    snprintf(subagent_released, sizeof(subagent_released), "%s/cbm-subagent-reminder", hooks_dir);
+            "codebase-memory-cli-subagent-reminder", false, subagent_previous, sizeof(subagent_previous)) == 0;
+    snprintf(session_released, sizeof(session_released), "%s/codebase-memory-cli-session-reminder", hooks_dir);
+    snprintf(subagent_released, sizeof(subagent_released), "%s/codebase-memory-cli-subagent-reminder", hooks_dir);
     const char *foreign_command = "cmd.exe /d /s /c user-owned-hook.cmd";
 
     yyjson_mut_doc *initial_doc = yyjson_mut_doc_new(NULL);
@@ -8998,14 +8998,14 @@ TEST(cli_windows_claude_hook_scripts_migrate_and_uninstall_all_owned_shapes) {
     cbm_unsetenv("COPILOT_HOME");
 
     const char *const legacy_names[] = {
-        "cbm-code-discovery-gate",
-        "cbm-session-reminder",
-        "cbm-subagent-reminder",
+        "codebase-memory-cli-discovery-gate",
+        "codebase-memory-cli-session-reminder",
+        "codebase-memory-cli-subagent-reminder",
     };
     const char *const current_names[] = {
-        "cbm-code-discovery-gate.cmd",
-        "cbm-session-reminder.cmd",
-        "cbm-subagent-reminder.cmd",
+        "codebase-memory-cli-discovery-gate.cmd",
+        "codebase-memory-cli-session-reminder.cmd",
+        "codebase-memory-cli-subagent-reminder.cmd",
     };
     char *current_scripts[sizeof(current_names) / sizeof(current_names[0])] = {0};
 
