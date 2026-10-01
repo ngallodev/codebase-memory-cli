@@ -6273,7 +6273,7 @@ int cbm_store_count_nodes_scoped(cbm_store_t *s, const char *project, const char
     }
     bind_text(stmt, ST_COL_1, project);
     arch_bind_path_scope(stmt, ST_COL_2, ST_COL_3, norm, like);
-    int n = 0;
+    int n = CBM_STORE_ERR;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
         n = sqlite3_column_int(stmt, 0);
     }
@@ -6305,7 +6305,7 @@ int cbm_store_count_edges_scoped(cbm_store_t *s, const char *project, const char
     }
     bind_text(stmt, ST_COL_1, project);
     arch_bind_path_scope(stmt, ST_COL_2, ST_COL_3, norm, like);
-    int n = 0;
+    int n = CBM_STORE_ERR;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
         n = sqlite3_column_int(stmt, 0);
     }

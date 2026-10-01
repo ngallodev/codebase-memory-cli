@@ -439,7 +439,13 @@ static cbm_operation_result_t execute_status(const char *args_json) {
     yyjson_mut_obj_add_strcpy(doc, root, "project", project);
     yyjson_mut_obj_add_int(doc, root, "nodes", nodes);
     yyjson_mut_obj_add_int(doc, root, "edges", edges);
-    yyjson_mut_obj_add_str(doc, root, "status", nodes > 0 ? "ready" : "empty");
+    const char *status = "empty";
+    if (nodes < 0 || edges < 0) {
+        status = "error";
+    } else if (nodes > 0) {
+        status = "ready";
+    }
+    yyjson_mut_obj_add_str(doc, root, "status", status);
 
     cbm_project_t info = {0};
     if (cbm_store_get_project(store, project, &info) == CBM_STORE_OK) {

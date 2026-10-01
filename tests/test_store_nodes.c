@@ -2043,6 +2043,8 @@ TEST(store_count_failed_read_is_error) {
     cbm_store_upsert_node(s, &n);
     ASSERT_EQ(cbm_store_count_nodes(s, "test"), 1);
     ASSERT_EQ(cbm_store_count_edges(s, "test"), 0);
+    ASSERT_EQ(cbm_store_count_nodes_scoped(s, "test", "main.c"), 1);
+    ASSERT_EQ(cbm_store_count_edges_scoped(s, "test", "main.c"), 0);
 
     /* Count statements are cached above; dropping the tables makes sqlite3_step
      * fail instead of failing statement preparation. */
@@ -2050,6 +2052,8 @@ TEST(store_count_failed_read_is_error) {
     ASSERT_EQ(cbm_store_exec(s, "DROP TABLE edges;"), CBM_STORE_OK);
     ASSERT_EQ(cbm_store_count_nodes(s, "test"), CBM_STORE_ERR);
     ASSERT_EQ(cbm_store_count_edges(s, "test"), CBM_STORE_ERR);
+    ASSERT_EQ(cbm_store_count_nodes_scoped(s, "test", "main.c"), CBM_STORE_ERR);
+    ASSERT_EQ(cbm_store_count_edges_scoped(s, "test", "main.c"), CBM_STORE_ERR);
 
     cbm_store_close(s);
     PASS();
