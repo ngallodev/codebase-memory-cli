@@ -3,7 +3,7 @@
 #include "helpers.h"
 #include "lang_specs.h"
 #include "foundation/constants.h"
-#include "foundation/log.h"      // cbm_log_error
+#include "foundation/log.h" // cbm_log_error
 #include "extract_node_stack.h"
 #include "simhash/minhash.h"
 #include "semantic/ast_profile.h"
