@@ -192,3 +192,27 @@ remain pending. Agent-Workflow AST correction run `JEV-AST-METRICS-R2-20261001`
 finished partial pending Jenkins. Historical external run lifecycle records do
 not establish acceptance. Exhaustive commit classification, index reset, package
 manager fork defaults, and native Windows/WSL release qualification remain open.
+
+### Shared Jenkins policy and complete AST scope
+
+Maintainer instruction: commit to local `release-tooling` and use the existing
+`codebase-memory-cli-release-tooling` job. `CBM_TEST_SUITES` accepts whitespace
+or comma-separated names; blank runs the full gate. Do not create task jobs.
+All five temporary jobs were retired after archiving configuration and build
+logs under `/tmp/cbm-jev-delegation/retired-jenkins`. Historical URLs no longer
+resolve; archived logs remain the evidence source.
+
+The AST slice now also includes upstream `77ab4bea` definition-stack ceiling
+removal, adapted by Luna commit `c43d8958` with a 1000-definition regression.
+This supersedes the earlier missing-scope statement. Source review confirms
+all `wd_push` routes share the growth/failure handling; allocation failure is
+not runtime-tested. The CLI lacks upstream memory-core headers, so this port
+uses its existing heap convention with failure-preserving `realloc`.
+
+Temporary full gate at `93fb593f` passed lint, memory analysis, security and
+build, then failed preparation on six packaging version surfaces still at
+0.10.8 while the newest stable local tag is v0.11.0. It was subsequently
+stopped during cleanup and recorded ABORTED; no suites ran. Six version
+surfaces are aligned to v0.11.0 for the next shared-job full gate. Pinned
+package versions/checksums and wrapper repository endpoints remain unchanged.
+Push and PR thread resolution remain pending a passing shared-job result.
