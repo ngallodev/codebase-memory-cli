@@ -170,6 +170,8 @@ void cbm_kind_in_set_free_cache(void);
 bool cbm_has_ancestor_kind(TSNode node, const char *kind, int max_depth);
 
 // Count nodes of given kinds in subtree (for complexity metric).
+// Returns CBM_WALK_METRIC_UNAVAILABLE if its traversal stack cannot grow.
+#define CBM_WALK_METRIC_UNAVAILABLE (-1)
 int cbm_count_branching(TSNode node, const char **branching_types);
 
 // Per-function structural complexity, computed in a single AST walk.
@@ -183,6 +185,7 @@ typedef struct {
 
 // Compute the metrics above in one traversal of `node`'s subtree.
 // `branching_types` is the language's branching node-type set.
+// On stack allocation failure, every output field is CBM_WALK_METRIC_UNAVAILABLE.
 void cbm_compute_complexity(TSNode node, const char **branching_types, cbm_complexity_t *out);
 
 // Is `kind` a loop construct node type? Language-agnostic curated set (for/while/

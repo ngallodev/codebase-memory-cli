@@ -7,6 +7,9 @@
  */
 #include "test_framework.h"
 #include "cbm.h"
+#include "../internal/cbm/helpers.h"
+#include "../internal/cbm/lang_specs.h"
+#include "../internal/cbm/vendored/ts_runtime/include/tree_sitter/api.h"
 #include "../src/foundation/compat.h" /* cbm_clock_gettime (wide-flat scaling guard) */
 #include "../src/foundation/compat_fs.h"
 #include <time.h>
@@ -1266,19 +1269,18 @@ TEST(form_procedure) {
 
 /* --- Oracle PL/SQL --- */
 TEST(plsql_package_and_call) {
-    const char *src =
-        "CREATE OR REPLACE PACKAGE BODY emp_pkg AS\n"
-        "  FUNCTION hire(p_name VARCHAR2) RETURN NUMBER IS\n"
-        "    v_sal NUMBER;\n"
-        "  BEGIN\n"
-        "    v_sal := util_pkg.calc_salary(p_name);\n"
-        "    IF v_sal > 0 THEN\n"
-        "      RETURN v_sal;\n"
-        "    END IF;\n"
-        "    RAISE no_data_found;\n"
-        "  END;\n"
-        "END emp_pkg;\n"
-        "/\n";
+    const char *src = "CREATE OR REPLACE PACKAGE BODY emp_pkg AS\n"
+                      "  FUNCTION hire(p_name VARCHAR2) RETURN NUMBER IS\n"
+                      "    v_sal NUMBER;\n"
+                      "  BEGIN\n"
+                      "    v_sal := util_pkg.calc_salary(p_name);\n"
+                      "    IF v_sal > 0 THEN\n"
+                      "      RETURN v_sal;\n"
+                      "    END IF;\n"
+                      "    RAISE no_data_found;\n"
+                      "  END;\n"
+                      "END emp_pkg;\n"
+                      "/\n";
     CBMFileResult *r = extract(src, CBM_LANG_PLSQL, "t", "emp_pkg.pkb");
     ASSERT_NOT_NULL(r);
     ASSERT_FALSE(r->has_error);
@@ -2243,9 +2245,10 @@ TEST(dbt_source_and_two_arg_ref) {
     /* Both dbt builtins name the relation in their LAST string argument:
      * source('group','table') -> table, and the two-argument
      * ref('package','model') form -> model. */
-    CBMFileResult *r = extract("SELECT * FROM {{ source('raw', 'customers') }}\n"
-                               "UNION ALL SELECT * FROM {{ ref('analytics', 'legacy_customers') }}\n",
-                               CBM_LANG_SQL, "t", "models/stg_customers.sql");
+    CBMFileResult *r =
+        extract("SELECT * FROM {{ source('raw', 'customers') }}\n"
+                "UNION ALL SELECT * FROM {{ ref('analytics', 'legacy_customers') }}\n",
+                CBM_LANG_SQL, "t", "models/stg_customers.sql");
     ASSERT_NOT_NULL(r);
     ASSERT(has_def(r, "Model", "stg_customers"));
     ASSERT(has_usage(r, "customers"));
@@ -3317,8 +3320,8 @@ TEST(vue_embedded_structure_negative_controls_issue1410) {
 }
 
 TEST(vue_embedded_structure_host_controls_issue1410) {
-    CBMFileResult *plain = extract("function plainTs(): void { target(); }\n", CBM_LANG_TYPESCRIPT,
-                                   "t", "plain.ts");
+    CBMFileResult *plain =
+        extract("function plainTs(): void { target(); }\n", CBM_LANG_TYPESCRIPT, "t", "plain.ts");
     ASSERT_NOT_NULL(plain);
     ASSERT_FALSE(plain->has_error);
     ASSERT_EQ(count_defs_named(plain, "Function", "plainTs"), 1);
@@ -3359,7 +3362,8 @@ TEST(embedded_structure_sibling_hosts_issue1807) {
         {CBM_LANG_SVELTE, "Sibling.svelte",
          "<script>import value from './svelte.js'; function visible() { target(); }</script>\n"},
         {CBM_LANG_HTML, "sibling.html",
-         "<script type=\"module\">import value from './html.js'; function visible() { target(); }</script>\n"},
+         "<script type=\"module\">import value from './html.js'; function visible() { target(); "
+         "}</script>\n"},
         {CBM_LANG_ASTRO, "Sibling.astro",
          "---\nimport value from './astro.js'; function visible() { target(); }\n---\n"},
     };
@@ -3825,11 +3829,11 @@ TEST(extract_java_method_annotations_issue382) {
 /* ── ArkTS (HarmonyOS .ets) ─────────────────────────────────────── */
 
 TEST(arkts_component_struct) {
-    CBMFileResult *r = extract(
-        "@Entry\n@Component\nstruct Index {\n  @State message: string = 'Hello'\n\n"
-        "  build() {\n    Column() {\n      Text(this.message).fontSize(20)\n    }\n"
-        "    .width('100%')\n  }\n}\n",
-        CBM_LANG_ARKTS, "t", "Index.ets");
+    CBMFileResult *r =
+        extract("@Entry\n@Component\nstruct Index {\n  @State message: string = 'Hello'\n\n"
+                "  build() {\n    Column() {\n      Text(this.message).fontSize(20)\n    }\n"
+                "    .width('100%')\n  }\n}\n",
+                CBM_LANG_ARKTS, "t", "Index.ets");
     ASSERT_NOT_NULL(r);
     ASSERT_FALSE(r->has_error);
     ASSERT(has_def(r, "Struct", "Index"));
@@ -3860,12 +3864,12 @@ TEST(arkts_exported_struct_decorators) {
 }
 
 TEST(arkts_member_decorators) {
-    CBMFileResult *r = extract(
-        "@Component\nstruct S {\n  @State a: number = 0\n  @Prop b: string\n"
-        "  @Link c: boolean\n  @Provide('k') d: string = ''\n  @Consume('k') e: string\n"
-        "  @StorageLink('s') f: number = 1\n  @State @Watch('onW') g: boolean = false\n\n"
-        "  build() {\n  }\n}\n",
-        CBM_LANG_ARKTS, "t", "S.ets");
+    CBMFileResult *r =
+        extract("@Component\nstruct S {\n  @State a: number = 0\n  @Prop b: string\n"
+                "  @Link c: boolean\n  @Provide('k') d: string = ''\n  @Consume('k') e: string\n"
+                "  @StorageLink('s') f: number = 1\n  @State @Watch('onW') g: boolean = false\n\n"
+                "  build() {\n  }\n}\n",
+                CBM_LANG_ARKTS, "t", "S.ets");
     ASSERT_NOT_NULL(r);
     ASSERT_FALSE(r->has_error);
     ASSERT(decorators_contain(find_def_by_name(r, "a"), "State"));
@@ -3905,11 +3909,11 @@ TEST(arkts_no_phantom_builtin_defs) {
 }
 
 TEST(arkts_builder_extend_styles) {
-    CBMFileResult *r = extract(
-        "@Builder\nfunction card(t: string) {\n  Column() {\n    Text(t)\n  }\n}\n\n"
-        "@Extend(Text)\nfunction fancy(size: number) {\n  .fontSize(size)\n}\n\n"
-        "@Styles\nfunction pressed() {\n  .backgroundColor('#eee')\n}\n",
-        CBM_LANG_ARKTS, "t", "b.ets");
+    CBMFileResult *r =
+        extract("@Builder\nfunction card(t: string) {\n  Column() {\n    Text(t)\n  }\n}\n\n"
+                "@Extend(Text)\nfunction fancy(size: number) {\n  .fontSize(size)\n}\n\n"
+                "@Styles\nfunction pressed() {\n  .backgroundColor('#eee')\n}\n",
+                CBM_LANG_ARKTS, "t", "b.ets");
     ASSERT_NOT_NULL(r);
     ASSERT_FALSE(r->has_error);
     ASSERT(has_def(r, "Function", "card"));
@@ -4025,8 +4029,8 @@ TEST(extract_razor_component_page_route) {
 }
 
 TEST(extract_razor_view_without_page_has_no_route) {
-    CBMFileResult *r = extract("@model LayoutModel\n<html>@RenderBody()</html>\n",
-                               CBM_LANG_CSHARP, "t", "Pages/Shared/_Layout.cshtml");
+    CBMFileResult *r = extract("@model LayoutModel\n<html>@RenderBody()</html>\n", CBM_LANG_CSHARP,
+                               "t", "Pages/Shared/_Layout.cshtml");
     ASSERT_NOT_NULL(r);
     ASSERT_NULL(find_module_def(r)->route_path);
     cbm_free_result(r);
@@ -4098,10 +4102,11 @@ TEST(extract_ts_url_builder_issue1009) {
 }
 
 TEST(extract_ts_await_generic_call_issue2210) {
-    CBMFileResult *r = extract("function parseJsonBody<T>() { return {} as T; }\n"
-                               "async function plain() { return await parseJsonBody(); }\n"
-                               "async function generic() { return await parseJsonBody<string>(); }\n",
-                               CBM_LANG_TYPESCRIPT, "t", "await.ts");
+    CBMFileResult *r =
+        extract("function parseJsonBody<T>() { return {} as T; }\n"
+                "async function plain() { return await parseJsonBody(); }\n"
+                "async function generic() { return await parseJsonBody<string>(); }\n",
+                CBM_LANG_TYPESCRIPT, "t", "await.ts");
     ASSERT_NOT_NULL(r);
     ASSERT_FALSE(r->has_error);
     ASSERT_EQ(count_calls_named(r, "parseJsonBody"), 2);
@@ -4488,6 +4493,51 @@ TEST(body_tokens_wide_body_samples_from_the_start) {
     ASSERT_GTE(strlen(d->body_tokens), ep);
     ASSERT_MEM_EQ(d->body_tokens, expect, ep);
     cbm_free_result(r);
+    free(src);
+    PASS();
+}
+
+/* Complexity must visit every pending branch in an unusually wide body. */
+TEST(complexity_wide_body_does_not_truncate) {
+    enum { BRANCHES = 5000 };
+    size_t cap = (size_t)BRANCHES * 24 + 128;
+    char *src = (char *)malloc(cap);
+    ASSERT_NOT_NULL(src);
+    size_t pos = (size_t)snprintf(src, cap, "void wide(void) {\n");
+    for (int i = 0; i < BRANCHES; i++)
+        pos += (size_t)snprintf(src + pos, cap - pos, "if (x%d) { work(); }\n", i);
+    snprintf(src + pos, cap - pos, "}\n");
+
+    CBMFileResult *r = extract(src, CBM_LANG_C, "t", "wide.c");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    const CBMDefinition *d = find_def(r, "wide");
+    ASSERT_NOT_NULL(d);
+    ASSERT_EQ(d->complexity, BRANCHES);
+    cbm_free_result(r);
+    free(src);
+    PASS();
+}
+
+TEST(count_branching_wide_body_does_not_truncate) {
+    enum { BRANCHES = 5000 };
+    size_t cap = (size_t)BRANCHES * 24 + 128;
+    char *src = (char *)malloc(cap);
+    ASSERT_NOT_NULL(src);
+    size_t pos = (size_t)snprintf(src, cap, "void wide(void) {\n");
+    for (int i = 0; i < BRANCHES; i++)
+        pos += (size_t)snprintf(src + pos, cap - pos, "if (x%d) { work(); }\n", i);
+    snprintf(src + pos, cap - pos, "}\n");
+    TSParser *parser = ts_parser_new();
+    ASSERT_NOT_NULL(parser);
+    ASSERT_TRUE(ts_parser_set_language(parser, cbm_ts_language(CBM_LANG_C)));
+    TSTree *tree = ts_parser_parse_string(parser, NULL, src, (uint32_t)strlen(src));
+    ASSERT_NOT_NULL(tree);
+    TSNode root = ts_tree_root_node(tree);
+    const CBMLangSpec *spec = cbm_lang_spec(CBM_LANG_C);
+    ASSERT_EQ(cbm_count_branching(root, spec->branching_node_types), BRANCHES);
+    ts_tree_delete(tree);
+    ts_parser_delete(parser);
     free(src);
     PASS();
 }
@@ -5415,8 +5465,8 @@ TEST(extract_c_test_dir_marks_is_test_issue1294) {
  * not be (#1294). */
 TEST(extract_python_method_test_dir_marks_is_test_issue1294) {
     const char *src = "class Foo:\n"
-                       "    def helper(self):\n"
-                       "        pass\n";
+                      "    def helper(self):\n"
+                      "        pass\n";
 
     /* Python's LSP layer injects synthetic builtin stub Methods (str.upper,
      * dict.get, ...) into defs.items alongside real ones (py_builtins.c), so
@@ -7017,6 +7067,8 @@ SUITE(extraction) {
     /* Per-function complexity metrics (Tier A) */
     RUN_TEST(complexity_nested_loops_depth);
     RUN_TEST(body_tokens_wide_body_samples_from_the_start);
+    RUN_TEST(complexity_wide_body_does_not_truncate);
+    RUN_TEST(count_branching_wide_body_does_not_truncate);
     RUN_TEST(complexity_loop_with_branch);
     RUN_TEST(complexity_flat_no_loops);
     RUN_TEST(complexity_linear_scan_in_loop);

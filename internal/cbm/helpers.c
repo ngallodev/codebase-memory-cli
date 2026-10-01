@@ -625,11 +625,39 @@ bool cbm_has_ancestor_kind(TSNode node, const char *kind, int max_depth) {
     return false;
 }
 
-// Recursive branching count
-#define BRANCHING_STACK_CAP 4096
+/* Grow a traversal stack without losing nodes. The caller owns a small inline
+ * buffer and frees only storage allocated here. */
+static bool walk_stack_reserve(void **items, size_t *cap, size_t count, size_t needed,
+                               size_t item_size, void *inline_items) {
+    if (needed < count)
+        return false;
+    if (needed <= *cap)
+        return true;
+    size_t next = *cap;
+    while (next < needed && next <= SIZE_MAX / 2)
+        next *= 2;
+    if (next < needed || next > SIZE_MAX / item_size)
+        return false;
+    void *grown;
+    if (*items == inline_items) {
+        grown = malloc(next * item_size);
+        if (grown)
+            memcpy(grown, *items, count * item_size);
+    } else {
+        grown = realloc(*items, next * item_size);
+    }
+    if (!grown)
+        return false;
+    *items = grown;
+    *cap = next;
+    return true;
+}
+
+// Iterative branching count.
 static int count_branching_iter(TSNode root, const char **types) {
-    TSNode stack[BRANCHING_STACK_CAP];
-    int top = 0;
+    enum { INLINE_CAP = 128 };
+    TSNode inline_stack[INLINE_CAP], *stack = inline_stack;
+    size_t cap = INLINE_CAP, top = 0;
     int count = 0;
     stack[top++] = root;
     while (top > 0) {
@@ -642,10 +670,18 @@ static int count_branching_iter(TSNode root, const char **types) {
             }
         }
         uint32_t n = ts_node_child_count(node);
-        for (int i = (int)n - SKIP_ONE; i >= 0 && top < BRANCHING_STACK_CAP; i--) {
-            stack[top++] = ts_node_child(node, (uint32_t)i);
+        if (!walk_stack_reserve((void **)&stack, &cap, top, top + n, sizeof(*stack),
+                                inline_stack)) {
+            if (stack != inline_stack)
+                free(stack);
+            return CBM_WALK_METRIC_UNAVAILABLE;
+        }
+        for (uint32_t i = n; i > 0; i--) {
+            stack[top++] = ts_node_child(node, i - 1);
         }
     }
+    if (stack != inline_stack)
+        free(stack);
     return count;
 }
 
@@ -718,8 +754,9 @@ void cbm_compute_complexity(TSNode node, const char **branching_types, cbm_compl
         int ldepth;
         int adepth;
     };
-    struct cx_frame stack[BRANCHING_STACK_CAP];
-    int top = 0;
+    enum { INLINE_CAP = 128 };
+    struct cx_frame inline_stack[INLINE_CAP], *stack = inline_stack;
+    size_t cap = INLINE_CAP, top = 0;
     stack[top].node = node;
     stack[top].bdepth = 0;
     stack[top].ldepth = 0;
@@ -765,14 +802,24 @@ void cbm_compute_complexity(TSNode node, const char **branching_types, cbm_compl
             child_l = d;
         }
         uint32_t n = ts_node_child_count(f.node);
-        for (int i = (int)n - SKIP_ONE; i >= 0 && top < BRANCHING_STACK_CAP; i--) {
-            stack[top].node = ts_node_child(f.node, (uint32_t)i);
+        if (!walk_stack_reserve((void **)&stack, &cap, top, top + n, sizeof(*stack),
+                                inline_stack)) {
+            if (stack != inline_stack)
+                free(stack);
+            out->cyclomatic = out->cognitive = out->loop_count = out->loop_depth =
+                out->max_access_depth = CBM_WALK_METRIC_UNAVAILABLE;
+            return;
+        }
+        for (uint32_t i = n; i > 0; i--) {
+            stack[top].node = ts_node_child(f.node, i - 1);
             stack[top].bdepth = child_b;
             stack[top].ldepth = child_l;
             stack[top].adepth = child_a;
             top++;
         }
     }
+    if (stack != inline_stack)
+        free(stack);
 }
 
 // --- Enclosing function detection ---
