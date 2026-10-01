@@ -1026,9 +1026,9 @@ static void *runtime_application_client_request_thread(void *opaque) {
 static void *runtime_real_application_detect_changes_thread(void *opaque) {
     runtime_real_application_call_t *call = opaque;
     uint32_t timeout_ms = call->timeout_ms ? call->timeout_ms : RUNTIME_TEST_TIMEOUT_MS;
-    call->status =
-        cbm_daemon_application_client_operation(call->client, "detect_changes", call->arguments,
-                                           &call->response, &call->response_length, timeout_ms);
+    call->status = cbm_daemon_application_client_operation(call->client, "detect_changes",
+                                                           call->arguments, &call->response,
+                                                           &call->response_length, timeout_ms);
     atomic_store_explicit(&call->completed, true, memory_order_release);
     return NULL;
 }
@@ -1037,9 +1037,8 @@ static bool runtime_real_application_ingest_probe(cbm_daemon_runtime_client_t *c
                                                   uint32_t timeout_ms) {
     uint8_t *response = NULL;
     uint32_t response_length = 0;
-    cbm_daemon_runtime_application_status_t status =
-        cbm_daemon_application_client_operation(client, "ingest_traces", "{\"traces\":[]}", &response,
-                                           &response_length, timeout_ms);
+    cbm_daemon_runtime_application_status_t status = cbm_daemon_application_client_operation(
+        client, "ingest_traces", "{\"traces\":[]}", &response, &response_length, timeout_ms);
     bool usable = status == CBM_DAEMON_RUNTIME_APPLICATION_OK && response && response_length > 0 &&
                   strstr((const char *)response, "traces_received");
     free(response);
@@ -1365,6 +1364,8 @@ static bool runtime_test_fixture_start_failed(const char *tag, const char *stage
 }
 
 static bool runtime_test_fixture_permanent = false;
+/* Nonzero overrides the server request (hello) deadline for one fixture. */
+static uint64_t runtime_test_fixture_request_timeout_ms = 0;
 
 static bool runtime_test_fixture_start_configured(
     runtime_test_fixture_t *fixture, const char *tag, const cbm_daemon_build_identity_t *identity,
@@ -1412,7 +1413,9 @@ static bool runtime_test_fixture_start_configured(
         .conflict_log_cap_bytes = 64U * 1024U,
         .max_clients = max_clients,
         .lease_timeout_ms = lease_timeout_ms,
-        .request_timeout_ms = RUNTIME_TEST_TIMEOUT_MS,
+        .request_timeout_ms = runtime_test_fixture_request_timeout_ms
+                                  ? runtime_test_fixture_request_timeout_ms
+                                  : RUNTIME_TEST_TIMEOUT_MS,
         .shutdown_timeout_ms = RUNTIME_TEST_TIMEOUT_MS,
         /* Default false: every teardown-latency fixture depends on prompt
          * last-client-exit. Only the permanent-lifecycle tests flip this. */
@@ -2882,7 +2885,12 @@ TEST(daemon_runtime_connection_cap_covers_slow_hello_and_stopping_is_terminal) {
     cbm_daemon_build_identity_t identity =
         runtime_test_identity("2.4.0", runtime_test_self_build());
     runtime_test_fixture_t fixture;
+    /* slow_hello must keep its slot until the test closes it. With the default
+     * 2 s hello deadline, two full client handshakes on a slow sanitized runner
+     * can outlast it, freeing the slot before the overflow connect. */
+    runtime_test_fixture_request_timeout_ms = 30000;
     bool started = runtime_test_fixture_start_limited(&fixture, "connection-cap", &identity, 2);
+    runtime_test_fixture_request_timeout_ms = 0;
     cbm_daemon_ipc_connection_t *slow_hello = NULL;
     cbm_daemon_runtime_client_t *accepted = NULL;
     cbm_daemon_runtime_client_t *overflow = NULL;
@@ -3887,20 +3895,20 @@ TEST(daemon_runtime_disconnect_cancels_blocked_non_index_child_and_preserves_oth
         first ? cbm_daemon_runtime_client_connect(fixture.endpoint, &identity,
                                                   RUNTIME_TEST_TIMEOUT_MS, &second_result)
               : NULL;
-    bool contexts_set =
-        first && second &&
-        cbm_daemon_application_client_set_context(first, root, root, NULL, NULL,
-                                                  RUNTIME_TEST_TIMEOUT_MS) ==
-            CBM_DAEMON_RUNTIME_APPLICATION_OK &&
-        cbm_daemon_application_client_set_context(second, root, root, NULL, NULL,
-                                                  RUNTIME_TEST_TIMEOUT_MS) ==
-            CBM_DAEMON_RUNTIME_APPLICATION_OK;
+    bool contexts_set = first && second &&
+                        cbm_daemon_application_client_set_context(first, root, root, NULL, NULL,
+                                                                  RUNTIME_TEST_TIMEOUT_MS) ==
+                            CBM_DAEMON_RUNTIME_APPLICATION_OK &&
+                        cbm_daemon_application_client_set_context(second, root, root, NULL, NULL,
+                                                                  RUNTIME_TEST_TIMEOUT_MS) ==
+                            CBM_DAEMON_RUNTIME_APPLICATION_OK;
 #ifdef CBM_SANITIZED_BUILD
     const uint32_t second_session_probe_timeout_ms = 5000;
 #else
     const uint32_t second_session_probe_timeout_ms = RUNTIME_TEST_TIMEOUT_MS;
 #endif
-    bool second_ingest_before = contexts_set && runtime_real_application_ingest_probe(second, second_session_probe_timeout_ms);
+    bool second_ingest_before = contexts_set && runtime_real_application_ingest_probe(
+                                                    second, second_session_probe_timeout_ms);
     bool second_heartbeat_before =
         second_ingest_before &&
         cbm_daemon_runtime_client_heartbeat(second, second_session_probe_timeout_ms);
@@ -3977,9 +3985,10 @@ TEST(daemon_runtime_disconnect_cancels_blocked_non_index_child_and_preserves_oth
         first = NULL;
     }
 
-    bool second_usable_after = second && child_cleanup_complete &&
-                               runtime_real_application_ingest_probe(second, RUNTIME_TEST_TIMEOUT_MS) &&
-                               cbm_daemon_runtime_client_heartbeat(second, RUNTIME_TEST_TIMEOUT_MS);
+    bool second_usable_after =
+        second && child_cleanup_complete &&
+        runtime_real_application_ingest_probe(second, RUNTIME_TEST_TIMEOUT_MS) &&
+        cbm_daemon_runtime_client_heartbeat(second, RUNTIME_TEST_TIMEOUT_MS);
     bool second_closed = false;
     if (second) {
         second_closed = cbm_daemon_runtime_client_close(second, RUNTIME_TEST_TIMEOUT_MS);
