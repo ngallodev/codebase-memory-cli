@@ -4460,6 +4460,38 @@ static const CBMDefinition *find_def(CBMFileResult *r, const char *name) {
     return NULL;
 }
 
+/* The body-token sampler returns the first unique identifiers in source order.
+ * A wide body must grow its pending-node stack instead of skipping the earliest
+ * children when the former 512-node inline capacity is exhausted. */
+TEST(body_tokens_wide_body_samples_from_the_start) {
+    enum { WIDE_CALLS = 600, PREFIX = 100 };
+    size_t cap = (size_t)WIDE_CALLS * 16 + 64;
+    char *src = (char *)malloc(cap);
+    ASSERT_NOT_NULL(src);
+    size_t pos = (size_t)snprintf(src, cap, "void wide_calls(void) {\n");
+    for (int i = 0; i < WIDE_CALLS; i++) {
+        pos += (size_t)snprintf(src + pos, cap - pos, "f%d();\n", i);
+    }
+    snprintf(src + pos, cap - pos, "}\n");
+
+    char expect[PREFIX * 8];
+    size_t ep = 0;
+    for (int i = 0; i < PREFIX; i++) {
+        ep += (size_t)snprintf(expect + ep, sizeof(expect) - ep, "f%d ", i);
+    }
+    CBMFileResult *r = extract(src, CBM_LANG_C, "t", "wide_calls.c");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    const CBMDefinition *d = find_def(r, "wide_calls");
+    ASSERT_NOT_NULL(d);
+    ASSERT_NOT_NULL(d->body_tokens);
+    ASSERT_GTE(strlen(d->body_tokens), ep);
+    ASSERT_MEM_EQ(d->body_tokens, expect, ep);
+    cbm_free_result(r);
+    free(src);
+    PASS();
+}
+
 TEST(complexity_nested_loops_depth) {
     CBMFileResult *r = extract("package p\n"
                                "func deepLoops() {\n"
@@ -6984,6 +7016,7 @@ SUITE(extraction) {
 
     /* Per-function complexity metrics (Tier A) */
     RUN_TEST(complexity_nested_loops_depth);
+    RUN_TEST(body_tokens_wide_body_samples_from_the_start);
     RUN_TEST(complexity_loop_with_branch);
     RUN_TEST(complexity_flat_no_loops);
     RUN_TEST(complexity_linear_scan_in_loop);

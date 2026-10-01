@@ -4,7 +4,7 @@
 #include "lang_specs.h"
 #include "foundation/constants.h"
 #include "foundation/platform.h" // safe_realloc (frees old on failure)
-#include "foundation/log.h"      // cbm_log_warn
+#include "foundation/log.h"      // cbm_log_error, cbm_log_warn
 #include "extract_node_stack.h"
 #include "simhash/minhash.h"
 #include "semantic/ast_profile.h"
@@ -84,11 +84,16 @@ static bool try_append_ident(const char *source, uint32_t s, int len, uint32_t *
 }
 
 /* Walk AST body, collect unique identifier text as space-separated string.
- * Returns arena-allocated string or NULL. */
+ * The identifier/byte caps are the sampling contract; the pending stack grows
+ * as needed so wide bodies still sample from their start. Returns an
+ * arena-allocated string, or NULL when empty or stack growth fails. */
 static char *extract_body_ident_tokens(CBMExtractCtx *ctx, TSNode body) {
     enum { BT_STACK = 512, BT_BUF = 2048, BT_MAX_IDENTS = 128, BT_SEEN = 256, BT_SEEN_MASK = 255 };
-    TSNode bt_stack[BT_STACK];
-    int bt_top = 0;
+    TSNode bt_inline[BT_STACK];
+    TSNode *bt_stack = bt_inline;
+    size_t bt_cap = BT_STACK;
+    size_t bt_top = 0;
+    bool stack_failed = false;
     bt_stack[bt_top++] = body;
     char bt_buf[BT_BUF];
     int bt_pos = 0;
@@ -117,10 +122,49 @@ static char *extract_body_ident_tokens(CBMExtractCtx *ctx, TSNode body) {
                 }
             }
         } else {
-            for (int i = (int)nc - SKIP_ONE; i >= 0 && bt_top < BT_STACK; i--) {
-                bt_stack[bt_top++] = ts_node_child(nd, (uint32_t)i);
+            size_t needed = bt_top + (size_t)nc;
+            if (needed < bt_top || needed > SIZE_MAX / sizeof(*bt_stack)) {
+                stack_failed = true;
+            } else if (needed > bt_cap) {
+                size_t ncap = bt_cap;
+                while (ncap < needed && ncap <= SIZE_MAX / 2) {
+                    ncap *= 2;
+                }
+                if (ncap < needed || ncap > SIZE_MAX / sizeof(*bt_stack)) {
+                    stack_failed = true;
+                } else {
+                    TSNode *grown;
+                    if (bt_stack == bt_inline) {
+                        grown = (TSNode *)malloc(ncap * sizeof(*bt_stack));
+                        if (grown) {
+                            memcpy(grown, bt_inline, bt_top * sizeof(*bt_stack));
+                        }
+                    } else {
+                        grown = (TSNode *)realloc(bt_stack, ncap * sizeof(*bt_stack));
+                    }
+                    if (!grown) {
+                        stack_failed = true;
+                    } else {
+                        bt_stack = grown;
+                        bt_cap = ncap;
+                    }
+                }
+            }
+            if (stack_failed) {
+                char pending[32];
+                snprintf(pending, sizeof(pending), "%zu", bt_top);
+                cbm_log_error("extract.walk_stack_alloc_failed", "walker", "body_ident_tokens",
+                              "pending", pending, "path", ctx->rel_path ? ctx->rel_path : "");
+                bt_pos = 0; /* No partial token sample on stack growth failure. */
+                break;
+            }
+            for (uint32_t i = nc; i > 0; i--) {
+                bt_stack[bt_top++] = ts_node_child(nd, i - 1);
             }
         }
+    }
+    if (bt_stack != bt_inline) {
+        free(bt_stack);
     }
     if (bt_pos > 0) {
         bt_buf[bt_pos] = '\0';
