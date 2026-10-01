@@ -59,6 +59,16 @@ static bool index_bool_arg(const char *args_json, const char *key) {
 
 static bool index_db_path(const char *project, char *out, size_t out_size);
 
+static const char *index_mode_name(const char *mode_text) {
+    if (mode_text && !strcmp(mode_text, "fast")) {
+        return "fast";
+    }
+    if (mode_text && !strcmp(mode_text, "moderate")) {
+        return "moderate";
+    }
+    return "full";
+}
+
 static bool index_write_metrics(const char *path, const char *mode, const char *project,
                                 const cbm_pipeline_t *pipeline, int rc) {
     if (!path || !path[0])
@@ -187,7 +197,7 @@ static bool index_resolve_session_path(const cbm_operation_runtime_t *runtime, c
     return true;
 }
 
-static char *index_args_with_repo_path(const char *args_json, const char *repo_path) {
+static char *index_args_with_string(const char *args_json, const char *key, const char *value) {
     const char *json = args_json ? args_json : "{}";
     yyjson_doc *source = yyjson_read(json, strlen(json), 0);
     yyjson_val *source_root = source ? yyjson_doc_get_root(source) : NULL;
@@ -204,14 +214,18 @@ static char *index_args_with_repo_path(const char *args_json, const char *repo_p
             yyjson_mut_doc_free(copy);
         return NULL;
     }
-    (void)yyjson_mut_obj_remove_key(root, "repo_path");
-    if (!yyjson_mut_obj_add_strcpy(copy, root, "repo_path", repo_path)) {
+    (void)yyjson_mut_obj_remove_key(root, key);
+    if (!yyjson_mut_obj_add_strcpy(copy, root, key, value)) {
         yyjson_mut_doc_free(copy);
         return NULL;
     }
     char *out = yyjson_mut_write(copy, 0, NULL);
     yyjson_mut_doc_free(copy);
     return out;
+}
+
+static char *index_args_with_repo_path(const char *args_json, const char *repo_path) {
+    return index_args_with_string(args_json, "repo_path", repo_path);
 }
 
 static bool index_db_path(const char *project, char *out, size_t out_size) {
@@ -526,6 +540,53 @@ static bool index_build_success(yyjson_mut_doc *doc, yyjson_mut_val *root, const
     return degraded;
 }
 
+static void index_fill_run_response(yyjson_mut_doc *doc, yyjson_mut_val *root, const char *project,
+                                    const char *repo_path, bool persistence,
+                                    cbm_pipeline_t *pipeline, int rc, char **excluded,
+                                    int excluded_count, const cbm_file_error_t *errors,
+                                    int error_count, bool metrics_failed) {
+    yyjson_mut_obj_add_strcpy(doc, root, "project", project ? project : "");
+    if (rc == 0) {
+        char logfile[CBM_SZ_1K] = {0};
+        bool has_log = index_write_log(project, errors, error_count, logfile, sizeof(logfile));
+        bool degraded =
+            index_build_success(doc, root, project, repo_path, persistence, pipeline, excluded,
+                                excluded_count, errors, error_count, has_log ? logfile : NULL);
+        yyjson_mut_obj_add_str(doc, root, "status", degraded ? "degraded" : "indexed");
+        if (metrics_failed) {
+            yyjson_mut_obj_add_str(doc, root, "metrics_error", "failed to write metrics_out");
+        }
+        if (cbm_pipeline_had_format_migration(pipeline)) {
+            yyjson_mut_obj_add_bool(doc, root, "format_migration", true);
+        }
+    } else {
+        yyjson_mut_obj_add_str(doc, root, "status", "error");
+        yyjson_mut_obj_add_str(doc, root, "hint",
+                               "Pipeline failed. Check repo_path exists and contains source files. "
+                               "Try mode='fast' for a quicker diagnostic run.");
+    }
+}
+
+static char *index_encode_run_response(const char *project, const char *repo_path, bool persistence,
+                                       cbm_pipeline_t *pipeline, int rc, char **excluded,
+                                       int excluded_count, const cbm_file_error_t *errors,
+                                       int error_count, bool metrics_failed) {
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
+    if (!root) {
+        if (doc) {
+            yyjson_mut_doc_free(doc);
+        }
+        return NULL;
+    }
+    yyjson_mut_doc_set_root(doc, root);
+    index_fill_run_response(doc, root, project, repo_path, persistence, pipeline, rc, excluded,
+                            excluded_count, errors, error_count, metrics_failed);
+    char *payload = yyjson_mut_write(doc, 0, NULL);
+    yyjson_mut_doc_free(doc);
+    return payload;
+}
+
 static cbm_operation_result_t index_run_physical(const char *repo_path, const char *args_json,
                                                  const cbm_operation_runtime_t *runtime) {
     char *mode_text = index_string_arg(args_json, "mode");
@@ -547,6 +608,8 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
         return index_text_error("index operation blocked by another mutation for this project");
     }
     if (runtime->cancelled && runtime->cancelled(runtime->cancelled_context)) {
+        (void)index_write_metrics(metrics_out, index_mode_name(mode_text), mutation_project, NULL,
+                                  CBM_PIPELINE_ABORT_PRESERVE_DB);
         runtime->mutation_end(runtime->mutation_context, mutation_project);
         free(mode_text);
         free(name);
@@ -559,13 +622,12 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
         mode = CBM_MODE_FAST;
     else if (mode_text && !strcmp(mode_text, "moderate"))
         mode = CBM_MODE_MODERATE;
-    const char *mode_name = mode == CBM_MODE_FAST       ? "fast"
-                            : mode == CBM_MODE_MODERATE ? "moderate"
-                                                        : "full";
+    const char *mode_name = index_mode_name(mode_text);
     free(mode_text);
     bool persistence = index_bool_arg(args_json, "persistence");
     cbm_pipeline_t *pipeline = cbm_pipeline_new(repo_path, NULL, mode);
     if (!pipeline) {
+        (void)index_write_metrics(metrics_out, mode_name, mutation_project, NULL, CBM_NOT_FOUND);
         runtime->mutation_end(runtime->mutation_context, mutation_project);
         free(name);
         free(metrics_out);
@@ -576,6 +638,7 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
         cbm_pipeline_free(pipeline);
         runtime->mutation_end(runtime->mutation_context, mutation_project);
         free(name);
+        free(metrics_out);
         free(mutation_project);
         return index_text_error("invalid project name");
     }
@@ -597,42 +660,16 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
     int error_count = 0;
     cbm_pipeline_get_file_errors(pipeline, &errors, &error_count);
     cbm_mem_collect();
-    if (!index_write_metrics(metrics_out, mode_name, project, pipeline, rc))
-        rc = rc ? rc : CBM_NOT_FOUND;
+    bool metrics_failed = !index_write_metrics(metrics_out, mode_name, project, pipeline, rc);
+    if (metrics_failed) {
+        cbm_log_warn("index.metrics_write_failed", "path", metrics_out);
+    }
     free(metrics_out);
     if (runtime->project_invalidate)
         runtime->project_invalidate(runtime->project_invalidate_context, project);
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-    yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
-    if (!doc || !root) {
-        if (doc)
-            yyjson_mut_doc_free(doc);
-        if (!cbm_index_worker_active())
-            cbm_pipeline_free(pipeline);
-        runtime->mutation_end(runtime->mutation_context, mutation_project);
-        free(project);
-        free(mutation_project);
-        return index_text_error("result allocation failed");
-    }
-    yyjson_mut_doc_set_root(doc, root);
-    yyjson_mut_obj_add_strcpy(doc, root, "project", project ? project : "");
-    if (rc == 0) {
-        char logfile[CBM_SZ_1K] = {0};
-        bool has_log = index_write_log(project, errors, error_count, logfile, sizeof(logfile));
-        bool degraded =
-            index_build_success(doc, root, project, repo_path, persistence, pipeline, excluded,
-                                excluded_count, errors, error_count, has_log ? logfile : NULL);
-        yyjson_mut_obj_add_str(doc, root, "status", degraded ? "degraded" : "indexed");
-        if (cbm_pipeline_had_format_migration(pipeline))
-            yyjson_mut_obj_add_bool(doc, root, "format_migration", true);
-    } else {
-        yyjson_mut_obj_add_str(doc, root, "status", "error");
-        yyjson_mut_obj_add_str(doc, root, "hint",
-                               "Pipeline failed. Check repo_path exists and contains source files. "
-                               "Try mode='fast' for a quicker diagnostic run.");
-    }
-    char *payload = yyjson_mut_write(doc, 0, NULL);
-    yyjson_mut_doc_free(doc);
+    char *payload =
+        index_encode_run_response(project, repo_path, persistence, pipeline, rc, excluded,
+                                  excluded_count, errors, error_count, metrics_failed);
     if (cbm_index_worker_active())
         cbm_log_info("index.worker.fast_exit", "skip", "pipeline_free");
     else
@@ -642,6 +679,79 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
     free(mutation_project);
     return payload ? cbm_operation_result_take(payload, rc != 0)
                    : index_text_error("result encoding failed");
+}
+
+/* Resolve metrics_out, require its parent directory to exist inside the allowed
+ * roots, and rewrite the worker argument to the canonical parent + basename so
+ * the worker writes exactly the validated path. */
+static bool index_validate_metrics_out(const char *json, const cbm_operation_runtime_t *runtime,
+                                       const char *allowed_root, char **worker_args, char *err,
+                                       size_t err_size) {
+    char *metrics = index_string_arg(json, "metrics_out");
+    if (!metrics || !metrics[0]) {
+        free(metrics);
+        return true;
+    }
+    cbm_normalize_path_sep(metrics);
+    if (!index_resolve_session_path(runtime, &metrics)) {
+        free(metrics);
+        (void)snprintf(err, err_size, "failed to resolve metrics_out");
+        return false;
+    }
+    char *slash = strrchr(metrics, '/');
+    const char *base = metrics;
+    if (slash) {
+        base = slash;
+        base++;
+    }
+    if (!base[0] || !strcmp(base, ".") || !strcmp(base, "..")) {
+        free(metrics);
+        (void)snprintf(err, err_size, "metrics_out must name a file");
+        return false;
+    }
+    char parent[CBM_SZ_4K];
+    size_t parent_len = slash ? (size_t)(slash - metrics) : 0;
+    if (!slash) {
+        (void)snprintf(parent, sizeof(parent), ".");
+    } else if (parent_len == 0) {
+        (void)snprintf(parent, sizeof(parent), "/");
+    } else if (parent_len >= sizeof(parent)) {
+        free(metrics);
+        (void)snprintf(err, err_size, "metrics_out path too long");
+        return false;
+    } else {
+        memcpy(parent, metrics, parent_len);
+        parent[parent_len] = '\0';
+    }
+    char real[CBM_SZ_4K];
+    if (!cbm_canonical_path(parent, real, sizeof(real))) {
+        free(metrics);
+        (void)snprintf(err, err_size, "metrics_out parent directory does not exist");
+        return false;
+    }
+    cbm_normalize_path_sep(real);
+    if (!cbm_workspace_root_allowed(real, cbm_workspace_home_dir(), cbm_workspace_cache_dir(),
+                                    allowed_root, err, err_size)) {
+        free(metrics);
+        return false;
+    }
+    char final_path[CBM_SZ_4K];
+    const char *last_sep = strrchr(real, '/');
+    int n = snprintf(final_path, sizeof(final_path), "%s%s%s", real,
+                     last_sep && !strcmp(last_sep, "/") ? "" : "/", base);
+    free(metrics);
+    if (n <= 0 || (size_t)n >= sizeof(final_path)) {
+        (void)snprintf(err, err_size, "metrics_out path too long");
+        return false;
+    }
+    char *rewritten = index_args_with_string(*worker_args, "metrics_out", final_path);
+    if (!rewritten) {
+        (void)snprintf(err, err_size, "failed to prepare index request");
+        return false;
+    }
+    free(*worker_args);
+    *worker_args = rewritten;
+    return true;
 }
 
 cbm_operation_result_t cbm_index_operation_execute(const char *args_json,
@@ -679,6 +789,12 @@ cbm_operation_result_t cbm_index_operation_execute(const char *args_json,
     if (!worker_args) {
         free(repo_path);
         return index_text_error("failed to prepare index request");
+    }
+    if (!index_validate_metrics_out(json, runtime, allowed_root, &worker_args, boundary,
+                                    sizeof(boundary))) {
+        free(worker_args);
+        free(repo_path);
+        return index_text_error(boundary);
     }
     if (runtime && runtime->index_execute) {
         cbm_operation_result_t out =

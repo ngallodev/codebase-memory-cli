@@ -21,6 +21,7 @@ arena hash_table dyn_array str_intern log str_util workspace platform diagnostic
             steps {
                 sh '''
                     set -eu
+                    rm -f .jenkins-installed-cli
                     scripts/lint.sh --ci CLANG_FORMAT=clang-format-20
                 '''
             }
@@ -66,7 +67,6 @@ arena hash_table dyn_array str_intern log str_util workspace platform diagnostic
             steps {
                 sh '''
                     set -eu
-                    rm -f .jenkins-installed-cli
                     installed_cli="$HOME/.local/bin/codebase-memory-cli"
                     if [ -x "$installed_cli" ]; then
                         "$installed_cli" daemon stop >/dev/null 2>&1 || true
@@ -186,7 +186,7 @@ arena hash_table dyn_array str_intern log str_util workspace platform diagnostic
                     // keep them in one quiet shard and distribute the rest.
                     def daemonNames = ['cli', 'daemon', 'daemon_ipc', 'daemon_runtime',
                                        'daemon_application', 'daemon_bootstrap',
-                                       'daemon_frontend', 'index_supervisor', 'watcher']
+                                       'index_supervisor', 'watcher']
                     def daemon = suites.findAll { it in daemonNames }
                     def other = suites.findAll { !(it in daemonNames) }
                     def groups = [daemon, other].findAll { !it.isEmpty() }

@@ -92,7 +92,7 @@ static char *ri_slurp(const char *path) {
  * flow, capturing the raw response. Returns the opened graph store (NULL on
  * failure). Mirrors repro_harness.h's rh_open_indexed but keeps the response so
  * we can assert on skipped_count / skipped[] / logfile. */
-static cbm_store_t *ri_index_capture(RProj *lp, char **out_resp) {
+static cbm_store_t *ri_index_capture_with(RProj *lp, const char *extra_args, char **out_resp) {
     lp->project = cbm_project_name_from_path(lp->tmpdir);
     if (!lp->project) {
         return NULL;
@@ -110,8 +110,9 @@ static cbm_store_t *ri_index_capture(RProj *lp, char **out_resp) {
     if (!lp->srv) {
         return NULL;
     }
-    char args[700];
-    snprintf(args, sizeof(args), "{\"repo_path\":\"%s\"}", lp->tmpdir);
+    char args[1400];
+    snprintf(args, sizeof(args), "{\"repo_path\":\"%s\"%s}", lp->tmpdir,
+             extra_args ? extra_args : "");
     char *resp = cbm_test_operation_execute(lp->srv, "index_repository", args);
     if (out_resp) {
         *out_resp = resp;
@@ -119,6 +120,10 @@ static cbm_store_t *ri_index_capture(RProj *lp, char **out_resp) {
         free(resp);
     }
     return cbm_store_open_path(lp->dbpath);
+}
+
+static cbm_store_t *ri_index_capture(RProj *lp, char **out_resp) {
+    return ri_index_capture_with(lp, NULL, out_resp);
 }
 
 /* ── Tests ──────────────────────────────────────────────────────── */
@@ -793,6 +798,77 @@ TEST(index_relative_repo_path_canonicalized) {
 #endif /* !_WIN32 */
 }
 
+/* INV(metrics-out-validated): metrics_out must resolve inside the allowed
+ * roots. A path in a directory outside CBM_ALLOWED_ROOT is refused and nothing
+ * is written there. */
+TEST(index_metrics_out_outside_root_refused) {
+    RProj lp;
+    memset(&lp, 0, sizeof(lp));
+    snprintf(lp.tmpdir, sizeof(lp.tmpdir), "/tmp/cbm_resil_XXXXXX");
+    if (!cbm_mkdtemp(lp.tmpdir)) {
+        FAIL("mkdtemp failed");
+    }
+    rh_to_fwd_slashes(lp.tmpdir);
+    char outside[64];
+    snprintf(outside, sizeof(outside), "/tmp/cbm_resil_out_XXXXXX");
+    if (!cbm_mkdtemp(outside)) {
+        FAIL("mkdtemp failed");
+    }
+    rh_to_fwd_slashes(outside);
+    ri_write_text(lp.tmpdir, "good.py", "def alpha():\n    return 1\n");
+
+    cbm_setenv("CBM_ALLOWED_ROOT", lp.tmpdir, 1);
+    char extra[300], metrics[300];
+    snprintf(metrics, sizeof(metrics), "%s/metrics.json", outside);
+    snprintf(extra, sizeof(extra), ",\"metrics_out\":\"%s\"", metrics);
+    char *resp = NULL;
+    cbm_store_t *store = ri_index_capture_with(&lp, extra, &resp);
+    cbm_unsetenv("CBM_ALLOWED_ROOT");
+
+    ASSERT_NOT_NULL(resp);
+    ASSERT_NOT_NULL(strstr(resp, "outside the allowed root"));
+    FILE *probe = fopen(metrics, "rb");
+    ASSERT_NULL(probe);
+    free(resp);
+    rmdir(outside);
+    rh_cleanup(&lp, store);
+    PASS();
+}
+
+/* INV(metrics-out-written): a successful index with metrics_out inside the
+ * repo writes parseable metrics JSON with the success outcome. */
+TEST(index_metrics_out_written) {
+    RProj lp;
+    memset(&lp, 0, sizeof(lp));
+    snprintf(lp.tmpdir, sizeof(lp.tmpdir), "/tmp/cbm_resil_XXXXXX");
+    if (!cbm_mkdtemp(lp.tmpdir)) {
+        FAIL("mkdtemp failed");
+    }
+    rh_to_fwd_slashes(lp.tmpdir);
+    ri_write_text(lp.tmpdir, "good.py", "def alpha():\n    return 1\n");
+
+    char extra[300], metrics[300];
+    snprintf(metrics, sizeof(metrics), "%s/metrics.json", lp.tmpdir);
+    snprintf(extra, sizeof(extra), ",\"metrics_out\":\"%s\"", metrics);
+    char *resp = NULL;
+    cbm_store_t *store = ri_index_capture_with(&lp, extra, &resp);
+    ASSERT_NOT_NULL(resp);
+    free(resp);
+
+    char *json = ri_slurp(metrics);
+    ASSERT_NOT_NULL(json);
+    yyjson_doc *d = yyjson_read(json, strlen(json), 0);
+    ASSERT_NOT_NULL(d);
+    yyjson_val *root = yyjson_doc_get_root(d);
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(root, "outcome")), "success");
+    ASSERT_NOT_NULL(yyjson_obj_get(root, "counts"));
+    yyjson_doc_free(d);
+    free(json);
+    unlink(metrics);
+    rh_cleanup(&lp, store);
+    PASS();
+}
+
 SUITE(index_resilience) {
     RUN_TEST(index_oversized_file_reported);
     RUN_TEST(index_clean_run_no_logfile);
@@ -800,4 +876,6 @@ SUITE(index_resilience) {
     RUN_TEST(index_parse_partial_clears_on_fix);
     RUN_TEST(index_not_indexed_by_design_reported);
     RUN_TEST(index_relative_repo_path_canonicalized);
+    RUN_TEST(index_metrics_out_outside_root_refused);
+    RUN_TEST(index_metrics_out_written);
 }

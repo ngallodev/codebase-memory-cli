@@ -3558,7 +3558,8 @@ static int cbm_remove_grok_mcp_owned(const char *binary_path, const char *config
 /* #929: extensionless bash shims under %USERPROFILE%\\.claude\\hooks trigger
  * the "How do you want to open this file?" dialog when editors (Cursor) scan
  * the hooks dir, and cannot execute without bash anyway. Windows installs
- * .cmd scripts; the extensionless legacy files are removed on upgrade. */
+ * .cmd scripts. The CLI-owned names have used .cmd since they were introduced,
+ * so no extensionless CLI-owned file needs cleanup on upgrade. */
 #define CMM_HOOK_GATE_SCRIPT "codebase-memory-cli-discovery-gate.cmd"
 #else
 #define CMM_HOOK_GATE_SCRIPT "codebase-memory-cli-discovery-gate"

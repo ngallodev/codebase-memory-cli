@@ -52,7 +52,7 @@ CheckOptions:
   readability-magic-numbers.IgnoredIntegerValues: ""
   readability-magic-numbers.IgnoredFloatingPointValues: ""
   bugprone-easily-swappable-parameters.MinimumLength: 3
-  misc-include-cleaner.IgnoreHeaders: "sys/.*|mach/.*|dispatch/.*|_types/.*|Availability\\.h|secure/.*|_.*\\.h|zconf\\.h"
+  misc-include-cleaner.IgnoreHeaders: "sys/.*|asm-generic/.*|mach/.*|dispatch/.*|_types/.*|Availability\\.h|secure/.*|_.*\\.h|zconf\\.h"
   readability-function-cognitive-complexity.Threshold: 25
   readability-function-size.StatementThreshold: 200
   readability-function-size.LineThreshold: 400

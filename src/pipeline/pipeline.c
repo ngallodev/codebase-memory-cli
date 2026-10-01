@@ -52,6 +52,7 @@ enum { CBM_DIR_PERMS = 0755, PL_RING = 4, PL_RING_MASK = 3, PL_SEQ_PASSES = 6 };
 #include <process.h>
 #define cbm_pipeline_getpid _getpid
 #else
+#include <fcntl.h>
 #include <unistd.h>
 #define cbm_pipeline_getpid getpid
 #endif
@@ -1581,6 +1582,33 @@ static bool promote_mode_to_existing_coverage(cbm_pipeline_t *p) {
     return promoted;
 }
 
+/* A lock held by a live twin (or a sidecar denied for the same reason) is the
+ * only lock failure worth a fresh suffix. */
+static bool stage_lock_errno_retryable(int err) {
+    return err == EWOULDBLOCK || err == EAGAIN || err == EACCES;
+}
+
+/* Exclusive-create the stage's main file. POSIX creates it 0600 regardless of
+ * umask: the stage holds the full index. Returns NULL with errno set. */
+static FILE *stage_main_file_create(const char *path) {
+#ifdef _WIN32
+    return cbm_fopen(path, "wbx");
+#else
+    int fd = open(path, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, S_IRUSR | S_IWUSR);
+    if (fd < 0) {
+        return NULL;
+    }
+    FILE *file = fdopen(fd, "wb");
+    if (!file) {
+        int saved = errno;
+        (void)close(fd);
+        (void)unlink(path);
+        errno = saved;
+    }
+    return file;
+#endif
+}
+
 /* Defined below, next to the other publication helpers. */
 static char *create_staging_path(const char *final_path);
 
@@ -2698,6 +2726,7 @@ static char *create_staging_path(const char *final_path) {
      *
      * A minted suffix collides with an existing stage only about 1 in 62^6;
      * retry a bounded number of times, the way mkstemp/mkdtemp do, then fail. */
+    int last_errno = 0;
     for (int attempt = 0; attempt < CBM_STAGE_CREATE_ATTEMPTS; attempt++) {
         unsigned char rnd[CBM_STAGE_SUFFIX_RANDOM_CHARS];
         if (!cbm_secure_random(rnd, sizeof(rnd))) {
@@ -2711,19 +2740,29 @@ static char *create_staging_path(const char *final_path) {
         int lock_fd = cbm_pipeline_stage_lock_hold(path);
         if (lock_fd < 0) {
             /* A live twin already owns this exact suffix's sidecar (EAGAIN /
-             * EACCES), or the sidecar could not be created. Mint a fresh suffix
-             * and try again rather than contend for this one. */
-            continue;
+             * EACCES): mint a fresh suffix and try again rather than contend
+             * for this one. Any other errno is a real failure. */
+            last_errno = errno;
+            if (stage_lock_errno_retryable(last_errno)) {
+                continue;
+            }
+            break;
         }
-        FILE *main_file = cbm_fopen(path, "wbx");
+        FILE *main_file = stage_main_file_create(path);
         if (!main_file) {
-            /* The suffix collided with a lock-less orphan's main file -- its
-             * sidecar was takeable, so it is not a live writer. Never inherit a
-             * stranger's bytes: drop the lock, remove the sidecar we just took,
-             * and mint a fresh suffix. The orphan's main file is left for a
-             * later sweep, which removes it as a pre-lock-era orphan. */
+            /* Save errno before the drop: close/unlink can clobber it. */
+            last_errno = errno;
             cbm_pipeline_stage_lock_drop(path, lock_fd);
-            continue;
+            if (last_errno == EEXIST) {
+                /* The suffix collided with a lock-less orphan's main file --
+                 * its sidecar was takeable, so it is not a live writer. Never
+                 * inherit a stranger's bytes: the lock and sidecar are
+                 * dropped, so mint a fresh suffix. The orphan's main file is
+                 * left for a later sweep, which removes it as a pre-lock-era
+                 * orphan. */
+                continue;
+            }
+            break;
         }
         (void)fclose(main_file);
 #if defined(CBM_INCREMENTAL_TEST_API) && CBM_INCREMENTAL_TEST_API
@@ -2741,10 +2780,10 @@ static char *create_staging_path(const char *final_path) {
         }
         return path;
     }
-    /* Every attempt failed to take a lock -- keep the observability the old
-     * stage_owner_register() emitted for a lock failure. */
+    /* Attempts exhausted or a non-retryable failure -- keep the observability
+     * the old stage_owner_register() emitted for a lock failure. */
     char errno_text[CBM_STAGE_OWNER_ERRNO_TEXT_SIZE];
-    (void)snprintf(errno_text, sizeof(errno_text), "%d", errno);
+    (void)snprintf(errno_text, sizeof(errno_text), "%d", last_errno);
     cbm_log_warn("pipeline.stage", "action", "lock_failed", "errno", errno_text, "path", path);
     free(path);
     return NULL;

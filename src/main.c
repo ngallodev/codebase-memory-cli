@@ -2156,13 +2156,31 @@ static void main_daemon_ctl_print_status_json(bool active,
         printf("{\"active\":false,\"status\":\"not_running\"}\n");
         return;
     }
-    printf("{\"active\":true,\"status\":\"active\",\"permanent\":%s,"
-           "\"pid\":%lu,\"clients\":%u,\"committed_clients\":%u,\"stopping\":%s,"
-           "\"version\":\"%s\",\"build\":\"%s\"}\n",
-           status->permanent ? "true" : "false", (unsigned long)status->daemon_pid,
-           (unsigned)status->client_count, (unsigned)status->committed_clients,
-           status->stopping ? "true" : "false", status->semantic_version,
-           status->build_fingerprint);
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
+    if (!root) {
+        if (doc) {
+            yyjson_mut_doc_free(doc);
+        }
+        (void)fprintf(stderr, "error: could not allocate status JSON\n");
+        return;
+    }
+    yyjson_mut_doc_set_root(doc, root);
+    yyjson_mut_obj_add_bool(doc, root, "active", true);
+    yyjson_mut_obj_add_str(doc, root, "status", "active");
+    yyjson_mut_obj_add_bool(doc, root, "permanent", status->permanent);
+    yyjson_mut_obj_add_uint(doc, root, "pid", (unsigned long)status->daemon_pid);
+    yyjson_mut_obj_add_uint(doc, root, "clients", (unsigned)status->client_count);
+    yyjson_mut_obj_add_uint(doc, root, "committed_clients", (unsigned)status->committed_clients);
+    yyjson_mut_obj_add_bool(doc, root, "stopping", status->stopping);
+    yyjson_mut_obj_add_strcpy(doc, root, "version", status->semantic_version);
+    yyjson_mut_obj_add_strcpy(doc, root, "build", status->build_fingerprint);
+    char *json = yyjson_mut_write(doc, 0, NULL);
+    yyjson_mut_doc_free(doc);
+    if (json) {
+        printf("%s\n", json);
+        free(json);
+    }
 }
 
 #ifdef _WIN32
