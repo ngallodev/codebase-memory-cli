@@ -2,6 +2,36 @@
 
 Status: **ACTIVE — supersedes migration-era remaining-work sequencing**
 
+## Readiness inventory — 2026-10-01
+
+The assigned readiness worker confirmed through the public GitHub API that
+`ngallodev/codebase-memory-cli` is public, `main` points to
+`38153854c46f237b700d68b60a65c1a1078c78c5`, the releases collection is empty,
+and open PR #12 (`release-tooling`, head
+`fd9fbe9c46c214c41e2f176d0278702afa87e4b7`) overlaps release tooling. PR #12 is
+an external change under review and must be inspected before any later
+implementation overlaps it. The latest 100 public Actions runs contained no
+workflow named `Release`; this does not establish private secret or runner
+configuration.
+
+The source contract audit confirms that both installers resolve stable bytes
+through `/releases/latest/download`, request `checksums.txt`, and map to the
+workflow's eight canonical release target tuples. The release workflow requires
+successful lint, build, smoke and soak before creating a draft; it holds drafts
+for qualification by default. Promotion validates exact release bytes and
+source identity, then publishes npm/PyPI before un-drafting GitHub. Therefore a
+GitHub-only stable promotion would require a reviewed workflow change; absent
+evidence that fork-owned npm/PyPI credentials and namespaces are intended, do
+not publish there.
+
+This inventory used unauthenticated public API reads because the worker had no
+GitHub CLI login or `GH_TOKEN`/`GITHUB_TOKEN`. Repository secret names, Actions
+variables, trusted-publisher configuration, fork scanner access, and runner
+availability remain unverified. The CLI graph could not be queried: its cache
+resolver returned `secure CLI coordination could not be created (cache-resolve)`
+and an isolated `CBM_CACHE_DIR` probe reported a version-cohort conflict. No
+repository index or primary checkout was changed by those probes.
+
 ## Purpose
 
 The CLI-first migration is architecture-complete enough that remaining work is release qualification, not further MCP migration. Structural changes after this point require evidence from build, reliability, performance, native-Windows, usability, or release validation.
