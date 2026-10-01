@@ -76,6 +76,7 @@ typedef struct {
     uint64_t last_dirty_sig;       /* committed dirty-state signature */
     uint64_t pending_dirty_sig;    /* observed at check time */
     char pending_head[CBM_SZ_128]; /* HEAD observed at check time */
+    int index_failures;            /* consecutive hard index failures */
     /* Hop from root_path up to the repository root ("" when they are the same),
      * from `rev-parse --show-cdup`. Porcelain paths are repository-relative, so
      * the signature needs this to stat them. Resolved once at baseline. */
@@ -115,6 +116,11 @@ struct cbm_watcher {
 #define POLL_FILE_STEP 500 /* add 1s per this many files */
 #define POLL_MAX_MS 60000
 
+/* Consecutive hard failures double the normal poll delay, capped at five
+ * minutes. Capping the shift keeps the intermediate value bounded. */
+#define INDEX_FAIL_SHIFT_MAX 6
+#define INDEX_FAIL_CEILING_MS 300000
+
 /* Stale-root pruning (#286): a watched project whose root directory stays
  * missing is pruned — its cached DB is deleted and the watch entry removed.
  * Deletion is destructive (the DB can hold user-authored data such as the
@@ -143,6 +149,27 @@ static int64_t now_ns(void) {
 }
 
 /* ── Adaptive interval ──────────────────────────────────────────── */
+
+int cbm_watcher_index_backoff_ms(int interval_ms, int consecutive_failures) {
+    if (interval_ms < 0) {
+        interval_ms = 0;
+    }
+    if (consecutive_failures <= 0) {
+        return interval_ms;
+    }
+    int shift =
+        consecutive_failures < INDEX_FAIL_SHIFT_MAX ? consecutive_failures : INDEX_FAIL_SHIFT_MAX;
+    int64_t delay_ms = (int64_t)interval_ms << shift;
+    if (delay_ms > INDEX_FAIL_CEILING_MS) {
+        delay_ms = INDEX_FAIL_CEILING_MS;
+    }
+    /* Keep the retry delay monotonic even for caller-supplied intervals above
+     * the ceiling. */
+    if (delay_ms < interval_ms) {
+        delay_ms = interval_ms;
+    }
+    return (int)delay_ms;
+}
 
 int cbm_watcher_poll_interval_ms(int file_count) {
     int ms = POLL_BASE_MS + ((file_count / POLL_FILE_STEP) * CBM_MSEC_PER_SEC);
@@ -1449,6 +1476,7 @@ static void poll_project(const char *key, void *val, void *ud) {
         int rc = ctx->w->index_fn(s->project_name, s->root_path, ctx->w->user_data);
         if (rc == 0) {
             ctx->reindexed++;
+            s->index_failures = 0;
             /* Commit the baselines OBSERVED AT CHECK TIME — the state whose
              * reindex just succeeded. A commit/edit landing during the
              * reindex is deliberately not absorbed: the next poll sees it
@@ -1468,10 +1496,18 @@ static void poll_project(const char *key, void *val, void *ud) {
             cbm_log_info("watcher.index.retry", "project", s->project_name);
         } else {
             cbm_log_warn("watcher.index.err", "project", s->project_name);
+            if (s->index_failures < INT_MAX) {
+                s->index_failures++;
+            }
         }
     }
 
-    s->next_poll_ns = ctx->now + ((int64_t)s->interval_ms * US_PER_MS);
+    /* index_fn and the follow-up file count can be slow. Start the delay from
+     * a fresh monotonic reading so it cannot expire before this poll returns. */
+    int64_t schedule_ns = now_ns();
+    int64_t delay_ns =
+        (int64_t)cbm_watcher_index_backoff_ms(s->interval_ms, s->index_failures) * US_PER_MS;
+    s->next_poll_ns = schedule_ns > INT64_MAX - delay_ns ? INT64_MAX : schedule_ns + delay_ns;
 }
 
 /* Callback to snapshot project state pointers into an array. */

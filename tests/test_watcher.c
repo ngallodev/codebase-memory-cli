@@ -15,6 +15,7 @@
 #include <pipeline/artifact.h>
 #include <store/store.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdatomic.h>
 #include <signal.h>
 #include <string.h>
@@ -83,6 +84,24 @@ TEST(poll_interval_small) {
     /* 500 files → 5000 + 1*1000 = 6000ms */
     ms = cbm_watcher_poll_interval_ms(500);
     ASSERT_EQ(ms, 6000);
+    PASS();
+}
+
+TEST(index_backoff_is_bounded_and_monotonic) {
+    ASSERT_EQ(cbm_watcher_index_backoff_ms(5000, 0), 5000);
+    ASSERT_EQ(cbm_watcher_index_backoff_ms(5000, 1), 10000);
+    ASSERT_EQ(cbm_watcher_index_backoff_ms(5000, 2), 20000);
+    ASSERT_EQ(cbm_watcher_index_backoff_ms(5000, 6), 300000);
+    ASSERT_EQ(cbm_watcher_index_backoff_ms(5000, INT_MAX), 300000);
+    ASSERT_EQ(cbm_watcher_index_backoff_ms(400000, 1), 400000);
+    ASSERT_EQ(cbm_watcher_index_backoff_ms(-1, 5), 0);
+    int previous = cbm_watcher_index_backoff_ms(5000, 0);
+    for (int failures = 1; failures < 100; failures++) {
+        int delay = cbm_watcher_index_backoff_ms(5000, failures);
+        ASSERT_TRUE(delay >= previous);
+        ASSERT_TRUE(delay <= 300000);
+        previous = delay;
+    }
     PASS();
 }
 
@@ -3271,6 +3290,7 @@ SUITE(watcher) {
     RUN_TEST(poll_interval_scaling);
     RUN_TEST(poll_interval_cap);
     RUN_TEST(poll_interval_small);
+    RUN_TEST(index_backoff_is_bounded_and_monotonic);
 
     /* Lifecycle */
     RUN_TEST(watcher_create_free);
