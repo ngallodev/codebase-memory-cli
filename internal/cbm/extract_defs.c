@@ -3,15 +3,15 @@
 #include "helpers.h"
 #include "lang_specs.h"
 #include "foundation/constants.h"
-#include "foundation/platform.h" // safe_realloc (frees old on failure)
-#include "foundation/log.h"      // cbm_log_error, cbm_log_warn
+#include "foundation/log.h"      // cbm_log_error
 #include "extract_node_stack.h"
 #include "simhash/minhash.h"
 #include "semantic/ast_profile.h"
 #include "tree_sitter/api.h" // TSNode, ts_node_*
 #include <stdint.h>          // uint32_t
+#include <limits.h>          // INT_MAX
 #include <stdio.h>           // snprintf (ObjectScript storage/trigger sidecars)
-#include <stdlib.h>          // getenv, atoi
+#include <stdlib.h>          // malloc/realloc/free
 #include <string.h>
 #include <ctype.h>
 
@@ -7073,58 +7073,56 @@ typedef struct {
  * single ~160 KB C-stack frame. That overflowed small thread stacks (the
  * pre-2026-03 Windows 1 MB main thread) on the definitions pass, and its
  * `top < 4096` push guards SILENTLY DROPPED every top-level definition past
- * 4096. Use a growable heap stack instead: a tiny initial footprint that doubles
- * on demand, bounded by a generous, env-configurable ceiling that WARNs (once)
- * rather than dropping — so a file with thousands of top-level defs is fully
- * extracted, and a pathological one degrades to a warned, bounded skip instead
- * of an OOM or a stack overflow. */
+ * 4096. The former env-configurable frame ceiling could silently decide which
+ * definitions were extracted. Grow without a work cap; allocation failure is
+ * reported as a per-file error so partial results are never mistaken for a
+ * complete extraction. */
 typedef struct {
     walk_defs_frame_t *data;
     int top;
     int cap;
-    const char *path; // for the WARN when the ceiling is hit (may be NULL)
-    bool warned;
+    const char *path; // for the allocation error log (may be NULL)
+    bool failed;
 } wd_stack_t;
 
-// Generous safety ceiling (frames), env-overridable via CBM_WALK_DEFS_MAX.
-// Realistic files never approach this; it only bounds a pathological/adversarial
-// file so extraction degrades to a warned skip rather than unbounded memory.
-static int wd_stack_max(void) {
-    const char *e = getenv("CBM_WALK_DEFS_MAX");
-    if (e) {
-        int v = atoi(e);
-        if (v > 0) {
-            return v;
-        }
+enum { WD_STACK_INITIAL = 256 };
+
+static bool wd_grow(wd_stack_t *s) {
+    int ncap = WD_STACK_INITIAL;
+    bool fits = true;
+    if (s->cap > 0) {
+        fits = s->cap <= INT_MAX / 2;
+        ncap = fits ? s->cap * 2 : s->cap;
     }
-    return 8 * 1024 * 1024; // 8M frames (~320 MB) default
+    fits = fits && (size_t)ncap <= SIZE_MAX / sizeof(walk_defs_frame_t);
+    walk_defs_frame_t *nd = NULL;
+    if (fits) {
+        size_t bytes = (size_t)ncap * sizeof(walk_defs_frame_t);
+        nd = (walk_defs_frame_t *)realloc(s->data, bytes);
+    }
+    if (!nd) {
+        char pending[24];
+        snprintf(pending, sizeof(pending), "%d", s->top);
+        cbm_log_error("extract.walk_stack_alloc_failed", "walker", "walk_defs", "pending", pending,
+                      "path", s->path ? s->path : "");
+        return false;
+    }
+    s->data = nd;
+    s->cap = ncap;
+    return true;
 }
 
 static void wd_push(wd_stack_t *s, TSNode node, const char *enclosing_qn) {
+    if (s->failed) {
+        return;
+    }
     if (s->top >= s->cap) {
-        int ncap = s->cap ? s->cap * 2 : 256;
-        if (ncap > wd_stack_max()) {
-            if (!s->warned) {
-                char lim[24];
-                snprintf(lim, sizeof(lim), "%d", wd_stack_max());
-                cbm_log_warn("extract.walk_defs_capped", "limit", lim, "path",
-                             s->path ? s->path : "");
-                s->warned = true;
-            }
-            return; // bounded: stop growing (warned, not silent)
-        }
-        walk_defs_frame_t *nd = safe_realloc(s->data, (size_t)ncap * sizeof(walk_defs_frame_t));
-        if (!nd) {
-            /* OOM — safe_realloc already freed the old buffer. Bail cleanly: drop
-             * pending frames so the walk_defs loop drains and exits without a NULL
-             * deref; extraction keeps whatever was already emitted. */
-            s->data = NULL;
-            s->cap = 0;
+        if (!wd_grow(s)) {
+            /* Discard pending work; the caller marks the file result as failed. */
+            s->failed = true;
             s->top = 0;
             return;
         }
-        s->data = nd;
-        s->cap = ncap;
     }
     s->data[s->top++] = (walk_defs_frame_t){node, enclosing_qn};
 }
@@ -7931,6 +7929,10 @@ static void walk_defs(CBMExtractCtx *ctx, TSNode root, const CBMLangSpec *spec, 
         wd_push_children_reverse(&s, node, frame.enclosing_class_qn);
     }
     free(s.data);
+    if (s.failed) {
+        ctx->result->has_error = true;
+        ctx->result->error_msg = "definitions walk: stack allocation failed";
+    }
 }
 
 void cbm_extract_definitions_without_module(CBMExtractCtx *ctx) {

@@ -10,7 +10,7 @@
 #include "../internal/cbm/helpers.h"
 #include "../internal/cbm/lang_specs.h"
 #include "../internal/cbm/vendored/ts_runtime/include/tree_sitter/api.h"
-#include "../src/foundation/compat.h" /* cbm_clock_gettime (wide-flat scaling guard) */
+#include "../src/foundation/compat.h" /* cbm_clock_gettime, cbm_setenv */
 #include "../src/foundation/compat_fs.h"
 #include <time.h>
 #include "macro_table.h"
@@ -4879,6 +4879,37 @@ TEST(complexity_access_depth_and_params) {
     PASS();
 }
 
+/* The old walk ceiling could discard pending top-level definitions. Keep its
+ * former environment knob below the generated file's width as a regression. */
+enum { WIDE_DEFS = 1000, WIDE_DEFS_OLD_CAP = 256 };
+
+TEST(walk_defs_wide_file_extracts_every_definition) {
+    size_t cap = (size_t)WIDE_DEFS * 40 + 64;
+    char *src = malloc(cap);
+    ASSERT_NOT_NULL(src);
+    size_t pos = 0;
+    for (int i = 0; i < WIDE_DEFS; i++) {
+        int n = snprintf(src + pos, cap - pos, "int wd%d(void) { return %d; }\n", i, i);
+        ASSERT(n > 0 && (size_t)n < cap - pos);
+        pos += (size_t)n;
+    }
+    char lim[16];
+    snprintf(lim, sizeof(lim), "%d", WIDE_DEFS_OLD_CAP);
+    cbm_setenv("CBM_WALK_DEFS_MAX", lim, 1);
+    CBMFileResult *r = extract(src, CBM_LANG_C, "t", "wide_defs.c");
+    cbm_unsetenv("CBM_WALK_DEFS_MAX");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    for (int i = 0; i < WIDE_DEFS; i++) {
+        char name[16];
+        snprintf(name, sizeof(name), "wd%d", i);
+        ASSERT_NOT_NULL(find_def(r, name));
+    }
+    cbm_free_result(r);
+    free(src);
+    PASS();
+}
+
 /* ═══════════════════════════════════════════════════════════════════
  * Perl call-graph noise (#459 follow-up)
  * ═══════════════════════════════════════════════════════════════════ */
@@ -7081,6 +7112,7 @@ SUITE(extraction) {
     RUN_TEST(complexity_go_method_receiver_self_recursion);
     RUN_TEST(complexity_delegation_receivers_not_recursive_issue876);
     RUN_TEST(complexity_access_depth_and_params);
+    RUN_TEST(walk_defs_wide_file_extracts_every_definition);
     RUN_TEST(extract_c_ifdef_split_brace_fn_recovered_issue961);
     RUN_TEST(extract_cpp_preproc_signature_gap_issue946);
     RUN_TEST(extract_cpp_preproc_macro_generated_callable_skipped_issue949);
