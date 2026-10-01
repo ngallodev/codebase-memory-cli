@@ -290,7 +290,12 @@ void cbm_minhash_to_hex(const cbm_minhash_t *fp, char *buf, int bufsize) {
     }
     int pos = 0;
     for (int i = 0; i < CBM_MINHASH_K; i++) {
-        pos += snprintf(buf + pos, (size_t)(bufsize - pos), "%08x", fp->values[i]);
+        int written = snprintf(buf + pos, (size_t)(bufsize - pos), "%08x", fp->values[i]);
+        if (written < 0 || written >= bufsize - pos) {
+            buf[pos] = '\0';
+            return;
+        }
+        pos += written;
     }
 }
 

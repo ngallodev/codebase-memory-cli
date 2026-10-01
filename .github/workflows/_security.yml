@@ -86,6 +86,10 @@ jobs:
       - name: Check for open code scanning alerts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # A PR is judged by its own CodeQL analysis (refs/pull/N/merge);
+          # without a ref the API answers for the default branch, so a fix in
+          # the PR could never clear the gate before it merged.
+          ALERT_REF: ${{ github.event_name == 'pull_request' && format('refs/pull/{0}/merge', github.event.pull_request.number) || '' }}
         run: |
           # FAIL CLOSED. The previous form was `gh api ... 2>/dev/null || echo "0"`,
           # which looks defensive and is the opposite. gh writes the API error
@@ -100,10 +104,22 @@ jobs:
           # `exit` -- an `exit` here would only end the subshell and let the
           # caller continue with an empty count, recreating the very bug this
           # replaces. The callers below check the status explicitly.
+          # Scope: CodeQL alerts only, outside vendored third-party code.
+          # Scorecard findings are repository-hygiene signals reported by their
+          # own workflow, and alerts in vendored grammars/libraries are
+          # upstream code this repo does not patch, so neither blocks a merge.
+          # --paginate: the API returns 30 alerts per page by default, so an
+          # unpaginated count silently stopped at 30.
+          ALERTS_URL='repos/${{ github.repository }}/code-scanning/alerts?state=open&per_page=100'
+          [ -n "$ALERT_REF" ] && ALERTS_URL="$ALERTS_URL&ref=$ALERT_REF"
+          GATE_FILTER='.[] | select(.tool.name == "CodeQL")
+            | select((.most_recent_instance.location.path // "")
+                     | test("^(internal/cbm/)?vendored/") | not)'
           count_open_alerts() {
             local body status
-            body=$(gh api 'repos/${{ github.repository }}/code-scanning/alerts?state=open' \
-                     --jq 'length' 2>/dev/null)
+            body=$(gh api --paginate \
+                     "$ALERTS_URL" \
+                     --jq "$GATE_FILTER | .number" 2>/dev/null)
             status=$?
             if [ $status -ne 0 ]; then
               echo "BLOCKED: cannot read code scanning alerts (gh exit $status)." >&2
@@ -111,13 +127,15 @@ jobs:
               echo "  Most likely cause: the job lacks security-events:read." >&2
               return 1
             fi
-            case "$body" in
+            local count
+            count=$(printf '%s' "$body" | grep -c . || true)
+            case "$count" in
               ''|*[!0-9]*)
-                echo "BLOCKED: alert count was not a number: ${body:-<empty>}" >&2
+                echo "BLOCKED: alert count was not a number: ${count:-<empty>}" >&2
                 return 1
                 ;;
             esac
-            printf '%s' "$body"
+            printf '%s' "$count"
           }
           echo "Waiting 60s for alert API to settle..."
           sleep 60
@@ -127,8 +145,9 @@ jobs:
           [ "$ALERTS" -lt "$ALERTS2" ] && ALERTS=$ALERTS2
           if [ "$ALERTS" -gt 0 ]; then
             echo "BLOCKED: $ALERTS open alert(s)"
-            gh api 'repos/${{ github.repository }}/code-scanning/alerts?state=open' \
-              --jq '.[] | "  #\(.number) [\(.rule.security_severity_level // .rule.severity)] \(.rule.id) — \(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)"' 2>/dev/null || true
+            gh api --paginate \
+              "$ALERTS_URL" \
+              --jq "$GATE_FILTER"' | "  #\(.number) [\(.rule.security_severity_level // .rule.severity)] \(.rule.id) — \(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)"' 2>/dev/null || true
             exit 1
           fi
-          echo "=== CodeQL gate passed (0 alerts) ==="
+          echo "=== CodeQL gate passed (0 gating CodeQL alerts) ==="
