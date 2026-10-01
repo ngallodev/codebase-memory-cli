@@ -120,6 +120,7 @@ struct cbm_watcher {
  * minutes. Capping the shift keeps the intermediate value bounded. */
 #define INDEX_FAIL_SHIFT_MAX 6
 #define INDEX_FAIL_CEILING_MS 300000
+#define INDEX_FAIL_SUSTAINED 10
 
 /* Stale-root pruning (#286): a watched project whose root directory stays
  * missing is pruned — its cached DB is deleted and the watch entry removed.
@@ -1492,12 +1493,21 @@ static void poll_project(const char *key, void *val, void *ud) {
                 s->interval_ms = cbm_watcher_poll_interval_ms(s->file_count);
             }
         } else if (rc > 0) {
-            /* Busy-skip: baseline stays uncommitted, next poll retries. */
+            /* Busy-skip keeps the uncommitted baseline and any prior failure streak. */
             cbm_log_info("watcher.index.retry", "project", s->project_name);
         } else {
-            cbm_log_warn("watcher.index.err", "project", s->project_name);
             if (s->index_failures < INT_MAX) {
                 s->index_failures++;
+            }
+            char rc_text[CBM_SZ_32];
+            char streak_text[CBM_SZ_32];
+            snprintf(rc_text, sizeof(rc_text), "%d", rc);
+            snprintf(streak_text, sizeof(streak_text), "%d", s->index_failures);
+            cbm_log_warn("watcher.index.err", "project", s->project_name, "rc", rc_text,
+                         "consecutive", streak_text);
+            if (s->index_failures == INDEX_FAIL_SUSTAINED) {
+                cbm_log_warn("watcher.index.sustained_failure", "project", s->project_name,
+                             "consecutive", streak_text);
             }
         }
     }

@@ -95,8 +95,9 @@ int cbm_watcher_watch_count(cbm_watcher_t *w);
 int cbm_watcher_poll_interval_ms(int file_count);
 
 /* Return the delay (ms) before the next poll after consecutive hard index
- * failures. Each failure doubles the normal interval, up to a five-minute
- * ceiling; zero failures preserves the normal interval. */
+ * failures. Doubling stops at six shifts and a five-minute ceiling, but never
+ * shortens the supplied interval. Small intervals can plateau below the ceiling;
+ * zero failures preserves the normal interval. Busy skips retain a prior streak. */
 int cbm_watcher_index_backoff_ms(int interval_ms, int consecutive_failures);
 
 /* Classify a stat() errno observed on a watched project root: returns true
