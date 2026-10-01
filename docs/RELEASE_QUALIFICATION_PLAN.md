@@ -204,3 +204,11 @@ The dispatch record binds the clean source commit, explicit RC tag, release work
 ### Qualified source identity
 
 External qualification evidence must bind the exact release tag to its immutable source commit (`release.source_commit`) in addition to the Windows archive and executable SHA-256 values. The promotion workflow checks out the exact tag and rejects evidence whose source commit differs.
+
+## First stable release and installer readiness
+
+The current shell and PowerShell installers resolve `https://github.com/ngallodev/codebase-memory-cli/releases/latest/download`. A draft release, an RC, or a GitHub release marked prerelease does not make that endpoint serve a stable release. The first working public installer therefore requires a qualified, non-prerelease, non-draft `vX.Y.Z` GitHub release with the installer-expected archives and checksums attached. Select the version explicitly after checking both the release and tag namespaces are unused; `v0.11.0-rc.1` remains a recommendation for a held candidate, not a selected version.
+
+After promotion, verify from an unauthenticated client that `/releases/latest` resolves to that stable tag, every installer-requested asset is present, and each direct download returns the expected archive bytes. Run fresh installs using those public URLs in a real WSL2 Linux distro and on native Windows. For each supported architecture, record installer transcript, asset/hash, `--version`, and a small fixture index/status/search/snippet result. The Linux host build is not WSL evidence; Windows ARM64 routing must be exercised on a native ARM64 machine or explicitly remain unqualified. Existing artifact, checksum, archive-layout and installer safety checks stay required.
+
+The current promotion workflow always publishes npm and PyPI before un-drafting GitHub. If the fork does not own those package namespaces or cannot use their trusted publishers, treat that as a fork configuration/ownership blocker. Before any publication, review a minimal GitHub-only promotion option that keeps exact-candidate qualification verification and exposes an explicit choice to omit registry publication. Do not add that route as an unreviewed readiness change and do not silently skip failed registry publication.
