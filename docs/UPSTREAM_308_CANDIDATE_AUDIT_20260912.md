@@ -161,3 +161,34 @@ OpenHands, and already-tracked work before selecting the following verticals.
 The refresh adds six potential verticals: two core safety/performance fixes,
 one CI security pair, one dependency update, one test-throughput adaptation,
 and one large scoped activation safety adaptation.
+
+
+## 2026-10-01 local integration and PR comment follow-up
+
+Candidate `local-mr/jev-integration-20261001` is based on release-tooling
+`4d6bd4d8`. It contains COUNT, properties scanner cleanup, Jenkins daemon
+recovery, and installer fork defaults (`c9841610`). PR #12 thread
+`PRRT_kwDORjrg5c6n5KE9` remains open until Jenkins validation and publication.
+PR #8 has no inline review threads as of the GitHub refresh.
+
+| Rank | Upstream slice | Local integration evidence | Remaining gate |
+|---|---|---|---|
+| 1 | Macro coverage `e4780c20` | `bba31937`, `8e76597f`: containment first, shared line offsets, original byte predicate and allocation fallback | Full Jenkins |
+| 2 | Watcher `76e54f75` and QA follow-ups | `322d39ed`, `05cd7731`: capped hard-failure backoff, diagnostics, monotonic scheduling | Full Jenkins; helper tests do not establish scheduler integration |
+| 3 | AST auxiliary walkers `7707c9d7` | `db6d1f57`, `f37c02c9`: body-token, branching and complexity stacks grow; metric failure returns unavailable sentinel | Full Jenkins; allocation failure not exercised |
+
+The separate definition-stack ceiling removal in upstream `77ab4bea` is
+not included: `CBM_WALK_DEFS_MAX` remains. Do not classify that commit as
+fully represented. LSP array optimization `d7eba5a7` is already represented
+by ancestor `fcc51bc9` and was excluded from the three slices.
+
+COUNT focused Jenkins build 2 at `784974f9` passed 71 store_nodes checks.
+ADR build 2 at `ee4a04e3` failed lint before tests (banned NOLINT comments);
+ADR is excluded from this integration. Jenkins recovery build 1 at `523731ea`
+passed. These results do not validate the combined candidate.
+
+Full Jenkins validation, independent acceptance, local merge and origin push
+remain pending. Agent-Workflow AST correction run `JEV-AST-METRICS-R2-20261001`
+finished partial pending Jenkins. Historical external run lifecycle records do
+not establish acceptance. Exhaustive commit classification, index reset, package
+manager fork defaults, and native Windows/WSL release qualification remain open.

@@ -10,6 +10,14 @@
 
 ## Open
 
+- [ ] Validate `local-mr/jev-integration-20261001` through the full Jenkins gate,
+  then review, merge into release-tooling and publish PR #12 installer fix
+  `c9841610`; resolve thread `PRRT_kwDORjrg5c6n5KE9` after publication.
+- [ ] Complete upstream definition-stack ceiling removal `77ab4bea`; auxiliary
+  AST stacks from `7707c9d7` are implemented locally, pending Jenkins.
+- [ ] Qualify native Windows/WSL releases and align package-manager fork defaults.
+
+
 - [ ] Add opt-in, single-run index metrics for performance diagnosis.
   - Extend `index` with a one-shot flag (for example `--metrics-out PATH`),
     rather than enabling persistent daemon timing by default.
