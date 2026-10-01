@@ -676,6 +676,11 @@ void cbm_free_tree(CBMFileResult *result);
 // Free a standalone TSTree pointer (for Go layer cleanup).
 void cbm_free_tree_ptr(TSTree *tree);
 
+#ifdef CBM_ENABLE_TEST_SEAMS
+// Test-only: bytes scanned to locate lines for the #1071 macro check.
+uint64_t cbm_test_macro_line_scan_bytes(void);
+#endif
+
 // Reset the thread-local parser's internal state, releasing slab-allocated
 // subtrees. Must be called BEFORE cbm_slab_reset_thread() so the slab rebuild
 // doesn't corrupt live parser state.

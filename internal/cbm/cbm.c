@@ -1114,6 +1114,49 @@ static void cbm_subtract_recovered_regions(cbm_error_regions_t *regs, const CBMD
     regs->count = kept;
 }
 
+#ifdef CBM_ENABLE_TEST_SEAMS
+/* Count source bytes read by the #1071 line lookup, so tests can assert cost
+ * without depending on timing. */
+static CBM_TLS uint64_t tl_macro_line_scan_bytes = 0;
+uint64_t cbm_test_macro_line_scan_bytes(void) {
+    return tl_macro_line_scan_bytes;
+}
+#define CBM_MACRO_LINE_SCAN(n) (tl_macro_line_scan_bytes += (uint64_t)(n))
+#else
+#define CBM_MACRO_LINE_SCAN(n) ((void)0)
+#endif
+
+static uint32_t *cbm_line_offsets(const char *src, int src_len, uint32_t *out_lines) {
+    if (!src || src_len <= 0) {
+        *out_lines = 0;
+        return NULL;
+    }
+    uint32_t lines = 1;
+    for (int i = 0; i < src_len; i++) {
+        if (src[i] == '\n') {
+            lines++;
+        }
+    }
+    CBM_MACRO_LINE_SCAN(src_len);
+    uint32_t *offs = (uint32_t *)malloc((size_t)(lines + 1) * sizeof(uint32_t));
+    if (!offs) {
+        *out_lines = 0;
+        return NULL;
+    }
+    uint32_t n = 0;
+    offs[n++] = 0;
+    int i = 0;
+    for (; i < src_len && n < lines; i++) {
+        if (src[i] == '\n') {
+            offs[n++] = (uint32_t)i + 1;
+        }
+    }
+    CBM_MACRO_LINE_SCAN(i);
+    offs[n] = (uint32_t)src_len;
+    *out_lines = n;
+    return offs;
+}
+
 /* #1071: a function-like macro invocation whose argument is a type token
  * (e.g. ALLOC(int, n)) makes tree-sitter's C/C++ grammar emit an ERROR node — it
  * parses `int` in expression position — which would be recorded as a parse_partial
@@ -1134,6 +1177,7 @@ static bool cbm_span_is_macro_invocation(const char *src, int src_len, uint32_t 
         }
     }
     if (line != start_line) {
+        CBM_MACRO_LINE_SCAN(span_start);
         return false;
     }
     int span_end = span_start;
@@ -1142,6 +1186,7 @@ static bool cbm_span_is_macro_invocation(const char *src, int src_len, uint32_t 
             line++;
         }
     }
+    CBM_MACRO_LINE_SCAN(span_end);
     for (int di = 0; di < defs->count; di++) {
         const CBMDefinition *d = &defs->items[di];
         /* Function-like macros only: an object-like macro (#define PI 3.14) has no
@@ -1192,21 +1237,50 @@ static bool cbm_region_inside_callable(uint32_t rs, uint32_t re, const CBMDefArr
     return false;
 }
 
+/* Use one source line table for all in-callable regions. Regions outside
+ * callables need no source scan, and a failed table allocation keeps the
+ * original per-region walk as a safe fallback. */
+static bool cbm_lines_are_macro_invocation(const char *src, int src_len, const uint32_t *offs,
+                                           uint32_t nlines, uint32_t start_line, uint32_t end_line,
+                                           const CBMDefArray *defs) {
+    if (!offs) {
+        return cbm_span_is_macro_invocation(src, src_len, start_line, end_line, defs);
+    }
+    if (!src || src_len <= 0 || !defs || start_line == 0 || end_line < start_line ||
+        start_line > nlines) {
+        return false;
+    }
+    uint32_t last = end_line < nlines ? end_line : nlines;
+    return cbm_byte_span_is_macro_invocation(src, src_len, (int)offs[start_line - 1],
+                                             (int)offs[last], defs);
+}
+
 static void cbm_subtract_macro_invocation_regions(cbm_error_regions_t *regs,
                                                   const CBMDefArray *defs, const char *src,
                                                   int src_len) {
+    uint32_t *offs = NULL;
+    uint32_t nlines = 0;
+    bool offs_built = false;
     int kept = 0;
     for (int i = 0; i < regs->count; i++) {
-        bool benign =
-            cbm_span_is_macro_invocation(src, src_len, regs->starts[i], regs->ends[i], defs) &&
-            cbm_region_inside_callable(regs->starts[i], regs->ends[i], defs);
+        uint32_t rs = regs->starts[i];
+        uint32_t re = regs->ends[i];
+        bool benign = false;
+        if (cbm_region_inside_callable(rs, re, defs)) {
+            if (!offs_built) {
+                offs = cbm_line_offsets(src, src_len, &nlines);
+                offs_built = true;
+            }
+            benign = cbm_lines_are_macro_invocation(src, src_len, offs, nlines, rs, re, defs);
+        }
         if (!benign) {
-            regs->starts[kept] = regs->starts[i];
-            regs->ends[kept] = regs->ends[i];
+            regs->starts[kept] = rs;
+            regs->ends[kept] = re;
             kept++;
         }
     }
     regs->count = kept;
+    free(offs);
 }
 
 /* Serialize collected regions as "start-end,start-end,..." into the arena. */

@@ -247,6 +247,47 @@ TEST(extract_cpp_real_in_body_error_still_flagged_issue1071) {
     PASS();
 }
 
+/* #1735: count source reads instead of timing the macro coverage check. */
+enum { MACRO_SCAN_SRC_CAP = 8192 };
+
+TEST(macro_check_skips_source_for_regions_outside_functions_issue1735) {
+    char src[MACRO_SCAN_SRC_CAP];
+    int len = snprintf(src, sizeof(src), "#define ALLOC(T, n) ((T *)malloc(sizeof(T) * (n)))\n");
+    for (int i = 0; i < 40; i++) {
+        len += snprintf(src + len, sizeof(src) - (size_t)len,
+                        "int ok%d(void) {\n    return %d;\n}\n} ] junk ( {\n", i, i);
+    }
+    ASSERT_LT(len, MACRO_SCAN_SRC_CAP);
+    uint64_t before = cbm_test_macro_line_scan_bytes();
+    CBMFileResult *r = extract(src, CBM_LANG_C, "t", "junk.c");
+    uint64_t scanned = cbm_test_macro_line_scan_bytes() - before;
+    ASSERT_NOT_NULL(r);
+    ASSERT_TRUE(r->parse_incomplete);
+    ASSERT_EQ(r->error_region_count, 40);
+    ASSERT_EQ(scanned, 0u);
+    cbm_free_result(r);
+    PASS();
+}
+
+TEST(macro_check_builds_one_line_table_for_in_body_regions_issue1735) {
+    char src[MACRO_SCAN_SRC_CAP];
+    int len = snprintf(src, sizeof(src), "#define ALLOC(T, n) ((T *)malloc(sizeof(T) * (n)))\n");
+    for (int i = 0; i < 60; i++) {
+        len += snprintf(src + len, sizeof(src) - (size_t)len,
+                        "int f%d(void) {\n    int x = ;\n    return x;\n}\n", i);
+    }
+    ASSERT_LT(len, MACRO_SCAN_SRC_CAP);
+    uint64_t before = cbm_test_macro_line_scan_bytes();
+    CBMFileResult *r = extract(src, CBM_LANG_C, "t", "inbody.c");
+    uint64_t scanned = cbm_test_macro_line_scan_bytes() - before;
+    ASSERT_NOT_NULL(r);
+    ASSERT_TRUE(r->parse_incomplete);
+    ASSERT_EQ(r->error_region_count, 60);
+    ASSERT_LTE(scanned, (uint64_t)len * 2u);
+    cbm_free_result(r);
+    PASS();
+}
+
 /* --- GDScript: AST -> graph visitor (Godot, #186) --- */
 TEST(extract_gdscript_issue186) {
     CBMFileResult *r = extract("extends Node\n"
@@ -6659,6 +6700,8 @@ SUITE(extraction) {
     RUN_TEST(extract_cpp_macros_issue375);
     RUN_TEST(extract_cpp_functionlike_macro_type_arg_no_false_parse_partial_issue1071);
     RUN_TEST(extract_cpp_real_in_body_error_still_flagged_issue1071);
+    RUN_TEST(macro_check_skips_source_for_regions_outside_functions_issue1735);
+    RUN_TEST(macro_check_builds_one_line_table_for_in_body_regions_issue1735);
     RUN_TEST(extract_gdscript_issue186);
     RUN_TEST(extract_powershell_issue35);
     RUN_TEST(extract_luau_issue39);
