@@ -21,6 +21,7 @@
 #include "foundation/compat_thread.h"
 #include "foundation/log.h"
 #include "foundation/platform.h"
+#include "foundation/private_file_lock.h"
 #include "pipeline/pipeline.h"
 #include "store/store.h"
 
@@ -116,6 +117,22 @@ static void runtime_test_activation_shutdown_sink(const char *line) {
         strstr(line, "active_clients") && strstr(line, "active_connections")) {
         atomic_store_explicit(&runtime_activation_shutdown_log_seen, true, memory_order_release);
     }
+}
+
+typedef struct {
+    const cbm_daemon_ipc_endpoint_t *endpoint;
+    const cbm_daemon_build_identity_t *identity;
+    atomic_int requests;
+} runtime_test_owned_quiesce_t;
+
+static cbm_version_cohort_quiesce_result_t runtime_test_owned_quiesce(void *context) {
+    runtime_test_owned_quiesce_t *request = context;
+    (void)atomic_fetch_add_explicit(&request->requests, 1, memory_order_relaxed);
+    cbm_daemon_runtime_activation_result_t result = {0};
+    (void)cbm_daemon_runtime_request_activation_shutdown(
+        request->endpoint, request->identity, CBM_DAEMON_RUNTIME_ACTIVATION_UPDATE,
+        RUNTIME_TEST_TIMEOUT_MS, &result);
+    return CBM_VERSION_COHORT_QUIESCE_REQUESTED;
 }
 
 typedef struct {
@@ -2227,6 +2244,147 @@ TEST(daemon_runtime_activation_ack_snapshots_then_interrupts_all_clients) {
     ASSERT_TRUE(first_interrupted);
     ASSERT_TRUE(second_interrupted);
     ASSERT_TRUE(exited);
+    PASS();
+}
+
+TEST(daemon_runtime_activation_cache_change_refuses_without_shutdown) {
+    static const char cache_a[] =
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    static const char cache_b[] =
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    cbm_daemon_build_identity_t active_identity =
+        runtime_test_identity("2.4.0", runtime_test_self_build());
+    active_identity.cache_fingerprint = cache_a;
+    runtime_test_fixture_t fixture;
+    bool started = runtime_test_fixture_start(&fixture, "activation-cache-change",
+                                              &active_identity);
+    cbm_version_cohort_manager_t *owner_manager =
+        started ? cbm_version_cohort_manager_new(fixture.endpoint) : NULL;
+    cbm_version_cohort_manager_t *activation_manager =
+        started ? cbm_version_cohort_manager_new(fixture.endpoint) : NULL;
+    cbm_version_cohort_lease_t *owner_lease = NULL;
+    cbm_version_cohort_daemon_claim_t *owner_claim = NULL;
+    cbm_daemon_conflict_t conflict;
+    cbm_version_cohort_status_t owner_status =
+        owner_manager ? cbm_version_cohort_acquire(owner_manager, &active_identity, UINT64_MAX,
+                                                   &owner_lease, &conflict)
+                      : CBM_VERSION_COHORT_IO;
+    cbm_version_cohort_status_t claim_status =
+        owner_status == CBM_VERSION_COHORT_OK
+            ? cbm_version_cohort_daemon_claim_acquire(owner_manager, &owner_claim)
+            : CBM_VERSION_COHORT_IO;
+    cbm_daemon_runtime_connect_result_t client_result = {0};
+    cbm_daemon_runtime_client_t *client =
+        claim_status == CBM_VERSION_COHORT_OK
+            ? cbm_daemon_runtime_client_connect(fixture.endpoint, &active_identity,
+                                                RUNTIME_TEST_TIMEOUT_MS, &client_result)
+            : NULL;
+
+    /* The observed cache owner changes from A to B before reservation.
+     * Admission-time identity validation must refuse A without invoking OP8. */
+    cbm_daemon_build_identity_t changed_identity = active_identity;
+    changed_identity.cache_fingerprint = cache_b;
+    if (owner_lease) {
+        (void)cbm_version_cohort_lease_release(&owner_lease);
+    }
+    cbm_version_cohort_status_t changed_status =
+        client && owner_manager
+            ? cbm_version_cohort_acquire(owner_manager, &changed_identity, UINT64_MAX,
+                                         &owner_lease, &conflict)
+            : CBM_VERSION_COHORT_IO;
+    runtime_test_owned_quiesce_t request = {
+        .endpoint = fixture.endpoint,
+        .identity = &active_identity,
+        .requests = ATOMIC_VAR_INIT(0),
+    };
+    cbm_version_cohort_quiesce_result_t quiesce = CBM_VERSION_COHORT_QUIESCE_NOT_NEEDED;
+    cbm_version_cohort_lease_t *activation_lease = NULL;
+    cbm_version_cohort_status_t activation_status =
+        changed_status == CBM_VERSION_COHORT_OK && activation_manager
+            ? cbm_version_cohort_reserve_for_mutation_cache(
+                  activation_manager, active_identity.cache_fingerprint,
+                  cbm_now_ms() + RUNTIME_TEST_TIMEOUT_MS, runtime_test_owned_quiesce, &request,
+                  &quiesce, &activation_lease)
+            : CBM_VERSION_COHORT_IO;
+    bool still_serving = client &&
+                         cbm_daemon_runtime_client_heartbeat(client, RUNTIME_TEST_TIMEOUT_MS);
+    cbm_private_lock_directory_t *lock_directory = NULL;
+    cbm_private_file_lock_t *maintenance = NULL;
+    bool maintenance_held =
+        client && cbm_daemon_ipc_private_lock_directory_new(fixture.endpoint, &lock_directory) ==
+                      CBM_PRIVATE_FILE_LOCK_OK &&
+        cbm_private_file_lock_try_acquire(
+            lock_directory, "cbm-version-cohort-maintenance-v1.lock", CBM_PRIVATE_FILE_LOCK_EX,
+            &maintenance) == CBM_PRIVATE_FILE_LOCK_OK;
+    cbm_version_cohort_lease_t *busy_lease = NULL;
+    cbm_version_cohort_status_t busy_status =
+        maintenance_held && activation_manager
+            ? cbm_version_cohort_reserve_for_mutation_cache(
+                  activation_manager, active_identity.cache_fingerprint, cbm_now_ms(),
+                  runtime_test_owned_quiesce, &request, &quiesce, &busy_lease)
+            : CBM_VERSION_COHORT_IO;
+    bool busy_still_serving = client &&
+                              cbm_daemon_runtime_client_heartbeat(
+                                  client, RUNTIME_TEST_TIMEOUT_MS);
+    if (maintenance) {
+        (void)cbm_private_file_lock_release(&maintenance);
+    }
+    if (lock_directory) {
+        cbm_private_lock_directory_close(lock_directory);
+    }
+    cbm_version_cohort_set_active_identity_unreadable_for_test(true);
+    cbm_version_cohort_lease_t *unknown_lease = NULL;
+    cbm_version_cohort_status_t unreadable_status =
+        client && activation_manager
+            ? cbm_version_cohort_reserve_for_mutation_cache(
+                  activation_manager, active_identity.cache_fingerprint,
+                  cbm_now_ms() + RUNTIME_TEST_TIMEOUT_MS, runtime_test_owned_quiesce, &request,
+                  &quiesce, &unknown_lease)
+            : CBM_VERSION_COHORT_IO;
+    cbm_version_cohort_set_active_identity_unreadable_for_test(false);
+    bool unreadable_still_serving = client &&
+                                    cbm_daemon_runtime_client_heartbeat(
+                                        client, RUNTIME_TEST_TIMEOUT_MS);
+    int requests = atomic_load_explicit(&request.requests, memory_order_relaxed);
+
+    if (activation_lease) {
+        (void)cbm_version_cohort_lease_release(&activation_lease);
+    }
+    if (client) {
+        (void)cbm_daemon_runtime_client_close(client, RUNTIME_TEST_TIMEOUT_MS);
+    }
+    if (owner_claim) {
+        (void)cbm_version_cohort_daemon_claim_release(&owner_claim);
+    }
+    if (owner_lease) {
+        (void)cbm_version_cohort_lease_release(&owner_lease);
+    }
+    while (activation_manager &&
+           cbm_version_cohort_manager_free(&activation_manager) != CBM_PRIVATE_FILE_LOCK_OK) {
+        cbm_usleep(1000);
+    }
+    while (owner_manager &&
+           cbm_version_cohort_manager_free(&owner_manager) != CBM_PRIVATE_FILE_LOCK_OK) {
+        cbm_usleep(1000);
+    }
+    runtime_test_fixture_finish(&fixture);
+
+    ASSERT_TRUE(started);
+    ASSERT_EQ(owner_status, CBM_VERSION_COHORT_OK);
+    ASSERT_EQ(claim_status, CBM_VERSION_COHORT_OK);
+    ASSERT_EQ(client_result.status, CBM_DAEMON_RUNTIME_CONNECT_ACCEPTED);
+    ASSERT_EQ(changed_status, CBM_VERSION_COHORT_OK);
+    ASSERT_EQ(activation_status, CBM_VERSION_COHORT_CONFLICT);
+    ASSERT_EQ(busy_status, CBM_VERSION_COHORT_BUSY);
+    ASSERT_EQ(unreadable_status, CBM_VERSION_COHORT_UNSAFE);
+    ASSERT_EQ(requests, 0);
+    ASSERT_TRUE(still_serving);
+    ASSERT_TRUE(maintenance_held);
+    ASSERT_TRUE(busy_still_serving);
+    ASSERT_TRUE(unreadable_still_serving);
+    ASSERT_NULL(activation_lease);
+    ASSERT_NULL(busy_lease);
+    ASSERT_NULL(unknown_lease);
     PASS();
 }
 
@@ -5244,6 +5402,7 @@ SUITE(daemon_runtime) {
     RUN_TEST(daemon_runtime_unexpected_frame_payload_is_freed_once);
     RUN_TEST(daemon_runtime_activation_rejects_forged_and_malformed_without_stop);
     RUN_TEST(daemon_runtime_activation_ack_snapshots_then_interrupts_all_clients);
+    RUN_TEST(daemon_runtime_activation_cache_change_refuses_without_shutdown);
 #if defined(_WIN32) || defined(__APPLE__) || defined(__linux__)
     RUN_TEST(daemon_runtime_activation_accepts_authenticated_different_build);
 #endif
