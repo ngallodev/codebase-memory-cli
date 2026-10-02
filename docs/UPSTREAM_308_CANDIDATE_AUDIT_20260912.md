@@ -69,6 +69,28 @@ acceptance remain pending. This section is an interim audit record, not a claim
 that the team has established parity. Assignment/launch receipts are in Sol R2
 run evidence under `luna-team/`; worker results belong in each child run's evidence.
 
+**Interactive recovery correction — 2026-10-02T21:54Z.** The headless runs above
+were found orphaned: no live worker and no finalized result; their last activity
+was near 18:16Z. The lifecycle projection still saying `running` did not establish
+live execution. Their provisional outputs remain preserved and unreviewed.
+Unstarted R2 headless retries were superseded when the user requested interactive
+Herdr terminals to the right. New external preparations are now visibly working:
+
+| Current interactive run | Herdr pane | Assignment |
+|---|---|---|
+| `CBM-RECON-EXTRACT-20261002-R3` | `wC:pB` | 111 non-merges |
+| `CBM-RECON-RUNTIME-20261002-R3` | `wC:pC` | 170 non-merges |
+| `CBM-RECON-HISTORY-20261002-R3` | `wC:pD` | 86 non-merges and 311 merges |
+
+Each uses GPT-6-Luna high, full access and approvals `never`, bound to its durable
+external run. The unchanged worktrees still have exact ready graph roots, matching
+generations and clean porcelain; the extraction worker confirms CLI access now
+works interactively. No cache-root/daemon changes were made. Replacement evidence
+records predecessor links explicitly; these are fresh external preparations,
+not modifications of sealed headless contracts. The earlier worker cache-resolution
+failure and the cause of process loss remain distinct observations; causality is
+not established. Completion, source completeness, review and acceptance remain pending.
+
 ### Actual merge history and constituent accounting
 
 | Inventory at frozen upstream | Count |

@@ -47,12 +47,15 @@
   dispositions remain unresolved. Census, patch ID and titles are not coverage.
   See [the canonical source audit](docs/UPSTREAM_308_CANDIDATE_AUDIT_20260912.md).
 - [ ] Reconcile the user-requested GPT-6-Luna team evidence:
-  `CBM-RECON-EXTRACT-20261002` (111 non-merges),
-  `CBM-RECON-RUNTIME-20261002` (170), and
-  `CBM-RECON-HISTORY-20261002` (86 plus 311 merges). All three launched from
-  independently indexed clean worktrees at `559214af`; findings/review pending.
-  Their assignments cover each differing non-merge exactly once. Parent owns
-  canonical edits; machine-readable evidence stays in Agent Run evidence.
+  Current interactive runs: `CBM-RECON-EXTRACT-20261002-R3` (111 non-merges),
+  `CBM-RECON-RUNTIME-20261002-R3` (170), and
+  `CBM-RECON-HISTORY-20261002-R3` (86 plus 311 merges). Observed working in
+  Herdr `wC:pB` / `wC:pC` / `wC:pD` at 2026-10-02T21:54Z, on unchanged
+  independently indexed clean worktrees at `559214af`. The original headless
+  workers were found orphaned, and the unstarted R2 retries were superseded at
+  the user's request. Predecessor evidence and replacement lineage are preserved;
+  no completion/review is inferred. Assignments cover each differing non-merge
+  exactly once. Parent owns canonical edits; crosswalks stay in run evidence.
 - [x] Daemon/cache/ReScript candidates and ADR alias/outline are integrated
   in local QA `559214af28ce2d6f5d6ec86662f6871316d28b45`, per acknowledged
   parent steering and source comparison. Candidate implementation is separate
