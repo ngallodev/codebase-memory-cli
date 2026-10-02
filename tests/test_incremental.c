@@ -2031,8 +2031,10 @@ TEST(tool_adr_outline_pagination_and_large_offset) {
     cbm_adr_t previous = {0};
     bool had_previous =
         cbm_store_adr_get(store, g_project, &previous) == CBM_STORE_OK && previous.content;
-    int stored =
-        cbm_store_adr_store(store, g_project, "# Root\nbody\n## Choice\nbody\n### Detail\nbody\n");
+    int stored = cbm_store_adr_store(store, g_project,
+                                     "# Root\nbody\n## Choice\nbody\n   ````c\n# Hidden\n"
+                                     "```\n## Still hidden\n   ````\n~~~\n### Hidden tilde\n"
+                                     "~~~ trailing text\n## Still fenced\n~~~\n### Detail\nbody\n");
     char *page = call_tool(
         "manage_adr",
         "{\"project\":\"%s\",\"mode\":\"outline\",\"section_limit\":1,\"section_offset\":1}",
@@ -2045,7 +2047,7 @@ TEST(tool_adr_outline_pagination_and_large_offset) {
                      count_in_response(page, "sections_returned") == 1 &&
                      count_in_response(page, "next_section_offset") == 2 &&
                      count_in_response(page, "start_line") == 3 &&
-                     count_in_response(page, "end_line") == 4 && strstr(page, "## Choice") != NULL;
+                     count_in_response(page, "end_line") == 14 && strstr(page, "## Choice") != NULL;
     bool exhausted = past_end && count_in_response(past_end, "sections_total") == 3 &&
                      count_in_response(past_end, "sections_returned") == 0 &&
                      resp_lacks_key(past_end, "next_section_offset");

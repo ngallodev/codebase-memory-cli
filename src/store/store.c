@@ -9129,7 +9129,7 @@ int cbm_adr_validate_content(const char *content, char *errbuf, int errbuf_size)
 
 /* Length of a code-fence run (``` or ~~~, after at most three spaces of
  * indent), or 0 when the line does not open or close a fence. */
-static int adr_fence_run(const char *line, int line_len, char *ch_out) {
+int cbm_adr_fence_run(const char *line, int line_len, char *ch_out) {
     int i = 0;
     while (i < line_len && i < ST_HEADER_PREFIX && line[i] == ' ') {
         i++;
@@ -9151,9 +9151,9 @@ static int adr_fence_run(const char *line, int line_len, char *ch_out) {
 
 /* True when the line is a closing fence for an open run of `open_n` `open_ch`:
  * same character, at least as long, and nothing but whitespace after it. */
-static bool adr_fence_closes(const char *line, int line_len, char open_ch, int open_n) {
+bool cbm_adr_fence_closes(const char *line, int line_len, char open_ch, int open_n) {
     char ch = 0;
-    int n = adr_fence_run(line, line_len, &ch);
+    int n = cbm_adr_fence_run(line, line_len, &ch);
     if (n == 0 || ch != open_ch || n < open_n) {
         return false;
     }
@@ -9203,12 +9203,12 @@ static bool adr_has_unterminated_fence(const char *content) {
         const char *eol = strchr(p, '\n');
         int line_len = eol ? (int)(eol - p) : (int)strlen(p);
         if (in_fence) {
-            if (adr_fence_closes(p, line_len, fence_ch, fence_n)) {
+            if (cbm_adr_fence_closes(p, line_len, fence_ch, fence_n)) {
                 in_fence = false;
             }
         } else {
             char ch = 0;
-            int n = adr_fence_run(p, line_len, &ch);
+            int n = cbm_adr_fence_run(p, line_len, &ch);
             if (n > 0) {
                 in_fence = true;
                 fence_ch = ch;
@@ -9246,12 +9246,12 @@ int cbm_adr_scan_headings(const char *content, void (*cb)(void *ctx, const cbm_a
         size_t line_off = (size_t)(p - content);
 
         if (in_fence) {
-            if (adr_fence_closes(p, line_len, fence_ch, fence_n)) {
+            if (cbm_adr_fence_closes(p, line_len, fence_ch, fence_n)) {
                 in_fence = false;
             }
         } else {
             char ch = 0;
-            int fn = adr_fence_run(p, line_len, &ch);
+            int fn = cbm_adr_fence_run(p, line_len, &ch);
             if (fn > 0) {
                 in_fence = true;
                 fence_ch = ch;

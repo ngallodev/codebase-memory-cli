@@ -138,13 +138,30 @@ static bool adr_add_outline(yyjson_mut_doc *doc, yyjson_mut_val *root, const cha
     }
     const char *p = content;
     int line = ADR_OUTLINE_FIRST_LINE;
+    bool in_fence = false;
+    char fence_ch = 0;
+    int fence_n = 0;
     while (p && *p) {
         const char *eol = strchr(p, '\n');
         const char *end = eol ? eol : p + strlen(p);
         const char *trimend =
             end > p && end[-ADR_OUTLINE_INDEX_STEP] == '\r' ? end - ADR_OUTLINE_INDEX_STEP : end;
+        bool fenced_line = in_fence;
+        int line_len = (int)(end - p);
+        if (in_fence) {
+            if (cbm_adr_fence_closes(p, line_len, fence_ch, fence_n)) {
+                in_fence = false;
+            }
+        } else {
+            int run = cbm_adr_fence_run(p, line_len, &fence_ch);
+            if (run > 0) {
+                in_fence = true;
+                fenced_line = true;
+                fence_n = run;
+            }
+        }
         int level = 0;
-        while (p + level < trimend && p[level] == '#') {
+        while (!fenced_line && p + level < trimend && p[level] == '#') {
             level++;
         }
         if (level > 0 && level <= ADR_OUTLINE_MAX_HEADING_LEVEL && p + level < trimend &&
@@ -157,9 +174,7 @@ static bool adr_add_outline(yyjson_mut_doc *doc, yyjson_mut_val *root, const cha
                 adr_outline_row_t *grown = realloc(rows, (size_t)capacity * sizeof(*rows));
                 if (!grown) {
                     free(rows);
-                    rows = NULL;
-                    count = 0;
-                    break;
+                    return false;
                 }
                 rows = grown;
             }
