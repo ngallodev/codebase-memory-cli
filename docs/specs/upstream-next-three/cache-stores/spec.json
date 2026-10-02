@@ -1,0 +1,410 @@
+{
+  "acceptance_criteria": [
+    {
+      "criterion": "Table-driven predicate coverage includes both internal names, .db, ordinary.db, _private.db, orders_config_service.db, api-wal.db and non-.db names.",
+      "id": "AC-001",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,pipeline; full union gate before push."
+    },
+    {
+      "criterion": "All discovered enumeration sites reuse the classification; list/count outputs exclude internal stores while including similarly named legitimate projects.",
+      "id": "AC-002",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,pipeline; full union gate before push."
+    },
+    {
+      "criterion": "A disposable fixture reset retains byte-identical _config.db/_cross_repo.db and their -wal/-shm/-journal/.tmp artifacts while removing intended project DBs and project sidecars.",
+      "id": "AC-003",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,pipeline; full union gate before push."
+    },
+    {
+      "criterion": "Existing lifecycle and reset tests pass; counts/prompt assertions reflect only project indexes and repeated cleanup is idempotent.",
+      "id": "AC-004",
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,pipeline; full union gate before push."
+    },
+    {
+      "criterion": "Internal stores are opened at the same paths; source and regression checks reveal no schema/path/public API drift.",
+      "id": "AC-005",
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,pipeline; full union gate before push."
+    }
+  ],
+  "context": {
+    "base_commit": "5824239b9c37664f0a389bd1deb86ca1ac28a26c",
+    "base_ref": "release-tooling",
+    "graph_generation": "2026-09-29T06:21:14Z",
+    "graph_limitations": "Older primary-checkout graph is not exact-worktree coverage; src/cli/cli.c is partial/metadata_changed. Workers must confirm their own access and index/fallback; no negative claim from inherited graph.",
+    "graph_project": "lump-apps-codebase-memory-cli",
+    "graph_tier": "Verify with exact-source fallback",
+    "upstream_boundary": "0f52d30c",
+    "upstream_sources": [
+      "46015320"
+    ]
+  },
+  "data_contracts": [],
+  "decisions": [],
+  "evaluations": [
+    {
+      "acceptance_ids": [
+        "AC-001"
+      ],
+      "id": "EVAL-001",
+      "implementation_worker_runs": false,
+      "kind": "acceptance",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "suite_selection": "cli,pipeline",
+      "venue": "existing shared Jenkins job only"
+    },
+    {
+      "acceptance_ids": [
+        "AC-002"
+      ],
+      "id": "EVAL-002",
+      "implementation_worker_runs": false,
+      "kind": "acceptance",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "suite_selection": "cli,pipeline",
+      "venue": "existing shared Jenkins job only"
+    },
+    {
+      "acceptance_ids": [
+        "AC-003"
+      ],
+      "id": "EVAL-003",
+      "implementation_worker_runs": false,
+      "kind": "acceptance",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "suite_selection": "cli,pipeline",
+      "venue": "existing shared Jenkins job only"
+    },
+    {
+      "acceptance_ids": [
+        "AC-004"
+      ],
+      "id": "EVAL-004",
+      "implementation_worker_runs": false,
+      "kind": "acceptance",
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "suite_selection": "cli,pipeline",
+      "venue": "existing shared Jenkins job only"
+    },
+    {
+      "acceptance_ids": [
+        "AC-005"
+      ],
+      "id": "EVAL-005",
+      "implementation_worker_runs": false,
+      "kind": "acceptance",
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "suite_selection": "cli,pipeline",
+      "venue": "existing shared Jenkins job only"
+    }
+  ],
+  "extensions": {
+    "delivery": {
+      "interactive_host": "Herdr; launch pending managed-session context",
+      "production_branch": "main",
+      "promotion": "Future origin PR targets main after QA passing; no automatic merge/tag/release.",
+      "push_gate": "Exact-SHA shared Jenkins required before remote push.",
+      "qa_branch": "release-tooling",
+      "review": "Worker commits are candidates; parent evaluation/review/acceptance remain separate.",
+      "sync_policy": "Frozen shared QA baseline; parent reconciles with normal merges, never rewrites published history.",
+      "version_gate": "No version/tag changes for these compatible fixes.",
+      "worker_permissions": "danger-full-access; approval never"
+    }
+  },
+  "id": "cbm-cache-stores",
+  "implementation": {
+    "phases": [
+      {
+        "id": "PHASE-IMPLEMENT",
+        "name": "Discover, adapt and commit scoped implementation"
+      },
+      {
+        "id": "PHASE-VERIFY",
+        "name": "Parent integrates, evaluates in Jenkins, independently reviews and accepts"
+      }
+    ],
+    "tasks": [
+      {
+        "dependencies": [],
+        "id": "TASK-IMPLEMENT",
+        "phase_id": "PHASE-IMPLEMENT",
+        "requirement_ids": [
+          "REQ-001",
+          "REQ-002",
+          "REQ-003",
+          "REQ-004",
+          "REQ-005"
+        ],
+        "result_contract": {
+          "required_evidence": [
+            "exact base and final commit",
+            "source adaptation map",
+            "changed paths",
+            "diff/format checks",
+            "Jenkins suites requested but not locally run",
+            "limitations and review risks"
+          ],
+          "schema": "agent-workflow/task-result/v1"
+        },
+        "title": "Project index operations must preserve internal cache databases"
+      }
+    ]
+  },
+  "intent": {
+    "non_goals": [
+      "MCP adapter changes",
+      "Remote push, PR merge or publication",
+      "New Jenkins jobs",
+      "Unrelated current PR14 CI repair",
+      "Shared daemon stops, real-account cache deletion or graph reset"
+    ],
+    "objectives": [
+      "Introduce or reuse one exact-filename classification of internal cache databases _config.db and _cross_repo.db and project index filenames with nonempty .db stems. Reject neither underscores nor config substrings generally.",
+      "Apply shared classification to every project DB list/count/remove enumeration and cross-repo wildcard enumeration. Trace callers instead of fixing only the reset path.",
+      "Reset only project databases under the existing explicit reset semantics; preserve internal database bytes and all internal sidecars/staged files.",
+      "Preserve install/update/uninstall prompts, index counts, project enumeration order and errors outside corrected internal-store classification.",
+      "Keep filename constants consistent with internal-store creation paths without changing schema, cache location or store ownership."
+    ],
+    "problem": "Project index operations must preserve internal cache databases"
+  },
+  "interfaces": [],
+  "preservation": {
+    "claims": [
+      {
+        "id": "PRES-001",
+        "source_ref": "SRC-USER",
+        "statement": "Maintain local release-tooling integration, existing shared Jenkins validation and deferred publication; no direct main push, rebase or force-push. No local tests/builds.",
+        "status": "represented",
+        "target_refs": [
+          "REQ-001",
+          "REQ-002",
+          "REQ-003",
+          "REQ-004",
+          "REQ-005"
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "sources": [
+      {
+        "description": "Implement the three selected verticals with GPT-6-Luna, full permissions, isolated worktrees and interactive Herdr panes.",
+        "id": "SRC-USER",
+        "kind": "user_input"
+      },
+      {
+        "description": "Exact release-tooling source baseline and selected upstream diffs",
+        "id": "SRC-BASE",
+        "kind": "repository",
+        "locator": "/tmp/claude-1000/-lump-apps-codebase-memory-cli/70854de5-bd44-40b4-8ac2-4cf2d6b24d01/scratchpad/wt-rt",
+        "revision": "5824239b9c37664f0a389bd1deb86ca1ac28a26c"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "priority": "must",
+      "provenance_refs": [
+        "SRC-BASE"
+      ],
+      "statement": "Introduce or reuse one exact-filename classification of internal cache databases _config.db and _cross_repo.db and project index filenames with nonempty .db stems. Reject neither underscores nor config substrings generally.",
+      "type": "functional",
+      "verification_refs": [
+        "AC-001",
+        "EVAL-001"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "priority": "must",
+      "provenance_refs": [
+        "SRC-BASE"
+      ],
+      "statement": "Apply shared classification to every project DB list/count/remove enumeration and cross-repo wildcard enumeration. Trace callers instead of fixing only the reset path.",
+      "type": "functional",
+      "verification_refs": [
+        "AC-002",
+        "EVAL-002"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "priority": "must",
+      "provenance_refs": [
+        "SRC-BASE"
+      ],
+      "statement": "Reset only project databases under the existing explicit reset semantics; preserve internal database bytes and all internal sidecars/staged files.",
+      "type": "functional",
+      "verification_refs": [
+        "AC-003",
+        "EVAL-003"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "priority": "must",
+      "provenance_refs": [
+        "SRC-BASE"
+      ],
+      "statement": "Preserve install/update/uninstall prompts, index counts, project enumeration order and errors outside corrected internal-store classification.",
+      "type": "functional",
+      "verification_refs": [
+        "AC-004",
+        "EVAL-004"
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "priority": "must",
+      "provenance_refs": [
+        "SRC-BASE"
+      ],
+      "statement": "Keep filename constants consistent with internal-store creation paths without changing schema, cache location or store ownership.",
+      "type": "functional",
+      "verification_refs": [
+        "AC-005",
+        "EVAL-005"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "name": "Exact-name exclusions are required. Broad underscore/config filters silently hide valid projects; fixture tests must never touch the real account cache."
+    }
+  ],
+  "schema": "specgen/spec/v1alpha2",
+  "scope": {
+    "excluded": [
+      "src/mcp/**",
+      "Primary dirty checkout",
+      "Unrelated release/packaging changes"
+    ],
+    "included": [
+      "src/foundation/str_util.c",
+      "src/foundation/str_util.h",
+      "src/cli/cli.c",
+      "src/cli/cli.h",
+      "src/pipeline/pass_cross_repo.c",
+      "tests/test_cli.c",
+      "tests/test_pipeline.c",
+      "tests/test_str_util.c"
+    ]
+  },
+  "snapshot": {
+    "authoring_event_ids": [],
+    "content_digest": "sha256:2bf67a183790afff0b4055c0278acc12ece8ce7022b65700491be9c6d9948ab3",
+    "created_at": "2026-10-02T04:42:29.288583Z",
+    "id": "SNAP-001",
+    "sequence": 1
+  },
+  "state": {
+    "kind": "current"
+  },
+  "status": "draft",
+  "title": "Project index operations must preserve internal cache databases",
+  "traceability": [
+    {
+      "from": "REQ-001",
+      "relation": "verified_by",
+      "to": "AC-001"
+    },
+    {
+      "from": "AC-001",
+      "relation": "evaluated_by",
+      "to": "EVAL-001"
+    },
+    {
+      "from": "REQ-001",
+      "relation": "implemented_by",
+      "to": "TASK-IMPLEMENT"
+    },
+    {
+      "from": "REQ-002",
+      "relation": "verified_by",
+      "to": "AC-002"
+    },
+    {
+      "from": "AC-002",
+      "relation": "evaluated_by",
+      "to": "EVAL-002"
+    },
+    {
+      "from": "REQ-002",
+      "relation": "implemented_by",
+      "to": "TASK-IMPLEMENT"
+    },
+    {
+      "from": "REQ-003",
+      "relation": "verified_by",
+      "to": "AC-003"
+    },
+    {
+      "from": "AC-003",
+      "relation": "evaluated_by",
+      "to": "EVAL-003"
+    },
+    {
+      "from": "REQ-003",
+      "relation": "implemented_by",
+      "to": "TASK-IMPLEMENT"
+    },
+    {
+      "from": "REQ-004",
+      "relation": "verified_by",
+      "to": "AC-004"
+    },
+    {
+      "from": "AC-004",
+      "relation": "evaluated_by",
+      "to": "EVAL-004"
+    },
+    {
+      "from": "REQ-004",
+      "relation": "implemented_by",
+      "to": "TASK-IMPLEMENT"
+    },
+    {
+      "from": "REQ-005",
+      "relation": "verified_by",
+      "to": "AC-005"
+    },
+    {
+      "from": "AC-005",
+      "relation": "evaluated_by",
+      "to": "EVAL-005"
+    },
+    {
+      "from": "REQ-005",
+      "relation": "implemented_by",
+      "to": "TASK-IMPLEMENT"
+    }
+  ],
+  "unresolved_questions": [],
+  "version": "0.1.0"
+}

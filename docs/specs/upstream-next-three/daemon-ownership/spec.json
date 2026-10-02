@@ -1,0 +1,410 @@
+{
+  "acceptance_criteria": [
+    {
+      "criterion": "Different-cache, busy and unreadable ownership fixtures observe zero shutdown requests and unchanged live session state.",
+      "id": "AC-001",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,daemon_runtime,daemon_ipc; full union gate before push."
+    },
+    {
+      "criterion": "Source trace enumerates all shutdown routes and lifecycle callers; each route enforces the same ownership rule.",
+      "id": "AC-002",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,daemon_runtime,daemon_ipc; full union gate before push."
+    },
+    {
+      "criterion": "Same-cache success, busy/refusal, failure cleanup and audit fixtures remain valid; foreign/unknown paths neither drain foreign sessions nor bypass mutation reservations.",
+      "id": "AC-003",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,daemon_runtime,daemon_ipc; full union gate before push."
+    },
+    {
+      "criterion": "Deterministically controlled ownership-change fixture proves no foreign shutdown; no timing-only sleep oracle.",
+      "id": "AC-004",
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,daemon_runtime,daemon_ipc; full union gate before push."
+    },
+    {
+      "criterion": "No wire/schema/version change; regression verifies diagnostics describe the reason and that nothing foreign was stopped.",
+      "id": "AC-005",
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,daemon_runtime,daemon_ipc; full union gate before push."
+    }
+  ],
+  "context": {
+    "base_commit": "5824239b9c37664f0a389bd1deb86ca1ac28a26c",
+    "base_ref": "release-tooling",
+    "graph_generation": "2026-09-29T06:21:14Z",
+    "graph_limitations": "Older primary-checkout graph is not exact-worktree coverage; src/cli/cli.c is partial/metadata_changed. Workers must confirm their own access and index/fallback; no negative claim from inherited graph.",
+    "graph_project": "lump-apps-codebase-memory-cli",
+    "graph_tier": "Verify with exact-source fallback",
+    "upstream_boundary": "0f52d30c",
+    "upstream_sources": [
+      "ed76cf8e"
+    ]
+  },
+  "data_contracts": [],
+  "decisions": [],
+  "evaluations": [
+    {
+      "acceptance_ids": [
+        "AC-001"
+      ],
+      "id": "EVAL-001",
+      "implementation_worker_runs": false,
+      "kind": "acceptance",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "suite_selection": "cli,daemon_runtime,daemon_ipc",
+      "venue": "existing shared Jenkins job only"
+    },
+    {
+      "acceptance_ids": [
+        "AC-002"
+      ],
+      "id": "EVAL-002",
+      "implementation_worker_runs": false,
+      "kind": "acceptance",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "suite_selection": "cli,daemon_runtime,daemon_ipc",
+      "venue": "existing shared Jenkins job only"
+    },
+    {
+      "acceptance_ids": [
+        "AC-003"
+      ],
+      "id": "EVAL-003",
+      "implementation_worker_runs": false,
+      "kind": "acceptance",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "suite_selection": "cli,daemon_runtime,daemon_ipc",
+      "venue": "existing shared Jenkins job only"
+    },
+    {
+      "acceptance_ids": [
+        "AC-004"
+      ],
+      "id": "EVAL-004",
+      "implementation_worker_runs": false,
+      "kind": "acceptance",
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "suite_selection": "cli,daemon_runtime,daemon_ipc",
+      "venue": "existing shared Jenkins job only"
+    },
+    {
+      "acceptance_ids": [
+        "AC-005"
+      ],
+      "id": "EVAL-005",
+      "implementation_worker_runs": false,
+      "kind": "acceptance",
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "suite_selection": "cli,daemon_runtime,daemon_ipc",
+      "venue": "existing shared Jenkins job only"
+    }
+  ],
+  "extensions": {
+    "delivery": {
+      "interactive_host": "Herdr; launch pending managed-session context",
+      "production_branch": "main",
+      "promotion": "Future origin PR targets main after QA passing; no automatic merge/tag/release.",
+      "push_gate": "Exact-SHA shared Jenkins required before remote push.",
+      "qa_branch": "release-tooling",
+      "review": "Worker commits are candidates; parent evaluation/review/acceptance remain separate.",
+      "sync_policy": "Frozen shared QA baseline; parent reconciles with normal merges, never rewrites published history.",
+      "version_gate": "No version/tag changes for these compatible fixes.",
+      "worker_permissions": "danger-full-access; approval never"
+    }
+  },
+  "id": "cbm-daemon-ownership",
+  "implementation": {
+    "phases": [
+      {
+        "id": "PHASE-IMPLEMENT",
+        "name": "Discover, adapt and commit scoped implementation"
+      },
+      {
+        "id": "PHASE-VERIFY",
+        "name": "Parent integrates, evaluates in Jenkins, independently reviews and accepts"
+      }
+    ],
+    "tasks": [
+      {
+        "dependencies": [],
+        "id": "TASK-IMPLEMENT",
+        "phase_id": "PHASE-IMPLEMENT",
+        "requirement_ids": [
+          "REQ-001",
+          "REQ-002",
+          "REQ-003",
+          "REQ-004",
+          "REQ-005"
+        ],
+        "result_contract": {
+          "required_evidence": [
+            "exact base and final commit",
+            "source adaptation map",
+            "changed paths",
+            "diff/format checks",
+            "Jenkins suites requested but not locally run",
+            "limitations and review risks"
+          ],
+          "schema": "agent-workflow/task-result/v1"
+        },
+        "title": "Activation must preserve foreign and unconfirmed daemon sessions"
+      }
+    ]
+  },
+  "intent": {
+    "non_goals": [
+      "MCP adapter changes",
+      "Remote push, PR merge or publication",
+      "New Jenkins jobs",
+      "Unrelated current PR14 CI repair",
+      "Shared daemon stops, real-account cache deletion or graph reset"
+    ],
+    "objectives": [
+      "Before eager shutdown or quiescence shutdown, establish a positive match between the active daemon/cohort cache identity and the activation target cache. Never infer ownership from an absent identity or a busy observation.",
+      "Adapt unknown-is-foreign behavior to the fork transaction lifecycle rather than copying upstream production reserve/scope code unchanged. Account for every eager and callback shutdown route and relevant install/update/uninstall/reset caller.",
+      "Preserve exact same-cache install/update/uninstall behavior, exclusive mutation authority, lock ordering, bounded waits, cleanup and truthful audit outcomes. A skipped shutdown must not grant authority to mutate a foreign namespace.",
+      "Close time-of-check/time-of-use gaps through the existing cohort reservation/identity contracts. If the ownership identity changes between observation and reservation/callback, refuse or skip without stopping the changed cohort.",
+      "Retain existing wire/API compatibility and user-visible CLI semantics except accurate diagnostics for preserved foreign/unknown sessions."
+    ],
+    "problem": "Activation must preserve foreign and unconfirmed daemon sessions"
+  },
+  "interfaces": [],
+  "preservation": {
+    "claims": [
+      {
+        "id": "PRES-001",
+        "source_ref": "SRC-USER",
+        "statement": "Maintain local release-tooling integration, existing shared Jenkins validation and deferred publication; no direct main push, rebase or force-push. No local tests/builds.",
+        "status": "represented",
+        "target_refs": [
+          "REQ-001",
+          "REQ-002",
+          "REQ-003",
+          "REQ-004",
+          "REQ-005"
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "sources": [
+      {
+        "description": "Implement the three selected verticals with GPT-6-Luna, full permissions, isolated worktrees and interactive Herdr panes.",
+        "id": "SRC-USER",
+        "kind": "user_input"
+      },
+      {
+        "description": "Exact release-tooling source baseline and selected upstream diffs",
+        "id": "SRC-BASE",
+        "kind": "repository",
+        "locator": "/tmp/claude-1000/-lump-apps-codebase-memory-cli/70854de5-bd44-40b4-8ac2-4cf2d6b24d01/scratchpad/wt-rt",
+        "revision": "5824239b9c37664f0a389bd1deb86ca1ac28a26c"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "priority": "must",
+      "provenance_refs": [
+        "SRC-BASE"
+      ],
+      "statement": "Before eager shutdown or quiescence shutdown, establish a positive match between the active daemon/cohort cache identity and the activation target cache. Never infer ownership from an absent identity or a busy observation.",
+      "type": "functional",
+      "verification_refs": [
+        "AC-001",
+        "EVAL-001"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "priority": "must",
+      "provenance_refs": [
+        "SRC-BASE"
+      ],
+      "statement": "Adapt unknown-is-foreign behavior to the fork transaction lifecycle rather than copying upstream production reserve/scope code unchanged. Account for every eager and callback shutdown route and relevant install/update/uninstall/reset caller.",
+      "type": "functional",
+      "verification_refs": [
+        "AC-002",
+        "EVAL-002"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "priority": "must",
+      "provenance_refs": [
+        "SRC-BASE"
+      ],
+      "statement": "Preserve exact same-cache install/update/uninstall behavior, exclusive mutation authority, lock ordering, bounded waits, cleanup and truthful audit outcomes. A skipped shutdown must not grant authority to mutate a foreign namespace.",
+      "type": "functional",
+      "verification_refs": [
+        "AC-003",
+        "EVAL-003"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "priority": "must",
+      "provenance_refs": [
+        "SRC-BASE"
+      ],
+      "statement": "Close time-of-check/time-of-use gaps through the existing cohort reservation/identity contracts. If the ownership identity changes between observation and reservation/callback, refuse or skip without stopping the changed cohort.",
+      "type": "functional",
+      "verification_refs": [
+        "AC-004",
+        "EVAL-004"
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "priority": "must",
+      "provenance_refs": [
+        "SRC-BASE"
+      ],
+      "statement": "Retain existing wire/API compatibility and user-visible CLI semantics except accurate diagnostics for preserved foreign/unknown sessions.",
+      "type": "functional",
+      "verification_refs": [
+        "AC-005",
+        "EVAL-005"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "name": "Highest adaptation risk: fork reserve currently sends shutdown before reservation and differs from upstream scope/quiesce flow. Positive ownership checks must cover races, not only a preflight guard."
+    }
+  ],
+  "schema": "specgen/spec/v1alpha2",
+  "scope": {
+    "excluded": [
+      "src/mcp/**",
+      "Primary dirty checkout",
+      "Unrelated release/packaging changes"
+    ],
+    "included": [
+      "src/cli/cli.c",
+      "src/cli/cli.h",
+      "src/cli/activation_transaction.c",
+      "src/daemon/runtime.c",
+      "src/daemon/version_cohort.c",
+      "tests/test_cli.c",
+      "tests/test_daemon_runtime.c",
+      "tests/test_daemon_ipc.c"
+    ]
+  },
+  "snapshot": {
+    "authoring_event_ids": [],
+    "content_digest": "sha256:67a04f2e0c25e7da4071a742025f254bf3837ced67289863dbed9b19d1532ed2",
+    "created_at": "2026-10-02T04:42:29.977029Z",
+    "id": "SNAP-001",
+    "sequence": 1
+  },
+  "state": {
+    "kind": "current"
+  },
+  "status": "draft",
+  "title": "Activation must preserve foreign and unconfirmed daemon sessions",
+  "traceability": [
+    {
+      "from": "REQ-001",
+      "relation": "verified_by",
+      "to": "AC-001"
+    },
+    {
+      "from": "AC-001",
+      "relation": "evaluated_by",
+      "to": "EVAL-001"
+    },
+    {
+      "from": "REQ-001",
+      "relation": "implemented_by",
+      "to": "TASK-IMPLEMENT"
+    },
+    {
+      "from": "REQ-002",
+      "relation": "verified_by",
+      "to": "AC-002"
+    },
+    {
+      "from": "AC-002",
+      "relation": "evaluated_by",
+      "to": "EVAL-002"
+    },
+    {
+      "from": "REQ-002",
+      "relation": "implemented_by",
+      "to": "TASK-IMPLEMENT"
+    },
+    {
+      "from": "REQ-003",
+      "relation": "verified_by",
+      "to": "AC-003"
+    },
+    {
+      "from": "AC-003",
+      "relation": "evaluated_by",
+      "to": "EVAL-003"
+    },
+    {
+      "from": "REQ-003",
+      "relation": "implemented_by",
+      "to": "TASK-IMPLEMENT"
+    },
+    {
+      "from": "REQ-004",
+      "relation": "verified_by",
+      "to": "AC-004"
+    },
+    {
+      "from": "AC-004",
+      "relation": "evaluated_by",
+      "to": "EVAL-004"
+    },
+    {
+      "from": "REQ-004",
+      "relation": "implemented_by",
+      "to": "TASK-IMPLEMENT"
+    },
+    {
+      "from": "REQ-005",
+      "relation": "verified_by",
+      "to": "AC-005"
+    },
+    {
+      "from": "AC-005",
+      "relation": "evaluated_by",
+      "to": "EVAL-005"
+    },
+    {
+      "from": "REQ-005",
+      "relation": "implemented_by",
+      "to": "TASK-IMPLEMENT"
+    }
+  ],
+  "unresolved_questions": [],
+  "version": "0.1.0"
+}
