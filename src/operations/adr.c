@@ -127,7 +127,6 @@ static int adr_outline_arg(const char *args, const char *key, int fallback) {
     return result;
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity): mirrors MCP outline row assembly
 static bool adr_add_outline(yyjson_mut_doc *doc, yyjson_mut_val *root, const char *content,
                             int offset, int limit) {
     int total_lines = adr_line_count(content);
@@ -369,7 +368,6 @@ static bool adr_has_removed_sections_arg(const char *args) {
     return found;
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity): existing operation coordinator
 cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
                                                  const cbm_operation_runtime_t *runtime) {
     const char *args = args_json ? args_json : "{}";

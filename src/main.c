@@ -1203,7 +1203,6 @@ static int main_run_allow_root(int argc, char **argv) {
     return 0;
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity): existing central command dispatcher
 static int handle_subcommand(int argc, char **argv, cbm_project_lock_manager_t *project_locks,
                              main_local_maintenance_context_t *maintenance_context) {
     if (argc <= 1) {
