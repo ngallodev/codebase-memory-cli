@@ -72,3 +72,11 @@
   - Next path: inspect the saved Heaptrack allocation call trees; only add
     teardown code for allocations proven to be owned by the neutral daemon
     rather than allocator or test-process lifetime state.
+
+- [ ] Linux release publication: finish the exact-SHA shared Jenkins full gate,
+  push release-tooling after passing, and review PR #13. Jenkins now archives
+  evidence without automatically pushing main. Obtain VIRUS_TOTAL_SCANNER_API_KEY,
+  NPM_TOKEN and PYPI_TOKEN; align fork package endpoints. Existing release.yml
+  is all-platform and its default Windows qualification hold remains in force.
+  Setting that hold to false is not a Linux-only release mode. See the canonical
+  upstream ledger's Linux publication readiness audit for live configuration evidence.

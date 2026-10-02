@@ -216,3 +216,37 @@ stopped during cleanup and recorded ABORTED; no suites ran. Six version
 surfaces are aligned to v0.11.0 for the next shared-job full gate. Pinned
 package versions/checksums and wrapper repository endpoints remain unchanged.
 Push and PR thread resolution remain pending a passing shared-job result.
+
+### Linux publication readiness audit (2026-10-01)
+
+Shared Jenkins #34 passed the full Linux gate at `37dd63ba` and archived
+Linux amd64 bytes, checksums, version, and source revision. #35 passed focused
+`daemon_runtime cli` checks at `7e9005f8`; this does not qualify that newer
+revision through the full gate. PR #12 is merged; PR #13 carries subsequent
+release-tooling fixes. Jenkins evidence publication formerly pushed directly
+to main. The release-tooling correction archives locally without GitHub writes;
+only after a passing gate may the orchestrator push release-tooling and post
+an exact-SHA status. A regression contract rejects remote writes in the script.
+
+Live GitHub audit: Actions are enabled and all actions are allowed. The active
+main ruleset prevents deletion and non-fast-forward updates; it has no required
+status checks. This does not establish that a release workflow will pass.
+The repository secret names contain only CLAUDE_CODE_OAUTH_TOKEN. The maintainer
+confirmed the remaining credentials are not yet available.
+
+Publication blockers in the existing all-platform `release.yml`:
+
+- `VIRUS_TOTAL_SCANNER_API_KEY` is required for candidate scanning and verification.
+- `NPM_TOKEN` and `PYPI_TOKEN` are required for registry publication; public
+  un-drafting depends on successful registry publication.
+- External Windows qualification is held by default. Setting the hold to false
+  does not create a Linux-only release: all-platform build/smoke gates and registry
+  publication still run. Keep the qualification hold until the applicable evidence
+  is complete; do not bypass it to compensate for missing credentials.
+- Package wrappers still download upstream releases. Fork endpoints and real
+  artifact checksums must be aligned before advertising those installation routes.
+- No public or draft fork GitHub releases exist at this audit boundary.
+
+Obtain the service credentials through their providers and supply a local
+credential-file or secret-manager reference for secure GitHub secret setup.
+Do not commit token values or remove release checks to bypass missing secrets.
