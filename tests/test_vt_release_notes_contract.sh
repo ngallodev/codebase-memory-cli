@@ -240,4 +240,71 @@ if run_notes "$FIX/reversed.md" "$FIX/reversed-capture.md"; then
   fail "reversed verification markers must fail closed"
 fi
 
-echo 'PASS: release notes report the shipped binary only, disclose selection, and avoid a duplicate scan'
+# ── Linux-only evidence (platforms=linux) ───────────────────────────────────
+# The same evidence filtered to the four Linux targets must be accepted ONLY
+# when RELEASE_TARGETS names that set; the default stays the eight-target set.
+mkdir -p "$FIX/evidence-linux"
+python3 - "$FIX/evidence" "$FIX/evidence-linux" <<'PY'
+import pathlib, sys
+src, dst = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+linux = ("linux-amd64", "linux-arm64", "linux-amd64-portable", "linux-arm64-portable")
+cand_lines = (src / "release-candidates.tsv").read_text().splitlines()
+keep_paths = set()
+def filt(name, key_of, meta):
+    out, header = [], None
+    for line in (src / name).read_text().splitlines():
+        if line.startswith("# "):
+            k, _, v = line[2:].partition("=")
+            out.append(f"# {k}={meta[k]}" if k in meta else line)
+        elif header is None:
+            header = line.split("\t"); out.append(line)
+        else:
+            row = dict(zip(header, line.split("\t")))
+            if key_of(row):
+                out.append(line)
+    (dst / name).write_text("\n".join(out) + "\n")
+filt("release-candidates.tsv", lambda r: r["target"] in linux, {"targets": 4, "candidates": 12})
+paths = set()
+for line in (dst / "release-candidates.tsv").read_text().splitlines()[3:]:
+    paths.add(line.split("\t")[-1])
+filt("virustotal-candidate-results.tsv", lambda r: r["scan_path"] in paths,
+     {"scan_objects": 12, "associations": 12})
+filt("release-selection.tsv", lambda r: r["target"] in linux, {"targets": 4, "candidates": 12})
+PY
+
+run_notes_linux() {
+  (cd "$FIX" &&
+    PATH="$FIX/bin:$PATH" \
+      GH_TOKEN=stub VERSION=v1.0.0-rc.1 \
+      GITHUB_REPOSITORY=DeusData/codebase-memory-mcp \
+      VT_CANDIDATES=evidence-linux/release-candidates.tsv \
+      VT_RESULTS_PATH=evidence-linux/virustotal-candidate-results.tsv \
+      RELEASE_SELECTION=evidence-linux/release-selection.tsv \
+      STUB_RELEASE_BODY="$FIX/current.md" STUB_CAPTURE="$1" \
+      env "${@:2}" bash "$SCRIPT")
+}
+
+run_notes_linux "$FIX/linux.md" RELEASE_TARGETS=linux-amd64,linux-arm64,linux-amd64-portable,linux-arm64-portable
+[ "$(grep -c '^| `' "$FIX/linux.md")" = "4" ] || fail "linux-only notes must carry exactly four product rows"
+grep -q '| `linux-arm64-portable` |' "$FIX/linux.md" || fail "linux portable product row missing"
+! grep -q '| `darwin-' "$FIX/linux.md" || fail "linux-only notes mention darwin"
+! grep -q '| `windows-' "$FIX/linux.md" || fail "linux-only notes mention windows"
+if run_notes_linux "$FIX/linux-default.md"; then
+  fail "4-target evidence must fail closed under the default eight-target set"
+fi
+for bad in "" "linux-arm64,linux-amd64" "linux-amd64,plan9-amd64" "linux-amd64,linux-amd64"; do
+  if [ -n "$bad" ] && run_notes_linux "$FIX/linux-bad.md" "RELEASE_TARGETS=$bad"; then
+    fail "RELEASE_TARGETS='$bad' must be rejected"
+  fi
+done
+if (cd "$FIX" && PATH="$FIX/bin:$PATH" GH_TOKEN=stub VERSION=v1.0.0 \
+      GITHUB_REPOSITORY=DeusData/codebase-memory-mcp \
+      VT_CANDIDATES=evidence/release-candidates.tsv \
+      VT_RESULTS_PATH=evidence/virustotal-candidate-results.tsv \
+      RELEASE_SELECTION=evidence/release-selection.tsv \
+      RELEASE_TARGETS=linux-amd64,linux-arm64,linux-amd64-portable,linux-arm64-portable \
+      STUB_RELEASE_BODY="$FIX/current.md" STUB_CAPTURE="$FIX/x.md" bash "$SCRIPT"); then
+  fail "eight-target evidence must fail closed for the linux target set"
+fi
+
+echo 'PASS: release notes report the shipped binary only, disclose selection, and avoid a duplicate scan, and honor the linux-only target set'

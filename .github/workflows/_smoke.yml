@@ -8,6 +8,10 @@ on:
         description: 'Smoke the shipped binaries on the broad platform matrix (extra OS versions) instead of the core set'
         type: boolean
         default: false
+      platforms:
+        description: "Platform set: 'all' (default) or 'linux' (skip darwin and windows legs)"
+        type: string
+        default: 'all'
 permissions:
   contents: read
 
@@ -29,6 +33,7 @@ jobs:
         id: set
         env:
           BROAD: ${{ inputs.broad_platforms }}
+          PLATFORMS: ${{ inputs.platforms }}
         run: |
           CORE_UNIX='[
             {"os":"ubuntu-latest","goos":"linux","goarch":"amd64"},
@@ -71,6 +76,16 @@ jobs:
             WIN=$(jq -cn --argjson a "$CORE_WIN" '$a')
             PORTABLE=$(jq -cn --argjson a "$CORE_PORTABLE" '$a')
           fi
+          case "$PLATFORMS" in
+            all) ;;
+            linux)
+              # Linux-only release: drop darwin legs; the windows job is
+              # skipped by its job-level `if`, so its matrix is never used.
+              UNIX=$(jq -c 'map(select(.goos == "linux"))' <<<"$UNIX")
+              WIN='[{"os":"windows-latest","arch":"amd64"}]'
+              ;;
+            *) echo "::error::unknown platforms input: $PLATFORMS"; exit 1 ;;
+          esac
           # One composition ships; the wrappers assert the embedded UI themselves
           # (SMOKE_REQUIRE_UI in scripts/ci/smoke-artifact.sh and below).
           UNIX_M=$(jq -cn --argjson a "$UNIX" '{include:$a}')
@@ -161,6 +176,7 @@ jobs:
           clamscan --no-summary "$RUNNER_TEMP/cbm-artifact/codebase-memory-cli"
 
   smoke-windows:
+    if: ${{ inputs.platforms != 'linux' }}
     needs: setup-matrix
     strategy:
       fail-fast: false

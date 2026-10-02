@@ -41,6 +41,16 @@ on:
         required: false
         type: boolean
         default: false
+      platforms:
+        description: "Target platforms: all (eight archives, default) or linux (linux-amd64, linux-arm64 and both portable archives only; GitHub prerelease route, no Windows/macOS bytes)"
+        type: choice
+        options: ['all', 'linux']
+        default: 'all'
+      publish_github_prerelease:
+        description: "Make a verified prerelease public on GitHub only (no npm/PyPI). Requires a hyphenated version, hold_for_external_qualification=false and publish_registries=false"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -71,12 +81,34 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          if [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$ ]]; then
+          if [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
             echo "version OK: $VERSION"
           else
             echo "::error::version must be v-prefixed semver (vX.Y.Z), got '$VERSION'"
             exit 1
           fi
+
+      # Reject input combinations that would publish bytes the gates never
+      # covered or skip a qualification the dispatch asked for.
+      - name: Reject invalid input combinations
+        env:
+          VERSION: ${{ inputs.version }}
+          PLATFORMS: ${{ inputs.platforms }}
+          HOLD: ${{ inputs.hold_for_external_qualification }}
+          REGISTRIES: ${{ inputs.publish_registries }}
+          PRERELEASE_PUBLISH: ${{ inputs.publish_github_prerelease }}
+        run: |
+          fail() { echo "::error::$1"; exit 1; }
+          if [ "$PRERELEASE_PUBLISH" = "true" ]; then
+            [[ "$VERSION" == *-* ]] || fail "publish_github_prerelease requires a prerelease (hyphenated) version, got '$VERSION'"
+            [ "$REGISTRIES" != "true" ] || fail "publish_github_prerelease cannot be combined with publish_registries"
+            [ "$HOLD" != "true" ] || fail "publish_github_prerelease cannot be combined with hold_for_external_qualification"
+          fi
+          if [ "$PLATFORMS" = "linux" ]; then
+            [ "$HOLD" != "true" ] || fail "platforms=linux has no Windows archive to qualify; set hold_for_external_qualification=false"
+            [ "$REGISTRIES" != "true" ] || fail "platforms=linux cannot publish registry packages (they need every platform)"
+          fi
+          echo "input combination OK"
 
       - name: Require exact-SHA Jenkins evidence when skipping tests
         if: ${{ inputs.skip_tests }}
@@ -110,6 +142,7 @@ jobs:
     with:
       skip_perf: ${{ inputs.skip_perf }}
       broad_platforms: true
+      platforms: ${{ inputs.platforms }}
       shard_suites: true
 
   # ── 3. Build all platforms ──────────────────────────────────────
@@ -137,6 +170,7 @@ jobs:
       # Release builds have no scan bypass: both candidates in all eight
       # immutable target tuples must complete before smoke or soak starts.
       scan_candidates: true
+      platforms: ${{ inputs.platforms }}
     secrets: inherit
 
   # ── 4. Smoke test every binary ──────────────────────────────────
@@ -153,6 +187,7 @@ jobs:
     uses: ./.github/workflows/_smoke.yml
     with:
       broad_platforms: true
+      platforms: ${{ inputs.platforms }}
 
   # ── 5. Soak tests ──────────────────────────────────────────────
   soak:
@@ -164,6 +199,7 @@ jobs:
       run_asan: ${{ inputs.soak_level == 'full' }}
       version: ${{ inputs.version }}
       use_release_artifacts: true
+      platforms: ${{ inputs.platforms }}
 
   # ── 6. Create DRAFT release ────────────────────────────────────
   # Requires smoke to have actually SUCCEEDED, not merely "not failed". The bare
@@ -209,10 +245,14 @@ jobs:
           done
 
       - name: List selected artifacts and decision evidence
-        run: ls -la *.tar.gz *.zip *.tsv
+        # nullglob: a linux-only release has no *.zip.
+        run: |
+          shopt -s nullglob
+          ls -la *.tar.gz *.zip *.tsv
 
       - name: Generate checksums
         run: |
+          shopt -s nullglob
           sha256sum \
             *.tar.gz *.zip \
             release-candidates.tsv \
@@ -241,6 +281,7 @@ jobs:
 
       - name: Sign artifacts
         run: |
+          shopt -s nullglob
           for f in \
             *.tar.gz *.zip \
             release-candidates.tsv \
@@ -302,6 +343,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      # Canonical-order target set and the archive/binary/runtime-file counts
+      # it implies (each archive: one executable plus three runtime sidecars).
+      RELEASE_TARGETS: ${{ inputs.platforms == 'linux' && 'linux-amd64,linux-arm64,linux-amd64-portable,linux-arm64-portable' || 'linux-amd64,linux-arm64,linux-amd64-portable,linux-arm64-portable,darwin-amd64,darwin-arm64,windows-amd64,windows-arm64' }}
+      EXPECT_ARCHIVES: ${{ inputs.platforms == 'linux' && '4' || '8' }}
+      EXPECT_RUNTIME_FILES: ${{ inputs.platforms == 'linux' && '12' || '24' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -319,13 +366,16 @@ jobs:
           python3 scripts/ci/verify-release-selection.py \
             --selection "$RUNNER_TEMP/release-selection.tsv" \
             --require-policy virustotal-v2 \
+            --targets "$RELEASE_TARGETS" \
             --archive-dir "$ARCHIVE_DIR"
-          # CLI-only release contract: eight platform archives. Each archive
-          # contributes one selected executable plus three runtime sidecars.
+          # CLI-only release contract: eight platform archives (four for
+          # platforms=linux). Each archive contributes one selected executable
+          # plus three runtime sidecars.
           scripts/ci/extract-release-archives.sh "$ARCHIVE_DIR" binaries \
-            --expect-archives=8 \
-            --expect-binaries=8 \
-            --expect-runtime-files=24
+            --targets="$RELEASE_TARGETS" \
+            --expect-archives="$EXPECT_ARCHIVES" \
+            --expect-binaries="$EXPECT_ARCHIVES" \
+            --expect-runtime-files="$EXPECT_RUNTIME_FILES"
 
       - name: Download the existing candidate VirusTotal evidence
         env:
@@ -569,3 +619,32 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ inputs.version }}
         run: gh release edit "$VERSION" --draft=false --repo "$GITHUB_REPOSITORY"
+
+  # ── 11. GitHub-only prerelease publication ─────────────────────
+  # Linux/prerelease route: after verify, make the verified draft a public
+  # PRERELEASE (never "latest") without touching npm or PyPI. It is reachable
+  # only for a hyphenated version with the external-qualification hold and
+  # registry publication both off, so the stable path above is unchanged.
+  publish-github-prerelease:
+    needs: [verify]
+    if: >-
+      ${{ !cancelled() && !failure()
+      && needs.verify.result == 'success'
+      && inputs.publish_github_prerelease
+      && !inputs.hold_for_external_qualification
+      && !inputs.publish_registries
+      && contains(inputs.version, '-') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Make the verified draft a public prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "$VERSION" != *-* ]]; then
+            echo "::error::refusing to publish $VERSION as a prerelease: version has no '-'"
+            exit 1
+          fi
+          gh release edit "$VERSION" --draft=false --prerelease --latest=false --repo "$GITHUB_REPOSITORY"

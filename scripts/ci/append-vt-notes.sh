@@ -20,6 +20,7 @@ python3 - "$VT_CANDIDATES" "$VT_RESULTS_PATH" "$RELEASE_SELECTION" \
 from __future__ import annotations
 
 import csv
+import os
 import pathlib
 import re
 import sys
@@ -38,6 +39,16 @@ TARGETS = (
     "windows-amd64",
     "windows-arm64",
 )
+# RELEASE_TARGETS (comma list, canonical order) narrows the evidence set for
+# partial-platform releases; unset means all eight.
+_requested = os.environ.get("RELEASE_TARGETS", "")
+if _requested:
+    _names = _requested.split(",")
+    if any(n not in TARGETS for n in _names) or tuple(_names) != tuple(
+        t for t in TARGETS if t in _names
+    ):
+        sys.exit("append-vt-notes: RELEASE_TARGETS must be a unique canonical-order subset of the eight targets")
+    TARGETS = tuple(_names)
 VARIANTS = ("unstripped", "debug-stripped", "stripped")
 FIELD_KEY = {variant: variant.replace("-", "_") for variant in VARIANTS}
 CANDIDATE_FIELDS = (

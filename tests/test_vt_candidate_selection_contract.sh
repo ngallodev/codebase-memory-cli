@@ -449,5 +449,96 @@ def wrong_target(path: pathlib.Path) -> None:
 
 expect_verify_failure("wrong-target", wrong_target)
 
-print("PASS: exact candidate staging, exhaustive VT truth table, fail-closed selection, deterministic evidence, dry-run marking, and 8-container reconciliation")
+# ── Linux-only target set (--targets) ───────────────────────────────────────
+# The default (all eight) is pinned above. The Linux prerelease route narrows
+# every stage to the four Linux targets; each tool must keep full strictness for
+# that set and reject anything that is not a canonical-order subset.
+LINUX = TARGETS[:4]
+LINUX_CSV = ",".join(LINUX)
+for tool in (stage_tool, select_tool, verify_tool):
+    for label, bad in (("empty", ""), ("unknown", "linux-amd64,plan9-amd64"),
+                       ("out-of-order", "linux-arm64,linux-amd64"),
+                       ("duplicate", "linux-amd64,linux-amd64"),
+                       ("trailing-comma", "linux-amd64,")):
+        probe = [tool, "--targets", bad]
+        if tool is stage_tool:
+            probe += [fix / "none", fix / "none-out", "--expect-targets", 1, "--expect-candidates", 3]
+        elif tool is select_tool:
+            probe += ["--candidates", staged / "candidates.tsv", "--objects-dir", staged / "objects",
+                      "--out-dir", fix / "never-selected", "--default-stripped"]
+        else:
+            probe += ["--selection", selected / "release-selection.tsv", "--archive-dir", archives]
+        result = run(*probe)
+        require(result.returncode != 0, f"{tool.name} accepted --targets that is {label}")
+        require("--targets" in result.stderr or "targets" in result.stderr,
+                f"{tool.name} rejected {label} --targets without naming it: {result.stderr[-200:]}")
+
+linux_artifacts = fix / "linux-artifacts"
+shutil.copytree(artifacts, linux_artifacts, symlinks=True)
+for provenance in provenance_paths(linux_artifacts):
+    if not provenance.parent.name.startswith("linux-"):
+        shutil.rmtree(provenance.parent)
+# Counts are bound to the chosen set: 4 targets / 12 candidates, never 8 / 24.
+result = run(stage_tool, linux_artifacts, fix / "linux-bad-count", "--targets", LINUX_CSV,
+             "--expect-targets", 8, "--expect-candidates", 24)
+require(result.returncode != 0, "stager accepted 8/24 counts for the linux set")
+result = run(stage_tool, linux_artifacts, fix / "linux-no-targets", "--expect-targets", 4,
+             "--expect-candidates", 12)
+require(result.returncode != 0, "stager accepted 4/12 counts without --targets")
+result = run(stage_tool, artifacts, fix / "linux-surplus", "--targets", LINUX_CSV,
+             "--expect-targets", 4, "--expect-candidates", 12)
+require(result.returncode != 0, "stager accepted a full eight-target tree for the linux set")
+linux_staged = fix / "linux-scan"
+result = run(stage_tool, linux_artifacts, linux_staged, "--targets", LINUX_CSV,
+             "--expect-targets", 4, "--expect-candidates", 12)
+require(result.returncode == 0, f"valid linux candidate set rejected: {result.stdout}{result.stderr}")
+lmeta, lcandidates = manifest(linux_staged / "candidates.tsv")
+require(lmeta.get("targets") == "4" and lmeta.get("candidates") == "12", "linux candidate counts not bound")
+require([row["target"] for row in lcandidates] == [t for t in LINUX for _ in VARIANTS],
+        "linux candidate rows are not canonical")
+
+linux_rows = [row for row in result_rows({key: "clean" for key in candidate_data})
+              if next(c for c in candidates if c["scan_path"] == row["scan_path"])["target"] in LINUX]
+# Re-point scan paths at the linux staging (hashes are identical by construction).
+linux_results = fix / "linux-results.tsv"
+write_tsv(linux_results, "cbm-virustotal-results-v2", {
+    "scan_objects": 12, "associations": 12, "min_engines_policy": 50,
+    "min_completed_engines": 71, "max_completed_engines": 71,
+}, RESULT_FIELDS, linux_rows)
+linux_selected = fix / "linux-selected"
+result = run(select_tool, "--candidates", linux_staged / "candidates.tsv",
+             "--objects-dir", linux_staged / "objects", "--out-dir", linux_selected,
+             "--results", linux_results, "--targets", LINUX_CSV)
+require(result.returncode == 0, f"valid linux selection rejected: {result.stdout}{result.stderr}")
+# The same 4-target evidence must not satisfy the default eight-target contract.
+result = run(select_tool, "--candidates", linux_staged / "candidates.tsv",
+             "--objects-dir", linux_staged / "objects", "--out-dir", fix / "linux-as-eight",
+             "--results", linux_results)
+require(result.returncode != 0, "selector accepted 4-target evidence under the default eight-target set")
+lsmeta, lselections = selection_rows(linux_selected)
+require(lsmeta.get("targets") == "4" and lsmeta.get("candidates") == "12" and
+        lsmeta.get("policy") == "virustotal-v2", "linux selection metadata not bound")
+require([row["target"] for row in lselections] == list(LINUX), "linux selection order is not canonical")
+
+linux_archives = fix / "linux-containers"
+for target in LINUX:
+    shutil.copytree(archives / target, linux_archives / target)
+result = run(verify_tool, "--selection", linux_selected / "release-selection.tsv",
+             "--targets", LINUX_CSV, "--archive-dir", linux_archives)
+require(result.returncode == 0, f"exact linux containers rejected: {result.stdout}{result.stderr}")
+result = run(verify_tool, "--selection", linux_selected / "release-selection.tsv",
+             "--archive-dir", linux_archives)
+require(result.returncode != 0, "verifier accepted a 4-target selection under the default eight-target set")
+result = run(verify_tool, "--selection", linux_selected / "release-selection.tsv",
+             "--targets", LINUX_CSV, "--archive-dir", archives)
+require(result.returncode != 0, "verifier accepted surplus darwin/windows containers for the linux set")
+result = run(verify_tool, "--selection", selected / "release-selection.tsv",
+             "--targets", LINUX_CSV, "--archive-dir", linux_archives)
+require(result.returncode != 0, "verifier accepted an eight-target selection for the linux set")
+shutil.rmtree(linux_archives / "linux-arm64-portable")
+result = run(verify_tool, "--selection", linux_selected / "release-selection.tsv",
+             "--targets", LINUX_CSV, "--archive-dir", linux_archives)
+require(result.returncode != 0, "verifier accepted a linux set missing a portable archive")
+
+print("PASS: exact candidate staging, exhaustive VT truth table, fail-closed selection, deterministic evidence, dry-run marking, 8-container reconciliation, and the 4-target linux set")
 PY

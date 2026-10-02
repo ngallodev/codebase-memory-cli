@@ -297,6 +297,30 @@ done < <(
         -- pkg tests/test_version_metadata_contract.sh 2>/dev/null || true
 )
 
+# Dispatch-version grammar. Both release entry points must accept a hyphenated
+# semver prerelease such as the fork's v0.12.0-cli-rc.1 and keep refusing
+# unprefixed, partial and trailing-garbage versions. A bare version burns an
+# immutable release name (2026-08-18), so this is pinned from the workflow text
+# itself rather than a copy of the regex.
+for wf in release.yml promote-qualified-release.yml; do
+    wf_path=".github/workflows/$wf"
+    [[ -f "$wf_path" ]] || fail "$wf_path is missing"
+    pattern="$(grep -oE '\^v\[0-9\]\+[^"]*\$' "$wf_path" | head -n 1)"
+    [[ -n "$pattern" ]] || { fail "$wf_path has no version-grammar regex"; continue; }
+    [[ "$pattern" == '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' ]] ||
+        fail "$wf_path version grammar changed unexpectedly: $pattern"
+    for good in v0.12.0 v0.12.0-rc.1 v0.12.0-cli-rc.1; do
+        [[ "$good" =~ $pattern ]] || fail "$wf_path rejects valid version $good"
+    done
+    for bad in 0.12.0 v0.12 v0.12.0- v0.12.0.4 "v0.12.0-rc 1" v0.12.0-rc.1/x; do
+        [[ "$bad" =~ $pattern ]] && fail "$wf_path accepts invalid version $bad"
+    done
+done
+# A hyphen is what marks a version as a prerelease in release.yml; the prerelease
+# publication job and the GitHub prerelease flag must both key off that.
+grep -q "prerelease: \${{ contains(inputs.version, '-') }}" .github/workflows/release.yml ||
+    fail "release.yml must mark hyphenated versions as GitHub prereleases"
+
 if ((failures > 0)); then
     echo "FAIL: $failures version-metadata contract violation(s)" >&2
     exit 1

@@ -166,4 +166,32 @@ fi
     exit 1
 }
 
+# The Linux-only release route ships the portable tuples too. The producer must
+# keep accepting exactly the canonical eight target names (no more, no fewer),
+# and a portable derivation must be recorded with portable linkage.
+for canonical in linux-amd64 linux-arm64 linux-amd64-portable linux-arm64-portable \
+    darwin-amd64 darwin-arm64 windows-amd64 windows-arm64; do
+    grep -q -- "$canonical" "$PREPARE" || {
+        echo "FAIL: producer no longer names canonical target $canonical" >&2
+        exit 1
+    }
+done
+if "$PREPARE" linux riscv64 --binary "$INPUT" --out-dir "$FIX/unsupported" >/dev/null 2>&1; then
+    echo "FAIL: producer accepted a non-canonical release target" >&2
+    exit 1
+fi
+if [[ "$GOOS" == linux ]]; then
+    PORTABLE_OUT="$FIX/portable-publication"
+    "$PREPARE" linux "$GOARCH-portable" --binary "$INPUT" --out-dir "$PORTABLE_OUT" >/dev/null
+    python3 - "$PORTABLE_OUT/linux-$GOARCH-portable/candidate-provenance.tsv" "linux-$GOARCH-portable" <<'PY'
+import csv
+import sys
+
+lines = open(sys.argv[1], encoding="utf-8").read().splitlines()
+rows = list(csv.DictReader(lines[1:], delimiter="\t"))
+if len(rows) != 3 or any(r["target"] != sys.argv[2] or r["linkage"] != "portable" for r in rows):
+    raise SystemExit("FAIL: portable derivation is not recorded as portable linkage")
+PY
+fi
+
 echo "PASS: native stripped/unstripped candidates derive from one linker output and publish atomically"

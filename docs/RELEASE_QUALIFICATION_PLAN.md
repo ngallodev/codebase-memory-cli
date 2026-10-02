@@ -242,3 +242,29 @@ The current shell and PowerShell installers resolve `https://github.com/ngallode
 After promotion, verify from an unauthenticated client that `/releases/latest` resolves to that stable tag, every installer-requested asset is present, and each direct download returns the expected archive bytes. Run fresh installs using those public URLs in a real WSL2 Linux distro and on native Windows. For each supported architecture, record installer transcript, asset/hash, `--version`, and a small fixture index/status/search/snippet result. The Linux host build is not WSL evidence; Windows ARM64 routing must be exercised on a native ARM64 machine or explicitly remain unqualified. Existing artifact, checksum, archive-layout and installer safety checks stay required.
 
 The current promotion workflow always publishes npm and PyPI before un-drafting GitHub. If the fork does not own those package namespaces or cannot use their trusted publishers, treat that as a fork configuration/ownership blocker. Before any publication, review a minimal GitHub-only promotion option that keeps exact-candidate qualification verification and exposes an explicit choice to omit registry publication. Do not add that route as an unreviewed readiness change and do not silently skip failed registry publication.
+
+### Linux GitHub prerelease route
+
+For a public Linux-only prerelease that the installer can fetch without waiting for Windows qualification or registry ownership, `release.yml` has two opt-in inputs: `platforms=linux` and `publish_github_prerelease=true`. Both default off, so the default dispatch still builds all eight targets and holds the draft.
+
+- `platforms=linux` builds, tests, smokes, soaks, VirusTotal-scans, selects and verifies exactly `linux-amd64`, `linux-arm64`, `linux-amd64-portable` and `linux-arm64-portable` (4 archives, 12 candidates, 12 runtime files). No darwin or windows legs run and no such archives exist. The selection scripts take `--targets` (canonical-order subset of the eight, default all eight) and every check stays exact for the chosen set.
+- `publish_github_prerelease=true` adds the `publish-github-prerelease` job after `verify`. It runs `gh release edit "$VERSION" --draft=false --prerelease --latest=false`, so the release is public but never `latest`, and npm/PyPI are untouched.
+- Preflight rejects: `publish_github_prerelease` with a version that has no `-`, with `publish_registries=true`, or with `hold_for_external_qualification=true`; and `platforms=linux` with `hold_for_external_qualification=true` (no Windows bytes to qualify) or with `publish_registries=true`.
+- A prerelease is not served by `/releases/latest/download`, so the installer must be pointed at the tag explicitly.
+
+Dispatch:
+
+```
+gh workflow run release.yml -R ngallodev/codebase-memory-cli --ref main \
+  -f version=v0.12.0-cli-rc.1 -f platforms=linux \
+  -f hold_for_external_qualification=false -f publish_github_prerelease=true
+```
+
+Install from the prerelease:
+
+```
+CBM_DOWNLOAD_URL=https://github.com/ngallodev/codebase-memory-cli/releases/download/v0.12.0-cli-rc.1 \
+  bash install.sh
+```
+
+This route does not replace the stable path above: Windows and macOS bytes, external qualification and the `/releases/latest` installer behavior still require a stable `vX.Y.Z` release.
