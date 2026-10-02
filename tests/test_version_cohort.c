@@ -537,7 +537,7 @@ TEST(version_cohort_foreign_cache_does_not_publish_maintenance_while_waiting) {
     }
     if (admission)
         (void)cbm_private_file_lock_release(&admission);
-    bool joined = started && cbm_thread_join(thread, NULL) == 0;
+    bool joined = started && cbm_thread_join(&thread) == 0;
     if (directory)
         cbm_private_lock_directory_close(directory);
     int callbacks = atomic_load_explicit(&wait.callback_count, memory_order_relaxed);

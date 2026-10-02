@@ -7,6 +7,7 @@
 #include "yyjson/yyjson.h"
 
 #include <stdbool.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -115,7 +116,11 @@ static int adr_outline_arg(const char *args, const char *key, int fallback) {
     yyjson_doc *doc = yyjson_read(args, strlen(args), 0);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, key) : NULL;
-    int result = yyjson_is_int(value) ? yyjson_get_int(value) : fallback;
+    int64_t number = yyjson_is_int(value) ? yyjson_get_sint(value) : fallback;
+    int result = yyjson_is_uint(value) && yyjson_get_uint(value) > INT_MAX ? INT_MAX
+                 : number > INT_MAX                                        ? INT_MAX
+                 : number < INT_MIN                                        ? INT_MIN
+                                                                           : (int)number;
     if (doc) {
         yyjson_doc_free(doc);
     }
@@ -123,12 +128,15 @@ static int adr_outline_arg(const char *args, const char *key, int fallback) {
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): mirrors MCP outline row assembly
-static void adr_add_outline(yyjson_mut_doc *doc, yyjson_mut_val *root, const char *content,
+static bool adr_add_outline(yyjson_mut_doc *doc, yyjson_mut_val *root, const char *content,
                             int offset, int limit) {
     int total_lines = adr_line_count(content);
     int count = 0;
     int capacity = ADR_OUTLINE_INITIAL_CAPACITY;
     adr_outline_row_t *rows = content && *content ? malloc((size_t)capacity * sizeof(*rows)) : NULL;
+    if (content && *content && !rows) {
+        return false;
+    }
     const char *p = content;
     int line = ADR_OUTLINE_FIRST_LINE;
     while (p && *p) {
@@ -200,6 +208,7 @@ static void adr_add_outline(yyjson_mut_doc *doc, yyjson_mut_val *root, const cha
     }
     yyjson_mut_obj_add_bool(doc, root, "full_content_available", content != NULL);
     free(rows);
+    return true;
 }
 
 static char *adr_read_legacy_file(const char *root_path) {
@@ -588,7 +597,10 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
         if (limit > ADR_OUTLINE_MAX_LIMIT) {
             limit = ADR_OUTLINE_MAX_LIMIT;
         }
-        adr_add_outline(doc, root, adr_content, offset, limit);
+        if (!adr_add_outline(doc, root, adr_content, offset, limit)) {
+            yyjson_mut_obj_add_str(doc, root, "error", "outline allocation failed");
+            is_error = true;
+        }
     } else {
         if (adr_content) {
             yyjson_mut_obj_add_strcpy(doc, root, "content", adr_content);
