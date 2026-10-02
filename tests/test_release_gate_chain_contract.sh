@@ -389,6 +389,11 @@ if not re.search(r"^        default: true$", option_body("hold_for_external_qual
 if "(-[0-9A-Za-z.-]+)?$" not in blocks.get("preflight", ""):
     failures.append("release.yml: preflight must accept hyphenated semver prereleases (v0.12.0-cli-rc.1)")
 pre = blocks.get("preflight", "")
+validation_path = "scripts/ci/validate-release-inputs.sh"
+if f"run: bash {validation_path}" not in pre:
+    failures.append("preflight: must invoke the canonical release input guard")
+validation = pathlib.Path(sys.argv[1]).parents[2] / validation_path
+validation_text = validation.read_text() if validation.is_file() else ""
 for fragment in (
     "publish_github_prerelease requires a prerelease (hyphenated) version",
     "publish_github_prerelease cannot be combined with publish_registries",
@@ -396,7 +401,7 @@ for fragment in (
     "platforms=linux has no Windows archive to qualify",
     "platforms=linux cannot publish registry packages",
 ):
-    if fragment not in pre:
+    if fragment not in validation_text:
         failures.append(f"preflight: invalid-combination rejection missing: {fragment}")
 for job in ("test", "build", "smoke", "soak"):
     if "platforms: ${{ inputs.platforms }}" not in blocks.get(job, ""):
