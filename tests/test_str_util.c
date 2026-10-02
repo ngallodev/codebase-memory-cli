@@ -13,6 +13,32 @@ static void teardown(void) {
     cbm_arena_destroy(&a);
 }
 
+TEST(project_index_db_classification) {
+    static const struct {
+        const char *filename;
+        bool expected;
+    } cases[] = {
+        {"_config.db", false},
+        {"_cross_repo.db", false},
+        {".db", false},
+        {"ordinary.db", true},
+        {"_private.db", true},
+        {"orders_config_service.db", true},
+        {"api-wal.db", true},
+        {"ordinary.sqlite", false},
+        {"ordinary.db-wal", false},
+        {"", false},
+        {NULL, false},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        ASSERT_EQ(cbm_is_project_index_db(cases[i].filename), cases[i].expected);
+    }
+    ASSERT_TRUE(cbm_is_internal_cache_db("_config.db"));
+    ASSERT_TRUE(cbm_is_internal_cache_db("_cross_repo.db"));
+    ASSERT_FALSE(cbm_is_internal_cache_db("orders_config_service.db"));
+    PASS();
+}
+
 TEST(path_join_basic) {
     setup();
     ASSERT_STR_EQ(cbm_path_join(&a, "src", "main.c"), "src/main.c");
@@ -481,6 +507,7 @@ TEST(snprintf_append_multiple_sequential) {
 }
 
 SUITE(str_util) {
+    RUN_TEST(project_index_db_classification);
     RUN_TEST(path_join_basic);
     RUN_TEST(path_join_trailing_slash);
     RUN_TEST(path_join_leading_slash);
