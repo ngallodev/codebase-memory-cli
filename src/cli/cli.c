@@ -202,6 +202,7 @@ typedef struct {
     bool cleanup_ok;
     bool original_cache_environment_present;
     bool cache_environment_overridden;
+    const char *ownership_refusal;
 } cli_activation_production_context_t;
 
 static cbm_cli_activation_ops_t g_cli_activation_test_ops;
@@ -524,24 +525,19 @@ static int cli_activation_production_reserve(void *opaque, cbm_cli_activation_lo
     cbm_version_cohort_lease_t *lease = NULL;
     context->control_deadline_ms = cli_activation_deadline_after(CLI_ACTIVATION_CONTROL_TIMEOUT_MS);
 
-    /* Ask the current daemon to snapshot and stop its sessions before the
-     * maintenance marker wakes thin frontends. Otherwise cooperative clients
-     * can disconnect so quickly that the durable activation audit records
-     * zero even though they were drained. This eager request grants no
-     * mutation authority: the exclusive maintenance/admission/lifetime lease
-     * below remains mandatory and its callback repeats OP8 to catch any daemon
-     * that races into the small preflight-to-lock window. */
-    cbm_daemon_runtime_activation_result_t eager_result = {0};
-    if (cbm_daemon_runtime_request_activation_shutdown(
-            context->endpoint, &context->identity, context->action,
-            cli_activation_remaining_timeout(context), &eager_result)) {
-        cli_activation_merge_daemon_result(context, &eager_result);
-    }
-
-    cbm_version_cohort_status_t status = cbm_version_cohort_reserve_for_mutation(
-        context->cohort_manager, context->deadline_ms, cli_activation_request_quiescence, context,
-        &quiesce, &lease);
+    cbm_version_cohort_status_t status = cbm_version_cohort_reserve_for_mutation_cache(
+        context->cohort_manager, context->identity.cache_fingerprint, context->deadline_ms,
+        cli_activation_request_quiescence, context, &quiesce, &lease);
     if (status != CBM_VERSION_COHORT_OK || !lease) {
+        if (status == CBM_VERSION_COHORT_CONFLICT) {
+            context->ownership_refusal =
+                "the active daemon serves a different cache; it was left running and no "
+                "activation was committed";
+        } else if (status == CBM_VERSION_COHORT_UNSAFE) {
+            context->ownership_refusal =
+                "the active daemon cache identity could not be confirmed; it was left running "
+                "and no activation was committed";
+        }
         cli_activation_release_cleanup_lease(context, &lease);
         context->cohort_lease = lease;
         return status == CBM_VERSION_COHORT_BUSY ? 0 : CLI_ERR;
@@ -563,6 +559,22 @@ static int cli_activation_production_reserve(void *opaque, cbm_cli_activation_lo
         cli_activation_release_cleanup_lease(context, &lease);
         context->cohort_lease = lease;
         return generation == 1 ? 0 : CLI_ERR;
+    }
+
+    /* A live endpoint without a cohort identity is unconfirmed ownership. It
+     * must not be stopped or receive mutation authority from the empty lock. */
+    cbm_daemon_runtime_status_t active_daemon = {0};
+    bool status_received = cbm_daemon_runtime_request_status(
+        context->endpoint, &context->identity, CLI_ACTIVATION_CONTROL_TIMEOUT_MS, &active_daemon);
+    if (!context->shutdown_requested &&
+        (status_received || active_daemon.muted_endpoint_holder_pid != 0)) {
+        context->ownership_refusal =
+            "a running daemon has no matching cohort ownership record; it was left running and "
+            "no activation was committed";
+        cli_activation_startup_lock_release_complete(context);
+        cli_activation_release_cleanup_lease(context, &lease);
+        context->cohort_lease = lease;
+        return CLI_ERR;
     }
 
     context->cohort_lease = lease;
@@ -600,6 +612,10 @@ static void cli_activation_production_release(void *opaque, cbm_cli_activation_l
 
 static void cli_activation_production_diagnostic(void *opaque, const char *message) {
     cli_activation_production_context_t *context = opaque;
+    if (context && context->ownership_refusal) {
+        (void)fprintf(stderr, "error: activation refused: %s.\n", context->ownership_refusal);
+        return;
+    }
     if (context && context->mutation_authorized) {
         (void)fprintf(stderr, "%s\n", message ? message : CLI_ACTIVATION_MUTATION_FAILED_MESSAGE);
         return;

@@ -37,6 +37,8 @@
 #include "cli/progress_sink.h"
 #include "foundation/constants.h"
 
+#include <stdbool.h>
+
 enum {
     MAIN_MIN_ARGC = 1,
     MAIN_CLI_ARGC = 2,
@@ -1875,6 +1877,26 @@ static void main_report_client_bootstrap_failure(const cbm_daemon_bootstrap_resu
                                      "established");
 }
 
+typedef struct {
+    const cbm_daemon_bootstrap_config_t *config;
+    bool invoked;
+} main_upgrade_quiesce_t;
+
+static cbm_version_cohort_quiesce_result_t main_upgrade_request_quiescence(void *context) {
+    main_upgrade_quiesce_t *upgrade = context;
+    const cbm_daemon_bootstrap_config_t *config = upgrade ? upgrade->config : NULL;
+    if (!upgrade || !config || !config->endpoint || !config->identity) {
+        return CBM_VERSION_COHORT_QUIESCE_ERROR;
+    }
+    upgrade->invoked = true;
+    cbm_daemon_runtime_activation_result_t drain = {0};
+    (void)cbm_daemon_runtime_request_activation_shutdown(
+        config->endpoint, config->identity, CBM_DAEMON_RUNTIME_ACTIVATION_UPDATE,
+        MAIN_CLIENT_STARTUP_TIMEOUT_MS, &drain);
+    /* The cohort barrier remains the drain proof if the one-shot ACK is lost. */
+    return CBM_VERSION_COHORT_QUIESCE_REQUESTED;
+}
+
 /* Client bootstrap with the upgrade policy: a CONFLICT against a PERMANENT
  * daemon of a strictly OLDER release is resolved by draining that daemon
  * (the same authenticated path install/update use) and retrying once. A
@@ -1894,20 +1916,51 @@ static cbm_daemon_bootstrap_status_t main_client_bootstrap_with_upgrade(
         !main_semver_newer(config->identity->semantic_version, active.semantic_version)) {
         return status;
     }
+    cbm_version_cohort_manager_t *manager =
+        cbm_version_cohort_manager_new(config->endpoint);
+    cbm_daemon_bootstrap_config_t upgrade_config = *config;
+    main_upgrade_quiesce_t upgrade = {.config = &upgrade_config};
+    cbm_version_cohort_lease_t *lease = NULL;
+    cbm_version_cohort_quiesce_result_t quiesce = CBM_VERSION_COHORT_QUIESCE_NOT_NEEDED;
+    cbm_version_cohort_status_t reserved =
+        manager ? cbm_version_cohort_reserve_for_mutation_cache(
+                      manager, config->identity->cache_fingerprint,
+                      main_deadline_after(MAIN_CLIENT_STARTUP_TIMEOUT_MS),
+                      main_upgrade_request_quiescence, &upgrade, &quiesce, &lease)
+                : CBM_VERSION_COHORT_IO;
+    bool acquired = reserved == CBM_VERSION_COHORT_OK && lease != NULL;
+    cbm_daemon_runtime_status_t current = {0};
+    bool still_running = acquired && !upgrade.invoked &&
+                         (cbm_daemon_runtime_request_status(
+                              config->endpoint, config->identity, MAIN_CONNECT_TIMEOUT_MS,
+                              &current) ||
+                          current.muted_endpoint_holder_pid != 0);
+    bool released = main_version_cohort_close(&lease, &manager);
+    if (!acquired || !released) {
+        if (reserved == CBM_VERSION_COHORT_CONFLICT) {
+            (void)fprintf(stderr, "codebase-memory-cli: the older daemon serves a different "
+                                  "cache and was left running\n");
+        } else if (reserved == CBM_VERSION_COHORT_UNSAFE) {
+            (void)fprintf(stderr, "codebase-memory-cli: the older daemon cache identity could "
+                                  "not be confirmed; it was left running\n");
+        } else {
+            (void)fprintf(stderr,
+                          "codebase-memory-cli: the older daemon was left running because its "
+                          "cohort remained busy or unconfirmed\n");
+        }
+        return status;
+    }
+    if (still_running) {
+        (void)fprintf(stderr,
+                      "codebase-memory-cli: the active daemon has no confirmed cohort identity "
+                      "and was left running\n");
+        return status;
+    }
     (void)fprintf(stderr,
-                  "codebase-memory-cli: retiring the active permanent daemon (%s, pid %lu) for "
+                  "codebase-memory-cli: retired the active permanent daemon (%s, pid %lu) for "
                   "this newer build (%s)\n",
                   active.semantic_version, (unsigned long)active.daemon_pid,
                   config->identity->semantic_version);
-    cbm_daemon_runtime_activation_result_t drain;
-    if (!cbm_daemon_runtime_request_activation_shutdown(config->endpoint, config->identity,
-                                                        CBM_DAEMON_RUNTIME_ACTIVATION_UPDATE,
-                                                        MAIN_CLIENT_STARTUP_TIMEOUT_MS, &drain) ||
-        !drain.accepted) {
-        (void)fprintf(stderr, "codebase-memory-cli: the active daemon did not accept the "
-                              "upgrade drain; run `codebase-memory-cli daemon stop`\n");
-        return status;
-    }
     return cbm_daemon_bootstrap_execute(config, result);
 }
 
