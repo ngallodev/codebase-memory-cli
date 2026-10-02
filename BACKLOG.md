@@ -29,6 +29,12 @@
 
 ## Open
 
+- [x] Closed daemon/cache interactive workers after verifying committed clean
+  candidates `028a4bfb` / `fa5a180b`; sealed partial run receipts, preserved
+  branches/bundles/evidence and removed only their two worktrees.
+- [ ] Review/integrate those candidates and run parent-scheduled Jenkins;
+  daemon AC-005 additionally needs a direct CLI diagnostic assertion.
+
 - [x] Specified all three selected verticals and prepared external interactive
   GPT-6-Luna Agent Runs at frozen base `51aa7a86`, each in an independent
   worktree with full permissions/approval never. See the latest 308 dispatch record.

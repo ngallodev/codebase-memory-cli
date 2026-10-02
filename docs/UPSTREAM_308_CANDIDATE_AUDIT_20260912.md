@@ -387,3 +387,20 @@ worker acknowledgements. Herdr's actual launch argv confirms GPT-6-Luna,
 medium reasoning, `danger-full-access` and approvals `never`. This supersedes
 the earlier prepared/not-launched state. Implementation, Jenkins evaluation,
 independent review, acceptance and integration remain separate pending gates.
+
+### Daemon/cache worker closeout — 2026-10-02
+
+Both workers finished committed implementation candidates and were idle.
+Daemon branch `impl/cbm-daemon-ownership-20261002` retains `028a4bfb`;
+cache branch `impl/cbm-cache-stores-20261002` retains `fa5a180b`.
+Their worktrees were verified clean, bundles verified, patches/reports/terminal
+transcripts preserved under each run's `evidence/closeout/`, and Herdr panes
+`wC:p5` / `wC:p7` closed at the user's request. Only those two worktrees were
+removed; branches remain available for review/integration.
+
+Worker `agent finish --result partial` had produced handoff completions but left
+controller summaries running with placeholder blocked completions. Public
+`external-exit` followed by `finalize` sealed valid partial results at the actual
+candidate SHAs, closing both assignments without fabricating process results.
+Jenkins evaluation, independent review and acceptance remain pending. Daemon
+AC-005 still lacks a direct CLI diagnostic assertion. ReScript was not closed.
