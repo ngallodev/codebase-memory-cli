@@ -23,6 +23,7 @@
 #include <foundation/constants.h>
 #include <foundation/platform.h>
 #include <foundation/str_util.h>
+#include <foundation/sha256.h>
 #include "test_operation_host.h"
 #include <pipeline/pipeline.h>
 #include <foundation/yaml.h>
@@ -941,10 +942,19 @@ TEST(cli_activation_quiesce_does_not_wait_on_bootstrap_startup) {
         cbm_version_cohort_manager_t *manager =
             endpoint ? cbm_version_cohort_manager_new(endpoint) : NULL;
         char fingerprint[CBM_DAEMON_BUILD_FINGERPRINT_SIZE];
+        char cache_fingerprint[CBM_SHA256_HEX_LEN + 1];
+        char cache_path[512], canonical_cache[512];
+        snprintf(cache_path, sizeof(cache_path), "%s/cache", tmpdir);
+        bool cache_ready = cbm_mkdir_p(cache_path, 0700) &&
+                           cbm_canonical_path(cache_path, canonical_cache, sizeof(canonical_cache));
+        if (cache_ready) {
+            cbm_normalize_path_sep(canonical_cache);
+            cbm_sha256_hex(canonical_cache, strlen(canonical_cache), cache_fingerprint);
+        }
         cbm_daemon_build_identity_t identity = {
             .semantic_version = "cli-activation-test",
             .build_fingerprint = fingerprint,
-            .cache_fingerprint = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            .cache_fingerprint = cache_ready ? cache_fingerprint : NULL,
             .protocol_abi = CBM_DAEMON_RUNTIME_WIRE_ABI,
             .store_abi = 1,
             .feature_abi = 1,
