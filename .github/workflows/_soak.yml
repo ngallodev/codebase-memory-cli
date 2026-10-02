@@ -41,23 +41,12 @@ jobs:
     outputs:
       unix: ${{ steps.set.outputs.unix }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Compute matrices
         id: set
         env:
           PLATFORMS: ${{ inputs.platforms }}
-        run: |
-          UNIX='[
-            {"os":"ubuntu-latest","goos":"linux","goarch":"amd64","cc":"gcc","cxx":"g++"},
-            {"os":"ubuntu-24.04-arm","goos":"linux","goarch":"arm64","cc":"gcc","cxx":"g++"},
-            {"os":"macos-14","goos":"darwin","goarch":"arm64","cc":"cc","cxx":"c++"},
-            {"os":"macos-15-intel","goos":"darwin","goarch":"amd64","cc":"cc","cxx":"c++"}
-          ]'
-          case "$PLATFORMS" in
-            all) ;;
-            linux) UNIX=$(jq -c 'map(select(.goos == "linux"))' <<<"$UNIX") ;;
-            *) echo "::error::unknown platforms input: $PLATFORMS"; exit 1 ;;
-          esac
-          echo "unix=$(jq -c '{include: .}' <<<"$UNIX")" >> "$GITHUB_OUTPUT"
+        run: bash scripts/ci/soak-matrix.sh
 
   soak-quick:
     needs: setup-matrix
