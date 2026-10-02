@@ -2790,15 +2790,19 @@ static bool runtime_control_request_send(const cbm_daemon_ipc_endpoint_t *endpoi
     if (written <= 0 || (size_t)written != CBM_DAEMON_BUILD_FINGERPRINT_SIZE - 1U) {
         return false;
     }
+    uint64_t deadline = runtime_deadline_after(timeout_ms);
     cbm_daemon_ipc_connection_t *connection = cbm_daemon_ipc_connect(endpoint, timeout_ms);
     bool sent =
         connection && cbm_daemon_ipc_send_frame(connection, CBM_DAEMON_FRAME_REQUEST, operation,
                                                 request, (uint32_t)sizeof(request));
     cbm_daemon_frame_t frame = {0};
     uint8_t *payload = NULL;
-    int received = sent ? cbm_daemon_ipc_receive_frame_bounded(connection, timeout_ms,
-                                                               response_size, &frame, &payload)
-                        : 0;
+    uint64_t now = cbm_now_ms();
+    uint32_t remaining = now < deadline ? (uint32_t)(deadline - now) : 0U;
+    int received = sent && remaining > 0U
+                       ? cbm_daemon_ipc_receive_frame_bounded(connection, remaining, response_size,
+                                                              &frame, &payload)
+                       : 0;
     if (muted_holder_pid_out && sent &&
         (received != 1 || (frame.type == CBM_DAEMON_FRAME_RESPONSE && frame.flags != operation))) {
         /* Connected but not served: either total silence (dead runtime), or a

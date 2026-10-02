@@ -4535,11 +4535,14 @@ TEST(daemon_runtime_mute_endpoint_holder_pid_is_reported) {
     cbm_daemon_runtime_client_t *client = NULL;
     cbm_daemon_runtime_status_t status = {0};
     bool status_active = true;
+    uint64_t status_elapsed_ms = 0;
     if (holder_started) {
         client = cbm_daemon_runtime_client_connect(endpoint, &identity, MUTE_CONNECT_TIMEOUT_MS,
                                                    &connect_result);
+        uint64_t status_started_ms = cbm_now_ms();
         status_active = cbm_daemon_runtime_request_status(endpoint, &identity,
                                                           MUTE_CONNECT_TIMEOUT_MS, &status);
+        status_elapsed_ms = cbm_now_ms() - status_started_ms;
     }
 
     atomic_store_explicit(&holder.stop, true, memory_order_release);
@@ -4565,6 +4568,7 @@ TEST(daemon_runtime_mute_endpoint_holder_pid_is_reported) {
     ASSERT_EQ(connect_result.status, CBM_DAEMON_RUNTIME_CONNECT_ERROR);
     ASSERT_EQ(connect_result.muted_endpoint_holder_pid, runtime_test_self_process_id());
     ASSERT_FALSE(status_active);
+    ASSERT_TRUE(status_elapsed_ms < 2U * MUTE_CONNECT_TIMEOUT_MS);
     ASSERT_EQ(status.muted_endpoint_holder_pid, runtime_test_self_process_id());
     PASS();
 }

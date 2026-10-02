@@ -565,7 +565,8 @@ static int cli_activation_production_reserve(void *opaque, cbm_cli_activation_lo
      * must not be stopped or receive mutation authority from the empty lock. */
     cbm_daemon_runtime_status_t active_daemon = {0};
     bool status_received = cbm_daemon_runtime_request_status(
-        context->endpoint, &context->identity, CLI_ACTIVATION_CONTROL_TIMEOUT_MS, &active_daemon);
+        context->endpoint, &context->identity, cli_activation_remaining_timeout(context),
+        &active_daemon);
     if (!context->shutdown_requested &&
         (status_received || active_daemon.muted_endpoint_holder_pid != 0)) {
         context->ownership_refusal =
