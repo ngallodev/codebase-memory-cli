@@ -2010,6 +2010,21 @@ TEST(tool_adr_sections) {
     PASS();
 }
 
+TEST(tool_adr_outline) {
+    double ms;
+    char *r = call_tool_timed("manage_adr", &ms,
+                              "{\"project\":\"%s\",\"mode\":\"outline\","
+                              "\"section_limit\":1}",
+                              g_project);
+    TOOL_OK(r, ms);
+    ASSERT(strstr(r, "\"mode\":\"outline\"") != NULL);
+    ASSERT(strstr(r, "\"headings\":") != NULL);
+    ASSERT(strstr(r, "\"sections_total\":") != NULL);
+    ASSERT(strstr(r, "\"full_content_available\":") != NULL);
+    free(r);
+    PASS();
+}
+
 /* ── ingest_traces ─────────────────────────────────────────────── */
 
 TEST(tool_ingest_traces_empty) {
@@ -3184,6 +3199,7 @@ SUITE(incremental) {
     /* Phase 16: manage_adr */
     RUN_TEST(tool_adr_get);
     RUN_TEST(tool_adr_sections);
+    RUN_TEST(tool_adr_outline);
 
     /* Phase 17: ingest_traces */
     RUN_TEST(tool_ingest_traces_empty);

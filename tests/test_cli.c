@@ -10564,6 +10564,11 @@ TEST(cli_build_args_json_bad_positional_errors_issue680) {
 TEST(cli_print_tool_help_issue680) {
     ASSERT_EQ(cbm_cli_print_tool_help("index_repository"), 0);
     ASSERT_EQ(cbm_cli_print_tool_help("nope_not_a_tool"), -1);
+    const char *adr_schema = cbm_tool_catalog_input_schema("manage_adr");
+    ASSERT_NOT_NULL(adr_schema);
+    ASSERT(strstr(adr_schema, "outline") != NULL);
+    ASSERT(strstr(adr_schema, "section_limit") != NULL);
+    ASSERT(strstr(adr_schema, "section_offset") != NULL);
     PASS();
 }
 
