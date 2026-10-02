@@ -367,3 +367,23 @@ is outside a Herdr-managed pane (`HERDR_ENV` unset). No Herdr control was attemp
 and no headless fallback was substituted. The durable launch handoff is
 `/home/nate/.local/state/agent-workflow/handoffs/CBM-THREE-VERTICALS-20261002/README.md`.
 Preparation is not running, implementation completion, review or acceptance.
+
+### Interactive Herdr launch verified — 2026-10-02T04:52Z
+
+The maintainer confirmed this is a Herdr session and authorized setting
+`HERDR_ENV=1`. Herdr then verified the current Codex parent in `wC:p1`.
+All three external workers are launched in the same tab, stacked in the
+right-hand column; the parent's focus remains unchanged.
+
+| Vertical | Herdr worker / pane | Durable delivery and live state |
+|---|---|---|
+| Daemon ownership | `luna-daemon-ownership`, `wC:p5` | Working; steering acknowledged by worker |
+| ReScript hangs | `luna-rescript-hang`, `wC:p6` | Working; steering acknowledged by worker |
+| Internal cache stores | `luna-cache-stores`, `wC:p7` | Working; steering acknowledged by worker |
+
+Each prepared Agent Run is bound to its Herdr pane at external generation 1;
+`start-external` records launch, and all three correlated steering IDs have
+worker acknowledgements. Herdr's actual launch argv confirms GPT-6-Luna,
+medium reasoning, `danger-full-access` and approvals `never`. This supersedes
+the earlier prepared/not-launched state. Implementation, Jenkins evaluation,
+independent review, acceptance and integration remain separate pending gates.

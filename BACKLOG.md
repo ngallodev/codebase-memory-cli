@@ -32,8 +32,10 @@
 - [x] Specified all three selected verticals and prepared external interactive
   GPT-6-Luna Agent Runs at frozen base `51aa7a86`, each in an independent
   worktree with full permissions/approval never. See the latest 308 dispatch record.
-- [ ] Launch those three prepared runs in Herdr panes split to the right from a
-  Herdr-managed session. Current caller is outside Herdr; no workers launched.
+- [x] Launched all three interactive GPT-6-Luna workers in Herdr's right-hand
+  column (`wC:p5`, `wC:p6`, `wC:p7`), bound to durable external Agent Runs.
+  Full permissions/approval never verified; all three acknowledged steering
+  and are observed working. Implementation/Jenkins/review remain pending.
 
 - [ ] Next upstream slice 1: adapt `ed76cf8e` daemon cache-ownership safety
   across eager shutdown and quiescence callback; preserve foreign/unknown
