@@ -342,3 +342,28 @@ Fresh graph resets, exhaustive census classification, ADR alias/outline lint
 repair, native Windows/WSL qualification and real release-artifact checks
 remain open. Package endpoint implementation is complete on release-tooling;
 package installation/runtime qualification is separate.
+
+## Three-vertical specification and interactive dispatch preparation — 2026-10-02
+
+Specifications are finalized in SpecGen `agent-workflow` mode (zero readiness
+blockers), committed on release-tooling at `51aa7a86`. Each defines five must
+requirements, acceptance/evaluation links, preservation boundaries and structured
+worker evidence. See `docs/specs/upstream-next-three/{daemon-ownership,rescript-hang,cache-stores}/spec.json`
+and their derived `SPEC.md` projections.
+
+| Vertical | Durable Agent Run | Independent branch | Execution state |
+|---|---|---|---|
+| Daemon ownership | `CBM-DAEMON-OWNERSHIP-20261002` | `impl/cbm-daemon-ownership-20261002` | Prepared external; not launched |
+| ReScript hangs | `CBM-RESCRIPT-HANG-20261002` | `impl/cbm-rescript-hang-20261002` | Prepared external; not launched |
+| Internal cache stores | `CBM-CACHE-STORES-20261002` | `impl/cbm-cache-stores-20261002` | Prepared external; not launched |
+
+All worktrees share frozen base `51aa7a86`, with GPT-6-Luna / medium reasoning,
+interactive Codex, `danger-full-access`, and approvals `never`. Global runtime
+configuration was not changed. Builds/tests remain parent-scheduled in the existing
+shared Jenkins job; workers may format, inspect diffs and commit regression source.
+
+The requested Herdr right-hand panes could not be launched because this caller
+is outside a Herdr-managed pane (`HERDR_ENV` unset). No Herdr control was attempted
+and no headless fallback was substituted. The durable launch handoff is
+`/home/nate/.local/state/agent-workflow/handoffs/CBM-THREE-VERTICALS-20261002/README.md`.
+Preparation is not running, implementation completion, review or acceptance.

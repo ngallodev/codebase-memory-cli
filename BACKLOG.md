@@ -29,6 +29,12 @@
 
 ## Open
 
+- [x] Specified all three selected verticals and prepared external interactive
+  GPT-6-Luna Agent Runs at frozen base `51aa7a86`, each in an independent
+  worktree with full permissions/approval never. See the latest 308 dispatch record.
+- [ ] Launch those three prepared runs in Herdr panes split to the right from a
+  Herdr-managed session. Current caller is outside Herdr; no workers launched.
+
 - [ ] Next upstream slice 1: adapt `ed76cf8e` daemon cache-ownership safety
   across eager shutdown and quiescence callback; preserve foreign/unknown
   sessions and existing exclusive mutation authority. Jenkins only.
