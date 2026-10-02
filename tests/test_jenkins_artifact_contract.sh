@@ -27,3 +27,10 @@ grep -Fq 'requirements-ci.txt' "$root/scripts/ci/install-python-tools.sh" || {
   echo "missing CI Python requirements contract" >&2
   exit 1
 }
+
+# The validator must never publish source or require GitHub write credentials.
+evidence="$root/scripts/ci/publish-jenkins-evidence.sh"
+if grep -Eq 'git[[:space:]]+push|gh[[:space:]]+api|GIT_ASKPASS|GH_TOKEN|github-https-token' "$evidence"; then
+  echo "Jenkins validation must archive evidence without remote writes" >&2
+  exit 1
+fi

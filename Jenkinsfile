@@ -229,16 +229,12 @@ arena hash_table dyn_array str_intern log str_util workspace platform diagnostic
                 sh 'scripts/test.sh --tsan'
             }
         }
-        stage('Publish Jenkins qualification evidence') {
+        stage('Archive Jenkins qualification evidence') {
             when {
                 expression { !params.CBM_TEST_SUITES?.trim() }
             }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'github-https-token',
-                                                   usernameVariable: 'GITHUB_USER',
-                                                   passwordVariable: 'GH_TOKEN')]) {
-                    sh 'GITHUB_REPOSITORY=ngallodev/codebase-memory-cli scripts/ci/publish-jenkins-evidence.sh'
-                }
+                sh 'scripts/ci/publish-jenkins-evidence.sh'
                 archiveArtifacts artifacts: 'jenkins-evidence/**', fingerprint: true
             }
         }
