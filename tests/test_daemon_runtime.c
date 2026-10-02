@@ -129,9 +129,9 @@ static cbm_version_cohort_quiesce_result_t runtime_test_owned_quiesce(void *cont
     runtime_test_owned_quiesce_t *request = context;
     (void)atomic_fetch_add_explicit(&request->requests, 1, memory_order_relaxed);
     cbm_daemon_runtime_activation_result_t result = {0};
-    (void)cbm_daemon_runtime_request_activation_shutdown(
-        request->endpoint, request->identity, CBM_DAEMON_RUNTIME_ACTIVATION_UPDATE,
-        RUNTIME_TEST_TIMEOUT_MS, &result);
+    (void)cbm_daemon_runtime_request_activation_shutdown(request->endpoint, request->identity,
+                                                         CBM_DAEMON_RUNTIME_ACTIVATION_UPDATE,
+                                                         RUNTIME_TEST_TIMEOUT_MS, &result);
     return CBM_VERSION_COHORT_QUIESCE_REQUESTED;
 }
 
@@ -2256,8 +2256,8 @@ TEST(daemon_runtime_activation_cache_change_refuses_without_shutdown) {
         runtime_test_identity("2.4.0", runtime_test_self_build());
     active_identity.cache_fingerprint = cache_a;
     runtime_test_fixture_t fixture;
-    bool started = runtime_test_fixture_start(&fixture, "activation-cache-change",
-                                              &active_identity);
+    bool started =
+        runtime_test_fixture_start(&fixture, "activation-cache-change", &active_identity);
     cbm_version_cohort_manager_t *owner_manager =
         started ? cbm_version_cohort_manager_new(fixture.endpoint) : NULL;
     cbm_version_cohort_manager_t *activation_manager =
@@ -2288,10 +2288,9 @@ TEST(daemon_runtime_activation_cache_change_refuses_without_shutdown) {
         (void)cbm_version_cohort_lease_release(&owner_lease);
     }
     cbm_version_cohort_status_t changed_status =
-        client && owner_manager
-            ? cbm_version_cohort_acquire(owner_manager, &changed_identity, UINT64_MAX,
-                                         &owner_lease, &conflict)
-            : CBM_VERSION_COHORT_IO;
+        client && owner_manager ? cbm_version_cohort_acquire(owner_manager, &changed_identity,
+                                                             UINT64_MAX, &owner_lease, &conflict)
+                                : CBM_VERSION_COHORT_IO;
     runtime_test_owned_quiesce_t request = {
         .endpoint = fixture.endpoint,
         .identity = &active_identity,
@@ -2306,16 +2305,17 @@ TEST(daemon_runtime_activation_cache_change_refuses_without_shutdown) {
                   cbm_now_ms() + RUNTIME_TEST_TIMEOUT_MS, runtime_test_owned_quiesce, &request,
                   &quiesce, &activation_lease)
             : CBM_VERSION_COHORT_IO;
-    bool still_serving = client &&
-                         cbm_daemon_runtime_client_heartbeat(client, RUNTIME_TEST_TIMEOUT_MS);
+    bool still_serving =
+        client && cbm_daemon_runtime_client_heartbeat(client, RUNTIME_TEST_TIMEOUT_MS);
     cbm_private_lock_directory_t *lock_directory = NULL;
     cbm_private_file_lock_t *maintenance = NULL;
     bool maintenance_held =
-        client && cbm_daemon_ipc_private_lock_directory_new(fixture.endpoint, &lock_directory) ==
-                      CBM_PRIVATE_FILE_LOCK_OK &&
-        cbm_private_file_lock_try_acquire(
-            lock_directory, "cbm-version-cohort-maintenance-v1.lock", CBM_PRIVATE_FILE_LOCK_EX,
-            &maintenance) == CBM_PRIVATE_FILE_LOCK_OK;
+        client &&
+        cbm_daemon_ipc_private_lock_directory_new(fixture.endpoint, &lock_directory) ==
+            CBM_PRIVATE_FILE_LOCK_OK &&
+        cbm_private_file_lock_try_acquire(lock_directory, "cbm-version-cohort-maintenance-v1.lock",
+                                          CBM_PRIVATE_FILE_LOCK_EX,
+                                          &maintenance) == CBM_PRIVATE_FILE_LOCK_OK;
     cbm_version_cohort_lease_t *busy_lease = NULL;
     cbm_version_cohort_status_t busy_status =
         maintenance_held && activation_manager
@@ -2323,9 +2323,8 @@ TEST(daemon_runtime_activation_cache_change_refuses_without_shutdown) {
                   activation_manager, active_identity.cache_fingerprint, cbm_now_ms(),
                   runtime_test_owned_quiesce, &request, &quiesce, &busy_lease)
             : CBM_VERSION_COHORT_IO;
-    bool busy_still_serving = client &&
-                              cbm_daemon_runtime_client_heartbeat(
-                                  client, RUNTIME_TEST_TIMEOUT_MS);
+    bool busy_still_serving =
+        client && cbm_daemon_runtime_client_heartbeat(client, RUNTIME_TEST_TIMEOUT_MS);
     if (maintenance) {
         (void)cbm_private_file_lock_release(&maintenance);
     }
@@ -2342,9 +2341,8 @@ TEST(daemon_runtime_activation_cache_change_refuses_without_shutdown) {
                   &quiesce, &unknown_lease)
             : CBM_VERSION_COHORT_IO;
     cbm_version_cohort_set_active_identity_unreadable_for_test(false);
-    bool unreadable_still_serving = client &&
-                                    cbm_daemon_runtime_client_heartbeat(
-                                        client, RUNTIME_TEST_TIMEOUT_MS);
+    bool unreadable_still_serving =
+        client && cbm_daemon_runtime_client_heartbeat(client, RUNTIME_TEST_TIMEOUT_MS);
     int requests = atomic_load_explicit(&request.requests, memory_order_relaxed);
 
     if (activation_lease) {
