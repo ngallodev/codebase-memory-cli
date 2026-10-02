@@ -231,8 +231,9 @@ an exact-SHA status. A regression contract rejects remote writes in the script.
 Live GitHub audit: Actions are enabled and all actions are allowed. The active
 main ruleset prevents deletion and non-fast-forward updates; it has no required
 status checks. This does not establish that a release workflow will pass.
-The repository secret names contain only CLAUDE_CODE_OAUTH_TOKEN. The maintainer
-confirmed the remaining credentials are not yet available.
+At the initial audit, the only repository secret was CLAUDE_CODE_OAUTH_TOKEN.
+VIRUS_TOTAL_SCANNER_API_KEY has since been configured; its validity awaits a
+release scan. npm/PyPI credentials and publication are deferred.
 
 Publication blockers in the existing all-platform `release.yml`:
 
@@ -240,8 +241,10 @@ Publication blockers in the existing all-platform `release.yml`:
 - `NPM_TOKEN` and `PYPI_TOKEN` are required for registry publication; public
   un-drafting depends on successful registry publication.
 - External Windows qualification is held by default. Setting the hold to false
-  does not create a Linux-only release: all-platform build/smoke gates and registry
-  publication still run. Keep the qualification hold until the applicable evidence
+  does not create a Linux-only release: all-platform build/smoke gates still run.
+  Registry publication requires both `hold_for_external_qualification=false` and
+  `publish_registries=true`; it is skipped when `publish_registries=false`, even
+  with the qualification hold disabled. Keep the hold until the applicable evidence
   is complete; do not bypass it to compensate for missing credentials.
 - Package wrappers still download upstream releases. Fork endpoints and real
   artifact checksums must be aligned before advertising those installation routes.
