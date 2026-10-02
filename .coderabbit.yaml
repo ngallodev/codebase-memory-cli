@@ -1,0 +1,4 @@
+# Reviews are requested manually; never review PRs automatically.
+reviews:
+  auto_review:
+    enabled: false
