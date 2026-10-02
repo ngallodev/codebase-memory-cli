@@ -250,3 +250,10 @@ Publication blockers in the existing all-platform `release.yml`:
 Obtain the service credentials through their providers and supply a local
 credential-file or secret-manager reference for secure GitHub secret setup.
 Do not commit token values or remove release checks to bypass missing secrets.
+
+Maintainer update: defer all public/registry publication. Both release and
+promotion workflows now expose `publish_registries` with default false.
+Default dispatches skip npm/PyPI jobs and public un-drafting, so registry
+credentials are not required to create/verify a draft candidate. VirusTotal
+and the external qualification hold remain unchanged. Publication is still
+blocked until explicitly opted in, with credentials and qualification evidence.

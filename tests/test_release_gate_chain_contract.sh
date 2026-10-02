@@ -354,6 +354,22 @@ for token in ("release-candidates.tsv", "virustotal-candidate-results.tsv",
         failures.append(
             f"release verify: existing candidate evidence is not reused: {token}")
 
+# Registry publication is opt-in in both entry points; default runs stay draft.
+for workflow_name in ("release.yml", "promote-qualified-release.yml"):
+    source = pathlib.Path(sys.argv[1]).with_name(workflow_name).read_text()
+    option = re.search(r"^      publish_registries:\s*\n(?P<body>(?:^        .*\n?)*)", source, re.M)
+    if not option or not re.search(r"^        default: false$", option.group("body"), re.M):
+        failures.append(f"{workflow_name}: publishing must default to false")
+    jobs = workflow_jobs(source)
+    registry = jobs.get("publish-registries", "")
+    condition = re.search(r"^    if:.*$", registry, re.M)
+    if not condition or "inputs.publish_registries" not in condition.group():
+        failures.append(f"{workflow_name}: registry job must require publishing opt-in")
+    final = jobs.get("publish-final", "")
+    condition = re.search(r"^    if:.*$", final, re.M)
+    if not condition or "needs.publish-registries.result == 'success'" not in condition.group():
+        failures.append(f"{workflow_name}: public release requires registry success")
+
 if failures:
     for f in failures:
         print("FAIL: " + f, file=sys.stderr)

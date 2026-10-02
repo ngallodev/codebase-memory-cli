@@ -80,3 +80,8 @@
   is all-platform and its default Windows qualification hold remains in force.
   Setting that hold to false is not a Linux-only release mode. See the canonical
   upstream ledger's Linux publication readiness audit for live configuration evidence.
+
+- [ ] Public/registry publication is deferred by maintainer instruction.
+  `publish_registries=false` is now the default in release and promotion CI;
+  npm/PyPI credentials are only required when opting in. Draft qualification
+  still requires VirusTotal and applicable Windows evidence.

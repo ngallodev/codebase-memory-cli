@@ -36,6 +36,11 @@ on:
         required: false
         type: boolean
         default: true
+      publish_registries:
+        description: "Publish npm/PyPI packages and make the GitHub release public (requires registry credentials)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -456,7 +461,7 @@ jobs:
   # release stays in draft so we can re-run without a half-shipped state.
   publish-registries:
     needs: [verify]
-    if: ${{ !cancelled() && !failure() && needs.verify.result == 'success' && !inputs.hold_for_external_qualification }}
+    if: ${{ !cancelled() && !failure() && needs.verify.result == 'success' && !inputs.hold_for_external_qualification && inputs.publish_registries }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
