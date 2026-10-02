@@ -260,3 +260,85 @@ Default dispatches skip npm/PyPI jobs and public un-drafting, so registry
 credentials are not required to create/verify a draft candidate. VirusTotal
 and the external qualification hold remain unchanged. Publication is still
 blocked until explicitly opted in, with credentials and qualification evidence.
+
+## Remaining verticals — source review and Jev ranking, 2026-10-01 PDT
+
+This section supersedes earlier pending/completion statements above. Reviewed
+CLI main `bbabc073` and release-tooling `1ce4e164`; upstream remains the frozen
+`0f52d30c` census boundary. No fetch, indexing, builds or tests ran in this
+assessment. This is a source-reviewed shortlist of seven remaining verticals,
+not an exhaustive semantic ranking of the 348 non-merge census entries.
+
+### Finished work removed from the active queue
+
+| Work | Current evidence | State |
+|---|---|---|
+| Failed COUNT reads and status propagation (`99c3bb4c`) | `14fc5e88`, `7a388edb` | Integrated into main via PR #12 |
+| Persisted LSP linear array decode (`d7eba5a7`) | `fcc51bc9`, PR #4 | Merged into main |
+| Cypher partial-WHERE / optional COUNT | `8f35274b`, PR #5 | Merged into main |
+| .NET XML admission | `72faa8cd`, PR #6 | Merged into main |
+| TypeScript awaited generic call edges | `38153854`, PR #7 | Merged into main |
+| Properties scanner state and parser-cache cleanup | `008137f1`, `cf92f418` | Integrated into main via PR #12; PR #8 closed |
+| Macro coverage (`e4780c20`) | `bba31937`, `8e76597f`, grammar-compatible regression `37dd63ba` | Integrated into main via PR #12 |
+| Watcher hard-failure backoff and QA | `322d39ed`, `05cd7731` | Integrated into main via PR #12; live scheduler integration remains unproven |
+| Complete AST walker growth (`77ab4bea`, `7707c9d7`) | `26b31280`, `db6d1f57`, `f37c02c9` | Integrated into main via PR #12; allocation-failure injection remains open |
+| Empty-graph function-sort guard (`77a0c7d9`) | Current `phase1_scan_functions` guards qsort with `func_count > 0` | Already represented; remove stale backlog candidate |
+| Cypher capacity + unnamed-head follow-up (`04ba2fa3`, `98899ba5`) | Current `check_pattern_var_capacity` counts `CYP_ANON_HEAD_VAR` | Already represented; remove stale backlog candidates |
+| One-shot index metrics | `0f5a84bc` | Present on main; remove stale implementation task |
+| MCP-dependent monolithic test sources | Current `Makefile.cbm` uses neutral operation/daemon sources; no MCP entries in source lists | Old unresolved-link blocker is obsolete; no new runtime validation claimed |
+| Installer fork defaults and Jenkins recovery | `c9841610`, `8d64e6e7`, PR #12 | Merged into main |
+| Windows hook-lifecycle/macOS connection-cap repairs | `bbabc073`, PR #13 | Merged into main |
+| Deferred publication, Claude removal, CodeRabbit enablement | `b05fbcd0`, `9c6e795c`, `810725ab` | Committed on release-tooling; PR #14 open |
+| Linux-only prerelease route and package fork endpoints | `1ce4e164` | Committed on release-tooling; qualification and PR #14 merge remain open |
+
+Historical Jenkins results apply only to their recorded revisions. Live PR #14
+at `1ce4e164` has failing GitHub diagnostic, macOS LeakSanitizer, Unix/Windows
+test and shard-completeness checks, with additional checks still running as of
+2026-10-02T04:14Z. Do not equate implemented release tooling with CI acceptance
+or an available release. Failures were observed, not diagnosed in this ranking.
+
+### Next three selected vertical slices
+
+| Rank | Slice / upstream commits | Source-grounded value and minimal adaptation | Jenkins acceptance |
+|---|---|---|---|
+| 1 | Daemon cache-ownership safety — `ed76cf8e` | Current `cli_activation_production_reserve` sends an eager activation-shutdown request before a positive cache-ownership check; the daemon validates requester build but the shutdown frame has no cache identity. Adapt the positive-match/unknown-is-foreign rule to this fork's transaction lifecycle, including the later quiescence callback. **M–L; highest adaptation risk.** | `cli,daemon_runtime,daemon_ipc`: same-cache activation still works; different cache, busy/unreadable ownership and raced ownership send no foreign shutdown and preserve sessions. Keep exclusive mutation authority and lock cleanup. |
+| 2 | Binary `.res` admission and ReScript traversal/scanner termination — `8093d10b`, checksum follow-up `ea6fa49f` | Current discovery lacks `.res` disambiguation; `is_first_named_part_of` still climbs via repeated `ts_node_parent`. Port admission, cursor-based traversal and scanner progress together, preserving valid ReScript and vendored integrity. **M.** | `language,extraction,complexity`: binary resources bypass text parsing; malformed/adversarial source terminates within a bounded check; valid source keeps its definitions/calls; cursor fast path and checksums verified. |
+| 3 | Preserve internal cache stores during project-index reset — `46015320` | `cbm_list_indexes`, `count_db_indexes` and `cbm_remove_indexes` currently accept every nonempty `.db` stem, including `_config.db`. Reuse one exact-filename predicate for those callers and cross-repo enumeration; do not reject legitimate names merely containing `config` or starting with `_`. **S–M.** | `cli,pipeline`: reset/list/count exclude `_config.db` and `_cross_repo.db`; project DBs and their sidecars still follow current reset semantics; internal bytes/sidecars remain unchanged; legitimate similar names remain visible. |
+
+All three are adaptation candidates, not clean cherry-picks or accepted fixes.
+Implementation stays in isolated worktrees, integration targets local
+release-tooling, and validation uses the existing shared Jenkins job; no new
+per-task jobs. Do not push until the required Jenkins evidence passes.
+
+### Other reviewed candidates and Jev evidence
+
+Jev `jev-1.13.0` scored seven alternatives in two independent batches using
+verbatim upstream production diffs and current release-tooling source excerpts.
+No previous Jev results, agent verdicts or test claims were supplied as evidence.
+The same rubric was used throughout: 0 defer, 1 useful, 2 high, 3 urgent.
+Scores are advisory and are not probabilities of correctness; batch boundaries
+and a single call's numerical precision are limitations.
+
+| Candidate | Score / 3 | Full distribution P(0), P(1), P(2), P(3) |
+|---|---|---|
+| Daemon ownership | 2.95 | 0.01, 0.00, 0.02, 0.97 |
+| ReScript hang | 2.86 | 0.02, 0.03, 0.04, 0.91 |
+| Internal cache stores | 2.60 | 0.03, 0.06, 0.19, 0.72 |
+| Ancestor ignore rules (`c8184ed9`, `282fbfcd`) | 2.15 | 0.02, 0.02, 0.75, 0.21 |
+| C return pointer/qualifiers (`343d7dd5`) | 1.64 | 0.03, 0.31, 0.65, 0.01 |
+| Publish errno/failure diagnostics (`460ebefc`) | 1.31 | 0.07, 0.70, 0.06, 0.17 |
+| Python complete-binding lookup (`f339aa62`, `df8dd101`) | 0.98 | 0.07, 0.89, 0.04, 0.00 |
+
+The question for each candidate assessed priority from concrete harm, current
+source applicability, adaptation cost and regression seams, with destructive
+state loss, unrelated-session interruption and hangs ranked above diagnostics
+or speed. Jev supported the selected three; exact source inspection determined
+what is already represented and what needs fork-specific adaptation.
+
+Graph discovery used generation `2026-09-29T06:21:14Z`; CLI source coverage is
+partial and metadata-changed, so exact release-tooling source reads were used
+for material claims. Git porcelain was unchanged by these read-only probes.
+Fresh graph resets, exhaustive census classification, ADR alias/outline lint
+repair, native Windows/WSL qualification and real release-artifact checks
+remain open. Package endpoint implementation is complete on release-tooling;
+package installation/runtime qualification is separate.
