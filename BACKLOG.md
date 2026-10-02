@@ -102,3 +102,11 @@
   - Next path: inspect the saved Heaptrack allocation call trees; only add
     teardown code for allocations proven to be owned by the neutral daemon
     rather than allocator or test-process lifetime state.
+
+- [ ] Finish exact-revision Jenkins evaluation and independent review of the
+  2026-10-02 daemon/cache/ReScript integration candidate. Parent corrected the
+  premature maintenance signal and ReScript child assertion; runtime claims,
+  remote push and main integration remain pending. See the canonical 308 ledger.
+- [ ] Reconcile the GPT-6.1-Sol full upstream merge/constituent audit
+  `CBM-UPSTREAM-SOL-20261002-R2`, including ungrouped verticals and the next
+  five recommended slices. Do not count running audit work as coverage.

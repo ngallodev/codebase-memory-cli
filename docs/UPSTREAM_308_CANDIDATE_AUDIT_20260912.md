@@ -436,3 +436,39 @@ unvalidated; do not confuse their surviving branch commits with accepted ports.
 Compact handoff, frozen universes, index/process receipts, native launch and
 acknowledgement evidence are retained at
 `/home/nate/.local/state/agent-workflow/handoffs/CBM-UPSTREAM-AUDIT-20261002/`.
+
+
+## Three-candidate integration review resumed — 2026-10-02
+
+The parent pulled `main` (`bbabc073`, already current) and fetched upstream
+`96c3f41c`. The daemon (`028a4bfb`), cache (`fa5a180b`) and ReScript
+(`0eaa19f8` + checksum follow-up `9766a378`) candidates merge without conflicts
+onto the frozen QA branch `5fe820df` in isolated branch
+`integration/cbm-upstream-three-20261002`. They remain candidates until the
+exact integrated revision passes the shared Jenkins job and review.
+
+Parent source review corrected two defects before promotion:
+
+- ReScript deadline-test child now reaches its parse/alarm path before the
+  parent-only positive-PID assertion.
+- Ownership-aware activation verifies the lifetime identity under maintenance
+  SH and admission EX before publishing maintenance EX; a nonblocking
+  promotion preserves the admission/maintenance deadlock boundary. Foreign or
+  unreadable ownership never publishes the cancellation signal.
+
+Regression coverage adds admission-contention maintenance observation and a
+production CLI foreign-cache refusal diagnostic with binary/index preservation.
+The existing activation-ordering fixture now fingerprints its actual test cache.
+Pinned formatting, whitespace checks and ReScript manifest/scanner checksum
+comparison passed. No local builds or tests ran. Requested Jenkins suite union:
+`cli pipeline str_util version_cohort daemon_runtime daemon_ipc language extraction complexity`.
+Jenkins evaluation, runtime acceptance, remote push and main integration remain
+separate pending gates.
+
+The requested GPT-6.1-Sol audit is independently running as
+`CBM-UPSTREAM-SOL-20261002-R2`, pane `wC:pA`, against frozen QA base
+`5fe820df` and upstream `96c3f41c`. Its scope includes all upstream merge
+commits, constituent commits, canonical backlog reconciliation, vertical
+grouping and the next five new slices. Its exact-worktree index completed with
+persistence disabled and unchanged Git porcelain; launch and steering were
+observed and acknowledged. This is launch evidence, not audit completion.
