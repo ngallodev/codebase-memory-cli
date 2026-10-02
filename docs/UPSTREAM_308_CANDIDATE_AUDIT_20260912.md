@@ -404,3 +404,35 @@ controller summaries running with placeholder blocked completions. Public
 candidate SHAs, closing both assignments without fabricating process results.
 Jenkins evaluation, independent review and acceptance remain pending. Daemon
 AC-005 still lacks a direct CLI diagnostic assertion. ReScript was not closed.
+
+## Updated upstream audit dispatch — 2026-10-02
+
+Frozen source boundaries: CLI release-tooling `9cb5cc21`, locally updated MCP
+`96c3f41c` (dirty `graph-ui/tsconfig.tsbuildinfo` preserved). The MCP clone was
+already current per maintainer; Git objects were copied from the local clone
+without a remote fetch or moving shared CLI refs. `0f52d30c..96c3f41c` contains
+19 new non-merge commits; `9cb5cc21..96c3f41c` contains 367 ancestry-differing
+non-merge commits. These are deterministic census counts, not completed semantic
+classification or applicability claims.
+
+| Agent Run | Independent worktree / branch suffix | Herdr pane | Task |
+|---|---|---|---|
+| `CBM-UPSTREAM-ASSESS-20261002` | `cbm-upstream-assess-20261002` | `wC:p8`, `codex - luna-upstream-assess` | Source/Jev assessment of new and older unclassified commits; group applicable verticals with prerequisites/prior QA commits; propose canonical ledger/backlog edits on isolated branch |
+| `CBM-UPSTREAM-VERIFY-20261002` | `cbm-upstream-verify-20261002` | `wC:p9`, `codex - luna-upstream-verify` | Independent full-hash/source coverage audit of all differing applicable commits; evidence/report only, no competing canonical-doc edits |
+
+Both GPT-6-Luna interactive workers launched with full access, approvals never,
+and acknowledged generation-1 durable steering. Each worktree was indexed in
+full mode with persistence false BEFORE Agent Run preparation/worker launch;
+projects/status verified the exact root and ready graph, and Git porcelain was
+unchanged. Assessor graph: 26,722 nodes / 130,694 edges. Verifier graph: 26,722
+nodes / 131,278 edges. Both report 91 parse-partial files; exact source fallback
+and path-specific coverage remain required. Counts do not imply graph completeness.
+The initial prompts include verified index receipts and the shared Jev footer.
+
+No audit completion, independent acceptance or integration is claimed yet.
+Parent will reconcile canonical proposed edits against the independent report.
+Previously implemented daemon/cache/ReScript candidates remain unmerged and
+unvalidated; do not confuse their surviving branch commits with accepted ports.
+Compact handoff, frozen universes, index/process receipts, native launch and
+acknowledgement evidence are retained at
+`/home/nate/.local/state/agent-workflow/handoffs/CBM-UPSTREAM-AUDIT-20261002/`.

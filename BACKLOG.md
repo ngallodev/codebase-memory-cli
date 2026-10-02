@@ -29,6 +29,12 @@
 
 ## Open
 
+- [ ] Reconcile interactive upstream assessment and independent completeness
+  audit (`CBM-UPSTREAM-ASSESS-20261002`, `CBM-UPSTREAM-VERIFY-20261002`).
+  Both workers running in pre-indexed isolated trees; frozen MCP `96c3f41c`,
+  CLI `9cb5cc21`, 19 new / 367 ancestry-differing nonmerge commits. Canonical
+  applicability/vertical classification and verification remain pending.
+
 - [x] Closed daemon/cache interactive workers after verifying committed clean
   candidates `028a4bfb` / `fa5a180b`; sealed partial run receipts, preserved
   branches/bundles/evidence and removed only their two worktrees.
