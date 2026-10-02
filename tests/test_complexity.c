@@ -846,12 +846,12 @@ TEST(complexity_rescript_malformed_parse_has_deadline) {
     SKIP_PLATFORM("fork()/alarm() regression is POSIX-only");
 #else
     pid_t child = fork();
-    ASSERT_GT(child, 0);
     if (child == 0) {
         alarm(5);
         uint64_t work = cx_rescript_lex_work(0xFF, 32 * 1024);
         _exit(work > 0 ? 0 : 1);
     }
+    ASSERT_GT(child, 0);
     int status = 0;
     ASSERT_EQ(waitpid(child, &status, 0), child);
     ASSERT_TRUE(WIFEXITED(status));

@@ -1955,6 +1955,89 @@ TEST(cli_uninstall_quiesces_active_cohort_before_removing_binary_and_index) {
     PASS();
 }
 
+TEST(cli_uninstall_reports_foreign_cache_without_mutating) {
+    char tmpdir[256];
+    snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-foreign-cache-XXXXXX");
+    ASSERT_NOT_NULL(cbm_mkdtemp(tmpdir));
+    char *old_home = NULL;
+    char *old_cache = NULL;
+    cli_activation_save_env(&old_home, &old_cache);
+    cbm_setenv("HOME", tmpdir, 1);
+    char cache[512], runtime[512], bin_dir[512], binary[640], index[640];
+    snprintf(cache, sizeof(cache), "%s/cache", tmpdir);
+    snprintf(runtime, sizeof(runtime), "%s/runtime", tmpdir);
+    snprintf(bin_dir, sizeof(bin_dir), "%s/.local/bin", tmpdir);
+    test_mkdirp(cache);
+    test_mkdirp(runtime);
+    test_mkdirp(bin_dir);
+    cbm_setenv("CBM_CACHE_DIR", cache, 1);
+    snprintf(binary, sizeof(binary), "%s/codebase-memory-cli%s", bin_dir,
+#ifdef _WIN32
+             ".exe"
+#else
+             ""
+#endif
+    );
+    snprintf(index, sizeof(index), "%s/project.db", cache);
+    write_test_file(binary, "preserved binary");
+    write_test_file(index, "preserved index");
+    cbm_daemon_ipc_endpoint_t *endpoint = cbm_daemon_bootstrap_endpoint_new(runtime);
+    cbm_version_cohort_manager_t *owner =
+        endpoint ? cbm_version_cohort_manager_new(endpoint) : NULL;
+    cbm_version_cohort_lease_t *lease = NULL;
+    cbm_daemon_conflict_t conflict;
+    cbm_daemon_build_identity_t identity = {
+        .semantic_version = "2.4.0",
+        .build_fingerprint = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        .cache_fingerprint = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        .protocol_abi = CBM_DAEMON_RUNTIME_WIRE_ABI,
+        .store_abi = 1,
+        .feature_abi = 1,
+    };
+    bool owned = owner && cbm_version_cohort_acquire(owner, &identity, cbm_now_ms() + 5000U, &lease,
+                                                     &conflict) == CBM_VERSION_COHORT_OK;
+    FILE *capture = tmpfile();
+    int saved = capture ? dup(STDERR_FILENO) : -1;
+    bool capturing = saved >= 0 && dup2(fileno(capture), STDERR_FILENO) >= 0;
+    cbm_cli_set_activation_runtime_parent_for_test(runtime);
+    char *args[] = {"--yes"};
+    /* Call the production command directly; Windows' convenience dispatcher
+     * substitutes fake activation ops and cannot exercise ownership checks. */
+    int rc = owned && capturing ? cbm_cmd_uninstall(1, args) : -1;
+    cbm_cli_set_activation_runtime_parent_for_test(NULL);
+    cbm_set_auto_answer_for_test(0);
+    fflush(stderr);
+    if (saved >= 0) {
+        (void)dup2(saved, STDERR_FILENO);
+        close(saved);
+    }
+    char output[1024] = {0};
+    if (capture) {
+        rewind(capture);
+        (void)fread(output, 1, sizeof(output) - 1, capture);
+        fclose(capture);
+    }
+    bool binary_preserved =
+        read_test_file(binary) && strcmp(read_test_file(binary), "preserved binary") == 0;
+    bool index_preserved =
+        read_test_file(index) && strcmp(read_test_file(index), "preserved index") == 0;
+    if (lease)
+        (void)cbm_version_cohort_lease_release(&lease);
+    if (owner)
+        (void)cbm_version_cohort_manager_free(&owner);
+    cbm_daemon_ipc_endpoint_free(endpoint);
+    cli_activation_restore_env(old_home, old_cache);
+    test_rmdir_r(tmpdir);
+    ASSERT_TRUE(owned);
+    ASSERT_TRUE(capturing);
+    ASSERT_NEQ(rc, 0);
+    ASSERT_NOT_NULL(strstr(output, "different cache"));
+    ASSERT_NOT_NULL(strstr(output, "left running"));
+    ASSERT_TRUE(binary_preserved);
+    ASSERT_TRUE(index_preserved);
+    PASS();
+}
+
 TEST(cli_uninstall_preserves_binary_and_index_when_cohort_does_not_drain) {
     char tmpdir[256];
     snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-daemon-uninstall-race-XXXXXX");
@@ -11129,6 +11212,7 @@ TEST(cli_cp78_explicit_claude_hooks_preserve_mcp_hook_assets) {
 #endif
 
 SUITE(cli) {
+    RUN_TEST(cli_uninstall_reports_foreign_cache_without_mutating);
     RUN_TEST(cli_update_only_names_an_installer_that_exists_issue1632);
     RUN_TEST(cli_progress_visibility_policy);
     RUN_TEST(cli_maintenance_cancellation_forces_failure_status);

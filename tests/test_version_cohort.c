@@ -9,6 +9,7 @@
 #include "foundation/compat_fs.h"
 #include "foundation/compat_thread.h"
 #include "foundation/platform.h"
+#include "foundation/private_file_lock_internal.h"
 #include "foundation/sha256.h"
 #include "foundation/subprocess.h"
 
@@ -46,6 +47,7 @@ typedef struct {
 typedef struct {
     cbm_version_cohort_manager_t *manager;
     uint64_t deadline_ms;
+    const char *expected_cache;
     atomic_int callback_count;
     atomic_bool callback_seen;
     atomic_bool finished;
@@ -134,9 +136,14 @@ static cbm_version_cohort_quiesce_result_t version_cohort_test_request_quiesce(v
 
 static void *version_cohort_mutation_wait_thread(void *context) {
     version_cohort_mutation_wait_t *wait = context;
-    wait->status = cbm_version_cohort_reserve_for_mutation(
-        wait->manager, wait->deadline_ms, version_cohort_test_request_quiesce, wait,
-        &wait->quiesce_result, &wait->lease);
+    wait->status =
+        wait->expected_cache
+            ? cbm_version_cohort_reserve_for_mutation_cache(
+                  wait->manager, wait->expected_cache, wait->deadline_ms,
+                  version_cohort_test_request_quiesce, wait, &wait->quiesce_result, &wait->lease)
+            : cbm_version_cohort_reserve_for_mutation(wait->manager, wait->deadline_ms,
+                                                      version_cohort_test_request_quiesce, wait,
+                                                      &wait->quiesce_result, &wait->lease);
     atomic_store_explicit(&wait->finished, true, memory_order_release);
     return NULL;
 }
@@ -310,9 +317,9 @@ TEST(version_cohort_handoff_across_distinct_cache_roots) {
 
     ASSERT_EQ(cbm_version_cohort_acquire(holder, &active, UINT64_MAX, &holder_lease, &conflict),
               CBM_VERSION_COHORT_OK);
-    ASSERT_EQ(cbm_version_cohort_acquire(waiter, &requested, cbm_now_ms(), &waiter_lease,
-                                         &conflict),
-              CBM_VERSION_COHORT_CONFLICT);
+    ASSERT_EQ(
+        cbm_version_cohort_acquire(waiter, &requested, cbm_now_ms(), &waiter_lease, &conflict),
+        CBM_VERSION_COHORT_CONFLICT);
     ASSERT_NULL(waiter_lease);
     ASSERT_EQ(conflict.status, CBM_DAEMON_HELLO_CACHE_CONFLICT);
     ASSERT_STR_EQ(conflict.active_cache_fingerprint, active_cache);
@@ -430,9 +437,9 @@ TEST(version_cohort_conflict_is_retried_until_the_deadline) {
 
     /* An indefinite deadline never waits on a conflicting holder. */
     retries_before = cbm_version_cohort_conflict_retries_for_testing();
-    ASSERT_EQ(cbm_version_cohort_acquire(second, &requested, UINT64_MAX, &requested_lease,
-                                         &conflict),
-              CBM_VERSION_COHORT_CONFLICT);
+    ASSERT_EQ(
+        cbm_version_cohort_acquire(second, &requested, UINT64_MAX, &requested_lease, &conflict),
+        CBM_VERSION_COHORT_CONFLICT);
     ASSERT_NULL(requested_lease);
     ASSERT_EQ(cbm_version_cohort_conflict_retries_for_testing(), retries_before);
 
@@ -493,6 +500,59 @@ TEST(version_cohort_conflict_waiter_is_admitted_when_the_holder_leaves) {
     ASSERT_TRUE(finished);
     ASSERT_TRUE(joined);
     ASSERT_EQ(wait.status, CBM_VERSION_COHORT_OK);
+    PASS();
+}
+
+TEST(version_cohort_foreign_cache_does_not_publish_maintenance_while_waiting) {
+    version_cohort_fixture_t fixture;
+    ASSERT_TRUE(version_cohort_fixture_start(&fixture, "foreign-intent"));
+    cbm_version_cohort_manager_t *owner = cbm_version_cohort_manager_new(fixture.endpoint);
+    cbm_version_cohort_manager_t *activation = cbm_version_cohort_manager_new(fixture.endpoint);
+    cbm_daemon_build_identity_t identity = version_cohort_identity("2.4.0", VERSION_COHORT_BUILD_A);
+    cbm_version_cohort_lease_t *participant = NULL;
+    cbm_daemon_conflict_t conflict;
+    bool owned =
+        owner && cbm_version_cohort_acquire(owner, &identity, cbm_now_ms() + 5000U, &participant,
+                                            &conflict) == CBM_VERSION_COHORT_OK;
+    cbm_private_lock_directory_t *directory = NULL;
+    cbm_private_file_lock_t *admission = NULL;
+    bool locked = owned &&
+                  cbm_daemon_ipc_private_lock_directory_new(fixture.endpoint, &directory) ==
+                      CBM_PRIVATE_FILE_LOCK_OK &&
+                  cbm_private_file_lock_try_acquire(
+                      directory, "cbm-version-cohort-admission-v1.lock", CBM_PRIVATE_FILE_LOCK_EX,
+                      &admission) == CBM_PRIVATE_FILE_LOCK_OK;
+    version_cohort_mutation_wait_t wait;
+    version_cohort_mutation_wait_init(&wait, activation, cbm_now_ms() + 5000U);
+    wait.expected_cache = VERSION_COHORT_CACHE_B;
+    cbm_thread_t thread;
+    bool started = locked && activation &&
+                   cbm_thread_create(&thread, 0, version_cohort_mutation_wait_thread, &wait) == 0;
+    bool quiet = started;
+    uint64_t until = cbm_now_ms() + 100U;
+    while (started && cbm_now_ms() < until) {
+        quiet = quiet && cbm_version_cohort_maintenance_presence(owner) ==
+                             CBM_VERSION_COHORT_MAINTENANCE_ABSENT;
+        cbm_usleep(1000);
+    }
+    if (admission)
+        (void)cbm_private_file_lock_release(&admission);
+    bool joined = started && cbm_thread_join(thread, NULL) == 0;
+    if (directory)
+        cbm_private_lock_directory_close(directory);
+    int callbacks = atomic_load_explicit(&wait.callback_count, memory_order_relaxed);
+    version_cohort_release(&wait.lease);
+    version_cohort_release(&participant);
+    version_cohort_manager_close(&activation);
+    version_cohort_manager_close(&owner);
+    version_cohort_fixture_finish(&fixture);
+    ASSERT_TRUE(owned);
+    ASSERT_TRUE(locked);
+    ASSERT_TRUE(started);
+    ASSERT_TRUE(joined);
+    ASSERT_TRUE(quiet);
+    ASSERT_EQ(wait.status, CBM_VERSION_COHORT_CONFLICT);
+    ASSERT_EQ(callbacks, 0);
     PASS();
 }
 
@@ -1123,6 +1183,7 @@ TEST(version_cohort_crash_releases_process_lifetime_lease) {
 }
 
 SUITE(version_cohort) {
+    RUN_TEST(version_cohort_foreign_cache_does_not_publish_maintenance_while_waiting);
     RUN_TEST(version_cohort_shares_exact_build_rejects_conflict_and_turns_over);
     RUN_TEST(version_cohort_rejects_same_hash_with_different_abi);
     RUN_TEST(version_cohort_rejects_missing_cache_fingerprint);

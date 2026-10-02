@@ -675,13 +675,13 @@ static cbm_version_cohort_status_t version_cohort_reserve_for_mutation_internal(
     if (!lease) {
         return CBM_VERSION_COHORT_IO;
     }
-    /* Publish crash-safe intent before waiting for an admission already in
-     * flight. Normal admissions retain maintenance SH until their admission
-     * transition ends, giving every participant the same deadlock-free native
-     * order: maintenance -> admission -> lifetime. */
-    cbm_private_file_lock_status_t lock_status =
-        version_cohort_lock_until(manager, VERSION_COHORT_MAINTENANCE_FILE,
-                                  CBM_PRIVATE_FILE_LOCK_EX, deadline_ms, &lease->maintenance);
+    /* Ownership-aware activation first holds maintenance SH: publishing EX
+     * wakes terminal monitors, so even that signal requires a positive owner
+     * match. Admission EX and lifetime pin the identity during the promotion. */
+    cbm_private_file_lock_status_t lock_status = version_cohort_lock_until(
+        manager, VERSION_COHORT_MAINTENANCE_FILE,
+        expected_cache_fingerprint ? CBM_PRIVATE_FILE_LOCK_SH : CBM_PRIVATE_FILE_LOCK_EX,
+        deadline_ms, &lease->maintenance);
     if (lock_status != CBM_PRIVATE_FILE_LOCK_OK) {
         return version_cohort_failed(lease, version_cohort_status_from_lock(lock_status),
                                      lease_out);
@@ -696,6 +696,7 @@ static cbm_version_cohort_status_t version_cohort_reserve_for_mutation_internal(
     lock_status =
         cbm_private_file_lock_try_acquire(manager->directory, VERSION_COHORT_LIFETIME_FILE,
                                           CBM_PRIVATE_FILE_LOCK_EX, &lease->lifetime);
+    bool lifetime_exclusive = lock_status == CBM_PRIVATE_FILE_LOCK_OK;
     if (lock_status == CBM_PRIVATE_FILE_LOCK_BUSY) {
         if (!quiesce) {
             *quiesce_result_out = CBM_VERSION_COHORT_QUIESCE_REFUSED;
@@ -704,11 +705,11 @@ static cbm_version_cohort_status_t version_cohort_reserve_for_mutation_internal(
 
         if (expected_cache_fingerprint) {
             /* Hold a shared lifetime lease while reading and requesting
-             * quiescence. Maintenance+admission EX prevent a replacement
+             * quiescence. Admission EX prevents a replacement
              * cohort from entering between this check and the callback. */
-            lock_status = cbm_private_file_lock_try_acquire(
-                manager->directory, VERSION_COHORT_LIFETIME_FILE, CBM_PRIVATE_FILE_LOCK_SH,
-                &lease->lifetime);
+            lock_status =
+                cbm_private_file_lock_try_acquire(manager->directory, VERSION_COHORT_LIFETIME_FILE,
+                                                  CBM_PRIVATE_FILE_LOCK_SH, &lease->lifetime);
             if (lock_status != CBM_PRIVATE_FILE_LOCK_OK) {
                 return version_cohort_failed(lease, version_cohort_status_from_lock(lock_status),
                                              lease_out);
@@ -728,32 +729,53 @@ static cbm_version_cohort_status_t version_cohort_reserve_for_mutation_internal(
                       !atomic_load_explicit(&version_cohort_active_identity_unreadable_for_test,
                                             memory_order_acquire);
 #endif
-            bool same_cache = decoded &&
-                              strcmp(active.cache_fingerprint, expected_cache_fingerprint) == 0;
+            bool same_cache =
+                decoded && strcmp(active.cache_fingerprint, expected_cache_fingerprint) == 0;
             if (!same_cache) {
                 /* The record may have become stale after the failed EX probe.
                  * With admission closed, a successful EX retry proves no
                  * participant remains; otherwise preserve the active cohort. */
-                if (cbm_private_file_lock_release(&lease->lifetime) !=
-                    CBM_PRIVATE_FILE_LOCK_OK) {
+                if (cbm_private_file_lock_release(&lease->lifetime) != CBM_PRIVATE_FILE_LOCK_OK) {
                     return version_cohort_failed(lease, CBM_VERSION_COHORT_IO, lease_out);
                 }
                 lock_status = cbm_private_file_lock_try_acquire(
                     manager->directory, VERSION_COHORT_LIFETIME_FILE, CBM_PRIVATE_FILE_LOCK_EX,
                     &lease->lifetime);
                 if (lock_status == CBM_PRIVATE_FILE_LOCK_OK) {
-                    goto lifetime_reserved;
+                    lifetime_exclusive = true;
+                } else {
+                    cbm_version_cohort_status_t refusal =
+                        decoded ? CBM_VERSION_COHORT_CONFLICT : CBM_VERSION_COHORT_UNSAFE;
+                    return version_cohort_failed(lease,
+                                                 lock_status == CBM_PRIVATE_FILE_LOCK_BUSY
+                                                     ? refusal
+                                                     : version_cohort_status_from_lock(lock_status),
+                                                 lease_out);
                 }
-                cbm_version_cohort_status_t refusal =
-                    decoded ? CBM_VERSION_COHORT_CONFLICT : CBM_VERSION_COHORT_UNSAFE;
-                return version_cohort_failed(
-                    lease, lock_status == CBM_PRIVATE_FILE_LOCK_BUSY
-                               ? refusal
-                               : version_cohort_status_from_lock(lock_status),
-                    lease_out);
             }
         }
+    } else if (lock_status != CBM_PRIVATE_FILE_LOCK_OK) {
+        return version_cohort_failed(lease, version_cohort_status_from_lock(lock_status),
+                                     lease_out);
+    }
 
+    if (expected_cache_fingerprint) {
+        if (cbm_private_file_lock_release(&lease->maintenance) != CBM_PRIVATE_FILE_LOCK_OK) {
+            return version_cohort_failed(lease, CBM_VERSION_COHORT_IO, lease_out);
+        }
+        /* Never wait for maintenance while admission is held: an entering
+         * participant may hold maintenance SH while waiting for admission.
+         * A failed nonblocking promotion releases all claims for retry. */
+        lock_status =
+            cbm_private_file_lock_try_acquire(manager->directory, VERSION_COHORT_MAINTENANCE_FILE,
+                                              CBM_PRIVATE_FILE_LOCK_EX, &lease->maintenance);
+        if (lock_status != CBM_PRIVATE_FILE_LOCK_OK) {
+            return version_cohort_failed(lease, version_cohort_status_from_lock(lock_status),
+                                         lease_out);
+        }
+    }
+
+    if (!lifetime_exclusive) {
         /* Admission remains exclusively locked across the callback and wait.
          * On the ownership-aware path the active lifetime identity is also
          * retained SH until the callback has issued its request. */
@@ -781,7 +803,6 @@ static cbm_version_cohort_status_t version_cohort_reserve_for_mutation_internal(
                                      lease_out);
     }
 
- lifetime_reserved:
     /* All three locks intentionally remain in the lease. Maintenance makes
      * admission fail fast, admission closes the transition, and lifetime
      * proves all earlier participants have drained. */

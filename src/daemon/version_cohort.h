@@ -99,7 +99,8 @@ cbm_version_cohort_status_t cbm_version_cohort_reserve_for_mutation(
 /* Activation variant: expected_cache_fingerprint must be a valid SHA-256 hex
  * fingerprint. Request quiescence only when the active lifetime record
  * positively names expected_cache_fingerprint. The identity is checked while
- * maintenance and admission are held, and its lifetime SH lease remains held
+ * admission is held; maintenance intent is published only after this check,
+ * and its lifetime SH lease remains held
  * through the callback, so ownership cannot change before the request. A
  * foreign or unreadable active record grants no mutation lease. */
 cbm_version_cohort_status_t cbm_version_cohort_reserve_for_mutation_cache(
