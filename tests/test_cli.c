@@ -22,6 +22,7 @@
 #include <daemon/version_cohort.h>
 #include <foundation/constants.h>
 #include <foundation/platform.h>
+#include <foundation/str_util.h>
 #include "test_operation_host.h"
 #include <pipeline/pipeline.h>
 #include <foundation/yaml.h>
@@ -207,6 +208,64 @@ static char *read_test_file_alloc(const char *path) {
     }
     buf[read_len] = '\0';
     return buf;
+}
+
+static bool copy_test_file(const char *source, const char *destination) {
+    FILE *in = fopen(source, "rb");
+    FILE *out = fopen(destination, "wb");
+    if (!in || !out) {
+        if (in)
+            fclose(in);
+        if (out)
+            fclose(out);
+        return false;
+    }
+    char buffer[4096];
+    size_t n;
+    bool ok = true;
+    while ((n = fread(buffer, 1, sizeof(buffer), in)) > 0) {
+        if (fwrite(buffer, 1, n, out) != n) {
+            ok = false;
+            break;
+        }
+    }
+    ok = ok && !ferror(in) && !ferror(out);
+    int in_close_rc = fclose(in);
+    int out_close_rc = fclose(out);
+    if (in_close_rc != 0 || out_close_rc != 0)
+        ok = false;
+    return ok;
+}
+
+static bool test_files_equal(const char *left, const char *right) {
+    FILE *a = fopen(left, "rb");
+    FILE *b = fopen(right, "rb");
+    if (!a || !b) {
+        if (a)
+            fclose(a);
+        if (b)
+            fclose(b);
+        return false;
+    }
+    char a_buf[4096];
+    char b_buf[4096];
+    bool equal = true;
+    size_t a_n;
+    size_t b_n;
+    do {
+        a_n = fread(a_buf, 1, sizeof(a_buf), a);
+        b_n = fread(b_buf, 1, sizeof(b_buf), b);
+        if (a_n != b_n || memcmp(a_buf, b_buf, a_n) != 0) {
+            equal = false;
+            break;
+        }
+    } while (a_n > 0);
+    equal = equal && !ferror(a) && !ferror(b);
+    int a_close_rc = fclose(a);
+    int b_close_rc = fclose(b);
+    if (a_close_rc != 0 || b_close_rc != 0)
+        equal = false;
+    return equal;
 }
 
 static bool test_file_contains_all(const char *path, const char *const *tokens,
@@ -1251,6 +1310,109 @@ TEST(cli_remove_indexes_deletes_orphan_sqlite_sidecars_issue2054) {
     ASSERT_TRUE(db_absent);
     ASSERT_TRUE(wal_absent);
     ASSERT_TRUE(shm_absent);
+    PASS();
+}
+
+TEST(cli_index_enumeration_preserves_internal_stores) {
+    static const char *const suffixes[] = {"-wal", "-shm", "-journal", ".tmp"};
+    static const char *const projects[] = {"proj.db", "_private.db", "orders_config_service.db",
+                                           "api-wal.db"};
+    char tmpdir[256];
+    snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-internal-dbs-XXXXXX");
+    if (!cbm_mkdtemp(tmpdir)) {
+        FAIL("cbm_mkdtemp failed");
+    }
+    char *old_home = NULL;
+    char *old_cache = NULL;
+    cli_activation_save_env(&old_home, &old_cache);
+    cbm_setenv("HOME", tmpdir, 1);
+    char cache_dir[512];
+    snprintf(cache_dir, sizeof(cache_dir), "%s/cache", tmpdir);
+    cbm_setenv("CBM_CACHE_DIR", cache_dir, 1);
+    test_mkdirp(cache_dir);
+
+    char config_path[640];
+    char cross_path[640];
+    snprintf(config_path, sizeof(config_path), "%s/" CBM_CONFIG_DB_FILENAME, cache_dir);
+    snprintf(cross_path, sizeof(cross_path), "%s/" CBM_CROSS_REPO_DB_FILENAME, cache_dir);
+    cbm_config_t *cfg = cbm_config_open(cache_dir);
+    int set_rc = cfg ? cbm_config_set(cfg, "auto_index", "true") : -1;
+    cbm_config_close(cfg);
+    write_test_file(cross_path, "cross-store-bytes");
+
+    bool sidecars_written = true;
+    for (size_t i = 0; i < 2; i++) {
+        char *base = i == 0 ? config_path : cross_path;
+        for (size_t j = 0; j < sizeof(suffixes) / sizeof(suffixes[0]); j++) {
+            char path[704];
+            snprintf(path, sizeof(path), "%s%s", base, suffixes[j]);
+            sidecars_written = sidecars_written && write_test_file(path, suffixes[j]) == 0;
+        }
+    }
+    for (size_t i = 0; i < sizeof(projects) / sizeof(projects[0]); i++) {
+        char db_path[640];
+        snprintf(db_path, sizeof(db_path), "%s/%s", cache_dir, projects[i]);
+        sidecars_written = sidecars_written && write_test_file(db_path, "project") == 0;
+        for (size_t j = 0; j < sizeof(suffixes) / sizeof(suffixes[0]); j++) {
+            char path[704];
+            snprintf(path, sizeof(path), "%s%s", db_path, suffixes[j]);
+            sidecars_written = sidecars_written && write_test_file(path, suffixes[j]) == 0;
+        }
+    }
+
+    char config_snapshot[640];
+    char cross_snapshot[640];
+    snprintf(config_snapshot, sizeof(config_snapshot), "%s/config.snapshot", tmpdir);
+    snprintf(cross_snapshot, sizeof(cross_snapshot), "%s/cross.snapshot", tmpdir);
+    bool snapshots_written =
+        copy_test_file(config_path, config_snapshot) && copy_test_file(cross_path, cross_snapshot);
+    int listed = cbm_list_indexes(tmpdir);
+    int removed = cbm_remove_indexes(tmpdir);
+    int removed_again = cbm_remove_indexes(tmpdir);
+    bool internal_files_preserved = snapshots_written &&
+                                    test_files_equal(config_path, config_snapshot) &&
+                                    test_files_equal(cross_path, cross_snapshot);
+    bool internal_sidecars_preserved = true;
+    for (size_t i = 0; i < 2; i++) {
+        char *base = i == 0 ? config_path : cross_path;
+        for (size_t j = 0; j < sizeof(suffixes) / sizeof(suffixes[0]); j++) {
+            char path[704];
+            struct stat st;
+            snprintf(path, sizeof(path), "%s%s", base, suffixes[j]);
+            internal_sidecars_preserved = internal_sidecars_preserved && stat(path, &st) == 0 &&
+                                          read_test_file(path) != NULL &&
+                                          strcmp(read_test_file(path), suffixes[j]) == 0;
+        }
+    }
+    bool project_files_removed = true;
+    for (size_t i = 0; i < sizeof(projects) / sizeof(projects[0]); i++) {
+        char db_path[640];
+        snprintf(db_path, sizeof(db_path), "%s/%s", cache_dir, projects[i]);
+        struct stat st;
+        project_files_removed = project_files_removed && stat(db_path, &st) != 0;
+        for (size_t j = 0; j < sizeof(suffixes) / sizeof(suffixes[0]); j++) {
+            char path[704];
+            snprintf(path, sizeof(path), "%s%s", db_path, suffixes[j]);
+            project_files_removed = project_files_removed && stat(path, &st) != 0;
+        }
+    }
+    cfg = cbm_config_open(cache_dir);
+    const char *setting = cfg ? cbm_config_get(cfg, "auto_index", "") : "";
+    bool config_value_preserved = strcmp(setting, "true") == 0;
+    cbm_config_close(cfg);
+    cli_activation_restore_env(old_home, old_cache);
+    test_rmdir_r(tmpdir);
+
+    ASSERT_EQ(set_rc, 0);
+    ASSERT_TRUE(sidecars_written);
+    ASSERT_TRUE(snapshots_written);
+    ASSERT_EQ(listed, 4);
+    ASSERT_EQ(removed, 4);
+    ASSERT_EQ(removed_again, 0);
+    ASSERT_TRUE(internal_files_preserved);
+    ASSERT_TRUE(internal_sidecars_preserved);
+    ASSERT_TRUE(project_files_removed);
+    ASSERT_TRUE(config_value_preserved);
     PASS();
 }
 
@@ -10994,6 +11156,7 @@ SUITE(cli) {
     RUN_TEST(cli_activation_commands_reject_malformed_and_unknown_flags);
     RUN_TEST(cli_install_reset_deletion_waits_for_final_activation_guard);
     RUN_TEST(cli_remove_indexes_deletes_orphan_sqlite_sidecars_issue2054);
+    RUN_TEST(cli_index_enumeration_preserves_internal_stores);
     RUN_TEST(cli_install_config_only_waits_for_cohort_drain);
     RUN_TEST(cli_install_config_and_path_finish_before_guard_release);
     RUN_TEST(cli_install_config_failure_keeps_published_binary);
