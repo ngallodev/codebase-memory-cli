@@ -63,14 +63,18 @@
   `tests/test_mcp.c` (that subtree exists upstream and is absent from
   production and both QA trees), and confirmed the 16 are upstream ancestors
   absent from those three CLI trees.
-  Original runtime retains 154 assigned hashes; all 367 hashes still have one
+  After the Phase1 transfer, original runtime retains 39 hashes; all 367 hashes still have one
   effective primary owner. The transfer, acknowledgement, index and launch
   receipts are in the new run's evidence. Completed work was not reassigned.
   Phase1 successor plan now transfers 115 still-unreviewed runtime hashes to
-  three native DeepSeek Flash workers (39/26/50 disjoint groups), preserving the
+  three prepared DeepSeek Flash assignments (39/26/50 disjoint groups), preserving the
   exact releases and completed work. Unstarted low2 was retired; corrected low1
   finished partial with detailed handoff and its pane closed. See the canonical
-  Phase1 plan; no worker result/acceptance is inferred from launch.
+  Phase1 plan. Native assignment delivery failed: all three returned predecessor
+  reports, including after persisted steering and direct follow-ups. Sessions
+  were stopped; zero assigned comparisons or correlated worker acknowledgements
+  are established, and all 115 hashes remain pending. Recover task delivery before
+  resuming; no worker result/acceptance is inferred from preparation or launch.
 - [ ] Review additional bounded missing behaviors: malformed confidence parsing
   `62b44519c68b403ea44d9a85ba8ee74cddee66e6` (first additional localized candidate),
   route handler position `592894a4387a50e1d128ff6a2695ff48f8cc32a5`, late annotation

@@ -375,7 +375,13 @@ owns current plan/status. Exact machine assignments/effective ownership and laun
 index receipts remain in the three run evidence roots. Native workspace subagents
 use isolated frozen worktrees; they are not Herdr terminal agents. Each must retain
 full source comparisons, bounded primary-evidence Jev calls and resumable batch
-checkpoints. No result is yet represented as complete or accepted. The original
+checkpoints. Subsequent delivery checks found that all three returned predecessor
+tasks instead of their assignments, even after persisted steering and direct
+follow-ups. The affected sessions were stopped. No correlated Phase1 acknowledgement,
+assigned comparison or Jev call is established; all 115 hashes remain pending.
+Per-run parent recovery checkpoints/handoffs retain exact hashes and next actions;
+the canonical plan records the failed-delivery boundary and unexpected predecessor
+activity. No result is represented as complete or accepted. The original
 capture tables remain dated evidence, not silently refreshed progress counters.
 
 ## Appendix: non-unresolved auditor checkpoint claims

@@ -135,7 +135,26 @@ and pagination/fallback state, Jev request/result gaps, ownership/dependencies,
 commands actually executed, next commands and real stopping reason. Successors
 continue from the first unreviewed item under new prepared authority. Worker finish,
 external exit, independent review, Jenkins validation and acceptance stay separate.
-This is a launch/plan record; no DeepSeek result completeness is inferred.
+**Delivery correction — 2026-10-03 UTC:** native spawn and external binding did
+not establish execution of these assignments. All three tasks returned inherited
+Sol/consolidation reports; operations explicitly reported no task payload arrived.
+Persisted correction steers and direct follow-ups still produced predecessor
+reports, with zero correlated Phase1 acknowledgements or dispositions observed.
+The affected sessions were stopped. All **115 assigned hashes remain pending**;
+no assigned source comparison, actual model identity or Jev execution is established.
+Runtime disclosed a rejected predecessor re-finalization attempt that incremented
+its telemetry; integration committed unrelated consolidation `76244f78` and notebook
+`ea68cb4`. Preserve these artifacts separately; neither is Phase1 task progress.
+
+The prepared plan, exact assignments and isolated index receipts remain reusable.
+Each unsealed Phase1 run contains a parent-written
+`parent-delivery-recovery-checkpoint.json`, `PARENT_DELIVERY_RECOVERY_HANDOFF.md`
+and their checksum manifest, retaining every full remaining hash. Detailed incident
+evidence is `native-delivery-recovery.json` in the Phase1 handoff directory.
+Host recovery must establish functioning task delivery/binding and correct worker
+run/cwd/branch/hash acknowledgement before comparison resumes. No predecessor
+completion is reissued, and no sealed predecessor evidence is rewritten by recovery.
+This is a preparation/failed-delivery record; Phase1 is incomplete.
 
 ## Frozen merge and source audit — 2026-10-02, Sol R2
 
