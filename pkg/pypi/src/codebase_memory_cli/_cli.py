@@ -19,7 +19,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-REPO = "ngallodev/codebase-memory-cli"
+REPO = "DeusData/codebase-memory-mcp"
 _WINDOWS_BINARY_NAME = "codebase-memory-cli.exe"
 _UNIX_ARCHIVE_NAMES = (
     "codebase-memory-cli",

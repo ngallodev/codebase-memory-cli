@@ -29,6 +29,8 @@ SOAK_WF="$ROOT/.github/workflows/_soak.yml"
 [ -f "$SOAK_WF" ] || { echo "FAIL: $SOAK_WF not found" >&2; exit 2; }
 
 python3 - "$WF" "$BUILD_WF" "$DRY_WF" "$SOAK_WF" <<'PY'
+import os
+import subprocess
 import pathlib
 import re
 import sys
@@ -386,7 +388,7 @@ if not re.search(r"^        default: false$", option_body("publish_github_prerel
     failures.append("release.yml: publish_github_prerelease must default to false")
 if not re.search(r"^        default: true$", option_body("hold_for_external_qualification"), re.M):
     failures.append("release.yml: hold_for_external_qualification must still default to true")
-if "(-[0-9A-Za-z.-]+)?$" not in blocks.get("preflight", ""):
+if "(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$" not in blocks.get("preflight", ""):
     failures.append("release.yml: preflight must accept hyphenated semver prereleases (v0.12.0-cli-rc.1)")
 pre = blocks.get("preflight", "")
 validation_path = "scripts/ci/validate-release-inputs.sh"
@@ -395,6 +397,7 @@ if f"run: bash {validation_path}" not in pre:
 validation = pathlib.Path(sys.argv[1]).parents[2] / validation_path
 validation_text = validation.read_text() if validation.is_file() else ""
 for fragment in (
+    "publish_github_prerelease requires platforms=linux",
     "publish_github_prerelease requires a prerelease (hyphenated) version",
     "publish_github_prerelease cannot be combined with publish_registries",
     "publish_github_prerelease cannot be combined with hold_for_external_qualification",
@@ -403,12 +406,29 @@ for fragment in (
 ):
     if fragment not in validation_text:
         failures.append(f"preflight: invalid-combination rejection missing: {fragment}")
+# Exercise the actual guard; marker text alone must not admit unsafe dispatches.
+if validation.is_file():
+    for platforms, version, hold, registries, prerelease, accepted in (
+        ("all", "v0.12.0", "true", "false", "false", True),
+        ("linux", "v0.12.0-rc.1", "false", "false", "true", True),
+        ("all", "v0.12.0-rc.1", "false", "false", "true", False),
+        ("linux", "v0.12.0", "false", "false", "true", False),
+        ("linux", "v0.12.0-rc.1", "true", "false", "true", False),
+        ("linux", "v0.12.0-rc.1", "false", "true", "true", False),
+    ):
+        result = subprocess.run(
+            ["bash", validation.as_posix()], capture_output=True, text=True,
+            env={**os.environ, "PLATFORMS": platforms, "VERSION": version,
+                 "HOLD": hold, "REGISTRIES": registries, "PRERELEASE_PUBLISH": prerelease})
+        if (result.returncode == 0) != accepted:
+            failures.append(f"preflight: wrong input-guard result for {platforms}/{version}/{hold}/{registries}/{prerelease}")
 for job in ("test", "build", "smoke", "soak"):
     if "platforms: ${{ inputs.platforms }}" not in blocks.get(job, ""):
         failures.append(f"{job}: must thread inputs.platforms to the reusable workflow")
 gh_pre = blocks.get("publish-github-prerelease", "")
 gh_cond = cond("publish-github-prerelease")
 for fragment in ("needs.verify.result == 'success'", "inputs.publish_github_prerelease",
+                 "inputs.platforms == 'linux'",
                  "!inputs.hold_for_external_qualification", "!inputs.publish_registries",
                  "contains(inputs.version, '-')"):
     if fragment not in gh_cond:

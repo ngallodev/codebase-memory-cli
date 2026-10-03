@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $packageName = 'codebase-memory-cli'
 $version     = '0.11.0'
-$url64       = "https://github.com/ngallodev/codebase-memory-cli/releases/download/v${version}/codebase-memory-cli-windows-amd64.zip"
+$url64       = "https://github.com/DeusData/codebase-memory-mcp/releases/download/v${version}/codebase-memory-cli-windows-amd64.zip"
 $checksum64  = 'b43ad982994c4d829670749e08d3b622a74bb20041fc0a7d02bef6113f81c34d'
 $installDir  = Join-Path $env:ChocolateyBinRoot $packageName
 

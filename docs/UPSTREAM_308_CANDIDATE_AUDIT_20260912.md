@@ -259,7 +259,9 @@ promotion workflows now expose `publish_registries` with default false.
 Default dispatches skip npm/PyPI jobs and public un-drafting, so registry
 credentials are not required to create/verify a draft candidate. VirusTotal
 and the external qualification hold remain unchanged. Publication is still
-blocked until explicitly opted in, with credentials and qualification evidence.
+blocked until explicitly opted in with credentials. Direct dispatch does not
+require external qualification evidence; the promotion workflow enforces that
+evidence against the exact candidate.
 
 ## Remaining verticals — source review and Jev ranking, 2026-10-01 PDT
 

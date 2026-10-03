@@ -4506,6 +4506,41 @@ static uint64_t runtime_test_self_process_id(void) {
  * name its holder. Both the HELLO connect and the one-shot status probe
  * fail against a mute holder, and both must report the holder's
  * kernel-authenticated pid instead of plain absence. */
+#ifndef _WIN32
+/* A Unix socket can connect/send immediately without an accept worker. With
+ * a zero budget no receive is attempted, so ownership remains unconfirmed. */
+TEST(daemon_runtime_exhausted_status_probe_preserves_unconfirmed_holder) {
+    cbm_daemon_build_identity_t identity =
+        runtime_test_identity("2.4.0", runtime_test_self_build());
+    char parent[RUNTIME_TEST_PATH_CAP] = {0};
+    char key[CBM_DAEMON_KEY_SIZE] = {0};
+    char runtime_dir[RUNTIME_TEST_PATH_CAP] = {0};
+    bool prepared = th_secure_runtime_parent_new(parent, sizeof(parent), "probe-deadline") &&
+                    cbm_daemon_rendezvous_key(key);
+    cbm_daemon_ipc_endpoint_t *endpoint =
+        prepared ? cbm_daemon_ipc_endpoint_new(key, parent) : NULL;
+    bool copied = endpoint && runtime_test_copy_path(runtime_dir,
+                                                     cbm_daemon_ipc_endpoint_runtime_dir(endpoint));
+    cbm_daemon_ipc_listener_t *listener = endpoint ? cbm_daemon_ipc_listen(endpoint) : NULL;
+    cbm_daemon_runtime_status_t status = {0};
+    bool listening = listener != NULL;
+    bool active = listening && cbm_daemon_runtime_request_status(endpoint, &identity, 0, &status);
+    if (listener) {
+        cbm_daemon_ipc_listener_close(listener);
+    }
+    cbm_daemon_ipc_endpoint_free(endpoint);
+    (void)cbm_rmdir(runtime_dir);
+    (void)cbm_rmdir(parent);
+    ASSERT_TRUE(prepared);
+    ASSERT_TRUE(copied);
+    ASSERT_TRUE(listening);
+    ASSERT_FALSE(active);
+    ASSERT_EQ(status.muted_endpoint_holder_pid, 0);
+    ASSERT_EQ(status.unconfirmed_endpoint_holder_pid, runtime_test_self_process_id());
+    PASS();
+}
+#endif
+
 TEST(daemon_runtime_mute_endpoint_holder_pid_is_reported) {
     enum { MUTE_CONNECT_TIMEOUT_MS = 500 };
     cbm_daemon_build_identity_t identity =
@@ -5434,6 +5469,9 @@ SUITE(daemon_runtime) {
     RUN_TEST(daemon_runtime_noncooperative_callback_does_not_detach_or_unbound_stop);
 #if defined(CBM_ENABLE_TEST_SEAMS)
     RUN_TEST(daemon_runtime_abandoned_request_join_reaches_containment_in_bounded_time);
+#endif
+#ifndef _WIN32
+    RUN_TEST(daemon_runtime_exhausted_status_probe_preserves_unconfirmed_holder);
 #endif
     RUN_TEST(daemon_runtime_mute_endpoint_holder_pid_is_reported);
     RUN_TEST(daemon_runtime_application_busy_cap_and_malformed_are_isolated);

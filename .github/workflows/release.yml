@@ -82,7 +82,7 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          if [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+          if [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
             echo "version OK: $VERSION"
           else
             echo "::error::version must be v-prefixed semver (vX.Y.Z), got '$VERSION'"
@@ -603,6 +603,7 @@ jobs:
       ${{ !cancelled() && !failure()
       && needs.verify.result == 'success'
       && inputs.publish_github_prerelease
+      && inputs.platforms == 'linux'
       && !inputs.hold_for_external_qualification
       && !inputs.publish_registries
       && contains(inputs.version, '-') }}

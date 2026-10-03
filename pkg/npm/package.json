@@ -5,11 +5,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ngallodev/codebase-memory-cli.git"
+    "url": "git+https://github.com/DeusData/codebase-memory-mcp.git"
   },
-  "homepage": "https://github.com/ngallodev/codebase-memory-cli",
+  "homepage": "https://github.com/DeusData/codebase-memory-mcp",
   "bugs": {
-    "url": "https://github.com/ngallodev/codebase-memory-cli/issues"
+    "url": "https://github.com/DeusData/codebase-memory-mcp/issues"
   },
   "keywords": [
     "claude",

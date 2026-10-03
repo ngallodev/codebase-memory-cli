@@ -3,11 +3,11 @@ PackageVersion: 0.8.1
 PackageLocale: en-US
 Publisher: DeusData
 PublisherUrl: https://github.com/DeusData
-PublisherSupportUrl: https://github.com/ngallodev/codebase-memory-cli/issues
+PublisherSupportUrl: https://github.com/DeusData/codebase-memory-mcp/issues
 PackageName: codebase-memory-cli
-PackageUrl: https://github.com/ngallodev/codebase-memory-cli
+PackageUrl: https://github.com/DeusData/codebase-memory-mcp
 License: MIT
-LicenseUrl: https://github.com/ngallodev/codebase-memory-cli/blob/main/LICENSE
+LicenseUrl: https://github.com/DeusData/codebase-memory-mcp/blob/main/LICENSE
 ShortDescription: Fast code intelligence engine for AI coding agents
 Description: |-
   codebase-memory-cli is a CLI-first native code-intelligence application
@@ -25,6 +25,6 @@ Tags:
   - codebase
   - developer-tools
   - tree-sitter
-ReleaseNotesUrl: https://github.com/ngallodev/codebase-memory-cli/releases/tag/v0.8.1
+ReleaseNotesUrl: https://github.com/DeusData/codebase-memory-mcp/releases/tag/v0.8.1
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0

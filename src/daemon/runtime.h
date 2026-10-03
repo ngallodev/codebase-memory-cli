@@ -276,6 +276,10 @@ typedef struct {
      * kernel-reported PID of the mute holder. `daemon status` uses this to
      * name a zombie generation instead of reporting bare "not running". */
     uint64_t muted_endpoint_holder_pid;
+    /* A connected holder whose responsiveness could not be probed because
+     * connect/send exhausted the deadline. Preserve ownership without calling
+     * it a mute runtime. */
+    uint64_t unconfirmed_endpoint_holder_pid;
 } cbm_daemon_runtime_status_t;
 
 typedef struct {

@@ -2775,10 +2775,14 @@ static bool runtime_control_request_send(const cbm_daemon_ipc_endpoint_t *endpoi
                                          const cbm_daemon_build_identity_t *identity,
                                          cbm_daemon_runtime_operation_t operation,
                                          uint32_t timeout_ms, uint32_t response_size,
-                                         uint8_t **payload_out, uint64_t *muted_holder_pid_out) {
+                                         uint8_t **payload_out, uint64_t *muted_holder_pid_out,
+                                         uint64_t *unconfirmed_holder_pid_out) {
     *payload_out = NULL;
     if (muted_holder_pid_out) {
         *muted_holder_pid_out = 0;
+    }
+    if (unconfirmed_holder_pid_out) {
+        *unconfirmed_holder_pid_out = 0;
     }
     if (!endpoint || !identity || !identity->build_fingerprint ||
         timeout_ms == CBM_DAEMON_IPC_WAIT_FOREVER) {
@@ -2803,7 +2807,10 @@ static bool runtime_control_request_send(const cbm_daemon_ipc_endpoint_t *endpoi
                        ? cbm_daemon_ipc_receive_frame_bounded(connection, remaining, response_size,
                                                               &frame, &payload)
                        : 0;
-    if (muted_holder_pid_out && sent &&
+    if (unconfirmed_holder_pid_out && connection && (!sent || remaining == 0U)) {
+        *unconfirmed_holder_pid_out = cbm_daemon_ipc_connection_peer_pid(connection);
+    }
+    if (muted_holder_pid_out && sent && remaining > 0U &&
         (received != 1 || (frame.type == CBM_DAEMON_FRAME_RESPONSE && frame.flags != operation))) {
         /* Connected but not served: either total silence (dead runtime), or a
          * wrong-operation reject frame (a wedged generation whose accept path
@@ -2840,7 +2847,8 @@ bool cbm_daemon_runtime_request_status(const cbm_daemon_ipc_endpoint_t *endpoint
     uint8_t *payload = NULL;
     if (!runtime_control_request_send(endpoint, identity, CBM_DAEMON_RUNTIME_OP_STATUS, timeout_ms,
                                       CBM_DAEMON_STATUS_RESPONSE_SIZE, &payload,
-                                      &status_out->muted_endpoint_holder_pid)) {
+                                      &status_out->muted_endpoint_holder_pid,
+                                      &status_out->unconfirmed_endpoint_holder_pid)) {
         return false;
     }
     status_out->permanent = (payload[1] & 0x01U) != 0U;
@@ -2871,7 +2879,7 @@ bool cbm_daemon_runtime_request_stop(const cbm_daemon_ipc_endpoint_t *endpoint,
     memset(result_out, 0, sizeof(*result_out));
     uint8_t *payload = NULL;
     if (!runtime_control_request_send(endpoint, identity, CBM_DAEMON_RUNTIME_OP_STOP, timeout_ms,
-                                      CBM_DAEMON_STOP_RESPONSE_SIZE, &payload, NULL)) {
+                                      CBM_DAEMON_STOP_RESPONSE_SIZE, &payload, NULL, NULL)) {
         return false;
     }
     result_out->accepted = (payload[1] & 0x01U) != 0U;

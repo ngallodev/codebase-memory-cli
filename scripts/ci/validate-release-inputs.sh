@@ -7,6 +7,7 @@ case "${1:-}" in
 esac
 fail() { echo "::error::$1"; exit 1; }
 if [ "$PRERELEASE_PUBLISH" = "true" ]; then
+  [ "$PLATFORMS" = "linux" ] || fail "publish_github_prerelease requires platforms=linux"
   [[ "$VERSION" == *-* ]] || fail "publish_github_prerelease requires a prerelease (hyphenated) version, got '$VERSION'"
   [ "$REGISTRIES" != "true" ] || fail "publish_github_prerelease cannot be combined with publish_registries"
   [ "$HOLD" != "true" ] || fail "publish_github_prerelease cannot be combined with hold_for_external_qualification"

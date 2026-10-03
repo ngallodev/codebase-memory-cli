@@ -241,7 +241,7 @@ The current shell and PowerShell installers resolve `https://github.com/ngallode
 
 After promotion, verify from an unauthenticated client that `/releases/latest` resolves to that stable tag, every installer-requested asset is present, and each direct download returns the expected archive bytes. Run fresh installs using those public URLs in a real WSL2 Linux distro and on native Windows. For each supported architecture, record installer transcript, asset/hash, `--version`, and a small fixture index/status/search/snippet result. The Linux host build is not WSL evidence; Windows ARM64 routing must be exercised on a native ARM64 machine or explicitly remain unqualified. Existing artifact, checksum, archive-layout and installer safety checks stay required.
 
-The current promotion workflow always publishes npm and PyPI before un-drafting GitHub. If the fork does not own those package namespaces or cannot use their trusted publishers, treat that as a fork configuration/ownership blocker. Before any publication, review a minimal GitHub-only promotion option that keeps exact-candidate qualification verification and exposes an explicit choice to omit registry publication. Do not add that route as an unreviewed readiness change and do not silently skip failed registry publication.
+The promotion workflow defaults `publish_registries` to false and keeps the release in draft unless registry publication is explicitly enabled and both npm and PyPI succeed. If the fork does not own those package namespaces or cannot use their trusted publishers, treat that as a fork configuration/ownership blocker. Before any publication, review a minimal GitHub-only promotion option that keeps exact-candidate qualification verification and exposes an explicit choice to omit registry publication. Do not add that route as an unreviewed readiness change and do not silently skip failed registry publication.
 
 ### Linux GitHub prerelease route
 
@@ -268,3 +268,5 @@ CBM_DOWNLOAD_URL=https://github.com/ngallodev/codebase-memory-cli/releases/downl
 ```
 
 This route does not replace the stable path above: Windows and macOS bytes, external qualification and the `/releases/latest` installer behavior still require a stable `vX.Y.Z` release.
+
+Package URL and metadata migration is deferred until the fork publishes the exact tags, asset names, and verified checksums required by each package. PR #14 retains the previously merged package revisions. Those inherited templates are not evidence of working CLI downloads from the upstream MCP repository; fresh fork package installation remains unqualified.

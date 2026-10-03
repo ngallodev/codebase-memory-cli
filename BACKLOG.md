@@ -8,7 +8,8 @@
 
 - [x] Release-tooling implements deferred npm/PyPI/public publication,
   removes Claude automation, enables CodeRabbit, adds Linux-only prerelease
-  selection and repoints package fork endpoints. PR #14 merge and real artifact
+  selection. Package migration is deferred until exact fork assets and checksums
+  exist; the previously merged package revisions are retained. PR #14 merge and real artifact
   qualification remain open; these are implementation-complete tasks only.
 
 - [x] Reconciled completed upstream verticals: COUNT/status, persisted LSP

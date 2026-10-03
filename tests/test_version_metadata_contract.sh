@@ -307,12 +307,12 @@ for wf in release.yml promote-qualified-release.yml; do
     [[ -f "$wf_path" ]] || fail "$wf_path is missing"
     pattern="$(grep -oE '\^v\[0-9\]\+[^"]*\$' "$wf_path" | head -n 1)"
     [[ -n "$pattern" ]] || { fail "$wf_path has no version-grammar regex"; continue; }
-    [[ "$pattern" == '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' ]] ||
+    [[ "$pattern" == '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$' ]] ||
         fail "$wf_path version grammar changed unexpectedly: $pattern"
     for good in v0.12.0 v0.12.0-rc.1 v0.12.0-cli-rc.1; do
         [[ "$good" =~ $pattern ]] || fail "$wf_path rejects valid version $good"
     done
-    for bad in 0.12.0 v0.12 v0.12.0- v0.12.0.4 "v0.12.0-rc 1" v0.12.0-rc.1/x; do
+    for bad in 0.12.0 v0.12 v0.12.0- v0.12.0.4 "v0.12.0-rc 1" v0.12.0-rc.1/x v0.12.0-rc..1 v0.12.0-.rc v0.12.0-rc.; do
         [[ "$bad" =~ $pattern ]] && fail "$wf_path accepts invalid version $bad"
     done
 done

@@ -6,7 +6,7 @@
 //
 // Install:
 //
-//	go install github.com/ngallodev/codebase-memory-cli/pkg/go/cmd/codebase-memory-cli@latest
+//	go install github.com/DeusData/codebase-memory-mcp/pkg/go/cmd/codebase-memory-cli@latest
 package main
 
 import (
@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	repo              = "ngallodev/codebase-memory-cli"
+	repo              = "DeusData/codebase-memory-mcp"
 	version           = "0.11.0"
 	windowsBinaryName = "codebase-memory-cli.exe"
 
@@ -122,7 +122,7 @@ func main() {
 	if mutation == "update" {
 		fmt.Fprintln(
 			os.Stderr,
-			"This Go wrapper is maintained by Go. Update it with \"go install github.com/ngallodev/codebase-memory-cli/pkg/go/cmd/codebase-memory-cli@latest\".",
+			"This Go wrapper is maintained by Go. Update it with \"go install github.com/DeusData/codebase-memory-mcp/pkg/go/cmd/codebase-memory-cli@latest\".",
 		)
 		os.Exit(2)
 	}

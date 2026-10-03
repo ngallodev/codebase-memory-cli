@@ -1957,10 +1957,11 @@ static cbm_daemon_bootstrap_status_t main_client_bootstrap_with_upgrade(
                 : CBM_VERSION_COHORT_IO;
     bool acquired = reserved == CBM_VERSION_COHORT_OK && lease != NULL;
     cbm_daemon_runtime_status_t current = {0};
-    bool still_running = acquired && !upgrade.invoked &&
-                         (cbm_daemon_runtime_request_status(config->endpoint, config->identity,
-                                                            MAIN_CONNECT_TIMEOUT_MS, &current) ||
-                          current.muted_endpoint_holder_pid != 0);
+    bool still_running =
+        acquired && !upgrade.invoked &&
+        (cbm_daemon_runtime_request_status(config->endpoint, config->identity,
+                                           MAIN_CONNECT_TIMEOUT_MS, &current) ||
+         current.muted_endpoint_holder_pid != 0 || current.unconfirmed_endpoint_holder_pid != 0);
     bool released = main_version_cohort_close(&lease, &manager);
     if (!acquired || !released) {
         if (reserved == CBM_VERSION_COHORT_CONFLICT) {
@@ -2232,7 +2233,14 @@ static void main_daemon_ctl_print_clients(const uint32_t *pids, uint8_t count, u
 static void main_daemon_ctl_print_status_json(bool active,
                                               const cbm_daemon_runtime_status_t *status) {
     if (!active) {
-        printf("{\"active\":false,\"status\":\"not_running\"}\n");
+        const char *state = status->unconfirmed_endpoint_holder_pid != 0 ? "unconfirmed"
+                            : status->muted_endpoint_holder_pid != 0     ? "not_responding"
+                                                                         : "not_running";
+        uint64_t holder = status->unconfirmed_endpoint_holder_pid != 0
+                              ? status->unconfirmed_endpoint_holder_pid
+                              : status->muted_endpoint_holder_pid;
+        printf("{\"active\":false,\"status\":\"%s\",\"endpoint_holder_pid\":%llu}\n", state,
+               (unsigned long long)holder);
         return;
     }
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -2741,6 +2749,12 @@ static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpo
         if (!active) {
             if (json_output) {
                 main_daemon_ctl_print_status_json(false, &status);
+                return EXIT_FAILURE;
+            }
+            if (status.unconfirmed_endpoint_holder_pid != 0) {
+                printf("daemon: probe deadline exhausted (endpoint held by pid %llu)\n",
+                       (unsigned long long)status.unconfirmed_endpoint_holder_pid);
+                printf("hint: retry `codebase-memory-cli daemon status` to check responsiveness\n");
                 return EXIT_FAILURE;
             }
             if (status.muted_endpoint_holder_pid != 0) {
