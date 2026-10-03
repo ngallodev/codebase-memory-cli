@@ -217,3 +217,11 @@ completion/acceptance or semantic-closure counter advanced.
 - [ ] Review resumed pilot20 evidence from successor
  `CBM-RECON-DEEPSEEK-PILOT20-CONTINUE-20261003`; direct shell execution recovered.
  All20 remain unverified pending full source evidence and parent review.
+
+- [ ] Resolve prior DeepSeek pilot20 independent review changes:16 exact full-hash
+ whole-commit remainders in parent evidence/pilot20-independent-review/review.json.
+ Correct false absent-alias/YAML/fd-guard/Codex claims, map missing CLI regressions,
+ and preserve stale worker checksum failure; four source reviews credited, no
+ runtime/acceptance claims. Canonical308 verification section owns corrections.
+- [ ] Independently review NEW ops20 successor
+ `CBM-RECON-DEEPSEEK-BATCH2-20-20261003`; exact assignment disjoint from prior40.

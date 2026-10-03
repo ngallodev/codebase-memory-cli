@@ -561,3 +561,14 @@ must remain in successor run; prior evidence is immutable. Renamed pane/worker
 acknowledgement. Recovery receipts/prompt at
 `/home/nate/.local/state/agent-workflow/handoffs/CBM-DEEPSEEK-PILOT20-CONTINUE-20261003/`.
 No source closure, Jenkins, review or acceptance credited from recovery.
+
+### Pilot20 verification and ops20 successor — 2026-10-03 UTC
+
+New DeepSeek ops20 run `CBM-RECON-DEEPSEEK-BATCH2-20-20261003` assigned in
+wC:pJ; disjoint from prior pilot20 and Luna medium runtime20. Prior pilot20
+independent review requests changes: all20 rows assessed,4 bounded whole-commit
+source reviews completed,16 full-hash remainders retained. Corrected absent-alias,
+YAML indicator, fd-capture guard and Codex policy claims; found missing original CLI
+regressions and stale checkpoint checksum. Canonical308 verification section owns
+source corrections. Full crosswalk/snapshots/CBM/Jev evidence in parent run
+`evidence/pilot20-independent-review/`. No runtime validation or acceptance.

@@ -2099,3 +2099,47 @@ must remain in successor run; prior evidence is immutable. Renamed pane/worker
 acknowledgement. Recovery receipts/prompt at
 `/home/nate/.local/state/agent-workflow/handoffs/CBM-DEEPSEEK-PILOT20-CONTINUE-20261003/`.
 No source closure, Jenkins, review or acceptance credited from recovery.
+
+### Finished pilot20 independent verification and new ops20 — 2026-10-03 UTC
+
+DeepSeek successor pilot20 reported source completion with8 represented,10 missing,
+2 partial rows; host finish returned verification_required (no acceptance-command
+bindings). Parent independently checked all20 exact assignment/disposition sets,
+changed-path lists and manifest32 entries, and captured all21 paths at four frozen
+refs. Manifest checkpoint.json is stale; sealed worker artifacts were preserved.
+Documentary source review: **changes requested**, not host acceptance.
+
+Four bounded whole-commit source reviews completed:
+`91c63be5d4e41d44e0746ef533af4a0b1967d6b3`,
+`7bf366f63b3fd5211cec19e483ee2ed27145ca14`,
+`3007dbf8426764a92ace4da111836b86bec6b508`,
+`7219a24cc692500cdeb5cc192adbd47ac8bb6ee1`.
+Sixteen full-hash whole-commit remainders remain explicit in parent review.json and
+review-crosswalk.jsonl. No closure is inferred from worker row counts.
+
+| Full upstream hash | Independent correction / retained gap |
+| --- | --- |
+| `3b7f2559213ee80f5cfe0e2329c418211e09749e` | Worker represented verdict rejected. All three CLI snapshots return NULL on absent macOS alias in activation_posix_walk_path; upstream continues. Linux alias prerequisite remains missing. |
+| `7219a24cc692500cdeb5cc192adbd47ac8bb6ee1` | Worker missing verdict rejected. Positional indicator function is identical across four refs; all five original regression bodies are present at three CLI snapshots. Later upstream section-scoping modifies two fixtures; keep ae578bc separate. |
+| `a3c24a71b4c28e805b912f9f928b6b0b151f9495` | Worker claimed exact guard representation rejected: fd-capture helper seam is absent from all target tests/test_cli.c. Bound any test-only exclusion to that seam, preserving coverage gaps. |
+| `4cafe8eb22d1363a73f7cd9d5921e88c693cd78b` | Changed instruction content does not represent cleanup-only installation behavior. Targets still write CLI instructions; upstream frozen content is a short installed-skill pointer. Worker text/supersession reason rejected. |
+| `4c1b23477b8e0de27feee74eac11c21a1fd64151` | Target content is neutral CLI guidance, not old Knowledge Graph text. Pointer/preflight lifecycle needs CLI policy adaptation; avoid importing upstream MCP skill identity. |
+| `e5aabdf86ea86ee27b92477b21aa8d6c754a674d` | Shared root registration/pinned editor mechanism present;12 of13 original added tests present. CLI symlinked-uninstall regression absent; editor all-hunk/coverage equivalence still open. |
+| `c572ddc4f3b619ce8725f5336feb49929a88a029` | Failure collection/continued cleanup mechanism present; original added CLI cleanup-failure regression absent. Equivalent coverage and all-hunk closure remain open. |
+
+Exact source snapshots, CBM qualified searches/snippet/both-direction traces and21
+path coverage receipts, original diffs, test/function comparisons, full20 crosswalk,
+manifest failures and Jev advice are under parent run evidence
+`CBM-UPSTREAM-SOL-20261002-R2/evidence/pilot20-independent-review/`.
+One batched Jev call, model jev-1.13.0, two bounded Codex questions: cleanup behavior
+missing P=.97 (represented .02, excluded .01, insufficient .00); pointer policy
+bounded adaptation gap P=.98 (exact port .01, represented .01, insufficient .00).
+Advice corroborated source distinctions; it did not close whole-commit gaps.
+
+Before review, user-authorized NEW ops20 assignment was delivered to existing pane
+wC:pJ as prepared run `CBM-RECON-DEEPSEEK-BATCH2-20-20261003`. Exact20 hashes
+are disjoint from pilot20 and Luna medium runtime20. Same clean frozen indexed
+worktree reused; direct shell/CBM/Jev guidance and mandatory durable acknowledgement
+retained. Assignment/prompt/launch receipts at
+`/home/nate/.local/state/agent-workflow/handoffs/CBM-DEEPSEEK-BATCH2-20-20261003/`.
+No builds/tests/Jenkins, runtime validation, acceptance or main integration claimed.
