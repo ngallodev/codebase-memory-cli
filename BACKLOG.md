@@ -230,3 +230,11 @@ completion/acceptance or semantic-closure counter advanced.
  all3 hunks missing across production and both frozen QA refs. Applicable shared
  Scala regression/harness verified; prerequisite041eb99c11692b93d43ea72c884cc50c51285db5
  present. Future implementation/Jenkins/acceptance remain unperformed.
+
+- [x] Confirm ten historical merged/adapted tasks against current release-tooling
+327dccc0 source and regression contracts: Go selector binding; daemon UI/Unicode;
+Cypher scope/star; registry receiver chains; cohort retry; Windows YAML guards;
+cache-root cohort handoff; complexity determinism; Razor; embedded sibling hosts.
+10/10 source confirmed, selected remainder0. Canonical308 owns evidence/limits;
+no subtraction from678 ancestry or separate35 ops/runtime pending reviews.
+Native Windows qualification and fresh Jenkins51 result remain separate.
