@@ -2449,3 +2449,58 @@ Jenkins51 still running at observation with exact327dccc0 checkout. No fresh pas
 runtime result or host acceptance claimed. No new build/test execution locally,
 source ports, rebase, upstream history merge, push or main integration. GitHub behind
 count remains ancestry-based; this selected confirmation queue is now complete.
+
+## Preserved main publication audit — historical 2026-10-01 evidence
+
+The following dated section is preserved from main `fd54c538` during the trial
+reconciliation. Its live configuration and publication observations are historical,
+not newly verified. PR #14 has since merged. Jenkins #51 passed release-tooling
+`327dccc0`; the five-slice trial requires a separate full gate. Pre-existing committed
+stash-conflict markers in main's canonical documents were removed rather than
+propagated. Current upstream semantic accounting remains in the sections above.
+
+### Linux publication readiness audit (2026-10-01)
+
+Shared Jenkins #34 passed the full Linux gate at `37dd63ba` and archived
+Linux amd64 bytes, checksums, version, and source revision. #35 passed focused
+`daemon_runtime cli` checks at `7e9005f8`; this does not qualify that newer
+revision through the full gate. PR #12 is merged; PR #13 carries subsequent
+release-tooling fixes. Jenkins evidence publication formerly pushed directly
+to main. The release-tooling correction archives locally without GitHub writes;
+only after a passing gate may the orchestrator push release-tooling and post
+an exact-SHA status. A regression contract rejects remote writes in the script.
+
+Live GitHub audit: Actions are enabled and all actions are allowed. The active
+main ruleset prevents deletion and non-fast-forward updates; it has no required
+status checks. This does not establish that a release workflow will pass.
+At the initial audit, the only repository secret was CLAUDE_CODE_OAUTH_TOKEN.
+VIRUS_TOTAL_SCANNER_API_KEY has since been configured; its validity awaits a
+release scan. npm/PyPI credentials and publication are deferred.
+
+Publication blockers in the existing all-platform `release.yml`:
+
+- `VIRUS_TOTAL_SCANNER_API_KEY` is required for candidate scanning and verification.
+- `NPM_TOKEN` and `PYPI_TOKEN` are required for registry publication; public
+  un-drafting depends on successful registry publication.
+- External Windows qualification is held by default. Setting the hold to false
+  does not create a Linux-only release: all-platform build/smoke gates still run.
+  Registry publication requires both `hold_for_external_qualification=false` and
+  `publish_registries=true`; it is skipped when `publish_registries=false`, even
+  with the qualification hold disabled. Keep the hold until the applicable evidence
+  is complete; do not bypass it to compensate for missing credentials.
+- Package wrappers still download upstream releases. Fork endpoints and real
+  artifact checksums must be aligned before advertising those installation routes.
+- No public or draft fork GitHub releases exist at this audit boundary.
+
+Obtain the service credentials through their providers and supply a local
+credential-file or secret-manager reference for secure GitHub secret setup.
+Do not commit token values or remove release checks to bypass missing secrets.
+
+Maintainer update: defer all public/registry publication. Both release and
+promotion workflows now expose `publish_registries` with default false.
+Default dispatches skip npm/PyPI jobs and public un-drafting, so registry
+credentials are not required to create/verify a draft candidate. VirusTotal
+and the external qualification hold remain unchanged. Publication is still
+blocked until explicitly opted in with credentials. Direct dispatch does not
+require external qualification evidence; the promotion workflow enforces that
+evidence against the exact candidate.

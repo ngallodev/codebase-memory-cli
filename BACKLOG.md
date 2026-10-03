@@ -15,11 +15,16 @@
 
 ## Resolved
 
+- [x] Installer fork defaults and AST/watcher/macro/COUNT integration landed via
+  PR #12; Windows/macOS repairs via PR #13 (`bbabc073`). PR #14 is merged on
+  current main; historical release claims below remain revision-specific.
+
+
 - [x] Release-tooling implements deferred npm/PyPI/public publication,
   removes Claude automation, enables CodeRabbit, adds Linux-only prerelease
   selection. Package migration is deferred until exact fork assets and checksums
-  exist; the previously merged package revisions are retained. PR #14 merge and real artifact
-  qualification remain open; these are implementation-complete tasks only.
+  exist; the previously merged package revisions are retained. PR #14 is merged; real artifact
+  qualification remains open; these are implementation-complete tasks only.
 
 - [x] Reconciled completed upstream verticals: COUNT/status, persisted LSP
   decode (PR #4), Cypher semantics (PR #5), XML admission (PR #6), TypeScript
