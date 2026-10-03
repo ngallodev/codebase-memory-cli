@@ -519,3 +519,11 @@ full-index generation were verified. Existing comparisons remain discovery only,
 and detailed batched Jev/source/checkpoint evidence is required. Completed
 DeepSeek panes `wC:pG`/`wC:pH` closed; runtime pane was already absent.
 All worktrees and saved handoffs retained. Launch is not semantic closure.
+
+## Cleanup and pilot outcome — 2026-10-03 UTC
+
+Original idle Luna high panes `wC:pB`/`wC:pC`/`wC:pD` closed; evidence/worktrees
+retained. History still has an unfinished checkpoint. The pilot finalized partial:
+6 incompletely examined,14 untouched,0 credited as fully verified. All20 plus89
+outside scope remain open. Canonical308 cleanup section records exact resumption
+boundaries and evidence locations. Pilot pane `wC:pJ` remains idle/open.

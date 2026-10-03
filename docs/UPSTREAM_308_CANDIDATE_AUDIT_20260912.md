@@ -2035,3 +2035,33 @@ User-authorized cleanup: completed DeepSeek operations `wC:pG` and integration
 Runtime `wC:pF` was already absent. Other panes and all worktrees/evidence retained.
 Pilot launch is not completed verification, runtime validation or acceptance;
 no tests/builds/Jenkins/remote operations are authorized or performed.
+
+## Luna pane cleanup and pilot partial — 2026-10-03 UTC
+
+User requested closure of the three original Luna high panes. All were verified
+idle immediately before closing `wC:pB`, `wC:pC`, and `wC:pD`; subsequent pane
+inventory confirms absence. Worktrees and saved evidence remain intact. Parent
+recorded external exits for generation1, separately from completion or acceptance.
+
+Extraction R4 reports all111 assigned source reviews, with host verification still
+pending. Runtime R4 finalized partial and transferred its106 unfinished hashes to
+Phase1 successors; transfer does not prove semantic closure. History R4 retains
+14 nonmerge hashes and311 entries in `remaining_merge_hashes_and_remainders`;
+these are checkpoint entries, not a claim of311 wholly unreviewed merges. Resume
+at `b51411753e9423f1c67f810ecf54f9fce903cefc`, then its exact saved remaining scope.
+
+Luna low run `CBM-RECON-LUNA-LOW-PILOT20-20261003` finalized **partial**:
+first6 received incomplete source examination,14 were untouched. Even the first6
+lack all-target semantic comparison, all-hunk dispositions and comprehensive CBM
+coverage/trace/snippet receipts. No fully verified pilot commit is credited;
+all20 remain open, plus89 outside pilot scope. One successful batched Jev response
+is advisory only. Stopping reason was a time-bounded checkpoint, not a controlled
+environment blocker. The idle pilot pane `wC:pJ` remains open. Continuation requires
+successor lineage without rewriting sealed evidence.
+
+Exact full-hash remainders and immutable worker checkpoints remain under the four
+run evidence directories. Cleanup inventory SHA256s, before/after pane receipts,
+and external exits are saved at
+`/home/nate/.local/state/agent-workflow/handoffs/CBM-LUNA-CLEANUP-20261003/`.
+No local builds/tests, Jenkins, independent acceptance, push or main integration
+occurred in this cleanup. Overall audit remains incomplete.
