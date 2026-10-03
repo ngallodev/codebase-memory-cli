@@ -66,6 +66,8 @@ cbm_test_operation_host_t *cbm_test_operation_host_new(const char *store_path) {
     host->runtime.store_context = host->stores;
     host->runtime.project_invalidate = test_project_invalidate;
     host->runtime.project_invalidate_context = host->stores;
+    host->runtime.project_detach = test_project_invalidate;
+    host->runtime.project_detach_context = host->stores;
     host->runtime.cancelled = test_cancelled;
     host->runtime.cancelled_context = host->session;
     host->runtime.cancel_flag = cbm_operation_session_cancel_flag(host->session);
