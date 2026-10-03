@@ -1,5 +1,42 @@
 # Upstream merge progress — canonical ledger
 
+## Five-slice upstream ancestry trial — 2026-10-03
+
+The user authorized a trial of five upstream verticals, followed by release-tooling
+integration, a main merge and an origin push only after successful validation.
+The trial starts at release-tooling `327dccc04d749892dddf19ca4dc62bf28a5131c8`
+and merges upstream milestone `4d8ac9e1cea0d645a02f876f47536c54a5bfa406`.
+It includes exactly five first-parent PR merges, five non-merge constituents and
+three branch-sync merges: **13 upstream ancestry commits**, not thirteen new features.
+The full-hash constituent receipt and source/graph/Jev evidence are under the
+existing run evidence directory `five-slice-merge-trial/`.
+
+| Vertical | Upstream PR merge | Non-merge constituent | Trial disposition and acceptance |
+| --- | --- | --- | --- |
+| Trace evidence ordering | `5fbab7bb7332bd06aaa880653ddfb2696e648f90` | `0106ff5d9933b9bd65eba393a998586e219da7bd` | MCP transport remains deleted. Native CLI `src/operations/trace.c:leg_json` already emits strategy/confidence before args in both header and rows and forwards include_evidence in both directions. This source representation does not claim MCP transport equivalence. |
+| Numeric auto-index limit logging | `b44e58490f11e4ee895dd91c02067b6de59cdf96` | `dc24d5813081ba7f4f1cb282cd9e10b8ac963eb7` | Adapt warning to native `src/daemon/application.c`: log numeric configured limit with tracked-file count. Extended `daemon_application_auto_index_honors_tracked_file_limit` requires actual skipped admission and files=1/limit=0 log. |
+| Interrupted spawn backoff | `1424934980d353f97c3664f07b2c1721792b7efa` | `c537bf0f8b3b6a77e39df49fec78560b5e8e87b7` | Merge `cbm_nanosleep_full` into compat, use it from subprocess backoff. Retain thread CPU API. Upstream registered POSIX signal regression requires delivered signals, full delay and clean subprocess outcome; Windows remains platform-specific. |
+| Client selector help | `c895513f2d6821a3479ea4cbdcf8a39cee2f33ba` | `1e0aac527b016d519eb7f8fc7dd610dbeb66e988` | Add install --clients discovery to native CLI help while preserving native commands/product identity. |
+| Registry client selection | `4d8ac9e1cea0d645a02f876f47536c54a5bfa406` | `1e25d962d69999438229b0562d44ea60e97f5456` | Filter registry display/install paths, expose stable registry vocabulary, reject unknown selectors. Adapt regression from removed MCP settings to actual Qoder CLI skill: cursor excludes Qoder artifact, qoder installs it. Retain scoped config-follow behavior. |
+
+Branch-sync constituents: `3a500bc8450ab78969d1d8cb4b12e55a479b68d7`,
+`359f7360ddd39dc155637076e76a4e855c27611f`,
+`98e386e58b753bcf63f67aeeacbfcb94961d035c`. Their changes are included in the
+milestone tree comparison; they are not separately credited as functionality.
+
+The isolated trial resolves five conflict paths. MCP source/tests stay deleted;
+shared fixes and native adaptations remain. Exact-worktree CBM full indexing
+completed with ready root; flagged parse-partial paths use exact source fallback.
+Only formatting and git diff checks ran locally. The full Jenkins gate is pending;
+there is no runtime acceptance, main integration or push yet. Jev-1.13.0 source
+advice: consistent 0.65 / defect 0.30 / insufficient 0.05; Qoder skill regression
+applicable 0.77 / inapplicable 0.22 / insufficient 0.01. Source inspection and Jenkins
+retain authority. The preceding ten-task source confirmation is separate.
+
+If integrated, this milestone reduces the frozen upstream ancestry difference
+from 678 to 665. It does not resolve the global semantic audit remainder.
+
+
 This is the single canonical document for upstream merge work in this
 repository. The filename is retained for stable links; the old 308-commit
 snapshot and the separate dated plan documents are superseded by this ledger.

@@ -1,5 +1,18 @@
 # Backlog
 
+## Five-slice upstream merge trial — 2026-10-03
+
+- [ ] Validate and integrate the first five upstream PR milestones through
+  `4d8ac9e1cea0d645a02f876f47536c54a5bfa406`. Isolated merge source is reconciled:
+  native trace representation, numeric daemon admission logging, EINTR-safe
+  backoff, native help and registry selector filtering. Three branch-sync merges
+  accompany five PR merges/five non-merges (13 ancestry commits total).
+  Full Jenkins validation, main integration and origin push remain pending.
+  Canonical full-hash dispositions and acceptance are in the 308 audit's
+  “Five-slice upstream ancestry trial” section; evidence is in the existing
+  CBM-UPSTREAM-SOL-20261002-R2 run's `five-slice-merge-trial/` directory.
+
+
 ## Resolved
 
 - [x] Release-tooling implements deferred npm/PyPI/public publication,

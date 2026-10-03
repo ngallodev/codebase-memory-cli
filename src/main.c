@@ -1083,6 +1083,8 @@ static void print_help(void) {
     printf("  codebase-memory-cli allow-root [--approve-sensitive] <path>\n");
     printf("  codebase-memory-cli install [-y|-n] [--force] [--dry-run] [--dir=<path>] "
            "[--skip-config]\n");
+    printf("                                      [--clients=<tokens>]  Run "
+           "'install --clients' to list tokens\n");
     printf("  codebase-memory-cli install-hooks [--dry-run] [--plan] [--clients=<list>]\n");
     printf("  codebase-memory-cli uninstall [-y|-n] [--dry-run]\n");
     printf("  codebase-memory-cli update [-y|-n]\n");

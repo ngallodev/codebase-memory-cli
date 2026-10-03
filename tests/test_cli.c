@@ -4297,7 +4297,7 @@ TEST(cli_cline_data_dir_only_redirects_data_state) {
     }
     free(plan);
 
-    int install_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-cli", false, false);
+    int install_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-mcp", false, false);
     struct stat state;
     const char *const instruction_terms[] = {"Codebase Memory", "codebase-memory-cli search",
                                              "codebase-memory-cli trace"};
@@ -4474,7 +4474,7 @@ TEST(cli_junie_current_durable_context_contract) {
     yyjson_doc_free(plan_doc);
     free(plan);
 
-    int first_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-cli", false, false);
+    int first_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-mcp", false, false);
     char *skill_once = read_test_file_alloc(skill_path);
     char *agent_after_install = read_test_file_alloc(agent_path);
     char *settings_after_install = read_test_file_alloc(settings_path);
@@ -4488,7 +4488,7 @@ TEST(cli_junie_current_durable_context_contract) {
     free(agent_after_install);
     free(settings_after_install);
 
-    int second_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-cli", false, false);
+    int second_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-mcp", false, false);
     char *skill_twice = read_test_file_alloc(skill_path);
     bool idempotent =
         second_rc == 0 && skill_once && skill_twice && strcmp(skill_once, skill_twice) == 0;
@@ -4506,7 +4506,7 @@ TEST(cli_junie_current_durable_context_contract) {
     free(agent_after_uninstall);
     free(settings_after_uninstall);
 
-    int reinstall_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-cli", false, false);
+    int reinstall_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-mcp", false, false);
     const char *modified_skill = "---\nname: codebase-memory\n---\nUser-owned Junie skill.\n";
     write_test_file(skill_path, modified_skill);
     int modified_uninstall_rc = cli_test_cmd_uninstall(2, argv);
@@ -8447,7 +8447,7 @@ TEST(cli_upgrade_migrates_released_claude_hook_scripts) {
     cbm_setenv("PATH", tmpdir, 1);
     cbm_unsetenv("CLAUDE_CONFIG_DIR");
     cbm_unsetenv("CODEX_HOME");
-    int rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-cli", false, false);
+    int rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-mcp", false, false);
 
     char *gate = read_test_file_alloc(gate_path);
     char *session = read_test_file_alloc(session_path);
@@ -10890,7 +10890,7 @@ TEST(cli_external_manager_detection_needs_positive_evidence_issue1566) {
  * Claude and Codex had to revert OpenCode and Cursor by hand — and the next
  * install silently recreated them. The selector restricts it.
  *
- * The vocabulary is the part that makes it usable: 26 clients ship, with tokens
+ * The vocabulary is the part that makes it usable: clients ship with tokens
  * nobody would guess (factory-droid, mistral-vibe, copilot-cli). A selector
  * whose accepted values can only be learned by reading our source is not a
  * usable selector, so this pins that every client is listed and that an unknown
@@ -10919,6 +10919,12 @@ TEST(cli_clients_selector_vocabulary_is_complete_and_strict_issue1558) {
     cbm_detected_agents_t typo = all;
     ASSERT_FALSE(cbm_cli_clients_apply_selection_for_testing("claude,codx", &typo));
 
+    /* Registry-backed clients share the public selector vocabulary. */
+    cbm_detected_agents_t registry = all;
+    ASSERT_TRUE(cbm_cli_clients_apply_selection_for_testing("qoder", &registry));
+    ASSERT_FALSE(registry.claude_code);
+    ASSERT_FALSE(registry.cursor);
+
     /* Every token in the table must resolve — a client added to detection but
      * forgotten here is invisible to the selector. */
     for (size_t i = 0; i < cbm_cli_clients_count_for_testing(); i++) {
@@ -10927,6 +10933,35 @@ TEST(cli_clients_selector_vocabulary_is_complete_and_strict_issue1558) {
         cbm_detected_agents_t one = all;
         ASSERT_TRUE(cbm_cli_clients_apply_selection_for_testing(token, &one));
     }
+    PASS();
+}
+
+TEST(cli_clients_selector_filters_registry_installs_issue1798) {
+    char *tmpdir = th_mktempdir("cbm_cli_clients_registry");
+    ASSERT_NOT_NULL(tmpdir);
+
+    char qoder_dir[512];
+    char skill_path[768];
+    ASSERT(snprintf(qoder_dir, sizeof(qoder_dir), "%s/.qoder", tmpdir) > 0);
+    ASSERT(snprintf(skill_path, sizeof(skill_path), "%s/skills/codebase-memory-cli/SKILL.md",
+                    qoder_dir) > 0);
+    ASSERT_EQ(test_mkdirp(qoder_dir), 0);
+
+    cbm_cli_set_client_selection_for_testing("cursor");
+    int excluded_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-cli", false, false);
+    struct stat skill_state;
+    bool excluded = stat(skill_path, &skill_state) != 0;
+
+    cbm_cli_set_client_selection_for_testing("qoder");
+    int included_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-cli", false, false);
+    bool included = stat(skill_path, &skill_state) == 0;
+    cbm_cli_set_client_selection_for_testing(NULL);
+
+    test_rmdir_r(tmpdir);
+    ASSERT_EQ(excluded_rc, 0);
+    ASSERT_TRUE(excluded);
+    ASSERT_EQ(included_rc, 0);
+    ASSERT_TRUE(included);
     PASS();
 }
 
@@ -11265,6 +11300,7 @@ SUITE(cli) {
     RUN_TEST(cli_skill_frontmatter_scalars_with_colons_are_quoted_issue1554);
     RUN_TEST(cli_external_manager_detection_needs_positive_evidence_issue1566);
     RUN_TEST(cli_clients_selector_vocabulary_is_complete_and_strict_issue1558);
+    RUN_TEST(cli_clients_selector_filters_registry_installs_issue1798);
     RUN_TEST(cli_update_accepts_retired_variant_flags_issue1544);
     RUN_TEST(cli_update_agent_configs_finish_before_guard_release);
     RUN_TEST(cli_uninstall_quiesces_active_cohort_before_removing_binary_and_index);

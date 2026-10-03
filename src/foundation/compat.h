@@ -99,6 +99,8 @@ static inline int cbm_nanosleep(const struct timespec *req, struct timespec *rem
 
 /* Per-calling-thread CPU time in nanoseconds. */
 uint64_t cbm_thread_cpu_time_ns(void);
+/* Sleeps for the full requested duration even when POSIX signals interrupt it. */
+int cbm_nanosleep_full(const struct timespec *req);
 
 /* ── gmtime_r (Windows lacks it) ─────────────────────────────── */
 #ifdef _WIN32
