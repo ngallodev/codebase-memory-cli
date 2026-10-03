@@ -199,6 +199,9 @@ static bool adr_add_outline(yyjson_mut_doc *doc, yyjson_mut_val *root, const cha
     if (returned > limit) {
         returned = limit;
     }
+    if (in_fence) {
+        yyjson_mut_obj_add_str(doc, root, "sections_status", "unterminated_code_fence");
+    }
     yyjson_mut_obj_add_str(doc, root, "mode", "outline");
     yyjson_mut_val *headings = yyjson_mut_arr(doc);
     for (int i = 0; i < returned; i++) {

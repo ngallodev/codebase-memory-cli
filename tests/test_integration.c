@@ -438,6 +438,34 @@ TEST(integ_mcp_trace_path_cross_service) {
     PASS();
 }
 
+TEST(integ_mcp_adr_outline_fence_status) {
+    cbm_store_t *store = cbm_store_open_path_existing(g_dbpath);
+    ASSERT_NOT_NULL(store);
+    const char *contents[] = {
+        "# Visible\n```c\n# Hidden\n",
+        "# Visible\r\n   ~~~~\r\n# Hidden\r\n~~~\r\n",
+        "# Visible\n```c\n# Hidden\n```\n",
+        "# Visible\r\n   ~~~~\r\n# Hidden\r\n~~~~\r\n",
+    };
+    bool correct = true;
+    for (int i = 0; i < 4; i++) {
+        correct = cbm_store_adr_store(store, g_project, contents[i]) == CBM_STORE_OK && correct;
+        char args[256];
+        snprintf(args, sizeof(args), "{\"project\":\"%s\",\"mode\":\"outline\"}", g_project);
+        char *resp = call_tool("manage_adr", args);
+        correct = resp && strstr(resp, "# Visible") && !strstr(resp, "# Hidden") &&
+                  ((strstr(resp, "\"sections_status\":\"unterminated_code_fence\"") != NULL) ==
+                   (i < 2)) &&
+                  correct;
+        free(resp);
+    }
+    int deleted = cbm_store_adr_delete(store, g_project);
+    cbm_store_close(store);
+    ASSERT_EQ(deleted, CBM_STORE_OK);
+    ASSERT_TRUE(correct);
+    PASS();
+}
+
 TEST(integ_mcp_index_status) {
     char args[128];
     snprintf(args, sizeof(args), "{\"project\":\"%s\"}", g_project);
@@ -833,6 +861,7 @@ SUITE(integration) {
     RUN_TEST(integ_mcp_trace_path);
     RUN_TEST(integ_mcp_trace_path_cross_service);
     RUN_TEST(integ_mcp_index_status);
+    RUN_TEST(integ_mcp_adr_outline_fence_status);
 
     /* Store query validation */
     RUN_TEST(integ_store_search_by_degree);
