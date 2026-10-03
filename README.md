@@ -120,6 +120,11 @@ codebase-memory-cli cli search_graph --project my-project --name-pattern '.*Hand
 
 The named commands above are preferred for normal use.
 
+Manage the project architecture decision record with `codebase-memory-cli manage-adr`.
+Use `--mode outline` to list headings, `--mode get` to read the full document, and
+`--mode sections` to list section names. Run `codebase-memory-cli manage-adr --help`
+for the complete flags; writes require `--mode update` or `--mode set_sections`.
+
 ## Agent workflow
 
 The shipped Codebase Memory skill teaches a graph-first evidence loop rather than a tool-name inventory:

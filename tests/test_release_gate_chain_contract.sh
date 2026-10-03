@@ -28,7 +28,9 @@ SOAK_WF="$ROOT/.github/workflows/_soak.yml"
 [ -f "$DRY_WF" ] || { echo "FAIL: $DRY_WF not found" >&2; exit 2; }
 [ -f "$SOAK_WF" ] || { echo "FAIL: $SOAK_WF not found" >&2; exit 2; }
 
-python3 - "$WF" "$BUILD_WF" "$DRY_WF" "$SOAK_WF" <<'PY'
+python3 - "$WF" "$BUILD_WF" "$DRY_WF" "$SOAK_WF" "$BASH" <<'PY'
+import os
+import subprocess
 import pathlib
 import re
 import sys
@@ -217,7 +219,11 @@ else:
             "select-package: timeout-minutes must be at least 300 so the bounded\n"
             "      four-hour VirusTotal poll can complete before job cleanup.")
 
-    for token in ("--expect-targets 8", "--expect-candidates 24",
+    for token in ('--expect-targets "$EXPECT_TARGETS"',
+                  '--expect-candidates "$EXPECT_CANDIDATES"',
+                  '--targets "$RELEASE_TARGETS"',
+                  "EXPECT_TARGETS: ${{ inputs.platforms == 'linux' && '4' || '8' }}",
+                  "EXPECT_CANDIDATES: ${{ inputs.platforms == 'linux' && '12' || '24' }}",
                   "VT_POLL_TIMEOUT_SECONDS: 14400",
                   "scripts/ci/select-release-candidates.py",
                   "scripts/ci/verify-release-selection.py",
@@ -353,6 +359,109 @@ for token in ("release-candidates.tsv", "virustotal-candidate-results.tsv",
     if token not in verify_body:
         failures.append(
             f"release verify: existing candidate evidence is not reused: {token}")
+
+# Registry publication is opt-in in both entry points; default runs stay draft.
+for workflow_name in ("release.yml", "promote-qualified-release.yml"):
+    source = pathlib.Path(sys.argv[1]).with_name(workflow_name).read_text()
+    option = re.search(r"^      publish_registries:\s*\n(?P<body>(?:^        .*\n?)*)", source, re.M)
+    if not option or not re.search(r"^        default: false$", option.group("body"), re.M):
+        failures.append(f"{workflow_name}: publishing must default to false")
+    jobs = workflow_jobs(source)
+    registry = jobs.get("publish-registries", "")
+    condition = re.search(r"^    if:.*$", registry, re.M)
+    if not condition or "inputs.publish_registries" not in condition.group():
+        failures.append(f"{workflow_name}: registry job must require publishing opt-in")
+    final = jobs.get("publish-final", "")
+    condition = re.search(r"^    if:.*$", final, re.M)
+    if not condition or "needs.publish-registries.result == 'success'" not in condition.group():
+        failures.append(f"{workflow_name}: public release requires registry success")
+
+# Linux-only prerelease route (platforms=linux + publish_github_prerelease).
+# Defaults must preserve the all-platform, draft-held behaviour.
+release_src = pathlib.Path(sys.argv[1]).read_text()
+def option_body(name):
+    m = re.search(rf"^      {name}:\s*\n(?P<body>(?:^        .*\n?)*)", release_src, re.M)
+    return m.group("body") if m else ""
+if "default: 'all'" not in option_body("platforms") or "options: ['all', 'linux']" not in option_body("platforms"):
+    failures.append("release.yml: platforms must be a choice of all/linux defaulting to all")
+if not re.search(r"^        default: false$", option_body("publish_github_prerelease"), re.M):
+    failures.append("release.yml: publish_github_prerelease must default to false")
+if not re.search(r"^        default: true$", option_body("hold_for_external_qualification"), re.M):
+    failures.append("release.yml: hold_for_external_qualification must still default to true")
+if "(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$" not in blocks.get("preflight", ""):
+    failures.append("release.yml: preflight must accept hyphenated semver prereleases (v0.12.0-cli-rc.1)")
+pre = blocks.get("preflight", "")
+validation_path = "scripts/ci/validate-release-inputs.sh"
+if f"run: bash {validation_path}" not in pre:
+    failures.append("preflight: must invoke the canonical release input guard")
+validation = pathlib.Path(sys.argv[1]).parents[2] / validation_path
+validation_text = validation.read_text() if validation.is_file() else ""
+for fragment in (
+    "publish_github_prerelease requires platforms=linux",
+    "publish_github_prerelease requires a prerelease (hyphenated) version",
+    "publish_github_prerelease cannot be combined with publish_registries",
+    "publish_github_prerelease cannot be combined with hold_for_external_qualification",
+    "platforms=linux has no Windows archive to qualify",
+    "platforms=linux cannot publish registry packages",
+):
+    if fragment not in validation_text:
+        failures.append(f"preflight: invalid-combination rejection missing: {fragment}")
+# Exercise the actual guard; marker text alone must not admit unsafe dispatches.
+if validation.is_file():
+    for platforms, version, hold, registries, prerelease, accepted in (
+        ("all", "v0.12.0", "true", "false", "false", True),
+        ("linux", "v0.12.0-rc.1", "false", "false", "true", True),
+        ("all", "v0.12.0-rc.1", "false", "false", "true", False),
+        ("linux", "v0.12.0", "false", "false", "true", False),
+        ("linux", "v0.12.0-rc.1", "true", "false", "true", False),
+        ("linux", "v0.12.0-rc.1", "false", "true", "true", False),
+    ):
+        result = subprocess.run(
+            [sys.argv[5], validation.as_posix()], capture_output=True, text=True,
+            env={**os.environ, "PLATFORMS": platforms, "VERSION": version,
+                 "HOLD": hold, "REGISTRIES": registries, "PRERELEASE_PUBLISH": prerelease})
+        if (result.returncode == 0) != accepted:
+            failures.append(f"preflight: wrong input-guard result for {platforms}/{version}/{hold}/{registries}/{prerelease}")
+for job in ("test", "build", "smoke", "soak"):
+    if "platforms: ${{ inputs.platforms }}" not in blocks.get(job, ""):
+        failures.append(f"{job}: must thread inputs.platforms to the reusable workflow")
+gh_pre = blocks.get("publish-github-prerelease", "")
+gh_cond = cond("publish-github-prerelease")
+for fragment in ("needs.verify.result == 'success'", "inputs.publish_github_prerelease",
+                 "inputs.platforms == 'linux'",
+                 "!inputs.hold_for_external_qualification", "!inputs.publish_registries",
+                 "contains(inputs.version, '-')"):
+    if fragment not in gh_cond:
+        failures.append(f"publish-github-prerelease: `if:` must contain `{fragment}` (got: {gh_cond or '<none>'})")
+if not re.search(r"^    needs:\s*\[verify\]\s*$", gh_pre, re.M):
+    failures.append("publish-github-prerelease: must need only verify")
+if 'gh release edit "$VERSION" --draft=false --prerelease --latest=false --repo "$GITHUB_REPOSITORY"' not in gh_pre:
+    failures.append("publish-github-prerelease: must un-draft as a non-latest prerelease")
+if 'VERSION" != *-*' not in gh_pre or gh_pre.index('VERSION" != *-*') > gh_pre.index("gh release edit"):
+    failures.append("publish-github-prerelease: must reject a hyphen-less version before editing the release")
+# The stable path must be untouched: no prerelease flag leaks into publish-final.
+if "--prerelease" in blocks.get("publish-final", ""):
+    failures.append("publish-final: stable un-draft must not change")
+# Verify must size every count from the selected platform set.
+vb = blocks.get("verify", "")
+for token in ("--expect-archives=\"$EXPECT_ARCHIVES\"", "--expect-runtime-files=\"$EXPECT_RUNTIME_FILES\"",
+              "--targets=\"$RELEASE_TARGETS\"", '--targets "$RELEASE_TARGETS"',
+              "EXPECT_ARCHIVES: ${{ inputs.platforms == 'linux' && '4' || '8' }}",
+              "EXPECT_RUNTIME_FILES: ${{ inputs.platforms == 'linux' && '12' || '24' }}"):
+    if token not in vb:
+        failures.append(f"verify: platform-sized archive contract missing: {token}")
+# select-package must not run on a skipped Windows build except for platforms=linux.
+sel_if = re.search(r"^  select-package:\n(?:.*\n)*?    if: >-\n(?P<c>(?:      .*\n)+)", build_text, re.M)
+sel_cond = " ".join(sel_if.group("c").split()) if sel_if else ""
+for fragment in ("needs.build-unix.result == 'success'", "needs.build-linux-portable.result == 'success'",
+                 "inputs.platforms == 'linux' && needs.build-windows.result == 'skipped'",
+                 "needs.build-windows-arm64.result == 'success'"):
+    if fragment not in sel_cond:
+        failures.append(f"_build.yml select-package: explicit-result gate missing: {fragment}")
+for wf in ("_build.yml", "_smoke.yml", "_soak.yml", "_test.yml"):
+    wf_text = pathlib.Path(sys.argv[1]).with_name(wf).read_text()
+    if "platforms:" not in wf_text or "default: 'all'" not in wf_text:
+        failures.append(f"{wf}: must expose a platforms input defaulting to 'all'")
 
 if failures:
     for f in failures:

@@ -24,36 +24,35 @@ on:
         description: 'Soak the already selected binaries-* artifacts instead of rebuilding quick-lane binaries'
         type: boolean
         default: false
+      platforms:
+        description: "Platform set: 'all' (default) or 'linux' (skip darwin and windows legs)"
+        type: string
+        default: 'all'
 
 permissions:
   contents: read
 
 jobs:
+  # Emit the unix (linux + darwin) matrix as JSON so platforms=linux can drop
+  # the darwin legs. The default 'all' keeps the four historical legs.
+  setup-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      unix: ${{ steps.set.outputs.unix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Compute matrices
+        id: set
+        env:
+          PLATFORMS: ${{ inputs.platforms }}
+        run: bash scripts/ci/soak-matrix.sh
+
   soak-quick:
+    needs: setup-matrix
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            goos: linux
-            goarch: amd64
-            cc: gcc
-            cxx: g++
-          - os: ubuntu-24.04-arm
-            goos: linux
-            goarch: arm64
-            cc: gcc
-            cxx: g++
-          - os: macos-14
-            goos: darwin
-            goarch: arm64
-            cc: cc
-            cxx: c++
-          - os: macos-15-intel
-            goos: darwin
-            goarch: amd64
-            cc: cc
-            cxx: c++
+      matrix: ${{ fromJSON(needs.setup-matrix.outputs.unix) }}
     runs-on: ${{ matrix.os }}
     # Budget doctrine (this line has been silently violated TWICE): the job
     # timeout must exceed the WORST-CASE run length, and duration_minutes is
@@ -111,6 +110,7 @@ jobs:
           retention-days: 14
 
   soak-quick-windows:
+    if: ${{ inputs.platforms != 'linux' }}
     runs-on: windows-latest
     # Budget doctrine (see soak-quick): duration_minutes is per LEG, so two
     # 240-min legs need ~480 min + build; 300 silently killed the second leg.
@@ -188,6 +188,7 @@ jobs:
           retention-days: 14
 
   soak-quick-windows-arm64:
+    if: ${{ inputs.platforms != 'linux' }}
     # Native ARM64 Windows soak (CLANGARM64, no sanitizer — ASan is unavailable
     # on native ARM64 Windows). Builds from source like soak-quick-windows.
     runs-on: windows-11-arm
@@ -317,34 +318,14 @@ jobs:
           retention-days: 14
 
   soak-asan:
+    needs: setup-matrix
     # Supplemental source-built instrumentation. This can find memory bugs but
     # is not evidence that the selected release bytes were soaked; the quick
     # jobs above own that release gate when use_release_artifacts=true.
     if: ${{ inputs.run_asan }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            goos: linux
-            goarch: amd64
-            cc: gcc
-            cxx: g++
-          - os: ubuntu-24.04-arm
-            goos: linux
-            goarch: arm64
-            cc: gcc
-            cxx: g++
-          - os: macos-14
-            goos: darwin
-            goarch: arm64
-            cc: cc
-            cxx: c++
-          - os: macos-15-intel
-            goos: darwin
-            goarch: amd64
-            cc: cc
-            cxx: c++
+      matrix: ${{ fromJSON(needs.setup-matrix.outputs.unix) }}
     runs-on: ${{ matrix.os }}
     # ASan soak runs a FIXED 15-min soak (hard-coded below, NOT driven by
     # inputs.duration_minutes), but the ASan-instrumented build is slow and
@@ -377,7 +358,7 @@ jobs:
           retention-days: 14
 
   soak-asan-windows:
-    if: ${{ inputs.run_asan }}
+    if: ${{ inputs.run_asan && inputs.platforms != 'linux' }}
     runs-on: windows-latest
     # FIXED 15-min soak (hard-coded below). MSYS2/Wine + ASan build is the
     # slowest path; 60 keeps the budget well above the run length so it is

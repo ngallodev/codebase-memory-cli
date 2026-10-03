@@ -7,6 +7,11 @@ on:
         description: "Existing DRAFT release tag qualified on luigi.home.arpa (vX.Y.Z or prerelease)"
         required: true
         type: string
+      publish_registries:
+        description: "Publish npm/PyPI packages and make the GitHub release public (requires registry credentials)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -24,7 +29,7 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$ ]] || exit 2
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]] || exit 2
       - name: Download exact release and external qualification evidence
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -51,6 +56,7 @@ jobs:
             --expected-source-commit "$SOURCE_COMMIT"
 
   publish-registries:
+    if: ${{ !cancelled() && needs.verify-external-qualification.result == 'success' && inputs.publish_registries }}
     needs: [verify-external-qualification]
     runs-on: ubuntu-latest
     permissions:
@@ -103,6 +109,7 @@ jobs:
           twine upload --non-interactive --skip-existing dist/*
 
   publish-final:
+    if: ${{ !cancelled() && needs.verify-external-qualification.result == 'success' && needs.publish-registries.result == 'success' && inputs.publish_registries }}
     needs: [verify-external-qualification, publish-registries]
     runs-on: ubuntu-latest
     permissions:

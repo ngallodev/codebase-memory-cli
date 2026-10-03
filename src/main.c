@@ -37,6 +37,8 @@
 #include "cli/progress_sink.h"
 #include "foundation/constants.h"
 
+#include <stdbool.h>
+
 enum {
     MAIN_MIN_ARGC = 1,
     MAIN_CLI_ARGC = 2,
@@ -551,6 +553,7 @@ static const cbm_cli_command_alias_t CLI_COMMAND_ALIASES[] = {
      "Search source text with graph context"},
     {"outline", "get_file_outline", "--file-path", "PATH", "List indexed symbols in a source file"},
     {"delete-project", "delete_project", "--project", "PROJECT", "Delete an indexed project"},
+    {"manage-adr", "manage_adr", NULL, NULL, "Read and update the project ADR"},
     {"compare", "compare_graphs", NULL, NULL, "Compare two indexed project snapshots"},
     {"ingest-traces", "ingest_traces", NULL, NULL, "Accept runtime trace observations"},
 };
@@ -1037,6 +1040,28 @@ static int run_named_cli(const cbm_cli_command_alias_t *alias, int argc, char **
     return result;
 }
 
+static bool dispatch_named_help(int argc, char **argv, cbm_project_lock_manager_t *project_locks,
+                                main_local_maintenance_context_t *maintenance_context,
+                                int *result) {
+    if (argc <= SKIP_ONE) {
+        return false;
+    }
+    const cbm_cli_command_alias_t *alias = cli_command_alias_find(argv[SKIP_ONE]);
+    if (!alias) {
+        return false;
+    }
+    for (int i = SKIP_ONE + SKIP_ONE; i < argc; i++) {
+        if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+            cbm_mem_init_with_cap(cbm_mem_ram_fraction_for_total(cbm_system_info().total_ram),
+                                  cbm_index_worker_memory_budget_bytes());
+            *result = run_named_cli(alias, argc - SKIP_ONE - SKIP_ONE, argv + SKIP_ONE + SKIP_ONE,
+                                    project_locks, maintenance_context);
+            return true;
+        }
+    }
+    return false;
+}
+
 /* ── Help ───────────────────────────────────────────────────────── */
 
 static void print_help(void) {
@@ -1183,6 +1208,11 @@ static int handle_subcommand(int argc, char **argv, cbm_project_lock_manager_t *
     if (argc <= 1) {
         print_help();
         return 0;
+    }
+    /* A named command owns its --help before global help is considered. */
+    int named_help_result = 0;
+    if (dispatch_named_help(argc, argv, project_locks, maintenance_context, &named_help_result)) {
+        return named_help_result;
     }
     /* First scan: global flags */
     for (int i = SKIP_ONE; i < argc; i++) {
@@ -1875,6 +1905,26 @@ static void main_report_client_bootstrap_failure(const cbm_daemon_bootstrap_resu
                                      "established");
 }
 
+typedef struct {
+    const cbm_daemon_bootstrap_config_t *config;
+    bool invoked;
+} main_upgrade_quiesce_t;
+
+static cbm_version_cohort_quiesce_result_t main_upgrade_request_quiescence(void *context) {
+    main_upgrade_quiesce_t *upgrade = context;
+    const cbm_daemon_bootstrap_config_t *config = upgrade ? upgrade->config : NULL;
+    if (!upgrade || !config || !config->endpoint || !config->identity) {
+        return CBM_VERSION_COHORT_QUIESCE_ERROR;
+    }
+    upgrade->invoked = true;
+    cbm_daemon_runtime_activation_result_t drain = {0};
+    (void)cbm_daemon_runtime_request_activation_shutdown(config->endpoint, config->identity,
+                                                         CBM_DAEMON_RUNTIME_ACTIVATION_UPDATE,
+                                                         MAIN_CLIENT_STARTUP_TIMEOUT_MS, &drain);
+    /* The cohort barrier remains the drain proof if the one-shot ACK is lost. */
+    return CBM_VERSION_COHORT_QUIESCE_REQUESTED;
+}
+
 /* Client bootstrap with the upgrade policy: a CONFLICT against a PERMANENT
  * daemon of a strictly OLDER release is resolved by draining that daemon
  * (the same authenticated path install/update use) and retrying once. A
@@ -1894,20 +1944,50 @@ static cbm_daemon_bootstrap_status_t main_client_bootstrap_with_upgrade(
         !main_semver_newer(config->identity->semantic_version, active.semantic_version)) {
         return status;
     }
+    cbm_version_cohort_manager_t *manager = cbm_version_cohort_manager_new(config->endpoint);
+    cbm_daemon_bootstrap_config_t upgrade_config = *config;
+    main_upgrade_quiesce_t upgrade = {.config = &upgrade_config};
+    cbm_version_cohort_lease_t *lease = NULL;
+    cbm_version_cohort_quiesce_result_t quiesce = CBM_VERSION_COHORT_QUIESCE_NOT_NEEDED;
+    cbm_version_cohort_status_t reserved =
+        manager ? cbm_version_cohort_reserve_for_mutation_cache(
+                      manager, config->identity->cache_fingerprint,
+                      main_deadline_after(MAIN_CLIENT_STARTUP_TIMEOUT_MS),
+                      main_upgrade_request_quiescence, &upgrade, &quiesce, &lease)
+                : CBM_VERSION_COHORT_IO;
+    bool acquired = reserved == CBM_VERSION_COHORT_OK && lease != NULL;
+    cbm_daemon_runtime_status_t current = {0};
+    bool still_running =
+        acquired && !upgrade.invoked &&
+        (cbm_daemon_runtime_request_status(config->endpoint, config->identity,
+                                           MAIN_CONNECT_TIMEOUT_MS, &current) ||
+         current.muted_endpoint_holder_pid != 0 || current.unconfirmed_endpoint_holder_pid != 0);
+    bool released = main_version_cohort_close(&lease, &manager);
+    if (!acquired || !released) {
+        if (reserved == CBM_VERSION_COHORT_CONFLICT) {
+            (void)fprintf(stderr, "codebase-memory-cli: the older daemon serves a different "
+                                  "cache and was left running\n");
+        } else if (reserved == CBM_VERSION_COHORT_UNSAFE) {
+            (void)fprintf(stderr, "codebase-memory-cli: the older daemon cache identity could "
+                                  "not be confirmed; it was left running\n");
+        } else {
+            (void)fprintf(stderr,
+                          "codebase-memory-cli: the older daemon was left running because its "
+                          "cohort remained busy or unconfirmed\n");
+        }
+        return status;
+    }
+    if (still_running) {
+        (void)fprintf(stderr,
+                      "codebase-memory-cli: the active daemon has no confirmed cohort identity "
+                      "and was left running\n");
+        return status;
+    }
     (void)fprintf(stderr,
-                  "codebase-memory-cli: retiring the active permanent daemon (%s, pid %lu) for "
+                  "codebase-memory-cli: retired the active permanent daemon (%s, pid %lu) for "
                   "this newer build (%s)\n",
                   active.semantic_version, (unsigned long)active.daemon_pid,
                   config->identity->semantic_version);
-    cbm_daemon_runtime_activation_result_t drain;
-    if (!cbm_daemon_runtime_request_activation_shutdown(config->endpoint, config->identity,
-                                                        CBM_DAEMON_RUNTIME_ACTIVATION_UPDATE,
-                                                        MAIN_CLIENT_STARTUP_TIMEOUT_MS, &drain) ||
-        !drain.accepted) {
-        (void)fprintf(stderr, "codebase-memory-cli: the active daemon did not accept the "
-                              "upgrade drain; run `codebase-memory-cli daemon stop`\n");
-        return status;
-    }
     return cbm_daemon_bootstrap_execute(config, result);
 }
 
@@ -2153,7 +2233,14 @@ static void main_daemon_ctl_print_clients(const uint32_t *pids, uint8_t count, u
 static void main_daemon_ctl_print_status_json(bool active,
                                               const cbm_daemon_runtime_status_t *status) {
     if (!active) {
-        printf("{\"active\":false,\"status\":\"not_running\"}\n");
+        const char *state = status->unconfirmed_endpoint_holder_pid != 0 ? "unconfirmed"
+                            : status->muted_endpoint_holder_pid != 0     ? "not_responding"
+                                                                         : "not_running";
+        uint64_t holder = status->unconfirmed_endpoint_holder_pid != 0
+                              ? status->unconfirmed_endpoint_holder_pid
+                              : status->muted_endpoint_holder_pid;
+        printf("{\"active\":false,\"status\":\"%s\",\"endpoint_holder_pid\":%llu}\n", state,
+               (unsigned long long)holder);
         return;
     }
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -2662,6 +2749,12 @@ static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpo
         if (!active) {
             if (json_output) {
                 main_daemon_ctl_print_status_json(false, &status);
+                return EXIT_FAILURE;
+            }
+            if (status.unconfirmed_endpoint_holder_pid != 0) {
+                printf("daemon: probe deadline exhausted (endpoint held by pid %llu)\n",
+                       (unsigned long long)status.unconfirmed_endpoint_holder_pid);
+                printf("hint: retry `codebase-memory-cli daemon status` to check responsiveness\n");
                 return EXIT_FAILURE;
             }
             if (status.muted_endpoint_holder_pid != 0) {

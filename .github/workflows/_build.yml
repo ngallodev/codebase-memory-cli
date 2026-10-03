@@ -16,6 +16,10 @@ on:
         description: 'VirusTotal-scan both candidates before tuple-local selection (release must keep true)'
         type: boolean
         default: true
+      platforms:
+        description: "Platform set: 'all' (default, eight targets) or 'linux' (linux-amd64, linux-arm64 and both portable targets only)"
+        type: string
+        default: 'all'
     secrets:
       VIRUS_TOTAL_SCANNER_API_KEY:
         description: 'VirusTotal API key used for candidate selection'
@@ -29,28 +33,9 @@ jobs:
   build-unix:
     strategy:
       fail-fast: false
+      # platforms=linux drops the darwin legs; the default keeps all four.
       matrix:
-        include:
-          - os: ubuntu-latest
-            goos: linux
-            goarch: amd64
-            cc: gcc
-            cxx: g++
-          - os: ubuntu-24.04-arm
-            goos: linux
-            goarch: arm64
-            cc: gcc
-            cxx: g++
-          - os: macos-14
-            goos: darwin
-            goarch: arm64
-            cc: cc
-            cxx: c++
-          - os: macos-15-intel
-            goos: darwin
-            goarch: amd64
-            cc: cc
-            cxx: c++
+        include: ${{ fromJSON(inputs.platforms == 'linux' && '[{"os":"ubuntu-latest","goos":"linux","goarch":"amd64","cc":"gcc","cxx":"g++"},{"os":"ubuntu-24.04-arm","goos":"linux","goarch":"arm64","cc":"gcc","cxx":"g++"}]' || '[{"os":"ubuntu-latest","goos":"linux","goarch":"amd64","cc":"gcc","cxx":"g++"},{"os":"ubuntu-24.04-arm","goos":"linux","goarch":"arm64","cc":"gcc","cxx":"g++"},{"os":"macos-14","goos":"darwin","goarch":"arm64","cc":"cc","cxx":"c++"},{"os":"macos-15-intel","goos":"darwin","goarch":"amd64","cc":"cc","cxx":"c++"}]') }}
     runs-on: ${{ matrix.os }}
     # Every leg is BLOCKING — no continue-on-error. The darwin-amd64 binary
     # built on macos-15-intel must ship with every release; if that runner is
@@ -112,6 +97,7 @@ jobs:
           if-no-files-found: error
 
   build-windows:
+    if: ${{ inputs.platforms != 'linux' }}
     runs-on: windows-latest
     timeout-minutes: 240
     steps:
@@ -170,6 +156,7 @@ jobs:
           if-no-files-found: error
 
   build-windows-arm64:
+    if: ${{ inputs.platforms != 'linux' }}
     # Native ARM64 Windows binary via the CLANGARM64 toolchain on the
     # windows-11-arm runner (the same toolchain the test suite already
     # exercises). Without it, ARM-Windows users fall back to the x86_64
@@ -299,10 +286,31 @@ jobs:
   # equivalent candidates (unstripped/debug-stripped/stripped); the selector may
   # only choose within that tuple. A hard result on ANY sibling blocks
   # the all-target release rather than selecting around a real detection.
+  #
+  # platforms=linux narrows the tuple set to the four Linux targets. The two
+  # Windows build jobs are then skipped by design, so the join states each
+  # needed result explicitly: a skipped Windows build is accepted ONLY for the
+  # linux set, and every other needed job must have succeeded.
   select-package:
     needs: [build-unix, build-windows, build-windows-arm64, build-linux-portable]
+    if: >-
+      ${{ !cancelled()
+      && needs.build-unix.result == 'success'
+      && needs.build-linux-portable.result == 'success'
+      && ((inputs.platforms == 'linux'
+           && needs.build-windows.result == 'skipped'
+           && needs.build-windows-arm64.result == 'skipped')
+          || (inputs.platforms != 'linux'
+              && needs.build-windows.result == 'success'
+              && needs.build-windows-arm64.result == 'success')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 330
+    env:
+      # Canonical-order target set, its size, and its candidate count. The
+      # scripts re-validate these; they are passed explicitly, never inferred.
+      RELEASE_TARGETS: ${{ inputs.platforms == 'linux' && 'linux-amd64,linux-arm64,linux-amd64-portable,linux-arm64-portable' || 'linux-amd64,linux-arm64,linux-amd64-portable,linux-arm64-portable,darwin-amd64,darwin-arm64,windows-amd64,windows-arm64' }}
+      EXPECT_TARGETS: ${{ inputs.platforms == 'linux' && '4' || '8' }}
+      EXPECT_CANDIDATES: ${{ inputs.platforms == 'linux' && '12' || '24' }}
     permissions:
       contents: read
       id-token: write
@@ -323,15 +331,16 @@ jobs:
           python3 scripts/ci/stage-release-candidates.py \
             "$RUNNER_TEMP/release-candidate-artifacts" \
             release-candidate-scan \
-            --expect-targets 8 \
-            --expect-candidates 24
+            --targets "$RELEASE_TARGETS" \
+            --expect-targets "$EXPECT_TARGETS" \
+            --expect-candidates "$EXPECT_CANDIDATES"
           # Staging copied and re-hashed every byte into the immutable object
           # set. Drop the redundant artifact-download tree before the VT wait.
           test -n "$RUNNER_TEMP"
           rm -rf -- "$RUNNER_TEMP/release-candidate-artifacts"
           test ! -e "$RUNNER_TEMP/release-candidate-artifacts"
 
-      - name: Submit all 24 candidates to VirusTotal
+      - name: Submit every candidate (24, or 12 for platforms=linux) to VirusTotal
         if: ${{ inputs.scan_candidates }}
         uses: crazy-max/ghaction-virustotal@936d8c5c00afe97d3d9a1af26d017cfdf26800a2 # v5.0.0
         id: virustotal-candidates
@@ -362,6 +371,7 @@ jobs:
             --candidates release-candidate-scan/candidates.tsv \
             --objects-dir release-candidate-scan/objects \
             --results release-candidate-scan/vt-results.tsv \
+            --targets "$RELEASE_TARGETS" \
             --out-dir release-selection
 
       # This is intentionally reachable only from dry-run.yml's explicit
@@ -374,6 +384,7 @@ jobs:
             --candidates release-candidate-scan/candidates.tsv \
             --objects-dir release-candidate-scan/objects \
             --default-stripped \
+            --targets "$RELEASE_TARGETS" \
             --out-dir release-selection
 
       - name: Reclaim rejected and redundant candidate bytes
@@ -388,11 +399,7 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          for target in \
-            linux-amd64 linux-arm64 \
-            linux-amd64-portable linux-arm64-portable \
-            darwin-amd64 darwin-arm64 \
-            windows-amd64 windows-arm64; do
+          for target in ${RELEASE_TARGETS//,/ }; do
             goos="${target%%-*}"
             goarch="${target#*-}"
             selected_name=codebase-memory-cli
@@ -417,6 +424,7 @@ jobs:
         run: |
           python3 scripts/ci/verify-release-selection.py \
             --selection release-selection/release-selection.tsv \
+            --targets "$RELEASE_TARGETS" \
             --archive-dir release-containers
 
       - name: Prepare durable candidate-selection evidence
@@ -478,6 +486,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload darwin-amd64 containers
+        if: ${{ inputs.platforms != 'linux' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: binaries-darwin-amd64
@@ -485,6 +494,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload darwin-arm64 containers
+        if: ${{ inputs.platforms != 'linux' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: binaries-darwin-arm64
@@ -492,6 +502,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload windows-amd64 containers
+        if: ${{ inputs.platforms != 'linux' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: binaries-windows-amd64
@@ -499,6 +510,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload windows-arm64 containers
+        if: ${{ inputs.platforms != 'linux' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: binaries-windows-arm64

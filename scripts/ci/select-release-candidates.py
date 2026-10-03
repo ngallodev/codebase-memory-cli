@@ -96,6 +96,21 @@ MAX_CANDIDATE_BYTES = 512 * 1024 * 1024
 MIN_ENGINES = 50
 
 
+def target_subset(value: str) -> tuple[str, ...]:
+    """Parse --targets: a comma list that is a canonical-order subset of TARGETS."""
+    names = value.split(",")
+    if not value or any(not name for name in names):
+        raise argparse.ArgumentTypeError("--targets must be a non-empty comma list")
+    unknown = [name for name in names if name not in TARGETS]
+    if unknown:
+        raise argparse.ArgumentTypeError(f"unknown release targets: {unknown}")
+    if tuple(names) != tuple(target for target in TARGETS if target in names):
+        raise argparse.ArgumentTypeError(
+            "--targets must be unique and in canonical order: " + ",".join(TARGETS)
+        )
+    return tuple(names)
+
+
 def parse_arguments(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Select one VT-approved candidate per canonical target tuple."
@@ -103,6 +118,12 @@ def parse_arguments(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--candidates", required=True, type=pathlib.Path)
     parser.add_argument("--objects-dir", required=True, type=pathlib.Path)
     parser.add_argument("--out-dir", required=True, type=pathlib.Path)
+    parser.add_argument(
+        "--targets",
+        type=target_subset,
+        default=TARGETS,
+        help="comma list, canonical-order subset of the eight targets (default: all eight)",
+    )
     policy = parser.add_mutually_exclusive_group(required=True)
     policy.add_argument("--results", type=pathlib.Path)
     policy.add_argument("--default-stripped", action="store_true")
@@ -489,7 +510,9 @@ def copy_selected(
 
 
 def main(argv: Sequence[str]) -> None:
+    global TARGETS
     args = parse_arguments(argv)
+    TARGETS = args.targets
     output = args.out_dir
     if output.name in ("", ".", ".."):
         raise ContractError(f"unsafe output directory: {output}")

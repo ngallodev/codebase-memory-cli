@@ -44,6 +44,14 @@ enum {
 static const unsigned char VERSION_COHORT_RECORD_MAGIC[VERSION_COHORT_RECORD_MAGIC_SIZE] = {
     'C', 'B', 'M', 'C', 'O', 'H', 2, 0,
 };
+#ifdef CBM_ENABLE_TEST_SEAMS
+static atomic_bool version_cohort_active_identity_unreadable_for_test = ATOMIC_VAR_INIT(false);
+
+void cbm_version_cohort_set_active_identity_unreadable_for_test(bool unreadable) {
+    atomic_store_explicit(&version_cohort_active_identity_unreadable_for_test, unreadable,
+                          memory_order_release);
+}
+#endif
 static const char VERSION_COHORT_ADMISSION_FILE[] = "cbm-version-cohort-admission-v1.lock";
 static const char VERSION_COHORT_LIFETIME_FILE[] = "cbm-version-cohort-lifetime-v1.lock";
 static const char VERSION_COHORT_MAINTENANCE_FILE[] = "cbm-version-cohort-maintenance-v1.lock";
@@ -148,8 +156,7 @@ static void version_cohort_startup_lock_release_complete(cbm_daemon_ipc_startup_
 }
 #endif
 
-static bool version_cohort_identity_valid(const cbm_daemon_build_identity_t *identity) {
-    const char *cache = identity ? identity->cache_fingerprint : NULL;
+static bool version_cohort_cache_fingerprint_valid(const char *cache) {
     if (!cache) {
         return false;
     }
@@ -163,6 +170,13 @@ static bool version_cohort_identity_valid(const cbm_daemon_build_identity_t *ide
         cache_length++;
     }
     if (cache_length != CBM_DAEMON_BUILD_FINGERPRINT_SIZE - 1U || cache[cache_length] != '\0') {
+        return false;
+    }
+    return true;
+}
+
+static bool version_cohort_identity_valid(const cbm_daemon_build_identity_t *identity) {
+    if (!identity || !version_cohort_cache_fingerprint_valid(identity->cache_fingerprint)) {
         return false;
     }
     cbm_daemon_conflict_t comparison;
@@ -644,7 +658,7 @@ static cbm_version_cohort_status_t version_cohort_reserve_for_mutation_internal(
     cbm_version_cohort_manager_t *manager, uint64_t deadline_ms,
     cbm_version_cohort_quiesce_fn quiesce, void *quiesce_context,
     cbm_version_cohort_quiesce_result_t *quiesce_result_out, cbm_version_cohort_lease_t **lease_out,
-    bool require_finite_deadline) {
+    bool require_finite_deadline, const char *expected_cache_fingerprint) {
     if (lease_out) {
         *lease_out = NULL;
     }
@@ -652,6 +666,8 @@ static cbm_version_cohort_status_t version_cohort_reserve_for_mutation_internal(
         *quiesce_result_out = CBM_VERSION_COHORT_QUIESCE_NOT_NEEDED;
     }
     if (!manager || !quiesce_result_out || !lease_out ||
+        (expected_cache_fingerprint &&
+         !version_cohort_cache_fingerprint_valid(expected_cache_fingerprint)) ||
         (require_finite_deadline && deadline_ms == UINT64_MAX)) {
         return CBM_VERSION_COHORT_UNSAFE;
     }
@@ -659,13 +675,13 @@ static cbm_version_cohort_status_t version_cohort_reserve_for_mutation_internal(
     if (!lease) {
         return CBM_VERSION_COHORT_IO;
     }
-    /* Publish crash-safe intent before waiting for an admission already in
-     * flight. Normal admissions retain maintenance SH until their admission
-     * transition ends, giving every participant the same deadlock-free native
-     * order: maintenance -> admission -> lifetime. */
-    cbm_private_file_lock_status_t lock_status =
-        version_cohort_lock_until(manager, VERSION_COHORT_MAINTENANCE_FILE,
-                                  CBM_PRIVATE_FILE_LOCK_EX, deadline_ms, &lease->maintenance);
+    /* Ownership-aware activation first holds maintenance SH: publishing EX
+     * wakes terminal monitors, so even that signal requires a positive owner
+     * match. Admission EX and lifetime pin the identity during the promotion. */
+    cbm_private_file_lock_status_t lock_status = version_cohort_lock_until(
+        manager, VERSION_COHORT_MAINTENANCE_FILE,
+        expected_cache_fingerprint ? CBM_PRIVATE_FILE_LOCK_SH : CBM_PRIVATE_FILE_LOCK_EX,
+        deadline_ms, &lease->maintenance);
     if (lock_status != CBM_PRIVATE_FILE_LOCK_OK) {
         return version_cohort_failed(lease, version_cohort_status_from_lock(lock_status),
                                      lease_out);
@@ -680,15 +696,89 @@ static cbm_version_cohort_status_t version_cohort_reserve_for_mutation_internal(
     lock_status =
         cbm_private_file_lock_try_acquire(manager->directory, VERSION_COHORT_LIFETIME_FILE,
                                           CBM_PRIVATE_FILE_LOCK_EX, &lease->lifetime);
+    bool lifetime_exclusive = lock_status == CBM_PRIVATE_FILE_LOCK_OK;
     if (lock_status == CBM_PRIVATE_FILE_LOCK_BUSY) {
         if (!quiesce) {
             *quiesce_result_out = CBM_VERSION_COHORT_QUIESCE_REFUSED;
             return version_cohort_failed(lease, CBM_VERSION_COHORT_BUSY, lease_out);
         }
 
+        if (expected_cache_fingerprint) {
+            /* Hold a shared lifetime lease while reading and requesting
+             * quiescence. Admission EX prevents a replacement
+             * cohort from entering between this check and the callback. */
+            lock_status =
+                cbm_private_file_lock_try_acquire(manager->directory, VERSION_COHORT_LIFETIME_FILE,
+                                                  CBM_PRIVATE_FILE_LOCK_SH, &lease->lifetime);
+            if (lock_status != CBM_PRIVATE_FILE_LOCK_OK) {
+                return version_cohort_failed(lease, version_cohort_status_from_lock(lock_status),
+                                             lease_out);
+            }
+            unsigned char record[VERSION_COHORT_RECORD_SIZE];
+            size_t record_length = 0;
+            char version[CBM_DAEMON_VERSION_TEXT_SIZE];
+            char build[CBM_DAEMON_BUILD_FINGERPRINT_SIZE];
+            char cache[CBM_DAEMON_BUILD_FINGERPRINT_SIZE];
+            cbm_daemon_build_identity_t active;
+            bool decoded =
+                cbm_private_file_lock_payload_read(lease->lifetime, record, sizeof(record),
+                                                   &record_length) == CBM_PRIVATE_FILE_LOCK_OK &&
+                version_cohort_record_decode(record, record_length, &active, version, build, cache);
+#ifdef CBM_ENABLE_TEST_SEAMS
+            decoded = decoded &&
+                      !atomic_load_explicit(&version_cohort_active_identity_unreadable_for_test,
+                                            memory_order_acquire);
+#endif
+            bool same_cache =
+                decoded && strcmp(active.cache_fingerprint, expected_cache_fingerprint) == 0;
+            if (!same_cache) {
+                /* The record may have become stale after the failed EX probe.
+                 * With admission closed, a successful EX retry proves no
+                 * participant remains; otherwise preserve the active cohort. */
+                if (cbm_private_file_lock_release(&lease->lifetime) != CBM_PRIVATE_FILE_LOCK_OK) {
+                    return version_cohort_failed(lease, CBM_VERSION_COHORT_IO, lease_out);
+                }
+                lock_status = cbm_private_file_lock_try_acquire(
+                    manager->directory, VERSION_COHORT_LIFETIME_FILE, CBM_PRIVATE_FILE_LOCK_EX,
+                    &lease->lifetime);
+                if (lock_status == CBM_PRIVATE_FILE_LOCK_OK) {
+                    lifetime_exclusive = true;
+                } else {
+                    cbm_version_cohort_status_t refusal =
+                        decoded ? CBM_VERSION_COHORT_CONFLICT : CBM_VERSION_COHORT_UNSAFE;
+                    return version_cohort_failed(lease,
+                                                 lock_status == CBM_PRIVATE_FILE_LOCK_BUSY
+                                                     ? refusal
+                                                     : version_cohort_status_from_lock(lock_status),
+                                                 lease_out);
+                }
+            }
+        }
+    } else if (lock_status != CBM_PRIVATE_FILE_LOCK_OK) {
+        return version_cohort_failed(lease, version_cohort_status_from_lock(lock_status),
+                                     lease_out);
+    }
+
+    if (expected_cache_fingerprint) {
+        if (cbm_private_file_lock_release(&lease->maintenance) != CBM_PRIVATE_FILE_LOCK_OK) {
+            return version_cohort_failed(lease, CBM_VERSION_COHORT_IO, lease_out);
+        }
+        /* Never wait for maintenance while admission is held: an entering
+         * participant may hold maintenance SH while waiting for admission.
+         * A failed nonblocking promotion releases all claims for retry. */
+        lock_status =
+            cbm_private_file_lock_try_acquire(manager->directory, VERSION_COHORT_MAINTENANCE_FILE,
+                                              CBM_PRIVATE_FILE_LOCK_EX, &lease->maintenance);
+        if (lock_status != CBM_PRIVATE_FILE_LOCK_OK) {
+            return version_cohort_failed(lease, version_cohort_status_from_lock(lock_status),
+                                         lease_out);
+        }
+    }
+
+    if (!lifetime_exclusive) {
         /* Admission remains exclusively locked across the callback and wait.
-         * Consequently the active lifetime set can only shrink, and no new
-         * participant can race mutation after accepting the quiesce request. */
+         * On the ownership-aware path the active lifetime identity is also
+         * retained SH until the callback has issued its request. */
         cbm_version_cohort_quiesce_result_t quiesce_result = quiesce(quiesce_context);
         *quiesce_result_out = quiesce_result;
         if (quiesce_result == CBM_VERSION_COHORT_QUIESCE_REFUSED) {
@@ -699,6 +789,10 @@ static cbm_version_cohort_status_t version_cohort_reserve_for_mutation_internal(
         }
         if (quiesce_result != CBM_VERSION_COHORT_QUIESCE_REQUESTED) {
             return version_cohort_failed(lease, CBM_VERSION_COHORT_UNSAFE, lease_out);
+        }
+        if (lease->lifetime &&
+            cbm_private_file_lock_release(&lease->lifetime) != CBM_PRIVATE_FILE_LOCK_OK) {
+            return version_cohort_failed(lease, CBM_VERSION_COHORT_IO, lease_out);
         }
         lock_status =
             version_cohort_lock_until(manager, VERSION_COHORT_LIFETIME_FILE,
@@ -722,7 +816,27 @@ cbm_version_cohort_status_t cbm_version_cohort_reserve_for_mutation(
     cbm_version_cohort_quiesce_result_t *quiesce_result_out,
     cbm_version_cohort_lease_t **lease_out) {
     return version_cohort_reserve_for_mutation_internal(
-        manager, deadline_ms, quiesce, quiesce_context, quiesce_result_out, lease_out, true);
+        manager, deadline_ms, quiesce, quiesce_context, quiesce_result_out, lease_out, true, NULL);
+}
+
+cbm_version_cohort_status_t cbm_version_cohort_reserve_for_mutation_cache(
+    cbm_version_cohort_manager_t *manager, const char *expected_cache_fingerprint,
+    uint64_t deadline_ms, cbm_version_cohort_quiesce_fn quiesce, void *quiesce_context,
+    cbm_version_cohort_quiesce_result_t *quiesce_result_out,
+    cbm_version_cohort_lease_t **lease_out) {
+    if (!expected_cache_fingerprint ||
+        !version_cohort_cache_fingerprint_valid(expected_cache_fingerprint)) {
+        if (lease_out) {
+            *lease_out = NULL;
+        }
+        if (quiesce_result_out) {
+            *quiesce_result_out = CBM_VERSION_COHORT_QUIESCE_NOT_NEEDED;
+        }
+        return CBM_VERSION_COHORT_UNSAFE;
+    }
+    return version_cohort_reserve_for_mutation_internal(
+        manager, deadline_ms, quiesce, quiesce_context, quiesce_result_out, lease_out, true,
+        expected_cache_fingerprint);
 }
 
 cbm_version_cohort_status_t cbm_version_cohort_reserve_exclusive(
@@ -730,7 +844,7 @@ cbm_version_cohort_status_t cbm_version_cohort_reserve_exclusive(
     cbm_version_cohort_lease_t **lease_out) {
     cbm_version_cohort_quiesce_result_t ignored_quiesce;
     return version_cohort_reserve_for_mutation_internal(manager, deadline_ms, NULL, NULL,
-                                                        &ignored_quiesce, lease_out, false);
+                                                        &ignored_quiesce, lease_out, false, NULL);
 }
 
 static cbm_version_cohort_maintenance_presence_t version_cohort_maintenance_presence_internal(

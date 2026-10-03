@@ -5,6 +5,7 @@
 #include "daemon/ipc.h"
 #include "daemon/service.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 
 typedef struct cbm_version_cohort_manager cbm_version_cohort_manager_t;
@@ -94,6 +95,24 @@ cbm_version_cohort_status_t cbm_version_cohort_reserve_for_mutation(
     cbm_version_cohort_quiesce_fn quiesce, void *quiesce_context,
     cbm_version_cohort_quiesce_result_t *quiesce_result_out,
     cbm_version_cohort_lease_t **lease_out);
+
+/* Activation variant: expected_cache_fingerprint must be a valid SHA-256 hex
+ * fingerprint. Request quiescence only when the active lifetime record
+ * positively names expected_cache_fingerprint. The identity is checked while
+ * admission is held; maintenance intent is published only after this check,
+ * and its lifetime SH lease remains held
+ * through the callback, so ownership cannot change before the request. A
+ * foreign or unreadable active record grants no mutation lease. */
+cbm_version_cohort_status_t cbm_version_cohort_reserve_for_mutation_cache(
+    cbm_version_cohort_manager_t *manager, const char *expected_cache_fingerprint,
+    uint64_t deadline_ms, cbm_version_cohort_quiesce_fn quiesce, void *quiesce_context,
+    cbm_version_cohort_quiesce_result_t *quiesce_result_out,
+    cbm_version_cohort_lease_t **lease_out);
+
+#ifdef CBM_ENABLE_TEST_SEAMS
+/* Force the activation ownership read to behave as an unreadable record. */
+void cbm_version_cohort_set_active_identity_unreadable_for_test(bool unreadable);
+#endif
 
 /* Cheap, non-blocking observation of the crash-released maintenance intent.
  * Participants use the same native gate before admission, so REQUESTED is an

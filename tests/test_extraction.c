@@ -5816,7 +5816,74 @@ TEST(extract_wide_flat_reference_fields_are_linear) {
     }
     PASS();
 }
+
+/* ReScript `let` binding classification must use the unified walk cursor;
+ * ts_node_parent would rescan the wide root from every leaf. */
+static int extract_rescript_let_leaf_fallbacks(int statement_count, int *out_usages,
+                                               uint64_t *out_slow_parent_fallbacks) {
+    static const char prefix[] = "let target = 1\n";
+    static const char statement[] = "let v = target\n";
+    size_t capacity = sizeof(prefix) + (size_t)statement_count * sizeof(statement);
+    char *source = malloc(capacity);
+    if (!source) {
+        return -1;
+    }
+    size_t offset = 0;
+    memcpy(source + offset, prefix, sizeof(prefix) - 1U);
+    offset += sizeof(prefix) - 1U;
+    for (int i = 0; i < statement_count; i++) {
+        memcpy(source + offset, statement, sizeof(statement) - 1U);
+        offset += sizeof(statement) - 1U;
+    }
+    source[offset] = '\0';
+
+    cbm_usage_field_lookup_test_reset();
+    CBMFileResult *result =
+        cbm_extract_file(source, (int)offset, CBM_LANG_RESCRIPT, "proj", "Flat.res", 0, NULL, NULL);
+    free(source);
+    if (!result) {
+        return -1;
+    }
+    int usages = 0;
+    for (int i = 0; i < result->usages.count; i++) {
+        if (result->usages.items[i].ref_name &&
+            strcmp(result->usages.items[i].ref_name, "target") == 0) {
+            usages++;
+        }
+    }
+    *out_slow_parent_fallbacks = cbm_usage_slow_parent_fallback_test_count();
+    cbm_free_result(result);
+    *out_usages = usages;
+    return 0;
+}
+
+TEST(extract_rescript_let_bindings_use_the_walk_cursor) {
+    enum { SMALL = 128, BIG = 1024 };
+    int small_usages = 0;
+    int big_usages = 0;
+    uint64_t small_fallbacks = 0;
+    uint64_t big_fallbacks = 0;
+    ASSERT_EQ(extract_rescript_let_leaf_fallbacks(SMALL, &small_usages, &small_fallbacks), 0);
+    ASSERT_EQ(extract_rescript_let_leaf_fallbacks(BIG, &big_usages, &big_fallbacks), 0);
+    ASSERT_EQ(small_usages, SMALL);
+    ASSERT_EQ(big_usages, BIG);
+    ASSERT_EQ(small_fallbacks, 0);
+    ASSERT_EQ(big_fallbacks, 0);
+    PASS();
+}
 #endif
+
+TEST(extract_rescript_definitions_and_calls_unchanged) {
+    CBMFileResult *result = extract("let target = x => x\n"
+                                    "let caller = () => target(1)\n",
+                                    CBM_LANG_RESCRIPT, "proj", "Valid.res");
+    ASSERT_NOT_NULL(result);
+    ASSERT_TRUE(has_def_any(result, "target"));
+    ASSERT_TRUE(has_def_any(result, "caller"));
+    ASSERT_TRUE(has_call(result, "target"));
+    cbm_free_result(result);
+    PASS();
+}
 
 /* ===================================================================
  * Group H3: ObjectScript return type extraction
@@ -6763,7 +6830,9 @@ SUITE(extraction) {
     RUN_TEST(extract_wide_flat_file_is_linear);
 #if defined(CBM_CALL_REFERENCE_LOOKUP_TEST_API) && CBM_CALL_REFERENCE_LOOKUP_TEST_API
     RUN_TEST(extract_wide_flat_reference_fields_are_linear);
+    RUN_TEST(extract_rescript_let_bindings_use_the_walk_cursor);
 #endif
+    RUN_TEST(extract_rescript_definitions_and_calls_unchanged);
 
     /* Perl call-graph noise (#459 follow-up) */
     RUN_TEST(extract_perl_config_string_not_a_callee);

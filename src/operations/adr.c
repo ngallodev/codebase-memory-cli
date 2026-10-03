@@ -7,6 +7,7 @@
 #include "yyjson/yyjson.h"
 
 #include <stdbool.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +19,14 @@
     "For guided creation: explore the codebase with get_architecture, "            \
     "then draft and store. Sections: PURPOSE, STACK, ARCHITECTURE, "               \
     "PATTERNS, TRADEOFFS, PHILOSOPHY."
+#define ADR_OUTLINE_DEFAULT_LIMIT 50
+#define ADR_OUTLINE_MIN_LIMIT 1
+#define ADR_OUTLINE_MAX_LIMIT 500
+#define ADR_OUTLINE_INITIAL_CAPACITY 16
+#define ADR_OUTLINE_FIRST_LINE 1
+#define ADR_OUTLINE_MAX_HEADING_LEVEL 6
+#define ADR_OUTLINE_INDEX_STEP 1
+#define ADR_OUTLINE_GROWTH_FACTOR 2
 
 static char *adr_strdup(const char *text) {
     if (!text)
@@ -82,6 +91,141 @@ static void adr_list_sections_from_content(yyjson_mut_doc *doc, yyjson_mut_val *
         yyjson_mut_obj_add_str(doc, root, "sections_status", "unterminated_code_fence");
     }
     yyjson_mut_obj_add_val(doc, root, "sections", sections);
+}
+
+static int adr_line_count(const char *content) {
+    if (!content || !content[0]) {
+        return 0;
+    }
+    int lines = ADR_OUTLINE_FIRST_LINE;
+    for (const char *p = content; *p; p++) {
+        if (*p == '\n' && p[ADR_OUTLINE_INDEX_STEP]) {
+            lines++;
+        }
+    }
+    return lines;
+}
+
+typedef struct {
+    const char *text;
+    size_t len;
+    int level, start, end;
+} adr_outline_row_t;
+
+static int adr_outline_arg(const char *args, const char *key, int fallback) {
+    yyjson_doc *doc = yyjson_read(args, strlen(args), 0);
+    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
+    yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, key) : NULL;
+    int64_t number = yyjson_is_int(value) ? yyjson_get_sint(value) : fallback;
+    int result = yyjson_is_uint(value) && yyjson_get_uint(value) > INT_MAX ? INT_MAX
+                 : number > INT_MAX                                        ? INT_MAX
+                 : number < INT_MIN                                        ? INT_MIN
+                                                                           : (int)number;
+    if (doc) {
+        yyjson_doc_free(doc);
+    }
+    return result;
+}
+
+static bool adr_add_outline(yyjson_mut_doc *doc, yyjson_mut_val *root, const char *content,
+                            int offset, int limit) {
+    int total_lines = adr_line_count(content);
+    int count = 0;
+    int capacity = ADR_OUTLINE_INITIAL_CAPACITY;
+    adr_outline_row_t *rows = content && *content ? malloc((size_t)capacity * sizeof(*rows)) : NULL;
+    if (content && *content && !rows) {
+        return false;
+    }
+    const char *p = content;
+    int line = ADR_OUTLINE_FIRST_LINE;
+    bool in_fence = false;
+    char fence_ch = 0;
+    int fence_n = 0;
+    while (p && *p) {
+        const char *eol = strchr(p, '\n');
+        const char *end = eol ? eol : p + strlen(p);
+        const char *trimend =
+            end > p && end[-ADR_OUTLINE_INDEX_STEP] == '\r' ? end - ADR_OUTLINE_INDEX_STEP : end;
+        bool fenced_line = in_fence;
+        int line_len = (int)(end - p);
+        if (in_fence) {
+            if (cbm_adr_fence_closes(p, line_len, fence_ch, fence_n)) {
+                in_fence = false;
+            }
+        } else {
+            int run = cbm_adr_fence_run(p, line_len, &fence_ch);
+            if (run > 0) {
+                in_fence = true;
+                fenced_line = true;
+                fence_n = run;
+            }
+        }
+        int level = 0;
+        while (!fenced_line && p + level < trimend && p[level] == '#') {
+            level++;
+        }
+        if (level > 0 && level <= ADR_OUTLINE_MAX_HEADING_LEVEL && p + level < trimend &&
+            p[level] == ' ') {
+            if (!rows) {
+                break;
+            }
+            if (count == capacity) {
+                capacity *= ADR_OUTLINE_GROWTH_FACTOR;
+                adr_outline_row_t *grown = realloc(rows, (size_t)capacity * sizeof(*rows));
+                if (!grown) {
+                    free(rows);
+                    return false;
+                }
+                rows = grown;
+            }
+            if (count > 0) {
+                rows[count - ADR_OUTLINE_INDEX_STEP].end = line - ADR_OUTLINE_FIRST_LINE;
+            }
+            rows[count++] = (adr_outline_row_t){p, (size_t)(trimend - p), level, line, total_lines};
+        }
+        if (!eol) {
+            break;
+        }
+        p = eol + ADR_OUTLINE_INDEX_STEP;
+        line++;
+    }
+    if (offset < 0) {
+        offset = 0;
+    }
+    if (offset > count) {
+        offset = count;
+    }
+    int returned = count - offset;
+    if (returned > limit) {
+        returned = limit;
+    }
+    if (in_fence) {
+        yyjson_mut_obj_add_str(doc, root, "sections_status", "unterminated_code_fence");
+    }
+    yyjson_mut_obj_add_str(doc, root, "mode", "outline");
+    yyjson_mut_val *headings = yyjson_mut_arr(doc);
+    for (int i = 0; i < returned; i++) {
+        adr_outline_row_t *row = &rows[offset + i];
+        yyjson_mut_val *item = yyjson_mut_obj(doc);
+        yyjson_mut_obj_add_int(doc, item, "index", offset + i);
+        yyjson_mut_obj_add_strncpy(doc, item, "heading", row->text, row->len);
+        yyjson_mut_obj_add_int(doc, item, "level", row->level);
+        yyjson_mut_obj_add_int(doc, item, "start_line", row->start);
+        yyjson_mut_obj_add_int(doc, item, "end_line", row->end);
+        yyjson_mut_arr_add_val(headings, item);
+    }
+    yyjson_mut_obj_add_val(doc, root, "headings", headings);
+    yyjson_mut_obj_add_int(doc, root, "total_lines", total_lines);
+    yyjson_mut_obj_add_int(doc, root, "sections_total", count);
+    yyjson_mut_obj_add_int(doc, root, "sections_returned", returned);
+    bool more = offset + returned < count;
+    yyjson_mut_obj_add_bool(doc, root, "sections_has_more", more);
+    if (more) {
+        yyjson_mut_obj_add_int(doc, root, "next_section_offset", offset + returned);
+    }
+    yyjson_mut_obj_add_bool(doc, root, "full_content_available", content != NULL);
+    free(rows);
+    return true;
 }
 
 static char *adr_read_legacy_file(const char *root_path) {
@@ -460,6 +604,19 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
         }
     } else if (mode && strcmp(mode, "sections") == 0) {
         adr_list_sections_from_content(doc, root, adr_content);
+    } else if (mode && strcmp(mode, "outline") == 0) {
+        int limit = adr_outline_arg(args, "section_limit", ADR_OUTLINE_DEFAULT_LIMIT);
+        int offset = adr_outline_arg(args, "section_offset", 0);
+        if (limit < ADR_OUTLINE_MIN_LIMIT) {
+            limit = ADR_OUTLINE_MIN_LIMIT;
+        }
+        if (limit > ADR_OUTLINE_MAX_LIMIT) {
+            limit = ADR_OUTLINE_MAX_LIMIT;
+        }
+        if (!adr_add_outline(doc, root, adr_content, offset, limit)) {
+            yyjson_mut_obj_add_str(doc, root, "error", "outline allocation failed");
+            is_error = true;
+        }
     } else {
         if (adr_content) {
             yyjson_mut_obj_add_strcpy(doc, root, "content", adr_content);

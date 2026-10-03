@@ -1,0 +1,4 @@
+# Keep CodeRabbit automatic reviews enabled; Claude workflows are disabled.
+reviews:
+  auto_review:
+    enabled: true

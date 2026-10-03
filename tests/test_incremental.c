@@ -2010,6 +2010,60 @@ TEST(tool_adr_sections) {
     PASS();
 }
 
+TEST(tool_adr_outline) {
+    double ms;
+    char *r = call_tool_timed("manage_adr", &ms,
+                              "{\"project\":\"%s\",\"mode\":\"outline\","
+                              "\"section_limit\":1}",
+                              g_project);
+    TOOL_OK(r, ms);
+    ASSERT(strstr(r, "\"mode\":\"outline\"") != NULL);
+    ASSERT(strstr(r, "\"headings\":") != NULL);
+    ASSERT(strstr(r, "\"sections_total\":") != NULL);
+    ASSERT(strstr(r, "\"full_content_available\":") != NULL);
+    free(r);
+    PASS();
+}
+
+TEST(tool_adr_outline_pagination_and_large_offset) {
+    cbm_store_t *store = cbm_store_open_path_existing(g_dbpath);
+    ASSERT_NOT_NULL(store);
+    cbm_adr_t previous = {0};
+    bool had_previous =
+        cbm_store_adr_get(store, g_project, &previous) == CBM_STORE_OK && previous.content;
+    int stored = cbm_store_adr_store(store, g_project,
+                                     "# Root\nbody\n## Choice\nbody\n   ````c\n# Hidden\n"
+                                     "```\n## Still hidden\n   ````\n~~~\n### Hidden tilde\n"
+                                     "~~~ trailing text\n## Still fenced\n~~~\n### Detail\nbody\n");
+    char *page = call_tool(
+        "manage_adr",
+        "{\"project\":\"%s\",\"mode\":\"outline\",\"section_limit\":1,\"section_offset\":1}",
+        g_project);
+    char *past_end = call_tool(
+        "manage_adr",
+        "{\"project\":\"%s\",\"mode\":\"outline\",\"section_offset\":9223372036854775807}",
+        g_project);
+    bool paginated = page && count_in_response(page, "sections_total") == 3 &&
+                     count_in_response(page, "sections_returned") == 1 &&
+                     count_in_response(page, "next_section_offset") == 2 &&
+                     count_in_response(page, "start_line") == 3 &&
+                     count_in_response(page, "end_line") == 14 && strstr(page, "## Choice") != NULL;
+    bool exhausted = past_end && count_in_response(past_end, "sections_total") == 3 &&
+                     count_in_response(past_end, "sections_returned") == 0 &&
+                     resp_lacks_key(past_end, "next_section_offset");
+    int restored = had_previous ? cbm_store_adr_store(store, g_project, previous.content)
+                                : cbm_store_adr_delete(store, g_project);
+    cbm_store_adr_free(&previous);
+    cbm_store_close(store);
+    free(page);
+    free(past_end);
+    ASSERT_EQ(stored, CBM_STORE_OK);
+    ASSERT_EQ(restored, CBM_STORE_OK);
+    ASSERT_TRUE(paginated);
+    ASSERT_TRUE(exhausted);
+    PASS();
+}
+
 /* ── ingest_traces ─────────────────────────────────────────────── */
 
 TEST(tool_ingest_traces_empty) {
@@ -3184,6 +3238,8 @@ SUITE(incremental) {
     /* Phase 16: manage_adr */
     RUN_TEST(tool_adr_get);
     RUN_TEST(tool_adr_sections);
+    RUN_TEST(tool_adr_outline);
+    RUN_TEST(tool_adr_outline_pagination_and_large_offset);
 
     /* Phase 17: ingest_traces */
     RUN_TEST(tool_ingest_traces_empty);

@@ -20,3 +20,6 @@ CI and the local infrastructure — both of which the venue-parity contract
 | `select-release-candidates.py` | Apply the reviewed tuple-local VT truth table, or the explicit dry-run stripped default, and atomically copy one content-bound binary per target. | `_build.yml` |
 | `verify-release-selection.py` | Recompute the selection policy and prove every executable member in all 14 public containers equals its selected SHA-256. | `_build.yml`, `release.yml` final draft verification |
 | `check-virustotal.sh` | Poll and validate the exact candidate scan set, enforce engine coverage and the narrow documented Microsoft `!ml` policy, and emit content-bound results evidence. | `_build.yml` |
+| `validate-release-inputs.sh` | Reject unsafe release dispatch combinations. | `release.yml` preflight |
+| `release-artifacts.sh` | List, checksum, and sign staged release artifacts and selection evidence. | `release.yml` |
+| `soak-matrix.sh` | Select the Unix soak matrix for all platforms or Linux. | `_soak.yml` |

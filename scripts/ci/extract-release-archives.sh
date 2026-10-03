@@ -5,7 +5,10 @@
 # Usage:
 #   extract-release-archives.sh <archive-dir> <output-dir> \
 #     [--expect-archives=N] [--expect-binaries=N] \
-#     [--expect-runtime-files=N]
+#     [--expect-runtime-files=N] [--targets=a,b,...]
+#
+# --targets restricts the exact canonical namespace to a canonical-order subset
+# of the eight targets (default: all eight).
 #
 # The output directory is published as one atomic bundle:
 #   objects/          one file per distinct byte sequence
@@ -19,7 +22,7 @@
 set -euo pipefail
 
 if [ "$#" -lt 2 ]; then
-  echo "Usage: $0 <archive-dir> <output-dir> [--expect-archives=N] [--expect-binaries=N] [--expect-runtime-files=N]" >&2
+  echo "Usage: $0 <archive-dir> <output-dir> [--expect-archives=N] [--expect-binaries=N] [--expect-runtime-files=N] [--targets=a,b,...]" >&2
   exit 2
 fi
 
@@ -75,6 +78,17 @@ WINDOWS_TARGETS = ("windows-amd64", "windows-arm64")
 CANONICAL_ARCHIVES = frozenset(
     [f"codebase-memory-cli-{target}.tar.gz" for target in UNIX_TARGETS]
     + [f"codebase-memory-cli-{target}.zip" for target in WINDOWS_TARGETS]
+)
+ALL_TARGETS = UNIX_TARGETS + WINDOWS_TARGETS
+CANONICAL_ORDER = (
+    "linux-amd64",
+    "linux-arm64",
+    "linux-amd64-portable",
+    "linux-arm64-portable",
+    "darwin-amd64",
+    "darwin-arm64",
+    "windows-amd64",
+    "windows-arm64",
 )
 # One composition ships; the association column is retained so the schema stays
 # stable for the gate and release-notes consumers.
@@ -288,10 +302,30 @@ def parse_arguments(
 ) -> Tuple[pathlib.Path, pathlib.Path, Dict[str, Optional[int]]]:
     archive_dir = pathlib.Path(argv[1]).absolute()
     output_dir = pathlib.Path(argv[2]).absolute()
+    global CANONICAL_ARCHIVES
     expected: Dict[str, Optional[int]] = {value: None for value in COUNT_OPTIONS.values()}
     seen: set[str] = set()
     for argument in argv[3:]:
         option, separator, raw_value = argument.partition("=")
+        if separator and option == "--targets":
+            if "targets" in seen:
+                raise ContractError(f"duplicate option: {option}")
+            names = raw_value.split(",")
+            if (
+                not raw_value
+                or any(name not in ALL_TARGETS for name in names)
+                or tuple(names) != tuple(t for t in CANONICAL_ORDER if t in names)
+            ):
+                raise ContractError(
+                    "--targets must be a non-empty, unique, canonical-order subset of: "
+                    + ",".join(CANONICAL_ORDER)
+                )
+            seen.add("targets")
+            CANONICAL_ARCHIVES = frozenset(
+                f"codebase-memory-cli-{t}" + (".zip" if t in WINDOWS_TARGETS else ".tar.gz")
+                for t in names
+            )
+            continue
         if not separator or option not in COUNT_OPTIONS:
             raise ContractError(f"unknown option: {argument}")
         key = COUNT_OPTIONS[option]

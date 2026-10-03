@@ -75,6 +75,21 @@ MAX_CANDIDATE_BYTES = 512 * 1024 * 1024
 MAX_NOTICE_BYTES = 16 * 1024 * 1024
 
 
+def target_subset(value: str) -> tuple[str, ...]:
+    """Parse --targets: a comma list that is a canonical-order subset of TARGETS."""
+    names = value.split(",")
+    if not value or any(not name for name in names):
+        raise argparse.ArgumentTypeError("--targets must be a non-empty comma list")
+    unknown = [name for name in names if name not in TARGETS]
+    if unknown:
+        raise argparse.ArgumentTypeError(f"unknown release targets: {unknown}")
+    if tuple(names) != tuple(target for target in TARGETS if target in names):
+        raise argparse.ArgumentTypeError(
+            "--targets must be unique and in canonical order: " + ",".join(TARGETS)
+        )
+    return tuple(names)
+
+
 def parse_arguments(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Stage the exact eight-target, sixteen-candidate VT scan set."
@@ -83,12 +98,18 @@ def parse_arguments(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("output_dir", type=pathlib.Path)
     parser.add_argument("--expect-targets", type=int, required=True)
     parser.add_argument("--expect-candidates", type=int, required=True)
+    parser.add_argument(
+        "--targets",
+        type=target_subset,
+        default=TARGETS,
+        help="comma list, canonical-order subset of the eight targets (default: all eight)",
+    )
     args = parser.parse_args(argv[1:])
-    if args.expect_targets != len(TARGETS):
-        parser.error(f"--expect-targets must be exactly {len(TARGETS)}")
-    if args.expect_candidates != len(TARGETS) * len(VARIANTS):
+    if args.expect_targets != len(args.targets):
+        parser.error(f"--expect-targets must be exactly {len(args.targets)}")
+    if args.expect_candidates != len(args.targets) * len(VARIANTS):
         parser.error(
-            f"--expect-candidates must be exactly {len(TARGETS) * len(VARIANTS)}"
+            f"--expect-candidates must be exactly {len(args.targets) * len(VARIANTS)}"
         )
     return args
 
@@ -322,7 +343,9 @@ def publish_atomically(staged: pathlib.Path, output: pathlib.Path) -> None:
 
 
 def main(argv: Sequence[str]) -> None:
+    global TARGETS
     args = parse_arguments(argv)
+    TARGETS = args.targets
     source = args.source_dir
     output = args.output_dir
     if output.name in ("", ".", ".."):

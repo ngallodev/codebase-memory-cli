@@ -16,6 +16,10 @@ on:
         description: 'Split each C-suite leg across parallel shard jobs (ubuntu x3, windows x2); off = one job per leg, byte-identical to the pre-shard topology'
         type: boolean
         default: false
+      platforms:
+        description: "Platform set: 'all' (default) or 'linux' (skip macOS and Windows legs)"
+        type: string
+        default: 'all'
 
 permissions:
   contents: read
@@ -36,6 +40,7 @@ jobs:
         env:
           BROAD: ${{ inputs.broad_platforms }}
           SHARDS: ${{ inputs.shard_suites }}
+          PLATFORMS: ${{ inputs.platforms }}
         run: |
           CORE_UNIX='[
             {"os":"ubuntu-latest","cc":"gcc","cxx":"g++"},
@@ -68,6 +73,13 @@ jobs:
             UNIX=$(jq -cn --argjson a "$CORE_UNIX" '$a')
             WIN=$(jq -cn --argjson a "$CORE_WIN" '$a')
           fi
+          # Linux-only release: drop macOS legs. The Windows job is skipped by
+          # its job-level `if`, so its matrix is computed but never expanded.
+          case "$PLATFORMS" in
+            all) ;;
+            linux) UNIX=$(jq -c 'map(select(.os | startswith("ubuntu")))' <<< "$UNIX") ;;
+            *) echo "::error::unknown platforms input: $PLATFORMS"; exit 1 ;;
+          esac
           # Suite sharding (opt-in via the shard_suites input): each platform's
           # C-suite run is split across N runner jobs. CBM_TEST_SHARD="i/N"
           # slices deterministically inside run-tests-parallel.sh; each
@@ -182,7 +194,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: ${{ fromJSON(inputs.platforms == 'linux' && '["ubuntu-latest"]' || '["ubuntu-latest","windows-latest"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
@@ -306,6 +318,7 @@ jobs:
   # so this leg is the ordinary ASan suite built with that toolchain and run
   # with detect_leaks=1. Mirrors the local `make -f Makefile.cbm test-lsan`.
   test-lsan-macos:
+    if: ${{ inputs.platforms != 'linux' }}
     runs-on: macos-latest
     timeout-minutes: 120
     steps:
@@ -341,10 +354,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { os: ubuntu-latest, cc: clang, cxx: clang++ }
-          - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++ }
-          - { os: macos-14, cc: cc, cxx: c++ }
+        include: ${{ fromJSON(inputs.platforms == 'linux' && '[{"os":"ubuntu-latest","cc":"clang","cxx":"clang++"},{"os":"ubuntu-24.04-arm","cc":"clang","cxx":"clang++"}]' || '[{"os":"ubuntu-latest","cc":"clang","cxx":"clang++"},{"os":"ubuntu-24.04-arm","cc":"clang","cxx":"clang++"},{"os":"macos-14","cc":"cc","cxx":"c++"}]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     steps:
@@ -396,6 +406,7 @@ jobs:
           CCACHE_DIR: ${{ github.workspace }}/.ccache
 
   test-windows:
+    if: ${{ inputs.platforms != 'linux' }}
     needs: setup-matrix
     strategy:
       fail-fast: false
@@ -553,6 +564,7 @@ jobs:
   # CLI arguments being mangled by the narrow-argv main() (#423/#20, fixed by the
   # wide-argv entrypoint that reads GetCommandLineW).
   test-windows-guards:
+    if: ${{ inputs.platforms != 'linux' }}
     runs-on: windows-latest
     timeout-minutes: 60
     steps:

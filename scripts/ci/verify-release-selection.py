@@ -77,9 +77,24 @@ def archive_specs() -> dict[str, tuple[str, str]]:
 ARCHIVES = archive_specs()
 
 
+def target_subset(value: str) -> tuple[str, ...]:
+    """Parse --targets: a comma list that is a canonical-order subset of TARGETS."""
+    names = value.split(",")
+    if not value or any(not name for name in names):
+        raise argparse.ArgumentTypeError("--targets must be a non-empty comma list")
+    unknown = [name for name in names if name not in TARGETS]
+    if unknown:
+        raise argparse.ArgumentTypeError(f"unknown release targets: {unknown}")
+    if tuple(names) != tuple(target for target in TARGETS if target in names):
+        raise argparse.ArgumentTypeError(
+            "--targets must be unique and in canonical order: " + ",".join(TARGETS)
+        )
+    return tuple(names)
+
+
 def parse_arguments(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Bind all eight canonical CLI release archives to release-selection.tsv."
+        description="Bind the canonical (default: all eight) CLI release archives to release-selection.tsv."
     )
     parser.add_argument("--selection", required=True, type=pathlib.Path)
     parser.add_argument("--archive-dir", required=True, type=pathlib.Path)
@@ -87,6 +102,12 @@ def parse_arguments(argv: Sequence[str]) -> argparse.Namespace:
         "--require-policy",
         choices=("virustotal-v2", "unscanned-dry-run"),
         help="reject a selection produced under any other policy",
+    )
+    parser.add_argument(
+        "--targets",
+        type=target_subset,
+        default=TARGETS,
+        help="comma list, canonical-order subset of the eight targets (default: all eight)",
     )
     return parser.parse_args(argv[1:])
 
@@ -402,7 +423,10 @@ def discover_archives(root: pathlib.Path) -> dict[str, pathlib.Path]:
 
 
 def main(argv: Sequence[str]) -> None:
+    global TARGETS, ARCHIVES
     args = parse_arguments(argv)
+    TARGETS = args.targets
+    ARCHIVES = archive_specs()
     selections = load_selection(args.selection, require_policy=args.require_policy)
     archives = discover_archives(args.archive_dir)
     for name, (target, member) in ARCHIVES.items():

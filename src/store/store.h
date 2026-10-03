@@ -939,6 +939,10 @@ typedef struct {
 /* Reports every heading in document order. Returns CBM_STORE_ERR without
  * calling `cb` when the document has an unterminated code fence: its structure
  * is ambiguous, and guessing could splice into a code sample. */
+/* Shared Markdown fence rules for section scanning and outlines. */
+int cbm_adr_fence_run(const char *line, int line_len, char *ch_out);
+bool cbm_adr_fence_closes(const char *line, int line_len, char open_ch, int open_n);
+
 int cbm_adr_scan_headings(const char *content, void (*cb)(void *ctx, const cbm_adr_heading_t *h),
                           void *ctx);
 

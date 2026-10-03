@@ -216,3 +216,261 @@ stopped during cleanup and recorded ABORTED; no suites ran. Six version
 surfaces are aligned to v0.11.0 for the next shared-job full gate. Pinned
 package versions/checksums and wrapper repository endpoints remain unchanged.
 Push and PR thread resolution remain pending a passing shared-job result.
+
+### Linux publication readiness audit (2026-10-01)
+
+Shared Jenkins #34 passed the full Linux gate at `37dd63ba` and archived
+Linux amd64 bytes, checksums, version, and source revision. #35 passed focused
+`daemon_runtime cli` checks at `7e9005f8`; this does not qualify that newer
+revision through the full gate. PR #12 is merged; PR #13 carries subsequent
+release-tooling fixes. Jenkins evidence publication formerly pushed directly
+to main. The release-tooling correction archives locally without GitHub writes;
+only after a passing gate may the orchestrator push release-tooling and post
+an exact-SHA status. A regression contract rejects remote writes in the script.
+
+Live GitHub audit: Actions are enabled and all actions are allowed. The active
+main ruleset prevents deletion and non-fast-forward updates; it has no required
+status checks. This does not establish that a release workflow will pass.
+At the initial audit, the only repository secret was CLAUDE_CODE_OAUTH_TOKEN.
+VIRUS_TOTAL_SCANNER_API_KEY has since been configured; its validity awaits a
+release scan. npm/PyPI credentials and publication are deferred.
+
+Publication blockers in the existing all-platform `release.yml`:
+
+- `VIRUS_TOTAL_SCANNER_API_KEY` is required for candidate scanning and verification.
+- `NPM_TOKEN` and `PYPI_TOKEN` are required for registry publication; public
+  un-drafting depends on successful registry publication.
+- External Windows qualification is held by default. Setting the hold to false
+  does not create a Linux-only release: all-platform build/smoke gates still run.
+  Registry publication requires both `hold_for_external_qualification=false` and
+  `publish_registries=true`; it is skipped when `publish_registries=false`, even
+  with the qualification hold disabled. Keep the hold until the applicable evidence
+  is complete; do not bypass it to compensate for missing credentials.
+- Package wrappers still download upstream releases. Fork endpoints and real
+  artifact checksums must be aligned before advertising those installation routes.
+- No public or draft fork GitHub releases exist at this audit boundary.
+
+Obtain the service credentials through their providers and supply a local
+credential-file or secret-manager reference for secure GitHub secret setup.
+Do not commit token values or remove release checks to bypass missing secrets.
+
+Maintainer update: defer all public/registry publication. Both release and
+promotion workflows now expose `publish_registries` with default false.
+Default dispatches skip npm/PyPI jobs and public un-drafting, so registry
+credentials are not required to create/verify a draft candidate. VirusTotal
+and the external qualification hold remain unchanged. Publication is still
+blocked until explicitly opted in with credentials. Direct dispatch does not
+require external qualification evidence; the promotion workflow enforces that
+evidence against the exact candidate.
+
+## Remaining verticals — source review and Jev ranking, 2026-10-01 PDT
+
+This section supersedes earlier pending/completion statements above. Reviewed
+CLI main `bbabc073` and release-tooling `1ce4e164`; upstream remains the frozen
+`0f52d30c` census boundary. No fetch, indexing, builds or tests ran in this
+assessment. This is a source-reviewed shortlist of seven remaining verticals,
+not an exhaustive semantic ranking of the 348 non-merge census entries.
+
+### Finished work removed from the active queue
+
+| Work | Current evidence | State |
+|---|---|---|
+| Failed COUNT reads and status propagation (`99c3bb4c`) | `14fc5e88`, `7a388edb` | Integrated into main via PR #12 |
+| Persisted LSP linear array decode (`d7eba5a7`) | `fcc51bc9`, PR #4 | Merged into main |
+| Cypher partial-WHERE / optional COUNT | `8f35274b`, PR #5 | Merged into main |
+| .NET XML admission | `72faa8cd`, PR #6 | Merged into main |
+| TypeScript awaited generic call edges | `38153854`, PR #7 | Merged into main |
+| Properties scanner state and parser-cache cleanup | `008137f1`, `cf92f418` | Integrated into main via PR #12; PR #8 closed |
+| Macro coverage (`e4780c20`) | `bba31937`, `8e76597f`, grammar-compatible regression `37dd63ba` | Integrated into main via PR #12 |
+| Watcher hard-failure backoff and QA | `322d39ed`, `05cd7731` | Integrated into main via PR #12; live scheduler integration remains unproven |
+| Complete AST walker growth (`77ab4bea`, `7707c9d7`) | `26b31280`, `db6d1f57`, `f37c02c9` | Integrated into main via PR #12; allocation-failure injection remains open |
+| Empty-graph function-sort guard (`77a0c7d9`) | Current `phase1_scan_functions` guards qsort with `func_count > 0` | Already represented; remove stale backlog candidate |
+| Cypher capacity + unnamed-head follow-up (`04ba2fa3`, `98899ba5`) | Current `check_pattern_var_capacity` counts `CYP_ANON_HEAD_VAR` | Already represented; remove stale backlog candidates |
+| One-shot index metrics | `0f5a84bc` | Present on main; remove stale implementation task |
+| MCP-dependent monolithic test sources | Current `Makefile.cbm` uses neutral operation/daemon sources; no MCP entries in source lists | Old unresolved-link blocker is obsolete; no new runtime validation claimed |
+| Installer fork defaults and Jenkins recovery | `c9841610`, `8d64e6e7`, PR #12 | Merged into main |
+| Windows hook-lifecycle/macOS connection-cap repairs | `bbabc073`, PR #13 | Merged into main |
+| Deferred publication, Claude removal, CodeRabbit enablement | `b05fbcd0`, `9c6e795c`, `810725ab` | Committed on release-tooling; PR #14 open |
+| Linux-only prerelease route and package fork endpoints | `1ce4e164` | Committed on release-tooling; qualification and PR #14 merge remain open |
+
+Historical Jenkins results apply only to their recorded revisions. Live PR #14
+at `1ce4e164` has failing GitHub diagnostic, macOS LeakSanitizer, Unix/Windows
+test and shard-completeness checks, with additional checks still running as of
+2026-10-02T04:14Z. Do not equate implemented release tooling with CI acceptance
+or an available release. Failures were observed, not diagnosed in this ranking.
+
+### Next three selected vertical slices
+
+| Rank | Slice / upstream commits | Source-grounded value and minimal adaptation | Jenkins acceptance |
+|---|---|---|---|
+| 1 | Daemon cache-ownership safety — `ed76cf8e` | Current `cli_activation_production_reserve` sends an eager activation-shutdown request before a positive cache-ownership check; the daemon validates requester build but the shutdown frame has no cache identity. Adapt the positive-match/unknown-is-foreign rule to this fork's transaction lifecycle, including the later quiescence callback. **M–L; highest adaptation risk.** | `cli,daemon_runtime,daemon_ipc`: same-cache activation still works; different cache, busy/unreadable ownership and raced ownership send no foreign shutdown and preserve sessions. Keep exclusive mutation authority and lock cleanup. |
+| 2 | Binary `.res` admission and ReScript traversal/scanner termination — `8093d10b`, checksum follow-up `ea6fa49f` | Current discovery lacks `.res` disambiguation; `is_first_named_part_of` still climbs via repeated `ts_node_parent`. Port admission, cursor-based traversal and scanner progress together, preserving valid ReScript and vendored integrity. **M.** | `language,extraction,complexity`: binary resources bypass text parsing; malformed/adversarial source terminates within a bounded check; valid source keeps its definitions/calls; cursor fast path and checksums verified. |
+| 3 | Preserve internal cache stores during project-index reset — `46015320` | `cbm_list_indexes`, `count_db_indexes` and `cbm_remove_indexes` currently accept every nonempty `.db` stem, including `_config.db`. Reuse one exact-filename predicate for those callers and cross-repo enumeration; do not reject legitimate names merely containing `config` or starting with `_`. **S–M.** | `cli,pipeline`: reset/list/count exclude `_config.db` and `_cross_repo.db`; project DBs and their sidecars still follow current reset semantics; internal bytes/sidecars remain unchanged; legitimate similar names remain visible. |
+
+All three are adaptation candidates, not clean cherry-picks or accepted fixes.
+Implementation stays in isolated worktrees, integration targets local
+release-tooling, and validation uses the existing shared Jenkins job; no new
+per-task jobs. Do not push until the required Jenkins evidence passes.
+
+### Other reviewed candidates and Jev evidence
+
+Jev `jev-1.13.0` scored seven alternatives in two independent batches using
+verbatim upstream production diffs and current release-tooling source excerpts.
+No previous Jev results, agent verdicts or test claims were supplied as evidence.
+The same rubric was used throughout: 0 defer, 1 useful, 2 high, 3 urgent.
+Scores are advisory and are not probabilities of correctness; batch boundaries
+and a single call's numerical precision are limitations.
+
+| Candidate | Score / 3 | Full distribution P(0), P(1), P(2), P(3) |
+|---|---|---|
+| Daemon ownership | 2.95 | 0.01, 0.00, 0.02, 0.97 |
+| ReScript hang | 2.86 | 0.02, 0.03, 0.04, 0.91 |
+| Internal cache stores | 2.60 | 0.03, 0.06, 0.19, 0.72 |
+| Ancestor ignore rules (`c8184ed9`, `282fbfcd`) | 2.15 | 0.02, 0.02, 0.75, 0.21 |
+| C return pointer/qualifiers (`343d7dd5`) | 1.64 | 0.03, 0.31, 0.65, 0.01 |
+| Publish errno/failure diagnostics (`460ebefc`) | 1.31 | 0.07, 0.70, 0.06, 0.17 |
+| Python complete-binding lookup (`f339aa62`, `df8dd101`) | 0.98 | 0.07, 0.89, 0.04, 0.00 |
+
+The question for each candidate assessed priority from concrete harm, current
+source applicability, adaptation cost and regression seams, with destructive
+state loss, unrelated-session interruption and hangs ranked above diagnostics
+or speed. Jev supported the selected three; exact source inspection determined
+what is already represented and what needs fork-specific adaptation.
+
+Graph discovery used generation `2026-09-29T06:21:14Z`; CLI source coverage is
+partial and metadata-changed, so exact release-tooling source reads were used
+for material claims. Git porcelain was unchanged by these read-only probes.
+Fresh graph resets, exhaustive census classification, ADR alias/outline lint
+repair, native Windows/WSL qualification and real release-artifact checks
+remain open. Package endpoint implementation is complete on release-tooling;
+package installation/runtime qualification is separate.
+
+## Three-vertical specification and interactive dispatch preparation — 2026-10-02
+
+Specifications are finalized in SpecGen `agent-workflow` mode (zero readiness
+blockers), committed on release-tooling at `51aa7a86`. Each defines five must
+requirements, acceptance/evaluation links, preservation boundaries and structured
+worker evidence. See `docs/specs/upstream-next-three/{daemon-ownership,rescript-hang,cache-stores}/spec.json`
+and their derived `SPEC.md` projections.
+
+| Vertical | Durable Agent Run | Independent branch | Execution state |
+|---|---|---|---|
+| Daemon ownership | `CBM-DAEMON-OWNERSHIP-20261002` | `impl/cbm-daemon-ownership-20261002` | Prepared external; not launched |
+| ReScript hangs | `CBM-RESCRIPT-HANG-20261002` | `impl/cbm-rescript-hang-20261002` | Prepared external; not launched |
+| Internal cache stores | `CBM-CACHE-STORES-20261002` | `impl/cbm-cache-stores-20261002` | Prepared external; not launched |
+
+All worktrees share frozen base `51aa7a86`, with GPT-6-Luna / medium reasoning,
+interactive Codex, `danger-full-access`, and approvals `never`. Global runtime
+configuration was not changed. Builds/tests remain parent-scheduled in the existing
+shared Jenkins job; workers may format, inspect diffs and commit regression source.
+
+The requested Herdr right-hand panes could not be launched because this caller
+is outside a Herdr-managed pane (`HERDR_ENV` unset). No Herdr control was attempted
+and no headless fallback was substituted. The durable launch handoff is
+`/home/nate/.local/state/agent-workflow/handoffs/CBM-THREE-VERTICALS-20261002/README.md`.
+Preparation is not running, implementation completion, review or acceptance.
+
+### Interactive Herdr launch verified — 2026-10-02T04:52Z
+
+The maintainer confirmed this is a Herdr session and authorized setting
+`HERDR_ENV=1`. Herdr then verified the current Codex parent in `wC:p1`.
+All three external workers are launched in the same tab, stacked in the
+right-hand column; the parent's focus remains unchanged.
+
+| Vertical | Herdr worker / pane | Durable delivery and live state |
+|---|---|---|
+| Daemon ownership | `luna-daemon-ownership`, `wC:p5` | Working; steering acknowledged by worker |
+| ReScript hangs | `luna-rescript-hang`, `wC:p6` | Working; steering acknowledged by worker |
+| Internal cache stores | `luna-cache-stores`, `wC:p7` | Working; steering acknowledged by worker |
+
+Each prepared Agent Run is bound to its Herdr pane at external generation 1;
+`start-external` records launch, and all three correlated steering IDs have
+worker acknowledgements. Herdr's actual launch argv confirms GPT-6-Luna,
+medium reasoning, `danger-full-access` and approvals `never`. This supersedes
+the earlier prepared/not-launched state. Implementation, Jenkins evaluation,
+independent review, acceptance and integration remain separate pending gates.
+
+### Daemon/cache worker closeout — 2026-10-02
+
+Both workers finished committed implementation candidates and were idle.
+Daemon branch `impl/cbm-daemon-ownership-20261002` retains `028a4bfb`;
+cache branch `impl/cbm-cache-stores-20261002` retains `fa5a180b`.
+Their worktrees were verified clean, bundles verified, patches/reports/terminal
+transcripts preserved under each run's `evidence/closeout/`, and Herdr panes
+`wC:p5` / `wC:p7` closed at the user's request. Only those two worktrees were
+removed; branches remain available for review/integration.
+
+Worker `agent finish --result partial` had produced handoff completions but left
+controller summaries running with placeholder blocked completions. Public
+`external-exit` followed by `finalize` sealed valid partial results at the actual
+candidate SHAs, closing both assignments without fabricating process results.
+Jenkins evaluation, independent review and acceptance remain pending. Daemon
+AC-005 still lacks a direct CLI diagnostic assertion. ReScript was not closed.
+
+## Updated upstream audit dispatch — 2026-10-02
+
+Frozen source boundaries: CLI release-tooling `9cb5cc21`, locally updated MCP
+`96c3f41c` (dirty `graph-ui/tsconfig.tsbuildinfo` preserved). The MCP clone was
+already current per maintainer; Git objects were copied from the local clone
+without a remote fetch or moving shared CLI refs. `0f52d30c..96c3f41c` contains
+19 new non-merge commits; `9cb5cc21..96c3f41c` contains 367 ancestry-differing
+non-merge commits. These are deterministic census counts, not completed semantic
+classification or applicability claims.
+
+| Agent Run | Independent worktree / branch suffix | Herdr pane | Task |
+|---|---|---|---|
+| `CBM-UPSTREAM-ASSESS-20261002` | `cbm-upstream-assess-20261002` | `wC:p8`, `codex - luna-upstream-assess` | Source/Jev assessment of new and older unclassified commits; group applicable verticals with prerequisites/prior QA commits; propose canonical ledger/backlog edits on isolated branch |
+| `CBM-UPSTREAM-VERIFY-20261002` | `cbm-upstream-verify-20261002` | `wC:p9`, `codex - luna-upstream-verify` | Independent full-hash/source coverage audit of all differing applicable commits; evidence/report only, no competing canonical-doc edits |
+
+Both GPT-6-Luna interactive workers launched with full access, approvals never,
+and acknowledged generation-1 durable steering. Each worktree was indexed in
+full mode with persistence false BEFORE Agent Run preparation/worker launch;
+projects/status verified the exact root and ready graph, and Git porcelain was
+unchanged. Assessor graph: 26,722 nodes / 130,694 edges. Verifier graph: 26,722
+nodes / 131,278 edges. Both report 91 parse-partial files; exact source fallback
+and path-specific coverage remain required. Counts do not imply graph completeness.
+The initial prompts include verified index receipts and the shared Jev footer.
+
+No audit completion, independent acceptance or integration is claimed yet.
+Parent will reconcile canonical proposed edits against the independent report.
+Previously implemented daemon/cache/ReScript candidates remain unmerged and
+unvalidated; do not confuse their surviving branch commits with accepted ports.
+Compact handoff, frozen universes, index/process receipts, native launch and
+acknowledgement evidence are retained at
+`/home/nate/.local/state/agent-workflow/handoffs/CBM-UPSTREAM-AUDIT-20261002/`.
+
+
+## Three-candidate integration review resumed — 2026-10-02
+
+The parent pulled `main` (`bbabc073`, already current) and fetched upstream
+`96c3f41c`. The daemon (`028a4bfb`), cache (`fa5a180b`) and ReScript
+(`0eaa19f8` + checksum follow-up `9766a378`) candidates merge without conflicts
+onto the frozen QA branch `5fe820df` in isolated branch
+`integration/cbm-upstream-three-20261002`. They remain candidates until the
+exact integrated revision passes the shared Jenkins job and review.
+
+Parent source review corrected two defects before promotion:
+
+- ReScript deadline-test child now reaches its parse/alarm path before the
+  parent-only positive-PID assertion.
+- Ownership-aware activation verifies the lifetime identity under maintenance
+  SH and admission EX before publishing maintenance EX; a nonblocking
+  promotion preserves the admission/maintenance deadlock boundary. Foreign or
+  unreadable ownership never publishes the cancellation signal.
+
+Regression coverage adds admission-contention maintenance observation and a
+production CLI foreign-cache refusal diagnostic with binary/index preservation.
+The existing activation-ordering fixture now fingerprints its actual test cache.
+Pinned formatting, whitespace checks and ReScript manifest/scanner checksum
+comparison passed. No local builds or tests ran. Requested Jenkins suite union:
+`cli pipeline str_util version_cohort daemon_runtime daemon_ipc language extraction complexity`.
+Jenkins evaluation, runtime acceptance, remote push and main integration remain
+separate pending gates.
+
+The requested GPT-6.1-Sol audit is independently running as
+`CBM-UPSTREAM-SOL-20261002-R2`, pane `wC:pA`, against frozen QA base
+`5fe820df` and upstream `96c3f41c`. Its scope includes all upstream merge
+commits, constituent commits, canonical backlog reconciliation, vertical
+grouping and the next five new slices. Its exact-worktree index completed with
+persistence disabled and unchanged Git porcelain; launch and steering were
+observed and acknowledged. This is launch evidence, not audit completion.

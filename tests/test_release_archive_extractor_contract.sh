@@ -217,6 +217,50 @@ result = run_extractor(short, fixtures / "short" / "scan", "--expect-archives=8"
 if result.returncode == 0:
     fail("extractor accepted a 1-archive matrix under --expect-archives=8")
 
+# ── 3. --targets narrows the exact namespace to the Linux set ──────────────
+LINUX = ("linux-amd64", "linux-arm64", "linux-amd64-portable", "linux-arm64-portable")
+LINUX_CSV = ",".join(LINUX)
+linux_dir = fixtures / "linux" / "archives"
+linux_dir.mkdir(parents=True)
+for archive in ARCHIVES:
+    if target_of(archive).removeprefix("codebase-memory-cli-") in LINUX:
+        write_archive(linux_dir, archive)
+linux_counts = ("--expect-archives=4", "--expect-binaries=4", "--expect-runtime-files=12")
+result = run_extractor(linux_dir, fixtures / "linux" / "scan", f"--targets={LINUX_CSV}", *linux_counts)
+if result.returncode != 0:
+    fail(f"exact linux-only matrix was rejected: {result.stdout[-600:]}{result.stderr[-600:]}")
+else:
+    _, linux_assoc = read_manifest(fixtures / "linux" / "scan" / "associations.tsv",
+                                   "cbm-release-scan-associations-v3")
+    if len(linux_assoc) != 16:
+        fail(f"linux-only matrix must associate 16 members, got {len(linux_assoc)}")
+# Default stays strict: four archives are not the eight-archive namespace.
+result = run_extractor(linux_dir, fixtures / "linux" / "default-scan", *linux_counts)
+if result.returncode == 0:
+    fail("extractor accepted a linux-only matrix without --targets")
+# The linux set must refuse surplus darwin/windows archives.
+result = run_extractor(good, fixtures / "linux" / "surplus-scan", f"--targets={LINUX_CSV}")
+if result.returncode == 0:
+    fail("extractor accepted a full eight-archive matrix for the linux set")
+# A linux set missing a portable archive must be refused.
+partial = fixtures / "linux" / "partial"
+partial.mkdir(parents=True)
+for archive in ARCHIVES:
+    if target_of(archive).removeprefix("codebase-memory-cli-") in LINUX[:3]:
+        write_archive(partial, archive)
+result = run_extractor(partial, fixtures / "linux" / "partial-scan", f"--targets={LINUX_CSV}")
+if result.returncode == 0:
+    fail("extractor accepted a linux set missing linux-arm64-portable")
+# Invalid target lists are rejected up front.
+for label, bad in (("empty", ""), ("unknown", "linux-amd64,plan9"),
+                   ("out-of-order", "linux-arm64,linux-amd64"),
+                   ("duplicate", "linux-amd64,linux-amd64")):
+    result = run_extractor(linux_dir, fixtures / "linux" / f"bad-{label}", f"--targets={bad}")
+    if result.returncode == 0:
+        fail(f"extractor accepted --targets that is {label}")
+    elif "--targets" not in (result.stdout + result.stderr):
+        fail(f"{label} --targets was rejected without naming the option")
+
 if failures:
     print("RELEASE ARCHIVE EXTRACTOR CONTRACT VIOLATED:")
     for message in failures:
@@ -225,5 +269,5 @@ if failures:
 
 print("release archive extractor contract OK "
       "(8-container CLI matrix, 32 member associations, dedup exact, "
-      "fail-closed on surplus/missing members and short matrices)")
+      "fail-closed on surplus/missing members and short matrices, 4-container linux set via --targets)")
 PY
