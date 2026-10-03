@@ -1973,3 +1973,33 @@ retained in run evidence.
 | `fa2292111802b5f3b66db3e4dd168280b53ac17e` | excluded | mixed_shared_scope_unresolved; artifact-export-attribution |
 | `fcf451c6a6dda768dfec5a8f61a01ac1e1cfa6bf` | deferred | semantic_unresolved; native-merge:c7488b031ce95a517ca91dac1df6ddab30718189 |
 | `ff8dd47011c43c622d3dc82b33be32b4493e4ea9` | excluded | semantic_unresolved; native-merge:5df8b0442c48fed654c6f11d94cb6f64f00fc368 |
+
+### DeepSeek Phase1 independent review — 2026-10-03 UTC
+
+All three Herdr workers are idle with saved dispositions matching their exact
+39/26/50 assignments. Parent verified all115 assignment sets, all cited evidence
+links and342 manifest entries. Three Jev requests batched six bounded primary-source
+questions using jev-1.13.0; worker verdicts and earlier Jev answers were excluded.
+The [consolidated review](UPSTREAM_RECONCILIATION_REPORT_20261002.md#deepseek-phase1-review-with-batched-jev-advice--2026-10-03-utc)
+records full distributions, exact source reasons and required continuation.
+Documentary disposition is **changes requested**, not acceptance or a host review gate.
+
+Runtime `9724d903046626df0640ced218259cb58070e4e8` needs a narrower diagnostics
+claim: normal Linux budget pressure reads OS RSS, not the committed counter.
+Operations `b04f54506ab42eddcbd89232a0d47d8355edd596` remains property-level
+partial, with changed refinement caller/mechanism unresolved;
+`f6afd6138e605365a76d065d04521ec2037bed3d` retains the neutral CLI title-policy question.
+Integration `00411ce7bc41995783bfb16aada673515585446d` has missing changed Linux
+alias/ordinary-directory continuation behavior in all three frozen CLI targets.
+Bounded exclusions for `d70b79417978a9f3ab0d1aa849879dbf049793cf` and
+`8f3c15044b8200a15ee1895c5127f4bf117da493` apply only at their exact absent seams.
+These sampled judgments do not approve other16 integration exclusions.
+
+Six commits have bounded independent semantic review; other109 full hashes are
+explicitly independently unreviewed in
+`CBM-DEEPSEEK-JEV-REVIEW-20261003/review-crosswalk.jsonl` under handoff evidence.
+Integration admits incomplete function-level reading for29 partial rows and1
+unresolved row; operations retains four remainders. Runtime finish requires host
+verification binding; operations/integration finished partial. Worker completion,
+source comparison, review, Jenkins validation, acceptance and integration remain
+separate. No whole-commit closure counter is advanced by this bounded review.

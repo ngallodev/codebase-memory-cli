@@ -458,3 +458,52 @@ evidence and unresolved hunks are retained with each raw record in run evidence.
 | `6db22aadb6e5a92b9b193608e2ac3f420e461ec3` | represented | VB6 marker detection, .frm/.cls disambiguation to unsupported, and regressions are present in production and both QA. |
 | `a953509275a4fa42a907f88852d62a613f27bc56` | partially represented | Core error-range cap/dropped-marker and parse_unusable behavior (including ObjectScript range aggregation and parallel/serial phase storage) are absent from production and both QA. MCP-only coverage wording/serialization is excluded from CLI semantic counts. |
 | `21591d51168d26f931f64d62edc36013cd1f6249` | partially represented | The decisive arithmetic differs: production and both QA targets return aggregate_memory_budget_bytes / physical_job_limit despite computing and logging active job count. Frozen upstream returns aggregate_memory_budget_bytes / active, where active comes from nonterminal jobs and has a floor of one. Thus symbol presence, active_jobs logging, and the shared helper do not establish parity. The upstream merge plan explicitly lists this hash as divide by active jobs rather than configured capacity and assigns daemon_application,daemon suites. The commit also adds a sequenced two-job regression for aggregate then half-aggregate slices and a test that a clean worker over-budget error passes through without a recovery retry; neither test name is in production/QA. Do not infer the separately assigned Windows job-memory-resolution change from this hash. |
+
+## DeepSeek Phase1 review with batched Jev advice — 2026-10-03 UTC
+
+Review disposition: **changes requested**. This is documentary parent review evidence; no host acceptance/rejection or Agent-Workflow review gate is invoked.
+
+All 115 assignments match their disposition sets exactly, with no duplicate rows or missing evidence links. All 342 worker-manifest entries verify (runtime113, operations86, integration143). Independent Git diffs were captured for all115; capturing a diff is not semantic review.
+
+Three official-helper API calls batch two questions each. Requests contain verbatim governing requirements, exact commit diffs, frozen source excerpts, and deterministic integrity output. Worker verdicts, worker summaries, previous Jev answers and credential values were excluded. Token sourced silently; destination verified https://api.typesafe.ai. SDK used in an isolated offline-cached uv runtime; no project install, build/test or Jenkins execution.
+
+Six full-hash commits received bounded source review; other109 remain explicitly independently unreviewed in review-crosswalk.jsonl. No worker rows are silently changed or counted as accepted.
+
+### Findings
+
+- Runtime: 9724d903046626df0640ced218259cb58070e4e8 lacks committed/peak-counter guards in target diagnostics, but its claim that the normal Linux budget path reads the committed counter is too broad. Frozen target src/foundation/mem.c cbm_mem_over_budget:511-515 calls cbm_mem_rss, whose Linux branch reads OS /proc RSS first. Keep missing diagnostics adaptation and upstream-only heap-switch applicability distinct. No runtime failure reproduced.
+- Runtime: d70b79417978a9f3ab0d1aa849879dbf049793cf changes internal/cbm/result_spill.c, absent in all frozen CLI targets. Bounded seam exclusion is supportable for this exact MSan guard; surrounding shared memory work remains separate.
+- Operations: b04f54506ab42eddcbd89232a0d47d8355edd596 is not closed by table-lookup property similarity. Target internal/cbm/cbm.c:1129-1300 builds offsets for cbm_subtract_macro_invocation_regions; upstream diff optimizes cbm_refine_regions_with_pp_lines and supplies allocation fallback. Exact changed caller/refinement mechanism remains unresolved.
+- Operations: f6afd6138e605365a76d065d04521ec2037bed3d removes MCP title accessor and changes the upstream generated Pi label. Target src/operations/tool_catalog.c retains cbm_tool_catalog_title. No governing CLI title-removal policy supplied: exclude direct MCP edits, keep the neutral policy question unresolved.
+- Integration: 00411ce7bc41995783bfb16aada673515585446d should be recorded as **missing changed Linux alias behavior**, not merely partly represented because surrounding security functions exist. Target activation_posix_walk_path is Apple-only and returns NULL for non-symlink aliases; upstream admits Linux and /home and continues for ordinary directories. All three frozen CLI targets have the same relevant pre-change behavior.
+- Integration: 8f3c15044b8200a15ee1895c5127f4bf117da493 can be excluded at the direct generated-OpenCode-plugin seam: target install branch emits instructions/skills, generator file/call is absent. This does not approve all16 excluded integration rows or establish broader OpenCode parity.
+
+### Jev results and decision effects
+
+| Batch / question | Model | Choice | Full probability distribution | Advice effect |
+|---|---|---|---|---|
+| runtime / counter_guard_scope | jev-1.13.0 | diagnostics_only (confidence 0.43) | diagnostics_only=0.58, represented=0.34, budget_and_diagnostics=0.07, insufficient=0.01 | Narrow 9724d903 to missing diagnostics/allocator wrap guard adaptation; normal Linux budget pressure is OS-RSS based. No reproduced runtime defect. Do not import upstream heap switch by default. |
+| runtime / spill_exclusion | jev-1.13.0 | excluded (confidence 0.75) | insufficient=0.05, shared_missing=0.12, excluded=0.83 | Bounded exclusion for this exact internal/cbm/result_spill.c MSan guard; not a verdict on adjoining neutral memory commits. |
+| ops / table_optimization_equivalence | jev-1.13.0 | partial_property (confidence 0.53) | whole_represented=0.34, insufficient=0.00, partial_property=0.66, missing=0.00 | Do not promote property-level representation to whole-commit closure. Target region subtraction and upstream per-line preprocessor refinement are different callers/mechanisms; preserve unresolved exact delta. |
+| ops / title_policy_scope | jev-1.13.0 | exclude_mcp_preserve_policy (confidence 0.75) | exclude_mcp_preserve_policy=0.81, represented=0.09, insufficient=0.08, remove_cli_title=0.02 | Preserve MCP/adapter seam exclusion and explicit neutral CLI title policy question. No title removal implemented or authorized by upstream diff alone. |
+| integration / linux_alias_behavior | jev-1.13.0 | missing_changed_behavior (confidence 0.55) | missing_changed_behavior=0.66, represented=0.20, partial_changed_behavior=0.13, insufficient=0.01 | Correct 00411ce7 changed-behavior disposition to missing at all frozen CLI targets: Apple-only alias branch excludes Linux, and ordinary directory continuation is absent. Shared surrounding security code is distinct. |
+| integration / opencode_adapter_exclusion | jev-1.13.0 | bounded_exclusion (confidence 0.69) | shared_missing=0.17, represented=0.03, insufficient=0.04, bounded_exclusion=0.76 | Retain bounded direct generator-seam exclusion for 8f3c1504: target installs instruction/skill assets and has no generator call; do not generalize to all 16 upstream-only-path rows. |
+
+The counter and table-optimization answers retain substantial represented probability (0.34). They are split advice, not a correctness measure. The review findings rest on exact functions and changed callers; no confidence threshold grants acceptance.
+
+### Required continuation
+
+- Correct runtime committed-memory/budget claim.
+- Keep ops b04f5450 partial at exact mechanism level, f6afd613 policy unresolved; resolve other explicit ops remainders.
+- Correct integration 00411ce7 to missing changed Linux alias behavior; function-level review for at least29 partial rows and1 unresolved row remains required.
+- Do not count integration16 seam exclusions as independently approved based on single worker Jev call or this one sampled exclusion.
+- Independently review other109 full hashes before whole phase semantic closure.
+- Host collection/verification binding is separate from source review, runtime Jenkins and acceptance.
+
+All worker scopes were processed, but integration explicitly did not complete function-level reading beyond its activation cluster. Its29 partial rows and1 unresolved row require deeper reads. Operations retains four explicit remainders. Runtime finish returned verification_required due missing host acceptance-command binding. Worker idle, saved rows and Jev execution do not establish semantic closure, runtime validation, review approval, acceptance or integration.
+
+### Evidence
+
+Exact requests: runtime-request-payload.json, ops-request-payload.json, integration-request-payload.json. Full results: corresponding *-response.json. Deterministic receipt: deterministic-integrity.json. Graph source/snippets/traces/coverage: graph/. Exact Git source excerpts are embedded in requests; target-scope-receipt.json records additional full-blob symbol checks. All115 independent primary diffs: *-diffs/. Full-hash independent-review crosswalk: review-crosswalk.jsonl. Machine-readable finding/distribution/advice-use record: review.json.
+
+Graph generations match recorded exact-worktree indexes. Partial internal/cbm/cbm.c and CLI/activation paths were verified from Git source; no negative claim rests on graph absence. Broad coverage search was discovery-only, not an exhaustive pagination claim. Initial multi-path coverage invocation failed syntax; per-path retries succeeded, both outputs retained.

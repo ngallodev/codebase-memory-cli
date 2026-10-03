@@ -182,3 +182,17 @@
   - Next path: inspect the saved Heaptrack allocation call trees; only add
     teardown code for allocations proven to be owned by the neutral daemon
     rather than allocator or test-process lifetime state.
+
+- [ ] Complete DeepSeek Phase1 independent source review. All115 assignments and
+ 342 evidence-manifest entries pass integrity checks; six bounded semantic
+ questions were reviewed in three batched Jev requests. Documentary result is
+ changes requested: narrow runtime `9724d903046626df0640ced218259cb58070e4e8`
+ committed-counter/budget claim, preserve operations
+ `b04f54506ab42eddcbd89232a0d47d8355edd596` mechanism remainder and
+ `f6afd6138e605365a76d065d04521ec2037bed3d` title-policy question, and classify
+ integration `00411ce7bc41995783bfb16aada673515585446d` changed Linux alias
+ behavior as missing. Other109 hashes remain independently unreviewed; integration
+29 partial rows plus1 unresolved row require function-level work. Exact hashes,
+requests, full distributions and source corrections are in the canonical308 review
+section and consolidated report; machine crosswalk stays handoff evidence. No
+completion/acceptance or semantic-closure counter advanced.
