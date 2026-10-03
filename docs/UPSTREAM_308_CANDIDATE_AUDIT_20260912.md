@@ -1,162 +1,366 @@
-# Upstream 308-commit candidate audit
+# Upstream merge progress — canonical ledger
 
-Audit date: 2026-09-12. Source: `codebase-memory-mcp` non-merge history (`git log --no-merges -308`). This inventory is deliberately broader than an immediate port queue: it records changes that appear useful to the CLI fork and can be reviewed/ported without importing the MCP frontend.
+This is the single canonical document for upstream merge work in this
+repository. The filename is retained for stable links; the old 308-commit
+snapshot and the separate dated plan documents are superseded by this ledger.
 
-## Result
+## Current fetch — 2026-10-01 PDT
 
-There are **150 potentially useful CLI-core candidates** after removing the explicitly integrated, represented, active, and previously categorized commits supplied by the maintainer. Statuses are preliminary:
+CLI `upstream` was refreshed with `git fetch upstream --prune`; MCP `main` was
+fast-forwarded with `git pull --ff-only` in `/lump/apps/codebase-memory-mcp`.
+No CLI pull was performed.
 
-- **clean**: likely applies to this fork with little or no semantic adaptation;
-- **adapt**: shared C/CLI/daemon code, but tests, names, packaging, or fork-specific surfaces need adaptation;
-- **blocked**: useful idea, but dependent on an excluded MCP/frontend or a feature intentionally absent from this fork.
+| Item | Value |
+|---|---|
+| CLI HEAD | `38153854c46f237b700d68b60a65c1a1078c78c5` |
+| upstream/main | `0f52d30c2964a5a538149f8b39846ba52517a020` |
+| merge-base | `17786374dfc39b8c751933d34d269501f2b4d6b7` |
+| ancestry-only upstream commits | 646 total: 348 non-merge, 298 merge |
+| non-merge patch equivalence (`git cherry`) | 2 equivalent, 346 without equivalent patch ID |
+| MCP checkout after pull | `0f52d30c2964a5a538149f8b39846ba52517a020` |
+| MCP pre-existing dirty path | `graph-ui/tsconfig.tsbuildinfo` (preserved) |
+| graph index refresh | not completed: `cbm` and `codebase-memory-cli` both fail at secure coordination cache initialization (`cache-resolve`) |
+| CLI graph index refresh | not completed for the same `cache-resolve` failure |
 
-No candidate below recommends `src/mcp/**`, MCP tests/adapters, OpenHands integration, Jenkins, or post-commit hooks.
+A full-hash non-merge census, including subjects, changed paths, `git cherry`
+result, and provisional review category, is in the Agent-Workflow run evidence
+file `evidence/upstream-nonmerge-census.tsv`. The two patch-equivalent hashes
+are not proof of equivalent behavior; ancestry commits and semantic applicability
+still require source-level review. The prior snapshot below is historical and
+must not be read as an exhaustive disposition of this refreshed 348-commit set.
 
-## Existing port-plan completeness audit
+## Scope boundary
 
-This pass also walked the ancestry around every completed first-wave and active second-wave vertical. “Represented” means the behavior is already in the CLI fork even when the exact upstream hash is not present; “categorized” means it is tracked elsewhere and must be resolved before accepting a dependent fix.
+Eligible work is shared CLI, daemon, pipeline, store, Cypher, extraction,
+build, and release behavior. Exclude `src/mcp/**`, MCP-only tests/adapters,
+OpenHands integration, Jenkins-only behavior, hooks, and unrelated upstream
+features. Preserve the fork's existing CLI output and packaging policy unless
+a concrete CLI defect requires a change.
 
-| Vertical | Existing integrated/planned commits | Required predecessors or follow-ons | Verdict |
+## Completed or represented port work
+
+These source verticals were completed, represented, or explicitly reviewed in
+the CLI branch. Do not select them again:
+
+| Upstream work | CLI evidence | Result |
+|---|---|---|
+| First/second-wave core, daemon, and CLI verticals | `d3bb290c`, `c716cb7d`, `fc9aeedc` | merged |
+| Bounded Cypher trails | `8546070d -> 0c5ffa50 -> 0d97729c -> cd22487c -> b3d31ca0 -> 58ef9f19` | already represented |
+| Go struct binding | `e497dd0c` | merged; missing `349aecba` behavior adapted |
+| Daemon activation/rendezvous | `6e289d5a` | merged; missing source behavior adapted |
+| Cypher scope/capacity | `a7721244` | merged |
+| Registry receiver chain | `e52b31cd` | merged |
+| Daemon cohort handoff retry | `9104feb6` represented by `3036e195` | no duplicate port |
+| Earlier parser, LLVM/MSan, daemon startup, install/config, and safety work | prior CLI history | represented; recheck before selecting a follow-on |
+| YAML removal guards | `523d398d` | complete on Linux; native Windows qualification remains |
+| Version-cohort handoff | `01af5cb2` | complete on Linux; native Windows qualification remains |
+| Complexity determinism | `43d3a210` | complete |
+| Razor / `.cshtml` extraction | `5b1bc085` | complete |
+| Embedded Svelte/HTML/Astro extraction | `f8971e7a` | complete on Linux; native Windows not required |
+
+The completed work was validated with `git diff --check`, incremental builds,
+and the corresponding focused CLI suites at the time of integration.
+Windows-only evidence remains explicitly qualified above; Linux results do not
+substitute for native Windows execution.
+
+## Prior-tip review queue — 2026-09-20 snapshot
+
+This queue records the earlier `92abefa3` boundary. The four dispatched
+verticals below have completed workers and valid receipts, but remain pending
+independent review and acceptance; their branch tips are recorded in the Luna
+dispatch table below. These are not authorization for bulk cherry-picks:
+
+| Source | Initial disposition |
+|---|---|
+| `e8a46c16`, `6166934d` | dispatched TypeScript-await/Cypher work; worker receipts valid, pending independent review and acceptance |
+| `9db48340`, `9db5217b`, `1d58385b`, `7b77fd48`, `da3258f3` | inspect memory-core overlap and CLI impact |
+| `8c1a9d61` | inspect extraction/grammar portability |
+| `c7ccb479`, `e0becdeb` | dispatched properties/XML work; worker receipts valid, pending independent review and acceptance |
+| `6b480974`, `9a2bdc8c`, `c3714f11` | inspect route/pipeline correctness and dependencies |
+| `3b7f2559`, `581f0c74`, `00411ce7` | inspect CLI alias/install policy |
+| `243b405a`, `f0a86ef2` | inspect fork-specific CI/release applicability |
+| `96a2fc35`, `dae1e7df`, `22ce867e`, `62fd80b8` | tests/style/docs/metadata; do not port without a concrete need |
+
+The remainder of the 579-commit ancestry delta stays pending until its source history
+is audited in dependency order. A source commit is not complete because it is
+fetched, applies cleanly, or has a worker exit; completion requires the scoped
+CLI change, review, focused validation, and acceptance evidence.
+
+## Required merge record
+
+For each future port, append one row here containing source hash, CLI commit or
+represented behavior, adaptation/exclusion reason, focused test command and
+result, build/diff-check result, and acceptance date. Keep raw upstream fetch
+state and local integration evidence separate. No push is implied by this
+ledger.
+
+## Agent-Workflow dispatch notes — 2026-09-20
+
+The Terra assessment run is `terra-cbm-upstream-20260920`, prepared and
+started at source revision `a43b2201` with the dirty checkout recorded. The
+following operational issues are retained here for the next delegation:
+
+- `--agent-name terra` was rejected because configured preferred names are
+  `luna-*`; the run was prepared with generated name `agent-47` and explicit
+  model `gpt-5.6-terra` instead.
+- `--role review` cannot be combined with explicit model/reasoning options;
+  using `--agent-class review --executor codex --model gpt-5.6-terra` worked.
+- The configured Codex executor has no evidence-capable late-steering adapter.
+  Parent steering message `c8ffdcb7-ea59-4a15-8c13-7deafc089017` was
+  persisted but delivery was reported `unsupported`; acknowledgement remains
+  an explicit lifecycle gate.
+- The repository was dirty before dispatch, so preparation required
+  `--allow-dirty`; the worker was instructed to remain read-only and preserve
+  all pre-existing changes.
+
+These are workflow/evidence limitations, not merge recommendations. Do not
+mark the Terra assessment accepted until its completion, evaluation, review,
+and acknowledgement state are separately recorded.
+
+## Luna implementation dispatch — 2026-09-21
+
+Terra's top two overlapping Cypher recommendations were grouped into one
+dependency-ordered worker. Four Luna implementation runs were dispatched from
+clean isolated worktrees at `a43b2201`:
+
+| Run | Vertical | Worktree | State |
 |---|---|---|---|
-| Parser budget | `52701625` integrated | No missing source predecessor found; `e5c17de6` is an independent coverage/reporting vertical. | complete |
-| LLVM CI/MSan | `557cb010`, `8134712` integrated | `288d4155`, `77063bca`, and `1d38be33` are separate later CI/toolchain pins in the candidate inventory. | complete, review follow-ons |
-| Daemon startup/reliability | `33c4fd80`, `0567dc70`, `00060cec`, `ecfb9642`, `8116672a`, `df579830`, `61884951`, `6091db71` integrated | `8e70590d`, `9d4ac2b9`, `fc1b1ee7`, `3a8c0d97`, `7710f86e`, `4a29f0da`, `3e1703d7`, `1a6f80c3`, `daac6bd4`, `7f3e30e1` are later daemon follow-ons; `9846c3f1` is separately categorized and includes an MCP adapter gap. | complete predecessor set; follow-on queue valid |
-| CLI uninstall/config safety | `c572ddc4`, `e5aabdf8`, `7bf366f6`, `91c63be5`, `a3c24a71`, `4fa11d1a`, `8135be28` integrated | `a530c8aa` is an already-represented help guard; `4c1b2347`, `4cafe8eb`, `902f85b0`, `1e0aac52`, `1e25d962`, `33d1ecea`, `b54998d2`, `d58962c0` are later independent CLI/client verticals. | complete; no omitted required predecessor |
-| Search/pagination | No CLI port planned from MCP frontend | MCP-only pagination/search commits are explicitly excluded. `cc9c2f4c` is categorized as a CLI-neutral canonical-source scan fix and has no required MCP predecessor. | keep excluded; evaluate `cc9c2f4c` separately |
-| Cypher limits/scope | `98899ba5` planned; `04ba2fa3`, `426e415f`, `63b99976` categorized | `afc948ba`, `25a7aacc`, and bounded-trail chain `8546070d` -> `0c5ffa50` -> `0d97729c` -> `cd22487c` -> `b3d31ca0` -> `58ef9f19` are distinct required-order candidates. | planned set has no missing predecessor; follow-on chains recorded |
-| Pipeline budget/ordering | `699be6c2`, `77a0c7d9`, `e410c86f` planned/categorized | `d024f41e`, `396ac348` -> `e5f3aab0`, and Go-binding chain ending `349aecba` are separate verticals; no hidden prerequisite identified. | valid, do not combine unrelated fixes |
-| Daemon memory/session | `21591d51`, `9846c3f1` planned | `c1b9c451` is the earlier Windows separator spelling change; `9846c3f1` should include only the CLI-neutral daemon portion and explicitly omit the MCP session adapter. | adapt with represented predecessor |
-| Symlink ownership | `3c854ae2`, `8622d6a0` planned | `3a8b8e82` is categorized as the later agent-root policy follow-on; port in order after inode/opt-in semantics. | valid three-step vertical |
-| CLI output/discovery | `b1100a49`, `48149cac` planned; `c25c1620`, `4a9fcd97`, `5f58e233` categorized | `b7952030` is the earlier library log default; quiet-mode changes are CLI-policy adaptations, not MCP dependencies. | adapt; preserve fork output policy |
-| Complexity determinism | `e410c86f` planned | CP90 already contains equivalent complexity determinism coverage; compare semantics before porting. | likely represented; verify, then skip if equivalent |
-| Coverage reporting | `e5c17de6` planned; `b04f5450`, `a9535092`, `cb167b9d` categorized | `f871178b` and `219b3482` are chain tests/terminology; include them only as evidence or reproduce equivalent tests. | no missing source predecessor; test chain has gaps |
-| CI/release provenance | Existing workflow cleanup/pins integrated locally | Candidate `9427dd07` -> `8eff872d` -> `c3604402` is a separate fail-closed release vertical; dependency bumps are not source prerequisites. | review against fork workflows |
+| `luna-cbm-cypher-20260920-r1` | `458b0db1 -> 6166934d` Cypher correctness | `impl/cbm-cypher-20260920` | worker completed; valid receipt; tip `42ca613c` |
+| `luna-cbm-xml-20260920` | `e0becdeb` XML discovery | `impl/cbm-xml-20260920` | worker completed; valid receipt; tip `d6177b61` |
+| `luna-cbm-ts-await-20260920` | `e8a46c16` awaited TypeScript calls | `impl/cbm-ts-await-20260920` | worker completed; valid receipt; tip `c540426f` |
+| `luna-cbm-properties-20260920-r1` | `c7ccb479` parser-local properties state | `impl/cbm-properties-20260920` | worker completed; valid receipt; tip `badb8cce` |
 
-No integrated or planned vertical was found to require an unlisted MCP frontend, OpenHands, Jenkins, or hook commit. Where an upstream chain crosses an excluded commit, this artifact records the gap and requires a semantic adaptation rather than a direct cherry-pick.
+The first parallel preparation attempt returned `execution lifecycle is not
+initialized` for the Cypher and properties runs after creating durable state;
+reusing those IDs was rejected, so lineage-preserving `-r1` IDs were prepared
+sequentially and started successfully. All four runs have persisted parent
+steering messages, but the configured Codex executor reports late-steering
+delivery as `unsupported`; acknowledgement is required before acceptance.
 
-## Highest-value merge groups
+Workers must return commits and evidence only. Parent integration, independent
+review, acceptance, and push remain separate gates.
 
-| Group | Commits | Touched paths | Status | Dependency notes |
+## Terminal observer diagnosis — 2026-09-25
+
+The two apparent duplicate Agent-Workflow terminals were duplicate observers of
+the same Terra run, not duplicate Agent Runs. This session launched
+`agent-workflow agent-run tail terra-cbm-upstream-20260920` twice, once with
+`--lines 80` and once with `--lines 40`, then forwarded only captured output
+and discarded the returned exec session handles.
+
+`agent-run status` shows Terra and all four Luna runs are terminal, with
+`worker_alive: false`. A bounded read-only probe of `agent-run tail` against
+the already completed Terra run printed its final lines but remained attached
+until the two-second timeout (`exit 124`). Thus the worker did finish; the
+tail observers do not auto-exit when the run completes. They remained in the
+terminal UI because this session failed to interrupt or retain handles for
+those long-running observers. A process listing in the current shell did not
+show their PIDs, so their present OS-level liveness in the displayed terminal
+environment is not independently confirmed here.
+
+The four Luna workers are completed and their receipts are valid. Completion
+does not imply evaluation, review, acceptance, integration, or push: no such
+state is established for these runs. Evaluation remains `not_planned`. Terra's
+assessment also remains unaccepted pending its separate completion, evaluation,
+review, and acknowledgement gates. This is separate from the still-attached
+tail commands.
+
+## New upstream delta plan — 2026-09-28
+
+Status: **planned, not implemented**. This is a ranked set of ten candidate
+verticals from the 87 non-merge commits since `92abefa3`; ranking favors a
+bounded correctness/performance fix, a direct CLI seam, and an existing focused
+suite. “Overlap” below describes the CLI path to inspect, not a claim that the
+MCP implementation can be copied unchanged. Recheck each exact source diff and
+reverse applicability against the eventual integration base.
+
+| Rank / source | CLI overlap and minimal change | Dependency / focused check | Acceptance / effort |
+|---|---|---|---|
+| 1. `99c3bb4c` — failed store `COUNT` | `src/store/store.c`: preserve and return the failed COUNT read status instead of reporting a successful zero. CLI store implementation is shared in shape; verify exact error path before adapting. | None beyond existing store API. `scripts/test.sh --suites store_nodes` | Inject/read failure is distinguishable from a real zero count; existing zero-count behavior remains. **S** |
+| 2. `d7eba5a7` — persisted LSP decode | `src/pipeline/lsp_surface.c`: replace repeated indexed JSON-array lookup with one linear traversal while preserving decoded order and values. CLI has the corresponding persisted-surface pipeline path; confirm decoder shape. | Keep current JSON representation and schema. `scripts/test.sh --suites pipeline` | Round-trip fixture decodes identically; iteration is linear in array length. **S** |
+| 3. `e4780c20` — macro parse-coverage scan | `internal/cbm/cbm.c`: avoid rescanning all source text once per parser error region; prepare line offsets once and reuse while deriving coverage gaps. | Reuse coverage/error-region contracts; no new parser. `scripts/test.sh --suites parse_coverage,extraction` | Existing coverage outputs stay stable on fixtures while many error regions do not multiply source scans. **M** |
+| 4. `76e54f75`, `4fc5999a`, `61ccd905`, `08642202` — watcher hard-failure backoff and QA | `src/watcher/watcher.c/.h`: port the hard-failure backoff with its QA follow-ups, especially `4fc5999a`'s monotonic backoff guard; `61ccd905` and `08642202` tighten tests and contract. | Preserve watcher lifecycle/cancellation semantics and monotonic timing. `scripts/test.sh --suites watcher` | Sustained hard failure does not fork-loop, elapsed-time checks use monotonic time, and the tightened contract tests pass. **M** |
+| 5. `77ab4bea` then `7707c9d7` — dynamic AST/definitions walker stacks | `internal/cbm/extract_defs.c` and `internal/cbm/helpers.c`: grow pending-node stacks instead of silently dropping children at fixed limits; preserve source traversal order and non-truncated failure behavior on allocation failure. | The definitions walker change precedes broad metrics/token walkers; reuse memory-core allocation and logging. `scripts/test.sh --suites extraction,complexity,stack_overflow_a,stack_overflow_b,stack_overflow_c` | Wide/deep fixtures produce complete metrics and leading token samples; allocation failure does not return truncated content. **M** |
+| 6. `c8184ed9` then `282fbfcd` — inherited `.gitignore` base | `src/discover/discover.c`: honor an enclosing repository’s ignore file for a git-less subfolder, resolving each ignore rule relative to its owning directory. | Apply parent discovery first, then correct relative-base handling; preserve local ignore precedence. `scripts/test.sh --suites gitignore,discover` | Nested invocation matches the enclosing repo’s ignore decisions, including nested `.gitignore` bases. **M** |
+| 7. `8093d10b` — binary `.res` / ReScript hang | `src/discover` language admission and `internal/cbm/extract_usages.c`/vendored ReScript scanner: keep binary resource files out of text parsing or safely reject them before scanner work. | Match CLI’s vendored grammar and language contract; no new dependency. `scripts/test.sh --suites language,extraction,complexity` | Binary `.res` indexing terminates promptly without changing valid ReScript source handling. **S–M** |
+| 8. `f339aa62` then `df8dd101` — Python scope-chain lookup | `internal/cbm/lsp/scope.c/.h` and `py_lsp.c`: first collapse repeated Python chain scans, then expose/use one lookup returning the nearest complete binding (presence, type, callable identity). | Preserve lexical shadowing, including unknown bindings; second change depends on the first lookup refactor. `scripts/test.sh --suites scope,py_lsp` | Existing binding/call resolution remains stable; chained lookups become one walk and shadowed names cannot resolve to an outer binding. **M** |
+| 9. `460ebefc` — graph publish failure errno/log | `src/graph_buffer/graph_buffer.c` and `internal/cbm/sqlite_writer.c`: propagate/log the actual atomic publish failure so a failed publish cannot be reported as a successful dump. | Coordinate graph-buffer and SQLite-writer error contracts. `scripts/test.sh --suites graph_buffer,sqlite_writer` | Forced publish failure reports failure and its cause; successful publish still reports success. **M** |
+| 10. `343d7dd5` — C-family return pointer/qualifiers | `internal/cbm/extract_defs.c`: retain pointer depth and qualifiers when extracting C-family function return types. | Keep language-specific type normalization and existing serialized schema. `scripts/test.sh --suites extraction` | Pointer and qualified return-type fixtures preserve their exact extracted type; ordinary return types remain unchanged. **M** |
+
+### Deferred or lower-return candidates
+
+- `c0a06b3d` adds a large SQL literal-values scanner; defer until a CLI
+  benchmark establishes the value of its larger parser and test surface.
+- `1a342553` is a broad graph-quality bundle; split and evidence individual
+  defects before considering any port.
+- `19d14447` daemon conflict UX is outside this pipeline/extraction plan; defer
+  unless a CLI daemon-conflict workflow is selected.
+- Windows-only temporary-file and race fixes need native Windows applicability
+  and validation, so they are not in this ten-slice plan.
+- MCP-only, CI-only, documentation-only, style-only, and test-only commits are
+  excluded absent a CLI behavior change.
+
+### Complete disposition of the 87 non-merge commits
+
+The accounting below covers every non-merge hash in `92abefa3..80eb92a7`
+exactly once: **16 selected source hashes** across the ten verticals above,
+**24 applicable but deferred hashes**, and **47 excluded hashes** grouped by
+scope. The source log was checked against these sets; the exclusion grouping is
+for disposition accounting, not a claim that those changes are defective.
+
+**Selected — 16 hashes:** `99c3bb4c`, `d7eba5a7`, `e4780c20`, `76e54f75`,
+`4fc5999a`, `61ccd905`, `08642202`, `77ab4bea`, `7707c9d7`, `c8184ed9`,
+`282fbfcd`, `8093d10b`, `f339aa62`, `df8dd101`, `460ebefc`, `343d7dd5`.
+
+**Applicable but deferred — 24 hashes:** `dc735c01`, `19d14447`, `e9058e11`,
+`075f40e9`, `8f803f72`, `c0a06b3d`, `246e4190`, `6ae6cd4c`, `f3bdf11a`,
+`aaa72fbe`, `c314dea4`, `df83d25a`, `24afb562`, `1a342553`, `1d2bbc42`,
+`ed991154`, `a041794f`, `d4931241`, `452485f7`, `25d08258`, `fcf451c6`,
+`eb80a4ec`, `2ea73059`, `5cb90f64`.
+
+**Excluded — 47 hashes:**
+
+- MCP server/tool behavior and MCP-specific docs/style (9): `fa229211`,
+  `629e9c2c`, `cda5e3c9`, `dadc57db`, `af3e003a`, `c067c771`, `58c1c0ca`,
+  `60449f89`, `73c509f4`.
+- Client, package, extension, and hook integration (12): `ff8dd470`,
+  `e171bd48`, `8f3c1504`, `e8dcb28b`, `7883507d`, `88269ac2`, `e026a60b`,
+  `004c5554`, `a378d47e`, `8c30c785`, `7a909466`, `f0589375`.
+- Maintenance, tests, CI, vendor/security metadata, and docs/style (26):
+  `259dbb67`, `ea6fa49f`, `07eb426c`, `bc960d87`, `efb23128`, `5a9c72d8`,
+  `6f91a16f`, `64297ff3`, `9a9534cb`, `2f557f53`, `da4bd25a`, `65d60e72`,
+  `a262a357`, `f428d583`, `bc5b3dd2`, `fa138acf`, `183cd727`, `95fa6344`,
+  `f50434ed`, `3ab2994f`, `eccc6153`, `c1128db8`, `aec9bfe3`, `5abd77f5`,
+  `d402623c`, `3604d6cf`.
+
+### Per-slice workflow and evidence boundary
+
+For each slice: prepare an isolated worktree from a refreshed CLI integration
+base after reconciling the nine docs-only commits on `origin/main` and the dirty
+main checkout; inspect the exact upstream source diff and reverse applicability;
+make only that slice's CLI adaptation; run the listed focused suite plus the
+incremental build/diff check; obtain independent review; record acceptance; and
+integrate separately. Do not bulk-merge upstream or combine these ten changes
+into one implementation branch. No tests, builds, reviews, acceptances,
+integrations, or pushes for these planned slices are claimed here.
+
+
+## 2026-10-01 refresh limitations and next review boundary
+
+The census enumerates all 348 ancestry-only non-merge commits exactly once and
+records full hashes, subjects, paths, patch-ID status, and provisional categories.
+Those categories are triage only: per-commit source/reverse-applicability review
+was not completed, so the census does not claim final semantic disposition or
+rank every new vertical. The 298 ancestry-only merge commits are included in the
+reconciliation count; they are not independently assigned implementation slices.
+
+The MCP pull succeeded by fast-forward from `80eb92a7017dab9a0773430433660a966b80cc15`
+to `0f52d30c2964a5a538149f8b39846ba52517a020`, preserving its existing dirty
+`graph-ui/tsconfig.tsbuildinfo`. Both requested full, non-persistent graph
+indexing commands were attempted but stopped before project selection/indexing
+because secure cache initialization returned `cache-resolve`; therefore there
+is no new generation, coverage, or before/after graph status to report. The
+independent parity report was not available in this run, so manage-adr exposure
+and parity findings remain unverified. No code, tests, builds, pull/merge of CLI,
+or changes outside this canonical document and run evidence were made.
+
+
+## 2026-10-01 bounded slice dispatch
+
+The ledger/parity workers exited with reports, but their Agent Runs have
+`completion_missing`: neither has valid host-verified completion, evaluation,
+review, or acceptance. The parity report is now available in Agent-Workflow
+run `CBM-MCP-CLI-PARITY-20260930`; it identifies the missing public ADR alias and
+explicit `outline` behavior. Full upstream semantic sorting and both requested
+reindexes remain incomplete; the census remains provisional. These two bounded
+assignments are based on current source and specific existing adaptations, not
+on a claim that the full census is ranked or accepted.
+
+| Agent Run | Slice | Source / reuse | State |
+|---|---|---|---|
+| `CBM-ADR-SLICE-20260930` | Public `manage-adr` command/help and explicit read-only ADR `outline`; retain existing omitted-mode `get` | Parity report plus MCP `0f52d30c`; reuse the current ADR operation | Queued: isolated `impl/cbm-adr-slice-20260930` at `38153854`; baseline acceptance preparation precedes automatic launch |
+| `CBM-COUNT-SLICE-20260930` | Distinguish failed node/edge COUNT reads from successful zero | Reuse local `5ef42e21`, adapting upstream `99c3bb4c`; inspect callers/scoped helpers | Queued: isolated `impl/cbm-count-slice-20260930` at `38153854`; baseline acceptance preparation precedes automatic launch |
+
+Both runs explicitly select GPT-6-Luna and bind incremental production build,
+focused tests (`cli,incremental` for ADR; `store_nodes` for COUNT), and
+`git diff --check` as acceptance commands. Run evidence and launch scheduling
+live under Agent-Workflow authority/task inputs. Workers may make scoped local
+commits; no integration, push, PR, review, or acceptance is authorized/claimed
+by this dispatch entry. Existing branches/worktrees and dirty primary content
+remain preserved. The release-readiness worker also exited without valid
+completion; its documentation commit `fd2aca2a` is separate from these slices.
+
+## 2026-10-01 recovery evidence and outstanding work
+
+The independent parity audit is available at
+`/home/nate/.local/state/agent-workflow/runs/CBM-MCP-CLI-PARITY-20260930/evidence/parity-report.md`.
+It found no operation-name absence, but `manage_adr` is compatibility-only:
+there is no top-level `manage-adr` alias/help route, and CLI omits MCP's
+`outline` mode while using a different default. The report prioritizes adding
+the alias and resolving mode parity, followed by registry parity checks.
+
+The recovery retry re-confirmed CLI `38153854c46f237b700d68b60a65c1a1078c78c5`,
+upstream/MCP `0f52d30c2964a5a538149f8b39846ba52517a020`, and merge base
+`17786374dfc39b8c751933d34d269501f2b4d6b7`. The prior provisional census is
+not a complete semantic review. Current-run evidence has a fresh exhaustive
+hash/subject/path enumeration, but its 348 rows remain explicitly
+unclassified; ranked vertical slices and source-informed dispositions have not
+been completed. See `evidence/census.tsv` in Agent-Workflow run
+`CBM-UPSTREAM-LEDGER-20261001-R2`.
+
+Both required full in-memory indexes were attempted with isolated run-owned
+`CBM_CACHE_DIR` values and failed before index access: the active account daemon
+is bound to a different cache root. The CLI directs operators to close all CBM
+sessions before switching roots. No daemon was stopped, and no graph freshness,
+generation, or coverage is claimed. MCP's dirty `graph-ui/tsconfig.tsbuildinfo`
+remains preserved. Detailed command results and the deterministic verifier are
+in the current run's `evidence/` directory. The verification gate is expected
+to fail until source dispositions, ranked slices, and both indexes are complete.
+
+
+## 2026-10-01 candidate verification and next-three dispatch
+
+The `d7eba5a7` persisted-LSP-array optimization is already represented on the
+frozen `release-tooling` base: `fcc51bc9` is an ancestor of
+`637678ec43a051194bd41c099bcaae1b15f057e6`, and the base decoder iterates both
+the `lsp` object array and nested string arrays with `yyjson_arr_iter`. It is
+excluded from this next-three set as already represented, independent of the
+Jev ranking.
+
+The remaining three selected verticals were source-checked against the frozen
+base and exact upstream commits. A bounded Jev selection call returned
+`macro_watcher_ast` (`jev-1.13.0`, confidence 0.96; probability 0.97, with 0.03
+for insufficient evidence). Jev advised the ranking; source and deterministic
+validation remain authoritative.
+
+| Rank | Upstream source | CLI applicability on frozen base | Candidate branch / Agent Run | State |
 |---|---|---|---|---|
-| Daemon/activation safety | `8e70590d`, `9d4ac2b9`, `fc1b1ee7`, `3a8c0d97`, `7710f86e`, `4a29f0da`, `3e1703d7`, `1a6f80c3`, `daac6bd4`, `7f3e30e1` | `src/daemon/**`, `src/main.c`, daemon tests | adapt | Port in daemon-order; platform-specific tests are optional evidence, not MCP code. |
-| Pipeline/Cypher/store correctness | `25a7aacc`, `c86f1ffa`, `afc948ba`, `4cbc9e1c`, `d90f98f5`, `396ac348`, `e5f3aab0`, `b3d31ca0`, `cd22487c`, `0d97729c`, `0c5ffa50`, `8546070d`, `58ef9f19`, `d024f41e` | `src/pipeline/**`, `src/cypher/**`, `src/store/**`, `src/pipeline/artifact.*`, tests | adapt | Keep each fix with its regression test; bounded-trail commits are one dependency chain. |
-| Extraction/language coverage | `97517a46`, `592894a4`, `c36b4fbc`, `fd73c347`, `44caa4c3`, `a2ea711c`, `3f831936`, `8f50841a`, `cb7cb444`, `47116b8e`, `0b0d143c`, `95689b5c`, `2910e284`, `b6a22843`, `706bb2ce`, `7b72652a`, `1d6a140f`, `229b4fe1`, `0f1e65d6`, `5cabeb4b`, `43ecc098`, `6b23078c`, `dc0f8ae6`, `4b1cdf57` | `internal/cbm/**`, `src/discover/**`, `src/pipeline/**`, vendored grammars, tests | adapt | Language additions require license/checksum/manifest review and are independently selectable. |
-| CLI/install/client behavior | `4c1b2347`, `4cafe8eb`, `8d46d258`, `09c66241`, `902f85b0`, `1e25d962`, `1e0aac52`, `410cd9a3`, `f518eaee`, `23dfea58`, `2bff501a`, `20ad3e5b`, `276664eb`, `33d1ecea`, `b54998d2`, `d58962c0`, `00e0cf38`, `7d4dc779`, `72ee8805`, `ee32816e` | `src/cli/**`, `src/main.c`, `install*`, package metadata, CLI tests | adapt | Review against the fork's intentionally reduced client surface; `4cafe8eb` is potentially blocked if its AGENTS policy is MCP-specific. |
-| Resource/performance hardening | `57ef0a6d`, `40f2722d`, `fece72b0`, `ffc29f73`, `92812ae1`, `51770de0`, `f95fe55b`, `a4126427`, `a4c0ffbc`, `32ae20d0`, `e24f0c63`, `793716dc`, `f6e3af43`, `3491a8e8`, `bf46b91f`, `8669ba8f` | `src/foundation/**`, `src/store/**`, `src/pipeline/**`, `internal/cbm/**`, tests | adapt | Benchmark and sanitizer evidence recommended before porting performance-only changes. |
-| CI/release/build integrity | `3b173288`, `77063bca`, `288d4155`, `7d896fee`, `1d38be33`, `9427dd07`, `32633bab`, `8eff872d`, `547f355e`, `18edfa00`, `98c1f8c3`, `c3604402`, `2a02d128`, `3308f360` | `.github/workflows/**`, `Makefile.cbm`, `scripts/**`, `flake*`, release contracts | clean/adapt | Apply only to this repository's workflows; do not introduce upstream links or Jenkins behavior. |
+| 1 | `e4780c208632b3c42488a3c9e315014ef4da157e` | `internal/cbm/cbm.c` scanned from byte zero per parse-error region and asked the source-dependent macro predicate before the pure callable containment check. The port checks containment first, shares one line-offset table for callable regions, preserves the walk fallback on allocation failure, and adds deterministic scan-byte regressions. | `impl/jev-macro-scan-20261001` / `JEV-CBM-MACRO-SCAN-20261001` | Local commits `498b0375a2359c25e338997f254c30cabd20db42` and follow-up `04c0728fdb4c06b70b407b539fb256da9a9c8939`; source checks pass, tests/builds not run. Parent integration and Jenkins suites `parse_coverage,extraction` remain pending. |
+| 2 | `76e54f7525983ecd8fdeef6fdc14896a72be7063`, `4fc5999a`, `61ccd905`, `08642202` | `src/watcher/watcher.c` left hard `index_fn` failures on the ordinary poll cadence. The port adds capped doubling for consecutive hard failures, resets the streak on success, schedules from a fresh monotonic reading, and keeps baselines unchanged on failure/busy. | `impl/jev-watcher-backoff-20261001` / `JEV-CBM-WATCHER-BACKOFF-20261001` | Commit `9ac0e3f8b900685ea657bac81659eeb24cc43df6`; source/diff/format checks passed, tests/builds not run. Parent integration and Jenkins suite `watcher` remain pending. |
+| 3 | `77ab4bea87008547acee60435a8e3df29d90a5cb`, followed by `7707c9d7` | `internal/cbm/extract_defs.c` body-token walker has a fixed 512-entry pending stack and silently stops queuing children at capacity. Grow pending storage and report allocation failure without returning truncated token content; preserve the separate output token cap and traversal order. | `impl/jev-ast-walker-20261001` / `JEV-CBM-AST-WALKER-20261001` | Commit `cf7248a8` (`fix(extract): grow body token walker stack`) at frozen base; `git show --check` passes. Tests/builds and durable run-status verification remain pending (Agent-Workflow status calls errored). Focused Jenkins suites: `extraction,complexity`. |
 
-## Complete candidate inventory
+All three candidate runs have separate Agent-Workflow authority and isolated
+worktrees at `637678ec43a051194bd41c099bcaae1b15f057e6`. The parent integration
+candidate has advanced to `c98416102331a1c3f68f16b8a21b148ab0de46eb` and includes
+other concurrent fixes; the slice branches remain based on their original
+frozen SHA. Macro commits are local implementation evidence only. Watcher and
+AST implementation is locally committed; integration, independent review,
+acceptance, and Jenkins union validation remain pending. Frozen candidate commits and integration
+results are separate evidence.
 
-The following hashes are the exact 150 candidates. The path family is given by the group above; exact paths can be verified with `git show --stat --oneline <hash>` in the MCP checkout. All source-bearing candidates are **adapt** unless listed clean in the CI/build group. Tests-only and documentation-only commits were not counted.
+### Existing local candidates — Jenkins build 2 evidence
 
-```text
-3b173288 f4c7d201 e93db6a9 8d46d258 7e47043a 1770d68a 57ef0a6d c4e90284
-e0785b35 572725e6 40f2722d 97517a46 4c1b2347 4cafe8eb 592894a4 c36b4fbc
-fd73c347 44caa4c3 25a7aacc 9d4ac2b9 a2ea711c 3f831936 da61c81a 4d20a427
-8f50841a c86f1ffa 8e70590d 77063bca cc00a027 17b5a432 288d4155 cb7cb444
-47116b8e d6417ada 7d76b88f afc948ba fc1b1ee7 0b0d143c 4cbc9e1c fece72b0
-95689b5c d90f98f5 2910e284 b6a22843 5821078e 7d896fee ee0a2e6d 706bb2ce
-396ac348 e5f3aab0 7b72652a 1d6a140f fb7cd2f8 229b4fe1 09c66241 7fe2f87b
-3f926997 5b96b067 11bbf0d8 0f1e65d6 7710f86e 6c74ae38 ee32816e 97ecfe7f
-6c2f82c8 72ee8805 5a02822f fde1695d ffc29f73 3a8c0d97 902f85b0 032ebf53
-0df990aa ee126155 0365ef94 680bc72e 48cb94f6 1e25d962 1e0aac52 c537bf0f
-3e1703d7 1a6f80c3 547f355e 7583376f fa3a3ea3 410cd9a3 f518eaee 36b7b18b
-23dfea58 606052a2 2bff501a 5bbc7b7c d9f3088b 4a29f0da b3d31ca0 1af49dfe
-cd22487c 0d97729c 0c5ffa50 8546070d 9eba0279 5cabeb4b 43ecc098 c4224cf3
-6b23078c dc0f8ae6 9427dd07 58ef9f19 4b1cdf57 92812ae1 773bb037 109299f2
-0eb22f02 8eff872d d024f41e 47bd4b68 20ad3e5b 276664eb 4cd84422 33d1ecea
-b54998d2 51770de0 459be8bf d918fce2 cf5eb61c f95fe55b a4126427 a4c0ffbc
-32ae20d0 e700b621 e24f0c63 793716dc cffb4e37 170590bc f277034f f6e3af43
-3491a8e8 bdb99d77 8669ba8f bf46b91f d58962c0 00e0cf38 7d4dc779 c3604402
-329cfc3c a530c8aa 416ba994 daac6bd4 7f3e30e1
-```
-
-## Earliest-prerequisite merge order
-
-These are the recommended verticals' contiguous orders. A later fix must not be selected by itself when an earlier commit supplies the data structure or behavior it changes.
-
-- Bounded Cypher trails: `8546070d` -> `0c5ffa50` -> `0d97729c` -> `cd22487c` -> `b3d31ca0` -> `58ef9f19`.
-- Go struct extraction/binding: `47116b8e` -> `cb7cb444` -> `cc00a027` -> `d6417ada` -> `7d76b88f` -> `349aecba` (`e07a12b6` is a test-only gap).
-- Python bare calls: `0b0d143c` -> `95689b5c` -> `97517a46`.
-- Swift scanner safety: `3f831936` -> `a2ea711c` -> `e8204092` (manifest-only gap; verify checksums).
-- Cross-LSP resolution: `2910e284` -> `32ae20d0` -> `da61c81a`; `e24f0c63` and `793716dc` are optional later performance extensions.
-- Importance scoring: `e5f3aab0` -> `396ac348`.
-- Pkl support: `1d6a140f` -> `7b72652a`.
-- ArkTS support/provenance: `0df990aa` -> `032ebf53` -> `2b51b7dc` (checksum-only).
-- Ensemble routing: `ee126155` -> `6c2f82c8`.
-- OMP client: `f518eaee` -> `410cd9a3` (`fa3a3ea3` is formatting-only).
-- URL-builder route extraction: `d9f3088b` -> `5bbc7b7c` -> `606052a2`.
-- CLI client selector: `1e0aac52` -> `1e25d962` -> `902f85b0`.
-- Release integrity: `9427dd07` -> `8eff872d` -> `c3604402`.
-
-Explicit gaps are excluded or categorized commits between an earliest prerequisite and a later fix. Port those gaps semantically, or mark the vertical blocked; do not cherry-pick only the terminal hash.
-
-## Rejected / excluded accounting
-
-- 18 first-wave integrated commits: excluded by exact hash.
-- 12 active or categorized second-wave commits: excluded by exact hash.
-- 5 already represented skips: excluded by exact hash.
-- 18 previously categorized next-tranche commits: excluded by exact hash.
-- MCP-only frontend/search/pagination/session changes: rejected regardless of subject; no `src/mcp/**`, MCP tests, or adapters are candidates.
-- Tests-only, formatting-only, documentation-only, dependency-only, and empty CI retrigger commits: rejected from the 150-count queue unless part of a source change's dependency chain.
-- OpenHands integration, Jenkins, and hook changes: explicitly rejected by scope.
-
-The 150 count is an audit inventory, not permission to bulk-cherry-pick. Each group needs reverse applicability checks, dependency review, and focused CLI validation before implementation.
-
-## Completion update — 2026-09-12
-
-The completed/planned second-wave sources are now merged on the CLI branch:
-`d3bb290c`, `c716cb7d`, and `fc9aeedc`. Do not select those source verticals
-again.
-
-The high-value vertical plan was then checked from each earliest prerequisite:
-
-| Vertical | Source-chain result | CLI result |
-|---|---|---|
-| Bounded Cypher trails | `8546070d -> 0c5ffa50 -> 0d97729c -> cd22487c -> b3d31ca0 -> 58ef9f19` all already ancestors | no delta needed |
-| Go struct extraction/binding | first five commits already ancestors; `349aecba` absent | merged as `e497dd0c` |
-| Daemon activation/rendezvous | seven commits already ancestors; `8e70590d`, `9d4ac2b9`, `1a6f80c3` absent | merged as `6e289d5a` |
-
-The parent integration check passed `git diff --check`, incremental production
-build, and the selected pipeline/registry/import/daemon/CLI focused suites.
-
-## Ponytail completion update — 2026-09-12
-
-| Vertical | Upstream source | CLI disposition |
-|---|---|---|
-| Cypher live scope/capacity | `63b99976 -> 426e415f -> 04ba2fa3` | merged as `a7721244` |
-| Registry receiver chain | `2c76563a` | merged as `e52b31cd` |
-| Cohort handoff retry | `9104feb6` | already represented by `3036e195`; verified, no duplicate port |
-
-The next Ponytail candidate is the earlier remaining Cypher correctness pair
-`25a7aacc -> afc948ba`. Do not reselect the completed source hashes above.
-
-## MCP refresh — 34 new non-merge commits (2026-09-13)
-
-Source window: the next 34 non-merge commits at `codebase-memory-mcp` `main`,
-from `3c854ae2` through `09c0e88a`. This refresh is a candidate list only;
-it does not authorize a bulk merge. Ponytail screening excluded formatting,
-tests-only, documentation-only, dependency-only, represented, MCP-only,
-OpenHands, and already-tracked work before selecting the following verticals.
-
-| Priority | Upstream commit(s) | Disposition | Why / dependency boundary |
+| Candidate | Exact Jenkins checkout | Observed result | Lifecycle status |
 |---|---|---|---|
-| 1 | `91e31211` | **adapt — high value** | Closes the pipeline staging create-to-lock race. Shared `src/pipeline/**`; carry the full lock-before-visible change and regression test, not a partial cherry-pick. |
-| 2 | `9a460b38` | **adapt — high value** | Moves SHA-256 message-schedule scratch out of a per-block stack frame, reducing ASan use-after-return overhead. Shared foundation code; retain existing digest vectors. |
-| 3 | `09c0e88a -> 1ad52f5f` | **adapt — security CI** | Fails CodeQL alert reads closed and grants reusable-workflow permissions. Confirm this fork's callers/workflow names first; do not add upstream links or Jenkins behavior. |
-| 4 | `8c2692c1` | **clean — dependency security** | Bumps Graph UI Vitest to 4.1.11. Select only with package-lock verification. |
-| 5 | `fa99ff64` | **adapt — test throughput** | Reduces a proven idle wait in the CLI activation negative probe and marks `cli` as slow for scheduler budgeting. Reassess against this fork's activation fixture before porting. |
-| 6 | `013e1f7e` | **adapt — large CLI safety** | Prevents an activation targeting another HOME/cache namespace from draining the active cohort. The upstream diff crosses excluded MCP supervisor code, so port only CLI-neutral cohort-scope logic after caller mapping. |
+| COUNT `784974f9e14be3d1b2d19389b8ff3a0774993a39` (`local-mr/count-20261001`) | Jenkins console confirms the exact SHA | `store_nodes`: 71 passed; build `SUCCESS` | Local implementation candidate with focused Jenkins validation; independent review, acceptance, integration, and push not established. |
+| ADR `ee4a04e3c4c811e833ccd3803b35d8ec4aaf823e` (`local-mr/adr-20261001`) | Jenkins console confirms the exact SHA | Build `FAILURE` during lint: banned NOLINT comments at `src/main.c:1204` and `src/operations/adr.c:125,363`; test stages did not run | Local implementation candidate; fix lint and rerun. This is not a test failure or acceptance. |
+| Properties `3ae5ab454b9a9188cea2e2f735e30b4704bdceeb` (`local-mr/jev-properties-20261001`) | Current local branch tip verified | Candidate only; no matching completed Jenkins checkout/result established in this record | Review/validation/acceptance/integration/push remain unverified. |
 
-### Represented, rejected, or not independently useful
+Exact COUNT and ADR console excerpts are retained in
+`evidence/existing-candidate-jenkins-20261001.md` under Agent-Workflow run
+`JEV-NEXT-THREE-SLICES-20261001`. No index reset is claimed; the previous
+cache/daemon limitation remains in force.
 
-- Already represented/integrated: `52701625`, `6091db71`, `0567dc70`,
-  `8116672a`, `df579830`, `61884951`, `4fa11d1a`, `557cb010`, `91c63be5`,
-  `8134712d`, `ecfb9642`, `a3c24a71`, `7bf366f6`, `8135be28`, and `3c854ae2`.
-- MCP-only or MCP-coupled: `f6a29270`, `9ef7da8c`, `e45d7051`, `208ee99c`,
-  `262ab012`, and `3a4160b4`; retain the CLI fork exclusion.
-- No standalone value: `eeff3f19`, `e65bc6b7`, `7e73b48e` (format/docs),
-  `92cb3b9a` (test-only), and `aacf96a2` (installer wording only).
 
 The refresh adds six potential verticals: two core safety/performance fixes,
 one CI security pair, one dependency update, one test-throughput adaptation,
@@ -217,6 +421,7 @@ surfaces are aligned to v0.11.0 for the next shared-job full gate. Pinned
 package versions/checksums and wrapper repository endpoints remain unchanged.
 Push and PR thread resolution remain pending a passing shared-job result.
 
+<<<<<<< Updated upstream
 ### Linux publication readiness audit (2026-10-01)
 
 Shared Jenkins #34 passed the full Linux gate at `37dd63ba` and archived
@@ -262,6 +467,19 @@ and the external qualification hold remain unchanged. Publication is still
 blocked until explicitly opted in with credentials. Direct dispatch does not
 require external qualification evidence; the promotion workflow enforces that
 evidence against the exact candidate.
+=======
+Shared job #32 reported an include-formatting error before tests; correction
+`23349698` is committed locally. Its rerun and publication remain pending.
+
+Shared job #33 at `23349698` completed with 7,510 passed, one failed and
+three platform skips across the shards. The failure was the new macro test's
+upstream-specific expectation of 40 distinct regions; this fork's grammar
+produced one. Commit `37dd63ba` preserves the test's meaningful guarantees
+(nonempty parse gaps, zero scanned source bytes) and frees the result before
+assertions so a failed check cannot obscure its diagnosis with leaked fixtures.
+The complete AST wide-input regressions passed in that extraction run.
+Job #34 passed the full gate at `37dd63ba`, which is now `main`.
+>>>>>>> Stashed changes
 
 ## Remaining verticals — source review and Jev ranking, 2026-10-01 PDT
 
@@ -438,6 +656,7 @@ unvalidated; do not confuse their surviving branch commits with accepted ports.
 Compact handoff, frozen universes, index/process receipts, native launch and
 acknowledgement evidence are retained at
 `/home/nate/.local/state/agent-workflow/handoffs/CBM-UPSTREAM-AUDIT-20261002/`.
+<<<<<<< Updated upstream
 
 
 ## Three-candidate integration review resumed — 2026-10-02
@@ -474,3 +693,5 @@ commits, constituent commits, canonical backlog reconciliation, vertical
 grouping and the next five new slices. Its exact-worktree index completed with
 persistence disabled and unchanged Git porcelain; launch and steering were
 observed and acknowledged. This is launch evidence, not audit completion.
+=======
+>>>>>>> Stashed changes

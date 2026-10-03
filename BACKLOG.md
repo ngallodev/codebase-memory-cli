@@ -2,6 +2,7 @@
 
 ## Resolved
 
+<<<<<<< Updated upstream
 - [x] Installer fork defaults and complete AST/watcher/macro/COUNT integration
   landed via PR #12; Windows hook/macOS deadline repairs landed via PR #13
   (`bbabc073`). Historical Jenkins evidence remains revision-specific.
@@ -10,6 +11,11 @@
   removes Claude automation, enables CodeRabbit, adds Linux-only prerelease
   selection. Package migration is deferred until exact fork assets and checksums
   exist; the previously merged package revisions are retained. PR #14 merge and real artifact
+=======
+- [x] Release-tooling implements deferred npm/PyPI/public publication,
+  removes Claude automation, enables CodeRabbit, adds Linux-only prerelease
+  selection and repoints package fork endpoints. PR #14 merge and real artifact
+>>>>>>> Stashed changes
   qualification remain open; these are implementation-complete tasks only.
 
 - [x] Reconciled completed upstream verticals: COUNT/status, persisted LSP
@@ -27,6 +33,21 @@
   `cbm_operation_session_state_free()` before freeing each session. Valgrind
   identified the omission through `test_daemon_application_free_releases_live_watch_once`
   as 80 direct + 107 indirect lost bytes.
+- [x] Validated local `release-tooling` through Jenkins job #34 (full gate
+  passed at `37dd63ba`). PR #12 merged with installer fix `c9841610`
+  (install.sh and install.ps1 default to `ngallodev/codebase-memory-cli`).
+  Resolved thread `PRRT_kwDORjrg5c6n5KE9` 2026-10-01.
+- [x] Validated complete AST slice `77ab4bea` / `7707c9d7` in shared
+  release-tooling Jenkins job #34 (full gate passed at `37dd63ba`); all
+  definition and auxiliary stacks ported to main.
+- [x] Added opt-in, single-run index metrics for performance diagnosis via
+  `index --metrics-out` flag (`0f5a84bc`). Coverage in src/operations/index.c
+  and tests/test_index_resilience.c. Merged via PR #12.
+- [x] Fixed the PR #12 Windows/macOS CI failures in `bbabc073` (PR #13).
+  The Windows hook-lifecycle test now uses the fork's installed binary name
+  (`tests/test_cli.c`), and the macOS connection-cap test gets a 30 s server
+  hello deadline (`tests/test_daemon_runtime.c`). Jenkins #35 and full GitHub
+  CI passed. The pre-commit hook also clang-formatted both files.
 
 ## Open
 
@@ -86,6 +107,17 @@
   - MCP-only output/search/pagination/compact-output commits are intentionally
     excluded from this backlog item.
 
+<<<<<<< Updated upstream
+=======
+- [ ] Assess a lightweight path for store-only test execution. Run just the
+  store test binaries after shared prerequisites are built, while keeping the
+  existing incremental suite selection and full-suite gates intact. First
+  inspect the runner's configuration and targets to determine whether this is
+  already supported. The `cbm-upstream-count-20260929` focused run passed 96
+  store tests, but a cold worktree spent several minutes compiling shared
+  prerequisites including `lsp_all.c`.
+
+>>>>>>> Stashed changes
 - [ ] Classify residual Heaptrack allocations in the neutral daemon test path.
   - Baseline evidence: Heaptrack reported 91 leaked allocations across the
     daemon application and IPC suites. Valgrind reported 538 bytes from
