@@ -53,6 +53,28 @@ The historical sections below retain provenance; this checkpoint and the full-ha
 appendix supersede their launch/current-status claims. Workers only write evidence;
 canonical task updates remain parent-owned.
 
+### Parallel split followup — 2026-10-03 UTC / 2026-10-02 local
+
+The user authorized splitting only unfinished work and Luna low for straightforward
+comparisons. Runtime R4 explicitly released 16 unreviewed MCP-adapter/test followup
+hashes, with no reviewed/current-batch overlap and a correlated worker-issued
+Agent-Workflow acknowledgement. New external interactive run
+`CBM-RECON-ADAPTER-LOW-20261003` is observed working in Herdr `wC:pE` on an isolated
+clean `559214af` worktree, full nonpersistent index generation `2026-10-03T00:48:33Z`,
+26,764 nodes / 129,702 edges, 91 parse-partial files. TypeSafe environment readiness
+was observed after sourcing in its launch shell, without exposing values.
+The run evidence owns the exact 16-hash release and 367-row effective ownership
+crosswalk; extraction/history retain their assignments, runtime retains 154 hashes.
+No completed work was reassigned, and source claims remain provisional until review.
+Use exact Git evidence plus CBM discovery/coverage, and bounded primary-evidence
+Jev comparisons for semantic applicability/parity choices; not for exact lookups.
+
+Acknowledgement correction: the prior report's history-worker ordering-gap claim
+was based on inspecting message/event projections without its saved control-intent
+receipt. A correlated worker acknowledgement already existed before the report
+checkpoint. That alleged ordering gap is withdrawn; the exact receipt is preserved
+in new run evidence, with all sealed predecessor artifacts unchanged.
+
 ## Frozen merge and source audit — 2026-10-02, Sol R2
 
 This section supersedes historical queue, exclusion, fetch and completion claims

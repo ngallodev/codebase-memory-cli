@@ -55,6 +55,11 @@
   remainders pending exact source/test review. Full hashes are in the canonical
   ledger; the [consolidated report](docs/UPSTREAM_RECONCILIATION_REPORT_20261002.md)
   records provenance, source corrections, scope and validation limits.
+  Parallel split followup: `CBM-RECON-ADAPTER-LOW-20261003` runs Luna low in
+  Herdr `wC:pE` on 16 explicitly released, previously unreviewed runtime hashes.
+  Original runtime retains 154 assigned hashes; all 367 hashes still have one
+  effective primary owner. The transfer, acknowledgement, index and launch
+  receipts are in the new run's evidence. Completed work was not reassigned.
 - [ ] Review additional bounded missing behaviors: malformed confidence parsing
   `62b44519c68b403ea44d9a85ba8ee74cddee66e6` (first additional localized candidate),
   route handler position `592894a4387a50e1d128ff6a2695ff48f8cc32a5`, late annotation

@@ -326,12 +326,13 @@ all cited partial/ignored ranges use exact source fallback. `vendored` scopes an
 MCP adapter paths require direct frozen Git reads. No reindex/cache-root/daemon
 change was necessary for the doc-only consolidation.
 
-Runtime correction steering has a correlated acknowledgement. At the checkpoint,
-history correction source was applied but its durable acknowledgement was absent;
-a reminder was delivered to the existing worker. This ordering gap is recorded,
-not replaced by inferred acknowledgement from a prompt submission or file. Later
-acknowledgement must retain its actual time. Launch, delivery, application and
-completion remain separate evidence claims.
+Acknowledgement correction on the later parallel split: both runtime and history
+correction steering have correlated worker-issued durable acknowledgement intents.
+The earlier parent check missed the history receipt while inspecting only message/
+event projections. Its acknowledgement existed before the report checkpoint;
+the alleged ordering gap is withdrawn. The original receipt is retained in the
+new split run's evidence. A terminal submission alone remains insufficient.
+Launch, delivery, application and completion are separate evidence claims.
 
 The remaining limits are explicit: 364 differing non-merges and all 311 differing
 merges need whole-commit semantic closure; 24 combined merge diffs and additional
@@ -341,6 +342,22 @@ build/test/binary/sanitizer/install/benchmark/hang harness or Jenkins trigger ra
 No push, PR, main merge, tag, fetch or publication occurred. Only doc consistency,
 exact Git/source reads, evidence hashing and `git diff --check` are permitted here.
 The report and ledger can be committed while the full audit honestly remains open.
+
+## Later parallel split of unfinished work
+
+After the snapshot above, the user authorized splitting only unfinished work and
+Luna low for straightforward comparisons. Runtime R4 released exactly 16 still
+unreviewed adapter/test followup hashes, outside both its reviewed rows and active
+batch, and issued a correlated durable acknowledgement. New interactive external
+run `CBM-RECON-ADAPTER-LOW-20261003`, worker `luna-adapter-low`, is observed working
+in Herdr `wC:pE` with Luna low. It has a separately indexed clean exact-QA worktree
+and TypeSafe credentials sourced silently in the actual launch shell. No finished
+comparison was reassigned. Runtime retains 154 hashes; the effective ownership
+crosswalk still accounts for all 367 differing non-merges once. Exact source and
+hash comparisons use Git/CBM; bounded semantic comparison may use proper Jev
+requests, with complete primary payloads/distributions and decision-use notes.
+This launch changes ownership, not verification/acceptance or the frozen inventory.
+The original checkpoint tables remain dated snapshots rather than live counts.
 
 ## Appendix: non-unresolved auditor checkpoint claims
 
