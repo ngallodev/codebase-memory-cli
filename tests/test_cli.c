@@ -4297,7 +4297,7 @@ TEST(cli_cline_data_dir_only_redirects_data_state) {
     }
     free(plan);
 
-    int install_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-mcp", false, false);
+    int install_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-cli", false, false);
     struct stat state;
     const char *const instruction_terms[] = {"Codebase Memory", "codebase-memory-cli search",
                                              "codebase-memory-cli trace"};
@@ -4474,7 +4474,7 @@ TEST(cli_junie_current_durable_context_contract) {
     yyjson_doc_free(plan_doc);
     free(plan);
 
-    int first_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-mcp", false, false);
+    int first_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-cli", false, false);
     char *skill_once = read_test_file_alloc(skill_path);
     char *agent_after_install = read_test_file_alloc(agent_path);
     char *settings_after_install = read_test_file_alloc(settings_path);
@@ -4488,7 +4488,7 @@ TEST(cli_junie_current_durable_context_contract) {
     free(agent_after_install);
     free(settings_after_install);
 
-    int second_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-mcp", false, false);
+    int second_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-cli", false, false);
     char *skill_twice = read_test_file_alloc(skill_path);
     bool idempotent =
         second_rc == 0 && skill_once && skill_twice && strcmp(skill_once, skill_twice) == 0;
@@ -4506,7 +4506,7 @@ TEST(cli_junie_current_durable_context_contract) {
     free(agent_after_uninstall);
     free(settings_after_uninstall);
 
-    int reinstall_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-mcp", false, false);
+    int reinstall_rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-cli", false, false);
     const char *modified_skill = "---\nname: codebase-memory\n---\nUser-owned Junie skill.\n";
     write_test_file(skill_path, modified_skill);
     int modified_uninstall_rc = cli_test_cmd_uninstall(2, argv);
@@ -8447,7 +8447,7 @@ TEST(cli_upgrade_migrates_released_claude_hook_scripts) {
     cbm_setenv("PATH", tmpdir, 1);
     cbm_unsetenv("CLAUDE_CONFIG_DIR");
     cbm_unsetenv("CODEX_HOME");
-    int rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-mcp", false, false);
+    int rc = cbm_install_agent_configs(tmpdir, "/opt/codebase-memory-cli", false, false);
 
     char *gate = read_test_file_alloc(gate_path);
     char *session = read_test_file_alloc(session_path);
