@@ -218,8 +218,9 @@ TEST(subprocess_spawn_backoff_resumes_after_eintr) {
         .it_interval = {.tv_sec = 0, .tv_usec = 1000},
         .it_value = {.tv_sec = 0, .tv_usec = 1000},
     };
+    struct itimerval previous_timer = {0};
     g_spawn_backoff_alarm_count = 0;
-    bool timer_started = handler_installed && setitimer(ITIMER_REAL, &timer, NULL) == 0;
+    bool timer_started = handler_installed && setitimer(ITIMER_REAL, &timer, &previous_timer) == 0;
 
     uint64_t started_at = cbm_now_ms();
     cbm_subprocess_force_spawn_eagain_for_testing(3);
@@ -227,12 +228,17 @@ TEST(subprocess_spawn_backoff_resumes_after_eintr) {
     uint64_t elapsed_ms = cbm_now_ms() - started_at;
 
     struct itimerval disabled = {0};
-    (void)setitimer(ITIMER_REAL, &disabled, NULL);
+    if (timer_started) {
+        (void)setitimer(ITIMER_REAL, &disabled, NULL);
+    }
     if (handler_installed) {
         (void)sigaction(SIGALRM, &previous_action, NULL);
     }
 
+    bool timer_restored = !timer_started || setitimer(ITIMER_REAL, &previous_timer, NULL) == 0;
+
     ASSERT_TRUE(handler_installed);
+    ASSERT_TRUE(timer_restored);
     ASSERT_TRUE(timer_started);
     ASSERT_TRUE(g_spawn_backoff_alarm_count > 0);
     ASSERT_TRUE(elapsed_ms >= 50);
