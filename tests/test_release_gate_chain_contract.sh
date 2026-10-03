@@ -28,7 +28,7 @@ SOAK_WF="$ROOT/.github/workflows/_soak.yml"
 [ -f "$DRY_WF" ] || { echo "FAIL: $DRY_WF not found" >&2; exit 2; }
 [ -f "$SOAK_WF" ] || { echo "FAIL: $SOAK_WF not found" >&2; exit 2; }
 
-python3 - "$WF" "$BUILD_WF" "$DRY_WF" "$SOAK_WF" <<'PY'
+python3 - "$WF" "$BUILD_WF" "$DRY_WF" "$SOAK_WF" "$BASH" <<'PY'
 import os
 import subprocess
 import pathlib
@@ -417,7 +417,7 @@ if validation.is_file():
         ("linux", "v0.12.0-rc.1", "false", "true", "true", False),
     ):
         result = subprocess.run(
-            ["bash", validation.as_posix()], capture_output=True, text=True,
+            [sys.argv[5], validation.as_posix()], capture_output=True, text=True,
             env={**os.environ, "PLATFORMS": platforms, "VERSION": version,
                  "HOLD": hold, "REGISTRIES": registries, "PRERELEASE_PUBLISH": prerelease})
         if (result.returncode == 0) != accepted:
