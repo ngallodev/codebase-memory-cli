@@ -2083,3 +2083,19 @@ index generation2026-10-03T01:07:59Z,26764nodes/129401edges,91 partial files.
 Fresh status/root/coverage generation and unchanged clean Git baseline verified.
 No shared daemon/cache changes. Launch does not establish source closure,
 runtime validation, review or acceptance; detailed checkpoints are required.
+
+### DeepSeek pilot continuation recovery — 2026-10-03 UTC
+
+User switched old pilot pane `wC:pJ` to DeepSeek Flash and requested execution
+help. Transcript showed `unsupported call: exec`: JSON function calls replayed
+Luna's old executor format. Direct `exec_command` with `pwd` succeeded after
+corrective guidance; no permission change was needed. Prepared external successor
+`CBM-RECON-DEEPSEEK-PILOT20-CONTINUE-20261003` preserves finalized partial
+predecessor and owns the same20 still-unverified pilot hashes, disjoint from Luna
+medium20. Exact clean frozen source and full ready graph generation reverified;
+live worker Jev credential inheritance confirmed without values. New evidence
+must remain in successor run; prior evidence is immutable. Renamed pane/worker
+`codex - deepseek-pilot20-continue`, durably steered and resumed with mandatory
+acknowledgement. Recovery receipts/prompt at
+`/home/nate/.local/state/agent-workflow/handoffs/CBM-DEEPSEEK-PILOT20-CONTINUE-20261003/`.
+No source closure, Jenkins, review or acceptance credited from recovery.

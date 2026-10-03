@@ -213,3 +213,7 @@ completion/acceptance or semantic-closure counter advanced.
 - [ ] Diagnose generic full-index pipeline failure for clean frozen worktree
  `/tmp/cbm-recon-luna-medium20-20261003`; logs preserved in medium20 staging.
  Worker safely uses verified existing runtime graph; no daemon changes made.
+
+- [ ] Review resumed pilot20 evidence from successor
+ `CBM-RECON-DEEPSEEK-PILOT20-CONTINUE-20261003`; direct shell execution recovered.
+ All20 remain unverified pending full source evidence and parent review.
