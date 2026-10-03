@@ -359,6 +359,25 @@ requests, with complete primary payloads/distributions and decision-use notes.
 This launch changes ownership, not verification/acceptance or the frozen inventory.
 The original checkpoint tables remain dated snapshots rather than live counts.
 
+## Phase1 handoff to three DeepSeek Flash workers
+
+The user selected runtime Luna's remaining unreviewed scope for three parallel
+DeepSeek Flash workers. Runtime released106 unfinished hashes with a correlated
+acknowledgement; the superseded unstarted low2 batch contributes9 more. Phase1's
+115 hashes are assigned without overlap to runtime39, operations26, integration50,
+keeping original followup groups intact. Completed comparisons are excluded.
+The first low batch's corrected source review is finalized partial: all16 inspected,
+8 shared-semantic mappings unresolved, original Jev payload unrecoverable. Its full
+handoff/hash checks are preserved and pane closed; this is not acceptance.
+
+[The canonical Phase1 plan](UPSTREAM_308_CANDIDATE_AUDIT_20260912.md#phase1-plan-three-disjoint-deepseek-flash-workers--2026-10-03-utc)
+owns current plan/status. Exact machine assignments/effective ownership and launch/
+index receipts remain in the three run evidence roots. Native workspace subagents
+use isolated frozen worktrees; they are not Herdr terminal agents. Each must retain
+full source comparisons, bounded primary-evidence Jev calls and resumable batch
+checkpoints. No result is yet represented as complete or accepted. The original
+capture tables remain dated evidence, not silently refreshed progress counters.
+
 ## Appendix: non-unresolved auditor checkpoint claims
 
 This is a source-finding snapshot, not another task ledger. It makes the collected

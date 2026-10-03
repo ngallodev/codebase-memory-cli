@@ -60,6 +60,11 @@
   Original runtime retains 154 assigned hashes; all 367 hashes still have one
   effective primary owner. The transfer, acknowledgement, index and launch
   receipts are in the new run's evidence. Completed work was not reassigned.
+  Phase1 successor plan now transfers 115 still-unreviewed runtime hashes to
+  three native DeepSeek Flash workers (39/26/50 disjoint groups), preserving the
+  exact releases and completed work. Unstarted low2 was retired; corrected low1
+  finished partial with detailed handoff and its pane closed. See the canonical
+  Phase1 plan; no worker result/acceptance is inferred from launch.
 - [ ] Review additional bounded missing behaviors: malformed confidence parsing
   `62b44519c68b403ea44d9a85ba8ee74cddee66e6` (first additional localized candidate),
   route handler position `592894a4387a50e1d128ff6a2695ff48f8cc32a5`, late annotation

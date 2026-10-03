@@ -75,6 +75,68 @@ receipt. A correlated worker acknowledgement already existed before the report
 checkpoint. That alleged ordering gap is withdrawn; the exact receipt is preserved
 in new run evidence, with all sealed predecessor artifacts unchanged.
 
+### Phase1 plan: three disjoint DeepSeek Flash workers — 2026-10-03 UTC
+
+The user chose runtime Luna's **remaining unreviewed commits**, explicitly requesting
+three DeepSeek Flash agents and Jev decision assistance. Source runtime R4 released
+106 unfinished hashes with a correlated worker-issued acknowledgement; nine more
+were already released to an unstarted second low run. That second low preparation
+was retired, its prompt/index/evidence preserved. First-low's 16 source-reviewed
+hashes and all completed runtime/extraction/history comparisons are excluded.
+The first low worker's corrected 16-row source review finalized **partial** with
+8 unresolved shared-semantic mappings and an unrecoverable original Jev request;
+its manifest/reference checks passed, full handoff was preserved, and its user-created
+Herdr pane `wC:pE` was closed. Closure is not acceptance or semantic completeness.
+
+**Phase1 objective:** inspect every whole diff/hunk in the 115-hash released scope,
+compare exact upstream and all three frozen CLI targets, record upstream fate,
+source-backed applicability/representation/grouping and every full-hash remainder.
+No code implementation, local builds/tests, Jenkins triggering, review, acceptance
+or production integration is included. Phase1 cannot be called complete while a
+required source comparison or evidence path remains unreviewed.
+
+| Disjoint piece | Durable run / native task | Hashes | Evidence focus |
+|---|---|---:|---|
+| Runtime/process/resources | `CBM-RECON-DEEPSEEK-RUNTIME-PHASE1-20261003` / `deepseek_runtime_phase1` | 39 | Daemon, foundation, watcher, resource/locking/cancellation semantics |
+| Operations/pipeline/query | `CBM-RECON-DEEPSEEK-OPS-PHASE1-20261003` / `deepseek_ops_phase1` | 26 | Neutral operations, graph/store/pipeline/query behavior |
+| CLI/build/adapter/integration | `CBM-RECON-DEEPSEEK-INTEGRATION-PHASE1-20261003` / `deepseek_integration_phase1` | 50 | CLI/config/build/output seams and precise adapter/test exclusions |
+
+Exact assignments are `evidence/assignment.jsonl` in each run. Their union is
+exactly 115 unique full hashes, intersections empty, and each existing prerequisite/
+followup primary group stays intact. Provisional broad containers still require
+source-backed splitting by behavior within their owner; grouping is not equivalence.
+The phase plan and effective 367-hash ownership crosswalk remain run evidence,
+not another canonical backlog. Worker source scopes are exclusive; non-owned
+prerequisites may be consulted only as context. Parent alone reconciles conclusions.
+
+All three were prepared before native `agents.spawn_agent(model=deepseek-flash)`
+execution and bound to external runtime `native-agent-api`. They are workspace
+subagents, **not Herdr terminal processes**. A task-scoped fail-closed local adapter
+only satisfies Agent-Workflow executable validation; it is not executed and does
+not emulate a DeepSeek CLI. Shared runtime configuration was unchanged. Each has
+an isolated clean exact `559214af` worktree and a verified full nonpersistent index:
+runtime reuses the unchanged retired-low worktree generation `2026-10-03T01:07:59Z`;
+ops generation `2026-10-03T01:27:07Z`; integration `2026-10-03T01:27:06Z`.
+Each ready root has 26,764 nodes, 91 partial files and explicit source fallback
+for vendored/MCP gaps; full current receipt/pagination/porcelain evidence is retained.
+
+Execution sequence: each worker writes launch acknowledgement, reads its exact
+assignment, reviews dependency batches of 5–10 with CBM discovery/snippets/traces/
+coverage plus Git whole-diff/frozen-source reads, then persists dispositions,
+working evidence links and checksum manifest. Genuine semantic alternatives use
+proper Jev helper calls with verbatim primary evidence, saved actual requests,
+full distributions/model and advice-use notes; authorized TypeSafe env is sourced
+silently in the helper-launch environment and destination verified. Counts, exact
+lookups/text equality and lifecycle gates stay deterministic.
+
+At every stopping point each worker must save `checkpoint.json` and `HANDOFF.md`
+with all exact done/remaining/partial hashes, target/hunk evidence, graph generation
+and pagination/fallback state, Jev request/result gaps, ownership/dependencies,
+commands actually executed, next commands and real stopping reason. Successors
+continue from the first unreviewed item under new prepared authority. Worker finish,
+external exit, independent review, Jenkins validation and acceptance stay separate.
+This is a launch/plan record; no DeepSeek result completeness is inferred.
+
 ## Frozen merge and source audit — 2026-10-02, Sol R2
 
 This section supersedes historical queue, exclusion, fetch and completion claims
