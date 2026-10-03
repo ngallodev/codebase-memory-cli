@@ -434,11 +434,12 @@ owns `merge-crosswalk.jsonl`, `nonmerge-crosswalk.jsonl`,
 `target-source-excerpts.md`, graph receipts and `current-qa-delta.json`.
 These are evidence crosswalks, not a second canonical task ledger.
 
-Of 367 differing non-merges, 288 have no target semantic review, 37 only have
-adapter-import/path/hunk triage with neutral parity unresolved, 39 have bounded
-source/dependency dispositions, and three are verified empty tree changes.
+Of 367 differing non-merges, 288 have no target semantic review, 21 only have
+adapter-import/path/hunk triage with neutral parity unresolved, 47 have bounded
+source/dependency dispositions, eight are adapter-only rows closed with exact
+hunk reasons, and three are verified empty tree changes.
 Even a bounded represented behavior is not exhaustive whole-commit verification:
-364 non-merge rows and all 311 merge rows retain explicit full-hash semantic
+356 non-merge rows and all 311 merge rows retain explicit full-hash semantic
 remainders in `unresolved-dispositions.tsv`. All 24 nonempty combined merge diffs
 are retained for resolution review. The five-slice shortlist is therefore useful
 implementation guidance, not proof the rest is lower value or processed.
@@ -1082,6 +1083,42 @@ in `CBM-UPSTREAM-CONSOLIDATE-20261002` evidence. The dated
 [synthesis report](UPSTREAM_RECONCILIATION_REPORT_20261002.md) explains this snapshot;
 this ledger and `BACKLOG.md` retain task authority.
 
+### Adapter-only source-reviewed batch — 2026-10-03 UTC
+
+`CBM-RECON-ADAPTER-LOW-20261003` source-reviewed the 16 previously unreviewed
+runtime hashes identified below as adapter-only. That run released the exact
+set from `CBM-RECON-RUNTIME-20261002-R4` with a worker-issued acknowledgement;
+`CBM-UPSTREAM-CONSOLIDATE-20261002` then verified the run's 67-file hash manifest,
+confirmed all 16 are single-parent non-merge commits reachable from the frozen
+upstream tip and absent from production, original-QA and later-QA ancestry, and
+confirmed every changed path is `src/mcp/**` or `tests/test_mcp.c`. The `src/mcp`
+subtree exists in upstream with seven files and is absent from all three CLI
+trees and from this audit worktree. The 16 hashes are disjoint from the 115
+hashes handed to the three DeepSeek Phase1 workers, and the plan excludes exactly
+this set, so primary ownership stays unique (111 extract / 86 history / 39
+runtime / 39 runtime-Phase1 / 26 ops-Phase1 / 50 integration-Phase1 / 16 here).
+
+Eight hashes close as adapter-only because every changed hunk is MCP request
+routing, an adapter response envelope, an adapter-local comparator or allocator,
+or an adapter test with no CLI target: `e65bc6b7`, `eeff3f19`, `96a2fc35`,
+`60449f89`, `629e9c2c`, `b7bcb15c`, `b94afb44`, `364dd6a9`. The earlier
+"represented" reading of `629e9c2c` was withdrawn: no shared nullable-ordering
+behavior exists in the CLI target.
+
+Eight hashes stay open with bounded remainders because the shared portion cannot
+be closed from source alone: `b5f10c22`, `73c509f4`, `357d71e1`, `87471e1f`,
+`fe3c285f`, `155d147e`, `1f0daaa9`, `e548d971`. `e548d971` keeps its adapter
+leak hunk excluded while its shared zero-row allocation-ownership contract is
+represented by exact target APIs; the absent MCP fallback caller leaves
+applicability unresolved. Exact hunk, group and remainder text per hash is in
+that run's `dispositions.jsonl` and `HANDOFF.md`; the consolidation checkpoint is
+`evidence/adapter-low-batch-consolidation.json`.
+
+The conservative whole-commit non-merge remainder therefore drops from 364 to
+356. This is a bounded source finding only: parent whole-hunk review, acceptance,
+implementation, runtime/tests/Jenkins validation and integration are all still
+unestablished for these rows.
+
 ### All 367 differing non-merge commits
 
 `Open` means the whole-commit semantic remainder is explicit even where a bounded
@@ -1269,8 +1306,8 @@ the frozen upstream tip and absent from original frozen QA ancestry.
 | `8c2692c1ee32284c813c05746e833dea5dfedfe0` | semantic_unresolved; native-merge:8d1f4b4c5e574fcf39c3d974149ee96f407ea8f5 | unresolved | Open |
 | `3507d9555d73aa746cde23139588081c6c02d2e2` | semantic_unresolved; native-merge:9c6f45bda7a420a4275b911034e18b51396834d7 | unresolved; no retry semantic review yet | Open |
 | `262ab01217312938728d7176f587e45adca16f01` | semantic_unresolved; native-merge:9c6f45bda7a420a4275b911034e18b51396834d7 | unresolved; no retry semantic review yet | Open |
-| `e65bc6b71e32d20aeafb42c00b6097a0e2ded2c0` | direct_adapter_import_excluded_parity_unresolved; native-merge:9c6f45bda7a420a4275b911034e18b51396834d7 | unresolved; no retry semantic review yet | Open |
-| `eeff3f19ff97d60af4f34298aa38a652fe0705b2` | direct_adapter_import_excluded_parity_unresolved; native-merge:9c6f45bda7a420a4275b911034e18b51396834d7 | unresolved; no retry semantic review yet | Open |
+| `e65bc6b71e32d20aeafb42c00b6097a0e2ded2c0` | adapter_only_excluded_source_reviewed; native-merge:9c6f45bda7a420a4275b911034e18b51396834d7 | source-reviewed: adapter-only, no CLI target | Closed — adapter-only (exact hunk reason in ADAPTER-LOW evidence) |
+| `eeff3f19ff97d60af4f34298aa38a652fe0705b2` | adapter_only_excluded_source_reviewed; native-merge:9c6f45bda7a420a4275b911034e18b51396834d7 | source-reviewed: adapter-only, no CLI target | Closed — adapter-only (exact hunk reason in ADAPTER-LOW evidence) |
 | `1ad52f5fb1b3d96255756de01ce30912b1899e09` | semantic_unresolved; native-merge:93486bca2257d051f57340efda54dee6dbb7e0ed | unresolved | Open |
 | `09c0e88a6484c5fb696d7fc7b5a5e3f32b8cba68` | semantic_unresolved; native-merge:0b51555402aa6aea9e5fd93d9ed53136dec4c6e8 | unresolved | Open |
 | `469c3dd996f23cdb629f1bbd6a751bc0f29a99f2` | semantic_unresolved; native-merge:339b3f4097aa6ede22fc382ab7fd320d93c498b8 | unresolved; no retry semantic review yet | Open |
@@ -1280,7 +1317,7 @@ the frozen upstream tip and absent from original frozen QA ancestry.
 | `ac8f5b8a8137f15e95478be71ee6742e928ba5bc` | semantic_unresolved; native-merge:339b3f4097aa6ede22fc382ab7fd320d93c498b8 | unresolved | Open |
 | `da3258f3c7e4bdad6ec23f9ba194729364bb1254` | semantic_unresolved; memory-core-budget-spill | unresolved | Open |
 | `7fedfe85c63446d3695b75d463a9b8767655730f` | semantic_unresolved; memory-core-budget-spill | unresolved | Open |
-| `b5f10c2214f7b4d34e71187214d51d4cfa7ba759` | direct_adapter_import_excluded_parity_unresolved; native-merge:2058d49a04b785315c9f5bb56b6e2365822b576b | unresolved; no retry semantic review yet | Open |
+| `b5f10c2214f7b4d34e71187214d51d4cfa7ba759` | shared_semantics_bounded_source_reviewed; native-merge:2058d49a04b785315c9f5bb56b6e2365822b576b | source-reviewed partial: index-over-budget-reporting | Open — shared semantics pending exact CLI consumer/contract mapping |
 | `7b77fd4834afe355cc4c7326ac3a55f0502f7264` | semantic_unresolved; memory-core-budget-spill | unresolved | Open |
 | `a2f29b3fe73927d547fed0fe2e0f20d4738ad7c2` | semantic_unresolved; memory-core-budget-spill | unresolved | Open |
 | `9724d903046626df0640ced218259cb58070e4e8` | semantic_unresolved; memory-core-budget-spill | unresolved; no retry semantic review yet | Open |
@@ -1315,7 +1352,7 @@ the frozen upstream tip and absent from original frozen QA ancestry.
 | `823e720982e1bce047a9243bd9b24d9688dadb72` | semantic_unresolved; native-merge:5aeebbac683b4dc6772c0a919f2f1cdd51674bd1 | unresolved | Open |
 | `3d9a6cf5cb7fd39c6b5fb4dfa43011aa70f736ea` | semantic_unresolved; native-merge:d6082f2025d8f91366ec7a1fc8ddd427c8e9fa56 | unresolved | Open |
 | `455e4fb42acfd18170695ad8b3d2c47d8239c7a5` | semantic_unresolved; native-merge:f347d59650acad3513d8b3a1d5993054e805c122 | unresolved | Open |
-| `96a2fc35dfcf14662cee491430366f4e8d8b8149` | direct_adapter_import_excluded_parity_unresolved; native-merge:36f770842af8aa615e6c01e403643f6df62e7fbc | unresolved; no retry semantic review yet | Open |
+| `96a2fc35dfcf14662cee491430366f4e8d8b8149` | adapter_only_excluded_source_reviewed; native-merge:36f770842af8aa615e6c01e403643f6df62e7fbc | source-reviewed: adapter-only, no CLI target | Closed — adapter-only (exact hunk reason in ADAPTER-LOW evidence) |
 | `00411ce7bc41995783bfb16aada673515585446d` | semantic_unresolved; native-merge:5b4be65b75cc701128b528eedf1120a7f5805842 | unresolved; no retry semantic review yet | Open |
 | `581f0c74006beb3edd28babbebeda7e48b3fa1d6` | semantic_unresolved; native-merge:5b4be65b75cc701128b528eedf1120a7f5805842 | unresolved; no retry semantic review yet | Open |
 | `3b7f2559213ee80f5cfe0e2329c418211e09749e` | semantic_unresolved; native-merge:5b4be65b75cc701128b528eedf1120a7f5805842 | unresolved; no retry semantic review yet | Open |
@@ -1395,9 +1432,9 @@ the frozen upstream tip and absent from original frozen QA ancestry.
 | `fa2292111802b5f3b66db3e4dd168280b53ac17e` | mixed_shared_scope_unresolved; artifact-export-attribution | unresolved | Open |
 | `7707c9d7918263cd446a4b54d4eb48c3fea91048` | represented_source_only; ast-walker-growth | unresolved | Open |
 | `99c3bb4cbe4c0f9542bf722d29cbb5dd01397455` | represented_source_only; store-count-errors | unresolved; no retry semantic review yet | Open |
-| `73c509f4246b0f97ca772b6d9a3159181a7fa6b6` | direct_adapter_import_excluded_parity_unresolved; native-merge:5621a1c9c47fd4b9446cc88a9c6e13f503e42a44 | unresolved; no retry semantic review yet | Open |
-| `60449f895dbaedb4e74c4f155a8e214d78486e12` | direct_adapter_import_excluded_parity_unresolved; native-merge:5621a1c9c47fd4b9446cc88a9c6e13f503e42a44 | unresolved; no retry semantic review yet | Open |
-| `629e9c2c1f87e2ac8b5d644d38ff4e935928752a` | direct_adapter_import_excluded_parity_unresolved; native-merge:2b34ebcbf137101dbb6433c699d262a076f3b105 | unresolved; no retry semantic review yet | Open |
+| `73c509f4246b0f97ca772b6d9a3159181a7fa6b6` | shared_semantics_bounded_source_reviewed; native-merge:5621a1c9c47fd4b9446cc88a9c6e13f503e42a44 | source-reviewed partial: unreadable-count-status | Open — shared semantics pending exact CLI consumer/contract mapping |
+| `60449f895dbaedb4e74c4f155a8e214d78486e12` | adapter_only_excluded_source_reviewed; native-merge:5621a1c9c47fd4b9446cc88a9c6e13f503e42a44 | source-reviewed: adapter-only, no CLI target | Closed — adapter-only (exact hunk reason in ADAPTER-LOW evidence) |
+| `629e9c2c1f87e2ac8b5d644d38ff4e935928752a` | adapter_only_excluded_source_reviewed; native-merge:2b34ebcbf137101dbb6433c699d262a076f3b105 | source-reviewed: adapter-only, no CLI target | Closed — adapter-only (exact hunk reason in ADAPTER-LOW evidence) |
 | `8f3c15044b8200a15ee1895c5127f4bf117da493` | semantic_unresolved; native-merge:69fb951cd0c7f38808fc2b8b89bf3a9a4c5dc417 | unresolved; no retry semantic review yet | Open |
 | `e171bd48b5e5845ec6f00db65ff300caac4f7304` | semantic_unresolved; native-merge:69fb951cd0c7f38808fc2b8b89bf3a9a4c5dc417 | unresolved; no retry semantic review yet | Open |
 | `c8184ed94887a6b5e130726885b44a07c63a47b7` | candidate_not_represented; ancestor-ignore-chain | unresolved | Open |
@@ -1405,7 +1442,7 @@ the frozen upstream tip and absent from original frozen QA ancestry.
 | `f339aa625ffd71b936fe386250858e281e5b87ff` | semantic_unresolved; python-complete-binding-lookup | unresolved; no retry semantic review yet | Open |
 | `df8dd1011bd1987d0ca5a45f324775aad2411f54` | semantic_unresolved; python-complete-binding-lookup | unresolved; no retry semantic review yet | Open |
 | `6d508350c7713e10e0e935625ad74d8401fe89e2` | semantic_unresolved; native-merge:aa53278b29b5abd32e4c326fafa68db7495c555f | unresolved | Open |
-| `b7bcb15c219761f27ff146063a50481303527563` | direct_adapter_import_excluded_parity_unresolved; native-merge:aa53278b29b5abd32e4c326fafa68db7495c555f | unresolved; no retry semantic review yet | Open |
+| `b7bcb15c219761f27ff146063a50481303527563` | adapter_only_excluded_source_reviewed; native-merge:aa53278b29b5abd32e4c326fafa68db7495c555f | source-reviewed: adapter-only, no CLI target | Closed — adapter-only (exact hunk reason in ADAPTER-LOW evidence) |
 | `3faecc78144175a81acf76721c4f695cf80b5676` | semantic_unresolved; native-merge:2bed1c8c4a5590c0ed1239f934101a81791bcffe | unresolved | Open |
 | `c6ccdd9395dbbafc6f66a49040b478b445387946` | semantic_unresolved; native-merge:f5ecb5f739c7c9d5bb7de209553e3bfa9fd1041c | unresolved | Open |
 | `19f50de3d2e2bdea5f9054caf07af70f46d74244` | semantic_unresolved; native-merge:e9a3d18fbdf4e4f91f06561dcc45606aab838359 | unresolved; no retry semantic review yet | Open |
@@ -1414,8 +1451,8 @@ the frozen upstream tip and absent from original frozen QA ancestry.
 | `e7324bb6904c6d0a295b956e83c8585219198358` | candidate_not_represented; sqlite-interior-pages | unresolved; no retry semantic review yet | Open |
 | `a0c71225f7c0c5e4bee36ef235f966866abffb24` | semantic_unresolved; native-merge:7821a1babbdc29dd73e114a98b7f0a1a80cdb336 | unresolved | Open |
 | `6b7628bb6bbf041a8bdf069dd9d6bc8861d84e73` | semantic_unresolved; native-merge:7821a1babbdc29dd73e114a98b7f0a1a80cdb336 | unresolved | Open |
-| `357d71e198ae3cd4614b9e06e54957423291e5c4` | direct_adapter_import_excluded_parity_unresolved; native-merge:e2f9fcc399e431288ad9ff0f00a8aac2560a81a8 | unresolved; no retry semantic review yet | Open |
-| `87471e1f1d6a01ca8be6ca45b968145d0de95362` | direct_adapter_import_excluded_parity_unresolved; native-merge:e2f9fcc399e431288ad9ff0f00a8aac2560a81a8 | unresolved; no retry semantic review yet | Open |
+| `357d71e198ae3cd4614b9e06e54957423291e5c4` | shared_semantics_bounded_source_reviewed; native-merge:e2f9fcc399e431288ad9ff0f00a8aac2560a81a8 | source-reviewed partial: detect-changes-project-relative-path | Open — shared semantics pending exact CLI consumer/contract mapping |
+| `87471e1f1d6a01ca8be6ca45b968145d0de95362` | shared_semantics_bounded_source_reviewed; native-merge:e2f9fcc399e431288ad9ff0f00a8aac2560a81a8 | source-reviewed partial: detect-changes-project-relative-path | Open — shared semantics pending exact CLI consumer/contract mapping |
 | `b9ad9ed1449540e06e9f814ded548d9f2bf52f49` | semantic_unresolved; axios-client-base-url | unresolved | Open |
 | `1d5ff68e508e78b149589396d547166ad41362e0` | semantic_unresolved; axios-client-base-url | unresolved | Open |
 | `793e0b6127db3c8333b1dc29faf0b35167e3ceda` | semantic_unresolved; native-merge:78795ad76a5a1fbd16ce50145da05988ef3b7590 | unresolved | Open |
@@ -1432,7 +1469,7 @@ the frozen upstream tip and absent from original frozen QA ancestry.
 | `26cbccd998819c428589156a82e167db061522ae` | semantic_unresolved; memory-core-budget-spill | unresolved | Open |
 | `78a2ec399fec3dc28e61439a4bcd900b7c64c23f` | semantic_unresolved; memory-core-budget-spill | unresolved | Open |
 | `95eaf01755d18c501fa8d1c5dae2255cf460b9a2` | semantic_unresolved; native-merge:39da5de00cce7ceb327acb2d41ee1da521f6a9ba | unresolved | Open |
-| `fe3c285fdc63bd9abe027026edd7adffe5f62677` | direct_adapter_import_excluded_parity_unresolved; native-merge:083bc99d806b68f3837b4554ad27e4eb52d59369 | unresolved; no retry semantic review yet | Open |
+| `fe3c285fdc63bd9abe027026edd7adffe5f62677` | shared_semantics_bounded_source_reviewed; native-merge:083bc99d806b68f3837b4554ad27e4eb52d59369 | source-reviewed partial: read-only-tool-metadata | Open — shared semantics pending exact CLI consumer/contract mapping |
 | `460153204ba9833913e5245ca894f783c1d7229d` | integration_in_progress; internal-cache-stores | unresolved | Open |
 | `a1b7c05685e18597f3461783d4bc98661f05427d` | semantic_unresolved; memory-core-budget-spill | unresolved | Open |
 | `23d48336d3367fb27cbde54049b1414a2aea1b48` | semantic_unresolved; native-merge:218f0e5b78214ea9ce5753aef253c36cc67c71c4 | unresolved; no retry semantic review yet | Open |
@@ -1441,10 +1478,10 @@ the frozen upstream tip and absent from original frozen QA ancestry.
 | `0d783bcca4edde896d5716e8a4060c3100595973` | semantic_unresolved; test-runtime-isolation | unresolved | Open |
 | `ed76cf8e88cfb1f26c82110e46a518c13577f788` | integration_in_progress; daemon-cache-ownership | unresolved; no retry semantic review yet | Open |
 | `3f99b2ddd323a119a443eb4477cc762764a89207` | semantic_unresolved; native-merge:0be78a53a56e51506f0db3d0d6d9d0dbbccad621 | unresolved | Open |
-| `155d147e789913c1786debeeef6ff48f2c41470e` | direct_adapter_import_excluded_parity_unresolved; native-merge:3f0f49cd6caa84f68bae84a14151ff9ac0c18178 | unresolved; no retry semantic review yet | Open |
-| `b94afb44217f24d3764d1f50e4366619fd8ab1a4` | direct_adapter_import_excluded_parity_unresolved; native-merge:3f0f49cd6caa84f68bae84a14151ff9ac0c18178 | unresolved; no retry semantic review yet | Open |
-| `1f0daaa915251d44f5e41a0672f793203c6695dc` | direct_adapter_import_excluded_parity_unresolved; native-merge:3f0f49cd6caa84f68bae84a14151ff9ac0c18178 | unresolved; no retry semantic review yet | Open |
-| `364dd6a99b4323eda0fe6d0dec187bb8d586cfcb` | direct_adapter_import_excluded_parity_unresolved; native-merge:3f0f49cd6caa84f68bae84a14151ff9ac0c18178 | unresolved; no retry semantic review yet | Open |
+| `155d147e789913c1786debeeef6ff48f2c41470e` | shared_semantics_bounded_source_reviewed; native-merge:3f0f49cd6caa84f68bae84a14151ff9ac0c18178 | source-reviewed partial: unnamed-root-owner | Open — shared semantics pending exact CLI consumer/contract mapping |
+| `b94afb44217f24d3764d1f50e4366619fd8ab1a4` | adapter_only_excluded_source_reviewed; native-merge:3f0f49cd6caa84f68bae84a14151ff9ac0c18178 | source-reviewed: adapter-only, no CLI target | Closed — adapter-only (exact hunk reason in ADAPTER-LOW evidence) |
+| `1f0daaa915251d44f5e41a0672f793203c6695dc` | shared_semantics_bounded_source_reviewed; native-merge:3f0f49cd6caa84f68bae84a14151ff9ac0c18178 | source-reviewed partial: unnamed-root-owner | Open — shared semantics pending exact CLI consumer/contract mapping |
+| `364dd6a99b4323eda0fe6d0dec187bb8d586cfcb` | adapter_only_excluded_source_reviewed; native-merge:3f0f49cd6caa84f68bae84a14151ff9ac0c18178 | source-reviewed: adapter-only, no CLI target | Closed — adapter-only (exact hunk reason in ADAPTER-LOW evidence) |
 | `41b1aeacfe128ccc9987fdb8f71c8bf1abf55678` | semantic_unresolved; native-merge:3f0f49cd6caa84f68bae84a14151ff9ac0c18178 | unresolved; no retry semantic review yet | Open |
 | `39847957699ee56900cf62f6e9336c06989e49e3` | candidate_not_represented; ts-imported-class-receivers | unresolved | Open |
 | `2fabaa2b877986bdededb4f4f78e9a31014c6fdf` | candidate_not_represented; cypher-optional-rel-buffer | unresolved | Open |
@@ -1456,7 +1493,7 @@ the frozen upstream tip and absent from original frozen QA ancestry.
 | `c86be38954cf8b01a0d6211cb0f48ee6e48ca8d8` | semantic_unresolved; native-merge:7d4a12cb0af73f33b012f9f8e887853d1cfe0142 | unresolved | Open |
 | `5acd91a39e548c94fa4546684998b543b844c1a7` | candidate_not_represented; python-external-import-binding | unresolved | Open |
 | `492ae135575aeb7a9ff10c8ddbb987a389c54e27` | required_candidate_followup; python-external-import-binding | unresolved | Open |
-| `e548d971b3e471ca5a149201c39ba62ab1a72261` | direct_adapter_import_excluded_parity_unresolved; native-merge:fc70534e81453db793a7250c25e3411a58df166f | unresolved; no retry semantic review yet | Open |
+| `e548d971b3e471ca5a149201c39ba62ab1a72261` | shared_semantics_bounded_source_reviewed; native-merge:fc70534e81453db793a7250c25e3411a58df166f | source-reviewed partial: trace-path-qn-fallback-cleanup | Open — shared semantics pending exact CLI consumer/contract mapping |
 | `a45a99c9c73dd54a4625d680da700f7cb0387eff` | semantic_unresolved; native-merge:cb7d937638f77fb67aacc39444f6a6709d217d51 | unresolved | Open |
 | `cf72f1a657e64b7298946da015acba5e8a92dbe7` | semantic_unresolved; git-child-environment | unresolved | Open |
 

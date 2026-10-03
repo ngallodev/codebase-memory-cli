@@ -43,7 +43,7 @@
 - [ ] Complete semantic reconciliation of all frozen upstream merges and
   constituent commits. Sol R2 inventories all 923 merges / 2,429 non-merges;
   311 merges / 367 non-merges differ by ancestry. It reconciles the older 87
-  canonical rows, but 364 non-merge whole-commit remainders and all 311 merge
+  canonical rows, but 356 non-merge whole-commit remainders and all 311 merge
   dispositions remain unresolved. Census, patch ID and titles are not coverage.
   See [the canonical source audit](docs/UPSTREAM_308_CANDIDATE_AUDIT_20260912.md).
 - [ ] Finish independent reconciliation of the Luna team evidence. All R3
@@ -51,12 +51,18 @@
   were verified and archived. R4 successors continue interactively in Herdr
   `wC:pB` / `wC:pC` / `wC:pD`. The 2026-10-02T23:53Z checkpoint contains 54
   non-unresolved worker claims and 313 unresolved claims; no whole-commit coverage
-  or completion is inferred. Parent retains 364 whole non-merge / 311 merge
+  or completion is inferred. Parent retains 356 whole non-merge / 311 merge
   remainders pending exact source/test review. Full hashes are in the canonical
   ledger; the [consolidated report](docs/UPSTREAM_RECONCILIATION_REPORT_20261002.md)
   records provenance, source corrections, scope and validation limits.
-  Parallel split followup: `CBM-RECON-ADAPTER-LOW-20261003` runs Luna low in
-  Herdr `wC:pE` on 16 explicitly released, previously unreviewed runtime hashes.
+  Parallel split followup: `CBM-RECON-ADAPTER-LOW-20261003` ran Luna low in
+  Herdr `wC:pE` on 16 explicitly released, previously unreviewed runtime hashes;
+  all 16 were source-reviewed, 8 closing as adapter-only and 8 retaining
+  shared-semantic remainders. The consolidation auditor verified the run's
+  67-file manifest, confirmed every changed path is `src/mcp/**` or
+  `tests/test_mcp.c` (that subtree exists upstream and is absent from
+  production and both QA trees), and confirmed the 16 are upstream ancestors
+  absent from those three CLI trees.
   Original runtime retains 154 assigned hashes; all 367 hashes still have one
   effective primary owner. The transfer, acknowledgement, index and launch
   receipts are in the new run's evidence. Completed work was not reassigned.
