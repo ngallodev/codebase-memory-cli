@@ -235,3 +235,7 @@ completion/acceptance or semantic-closure counter advanced.
 - [ ] Complete ops20 followup-v3 per-hunk/frozen-ref verification. v2 integrity
  passes but18-done checkpoint conflicts with explicit remaining mappings; parent
  evidence/ops20-followup-v2-review/review.json owns exact hashes/gaps. No new closure.
+
+- [ ] Verify narrowed DeepSeek d4931241 Scala routing comparison before expanding
+ remaining17 ops reviews. v3 mapped wrong function and categorically excluded shared
+ extraction tests; exact defect in parent evidence/ops20-followup-v3-review/review.json.

@@ -595,3 +595,16 @@ and exact full-hash row gaps saved in run evidence/ops20-followup-v2-review/revi
 Durable steer79d95426-9418-4e7a-879e-7c78c0b2a40d asks DeepSeek to continue
 actual per-hunk/frozen-target verification in followup-v3, preserving originals.
 No implementation, runtime validation or acceptance credited.
+
+### Ops20 followup-v3 review — 2026-10-03 UTC
+
+Manifest129 entries passes. Worker now preserves18 partial obligations honestly;
+315-hunk mechanical inventory is discovery, not semantic closure. Zero new
+whole-commit dispositions verified. Concrete d4931241adaef732066afb5ebf1cb225e2474403
+mapping defect: function disposition cites extract_class_def while changed source
+hunk is in push_method_def; shared extraction test hunks require regression review,
+not generic MCP-only exclusion. Parent evidence/ops20-followup-v3-review/review.json
+retains exact18 remainders. Durable steer41c60a51-08a1-4efb-bbc5-7bce885b1856
+narrows continuation to that one commit’s three hunks, actual caller/dependency
+chain, frozen-target behavior and Scala fixture/registration. Other17 operations
+and18 runtime reviews remain pending. No runtime/acceptance credit.
