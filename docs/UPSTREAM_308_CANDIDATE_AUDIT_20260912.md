@@ -2391,3 +2391,61 @@ UPSTREAM_RECONCILIATION_REPORT_20261002.md consolidates the checkpoint. Full-has
 machine crosswalks remain run evidence, not a second repository ledger. DeepSeek
 pane wC:pJ remains idle/open; no new assignment sent in this checkpoint. No builds,
 tests, Jenkins triggers, implementation, push, main integration or acceptance.
+
+## Ten recorded merged/adapted tasks independently confirmed — 2026-10-03 UTC
+
+User selected ten historical completed/represented tasks for bounded verification,
+not ten outstanding-gap candidates. **10 selected,10 source-confirmed,0 remaining
+in this selected batch.** Current release-tooling target:
+`327dccc04d749892dddf19ca4dc62bf28a5131c8`; current local main also inspected
+at `ef623b598d1f355043595024b114bd90074e1d31`. Current refs are separate from
+frozen production/original/later QA comparisons. Five original local commits are
+ancestors of release-tooling; five adapted task implementations/tests survive via
+`bed05b9947bb10959cbf112b8051b80450145304` with different commit identities.
+
+| Recorded task | Full original local evidence commit | Confirmation |
+| --- | --- | --- |
+| Go selector/struct-field binding | `e497dd0c5fed0d95a9ea1a7e49b43e78ffc68a91` | Member-shape fields propagate to both resolver paths; genuine selectors bind fields while bare Go names are vetoed. Changed handle_usages policy call gains state argument without removing member bit. |
+| Daemon activation, UI refusal and Unicode roots | `6e289d5a31da737cf5aa542561c5a525ac727131` | Directory checks use cbm_path_info_utf8 instead of narrow stat; bare start tolerates refused UI with warning, explicit UI requests fail and do not open browser. Later JSON/status handling adds behavior without removing this branch. |
+| Cypher WITH/star scope and capacity | `a7721244856d114d2c42e49b07667c2f14acc67b` | WITH uses CYP_MAX_VARS bound while RETURN uses CBM_SZ_32; duplicate pattern variables projected once; RETURN * after WITH uses projected aliases. Relevant bodies match local post-image. |
+| Registry receiver-chain guard | `e52b31cdd2808204672de378ce7353b87bb4a504` | Uppercase type roots normalize :: and must match candidate parent segments; lowercase and bare roots retain lookup, all-caps underscore constants excepted. Both return paths call guard. |
+| Daemon cohort conflict handoff retry | `3036e1954ddbe08d749bc416b28aaaadfc4e53ad` | Conflicts retried until caller deadline with no guard retained between attempts; retry counter proves waiter actually met holder. Later ownership-aware mutation reservation changes another path, not the preserved acquire retry. Scope only this vertical, not entire24-file3036 commit. |
+| Windows YAML removal filesystem guards | `523d398d7c5ef570639de8e35624b1a1e613189c` | Original helper and both Windows guard test bodies preserved; both registered. Separate POSIX test evolved to refuse foreign-owned rather than every symlink, without removing these Windows cases. |
+| Version-cohort distinct-cache-root handoff | `01af5cb255608801158dfd29b5222e5c7afc8782` | Fixture helpers and both added test bodies preserved with suite registration; cross-cache quiescence and Windows canonical separator contract asserted. Native Windows qualification pending. |
+| Complexity traversal determinism | `43d3a2103f343a68e03674005aa3aa055127bc7d` | Entire production file identical to original adapted post-image. Canonical order includes QN,path,start/end,name,label; test signature retains duplicate-QN identity fields. |
+| Razor .razor/.cshtml discovery and routes | `5b1bc08538e132d9c9a43abfa37bb4be21c57caf` | Both suffixes mapped to C#; explicit @page absolute route stored on implicit Module as GET; route pass includes Module in label list. Modified functions and route pass file preserve post-image. |
+| Embedded Svelte/HTML/Astro script structure | `f8971e7a6ac81576c6b8823c35e10830723e6be0` | Entire production import/spec files identical to adapted post-image. Emits defs/imports/calls for active sibling hosts; rejects src/inert types; Astro TS grammar. Existing host-control assertions corrected0→1; string-literal split in added HTML fixture preserves contents. |
+
+Verification used original local changed hunks/post-images, exact current source,
+full relevant changed functions/callers and test bodies/registrations. Material
+CBM qualified snippets and both-direction traces completed pagination;27-path
+coverage and exact frozen/current source fallback retained. Go member bits reach
+both serial/parallel consumers; Cypher alias/dedup/capacity fixtures exist; all five
+receiver-chain controls registered; cohort retry counter prevents vacuous handoff
+proof. Windows YAML/cohort fixtures remain source-confirmed with native Windows
+qualification pending. Complexity comparison includes duplicate-QN identity fields.
+Razor includes discovery→Module route→HANDLES chain. Embedded active/inert fixtures
+match shared structure behavior; old sibling-host control changed0→1 consistently.
+
+Source confirmation is attached to the named vertical, not a whole combined local
+commit or all upstream constituent commits. In particular3036e195 is reviewed here
+only for daemon cohort handoff retry. Explicit original upstream mappings consulted:
+Go `349aecba9528427fa635975e246f5b8959b14f30` and cohort retry
+`9104feb67f78959e64ddff78d236e0dea475a434`. Do not invent one-upstream-commit-per-
+task cardinality or subtract ten from the678 ancestry gap. This batch confirms
+prior absorption; it adds no source implementation and does not change the separate
+35 pending ops/runtime whole-commit source reviews or close the global367/311 audit.
+
+Evidence: Sol R2 `evidence/recorded-absorbed-ten-review/` owns exact10 rows,
+local/current source snapshots, function comparisons/evolved diffs, graph receipts,
+coverage, ancestry/provenance and hash manifest. The earlier outstanding-gap ten
+selection is superseded and uncredited; its work remains discovery evidence only.
+One primary-evidence batched Jev request, jev-1.13.0: fixture_consistency supports_port
+.97, contradicts_port .03, insufficient_evidence .00; evidence_boundary
+source_representation_only1.00, runtime_complete/not_represented/insufficient_evidence
+.00. Advice corroborated fixture consistency and source-only boundary.
+
+Jenkins51 still running at observation with exact327dccc0 checkout. No fresh passing
+runtime result or host acceptance claimed. No new build/test execution locally,
+source ports, rebase, upstream history merge, push or main integration. GitHub behind
+count remains ancestry-based; this selected confirmation queue is now complete.
