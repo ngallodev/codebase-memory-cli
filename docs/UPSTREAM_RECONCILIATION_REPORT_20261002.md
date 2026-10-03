@@ -608,3 +608,53 @@ retains exact18 remainders. Durable steer41c60a51-08a1-4efb-bbc5-7bce885b1856
 narrows continuation to that one commit’s three hunks, actual caller/dependency
 chain, frozen-target behavior and Scala fixture/registration. Other17 operations
 and18 runtime reviews remain pending. No runtime/acceptance credit.
+
+## Current checkpoint: Scala source comparison verified — 2026-10-03 UTC
+
+DeepSeek is idle after followup-v4. Parent independently verified all three original
+hunks of `d4931241adaef732066afb5ebf1cb225e2474403`: **missing** in frozen
+production bbabc073, original QA5fe820df and later QA559214af. This is a completed
+source comparison, not an implemented or runtime-validated port. Worker manifest137
+entries passes without failures; original/v2/v3 evidence remains preserved.
+
+`internal/cbm/extract_defs.c:push_method_def` still limits class-prefix composition
+to JAVA/KOTLIN in all three targets; upstream adds SCALA. Exact shared dependencies
+`extract_route_from_decorators`, `spring_class_route_prefix` and `join_route_paths`
+are present. Prefix and join helper bodies match; the omitted language guard
+prevents composition for Scala JAX-RS methods. Parent qualified snippets,
+both-direction traces, coverage receipts and frozen source are in run evidence
+`ops20-followup-v4-review/`. This corrects v3's unrelated extract_class_def mapping.
+
+Both `TEST(handles_jaxrs_scala)` and its suite registration are absent from target
+`tests/test_edge_types_probe.c`. This is shared extraction coverage, not MCP-only;
+existing Java/Kotlin route and Scala extraction fixtures do not assert the original
+three composed Scala routes. Prerequisite
+`041eb99c11692b93d43ea72c884cc50c51285db5` is an ancestor of all three targets.
+Smallest future adaptation: extend the existing guard with CBM_LANG_SCALA and add
+original fixture/registration using the existing harness. Acceptance must assert
+HANDLES edges and exact `/billingAccount`, `/billingAccount/{id}` and
+`/billingAccount/{id}/attachment/{attachmentId}/content`, covering empty and
+nonempty method paths. Existing Jenkinsfile suites: edge_types_probe, extraction,
+route_canon; not run or scheduled here.
+
+Worker Jev model jev-1.13.0 full distributions: source_gap_reality:
+real_functional_gap .68, insufficient_evidence .24, language_support_difference .08;
+test_applicability: inapplicable .66, directly_adaptable .32, insufficient_evidence .02.
+Parent rejects the test-inapplicability advice against actual shared harness and
+source evidence. Payload/response/effect remain in worker followup-v4; advisory
+results do not establish review, acceptance or runtime correctness.
+
+Current two-batch checkpoint supersedes their earlier18+18 remainder count:
+operations3 whole-commit source dispositions verified (two represented/absence-of-
+defect plus this missing comparison),17 exact full-hash remainders in parent
+ops20-followup-v4-review/review.json; runtime2 verified,18 remainders in
+medium20-independent-review/review.json. Thus5 reviewed dispositions and35 pending
+whole-commit source reviews across these40 assignments. These are batch-local
+counts, not global parity or feature completion. Earlier pilot16 and other Phase1,
+merge-history and old canonical-row obligations remain separate and open.
+
+Canonical BACKLOG tracks continuation; this308 document owns disposition context;
+UPSTREAM_RECONCILIATION_REPORT_20261002.md consolidates the checkpoint. Full-hash
+machine crosswalks remain run evidence, not a second repository ledger. DeepSeek
+pane wC:pJ remains idle/open; no new assignment sent in this checkpoint. No builds,
+tests, Jenkins triggers, implementation, push, main integration or acceptance.

@@ -197,15 +197,9 @@ requests, full distributions and source corrections are in the canonical308 revi
 section and consolidated report; machine crosswalk stays handoff evidence. No
 completion/acceptance or semantic-closure counter advanced.
 
-- [ ] Review Luna low pilot20 findings before expanding independent verification.
- `CBM-RECON-LUNA-LOW-PILOT20-20261003` finalized partial; idle Herdr `wC:pJ` retained. Its scope was20 related
- integration hashes from the109 unreviewed remainder;89 remain outside scope.
- Full-function/hunk/target verification, batched primary-evidence Jev decisions
- and detailed successor checkpoints required. Indexed frozen worktree and actual
- Jev-token inheritance verified. See canonical308 pilot section; no closure
- or acceptance claimed from launch. First6 were examined incompletely;14 untouched.
- All20 remain open for complete independent verification; resume through a successor
- run, retaining sealed evidence. See canonical308 cleanup/partial checkpoint.
+- [x] Gather Luna low pilot and successor source evidence; independent review is
+ recorded in canonical308. Remaining16 full-hash whole-commit reviews are tracked
+ below; former launch-only20-unverified snapshot is superseded.
 
 - [ ] Complete Luna medium runtime20 whole-commit source review: documentary
  changes requested; manifest31 passes, two bounded source dispositions verified,
@@ -216,26 +210,23 @@ completion/acceptance or semantic-closure counter advanced.
  `/tmp/cbm-recon-luna-medium20-20261003`; logs preserved in medium20 staging.
  Worker safely uses verified existing runtime graph; no daemon changes made.
 
-- [ ] Review resumed pilot20 evidence from successor
- `CBM-RECON-DEEPSEEK-PILOT20-CONTINUE-20261003`; direct shell execution recovered.
- All20 remain unverified pending full source evidence and parent review.
+- [x] Review resumed DeepSeek pilot20 submission; four bounded source dispositions
+ verified and16 retained unresolved (see following task). Worker completion is not acceptance.
 
 - [ ] Resolve prior DeepSeek pilot20 independent review changes:16 exact full-hash
  whole-commit remainders in parent evidence/pilot20-independent-review/review.json.
  Correct false absent-alias/YAML/fd-guard/Codex claims, map missing CLI regressions,
  and preserve stale worker checksum failure; four source reviews credited, no
  runtime/acceptance claims. Canonical308 verification section owns corrections.
-- [ ] Complete DeepSeek ops20 whole-commit source review: documentary changes
- requested; manifest33 passes, two bounded source dispositions verified,18 exact
- full-hash remainders in parent evidence/ops20-independent-review/review.json. Correct
-56516eff recursive-grep fallback, group26650255 redesign/f339aa62 scope prerequisites,
- separate e5c17de6 unchanged cap context and canonical SQL/stale refusal obligations.
- Preserve MCP-test versus CLI acceptance distinction. Canonical308 owns corrections.
-
-- [ ] Complete ops20 followup-v3 per-hunk/frozen-ref verification. v2 integrity
- passes but18-done checkpoint conflicts with explicit remaining mappings; parent
- evidence/ops20-followup-v2-review/review.json owns exact hashes/gaps. No new closure.
-
-- [ ] Verify narrowed DeepSeek d4931241 Scala routing comparison before expanding
- remaining17 ops reviews. v3 mapped wrong function and categorically excluded shared
- extraction tests; exact defect in parent evidence/ops20-followup-v3-review/review.json.
+- [ ] Complete remaining17 DeepSeek ops20 whole-commit source reviews, exact hashes
+ in parent evidence/ops20-followup-v4-review/review.json. Three source dispositions
+ verified, including missing Scala route composition d4931241. Preserve56516eff
+ recursive-grep fallback correction,26650255/f339aa62 dependencies, separate
+ e5c17de6 unchanged cap context and canonical SQL/stale refusal policy obligations.
+- [x] Review followup-v2/v3 evidence and record their semantic limits; v3 hunk
+ inventory is discovery only. Followup-v4 corrects wrong-function/test exclusion
+ for d4931241; other17 full-hash semantic mappings remain pending above.
+- [x] Independently verify d4931241adaef732066afb5ebf1cb225e2474403 source comparison:
+ all3 hunks missing across production and both frozen QA refs. Applicable shared
+ Scala regression/harness verified; prerequisite041eb99c11692b93d43ea72c884cc50c51285db5
+ present. Future implementation/Jenkins/acceptance remain unperformed.
