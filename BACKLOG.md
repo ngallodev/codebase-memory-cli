@@ -231,3 +231,7 @@ completion/acceptance or semantic-closure counter advanced.
 56516eff recursive-grep fallback, group26650255 redesign/f339aa62 scope prerequisites,
  separate e5c17de6 unchanged cap context and canonical SQL/stale refusal obligations.
  Preserve MCP-test versus CLI acceptance distinction. Canonical308 owns corrections.
+
+- [ ] Complete ops20 followup-v3 per-hunk/frozen-ref verification. v2 integrity
+ passes but18-done checkpoint conflicts with explicit remaining mappings; parent
+ evidence/ops20-followup-v2-review/review.json owns exact hashes/gaps. No new closure.

@@ -2199,3 +2199,15 @@ acceptance bindings. No builds/tests/Jenkins, runtime validation, acceptance,
 push or main integration occurred. Panes wC:pJ and wC:pK remain idle/open.
 Overall upstream merge/constituent and older canonical disposition audit remains
 incomplete; no exhaustive closure or new five-slice ranking claimed here.
+
+### Ops20 followup-v2 review — 2026-10-03 UTC
+
+DeepSeek applied bounded corrections in new followup-v2 evidence; exact18 rows and
+40 manifest entries pass integrity. Documentary changes requested: checkpoint
+claims18 done/no remaining while detailed rows explicitly retain full-hunk,
+caller, regression and CLI adaptation mappings. No additional whole-commit source
+closure credited;18 operations and18 runtime remainders still open. Parent review
+and exact full-hash row gaps saved in run evidence/ops20-followup-v2-review/review.json.
+Durable steer79d95426-9418-4e7a-879e-7c78c0b2a40d asks DeepSeek to continue
+actual per-hunk/frozen-target verification in followup-v3, preserving originals.
+No implementation, runtime validation or acceptance credited.

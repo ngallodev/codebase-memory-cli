@@ -583,3 +583,15 @@ ops20-independent-review/ and medium20-independent-review/. Canonical308
 corrections, prerequisite grouping, Jev distributions and precise limits; BACKLOG
 tracks remaining work. No global semantic parity, runtime validation or acceptance
 claimed. Workers remain idle/open; full merge/constituent audit is incomplete.
+
+### Ops20 followup-v2 review — 2026-10-03 UTC
+
+DeepSeek applied bounded corrections in new followup-v2 evidence; exact18 rows and
+40 manifest entries pass integrity. Documentary changes requested: checkpoint
+claims18 done/no remaining while detailed rows explicitly retain full-hunk,
+caller, regression and CLI adaptation mappings. No additional whole-commit source
+closure credited;18 operations and18 runtime remainders still open. Parent review
+and exact full-hash row gaps saved in run evidence/ops20-followup-v2-review/review.json.
+Durable steer79d95426-9418-4e7a-879e-7c78c0b2a40d asks DeepSeek to continue
+actual per-hunk/frozen-target verification in followup-v3, preserving originals.
+No implementation, runtime validation or acceptance credited.
