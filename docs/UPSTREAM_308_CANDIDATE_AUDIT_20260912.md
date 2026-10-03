@@ -2143,3 +2143,59 @@ worktree reused; direct shell/CBM/Jev guidance and mandatory durable acknowledge
 retained. Assignment/prompt/launch receipts at
 `/home/nate/.local/state/agent-workflow/handoffs/CBM-DEEPSEEK-BATCH2-20-20261003/`.
 No builds/tests/Jenkins, runtime validation, acceptance or main integration claimed.
+
+## Finished ops20 and Luna medium20 independent reviews — 2026-10-03 UTC
+
+Runs `CBM-RECON-DEEPSEEK-BATCH2-20-20261003` and
+`CBM-RECON-LUNA-MEDIUM20-20261003` supplied disjoint20-commit batches.
+Parent documentary review requests changes for both; this is not a host
+review/acceptance transaction. Exact assignment/disposition sets and changed-path
+lists pass; worker manifests33 and31 entries have zero failures. Original diffs,
+39 operations and43 runtime paths at all four frozen Git objects, CBM searches,
+coverage receipts and material qualified snippets/both-direction traces are saved
+in parent run evidence `ops20-independent-review/` and
+`medium20-independent-review/`. The frozen production, original QA and later
+QA559214af comparisons remain separate; no new ref or integration is implied.
+
+Four bounded whole-commit source dispositions independently verified:
+
+| Full upstream hash | Source result |
+| --- | --- |
+| `99c3bb4cbe4c0f9542bf722d29cbb5dd01397455` | Node/edge COUNT failure defaults to CBM_STORE_ERR; renamed target regression caches statements, drops both tables and asserts errors, including scoped counts. Source represented. |
+| `df83d25ace9885e252363cb04be25a17da85c9e8` | Singleton dead parse_cpu_ns assignment removal: target has neither parse_cpu_ns nor cpu_start_ns. Absence of this defect verified in source only. |
+| `0567dc70a097f36a953368978d6728b0a412b229` | POSIX listen reset/recorder guard matches all three targets; shared accessor remains outside guard. Source represented. |
+| `085017ab2172c2f3d4cd3e27251033ecbc5b814b` | Comment-only scanner workaround: obsolete comment/cache absent and overflow UID freshly computed in targets. Source-bounded exclusion. |
+
+Corrections and required grouping:
+
+| Full upstream hash | Independent finding / continuation requirement |
+| --- | --- |
+| `56516eff2da40e8733217d92420ea7763195ad6c` | Target non-scoped POSIX fallback is recursive grep, not find/sort/xargs. Group with pipeline redesign prerequisite `26650255ef865de00c4a62dbcfdc0743490c5256`; no existing hidden-find-failure defect established in target. |
+| `df8dd1011bd1987d0ca5a45f324775aad2411f54` | Inlining depends on Python scope consolidation `f339aa625ffd71b936fe386250858e281e5b87ff`; targets have separate nearest-binding scans. Dependent optimization, no standalone functional defect inferred. |
+| `e5c17de6217ec5938d18d8c51e2c0d7ead116a19` | EOF clamp and adjacent exact-repeat drop present. Missing acc->dropped++ is unchanged upstream context, not introduced here; separate cap-accounting prerequisite. Two added PowerShell regressions absent; equivalent coverage unresolved. |
+| `a15d99e39fd9ea04722f064ed02dc726b13d2943` | MCP test rewiring is not a standalone CLI feature gap; carry fail-closed scan acceptance through CLI seam. |
+| `c2b68d40b544b352981099c3445401f9d71b33b7` | Separate MCP test from potentially applicable Windows fixtures; runtime_for absence alone does not establish equivalent isolation. |
+| `cc9c2f4c0f51902ad7b9427ed1309bce3f463db4` | Canonical SQL absent; target write_scoped_filelist skips stale/nonregular operands. SQL alone does not establish upstream stale-path refusal. |
+| `3507d9555d73aa746cde23139588081c6c02d2e2` | Windows subprocess Job Object only sets KILL_ON_JOB_CLOSE; JOB_MEMORY, JobMemoryLimit and opts memory_limit_bytes absent. Logical budgets do not establish OS enforcement. Worker correctly rejected Jev equivalence advice against source. |
+| `262ab01217312938728d7176f587e45adca16f01` | Telemetry initialization and uncapped-control regression are dependent followups to3507, not permanent exclusions because target fields are absent. |
+| `469c3dd996f23cdb629f1bbd6a751bc0f29a99f2` | Fresh overflow-UID computation and no pthread_once change stale-cache workaround applicability; full test/nonroot child dispatch review still open. |
+| `3a8b8e82120872a56ca4d0157260569d90abe85c` | Owned-link policy present through follow-owned helpers; initial-openat errno preservation/caller effects still need full review. |
+
+Parent Jev advisory: one batched request/two bounded primary-evidence questions,
+model jev-1.13.0, stored request/response and full distributions in ops20 review.
+Scope: dependency_group .98, standalone_defect .01, insufficient_evidence .01,
+exclude_all .00. Scan: separate_policy_gap .98, complete_equivalence .02,
+insufficient_evidence .00, inapplicable .00. Advice supported prerequisite grouping
+and separate stale-scan policy obligations; source retains precedence and advice
+closes no whole-commit remainder. Official helper ran with silently sourced
+TypeSafe environment and checked HTTPS api.typesafe.ai destination.
+
+Each batch retains18 exact full-hash whole-commit source-review remainders in its
+review.json and review-crosswalk.jsonl (36 combined). All-hunk, regression and CLI
+adaptation review remains required; worker represented claims are not automatically
+parent-verified. These counts describe these two batches only, not global parity.
+Workers requested completed but finish returned verification_required without native
+acceptance bindings. No builds/tests/Jenkins, runtime validation, acceptance,
+push or main integration occurred. Panes wC:pJ and wC:pK remain idle/open.
+Overall upstream merge/constituent and older canonical disposition audit remains
+incomplete; no exhaustive closure or new five-slice ranking claimed here.

@@ -572,3 +572,14 @@ YAML indicator, fd-capture guard and Codex policy claims; found missing original
 regressions and stale checkpoint checksum. Canonical308 verification section owns
 source corrections. Full crosswalk/snapshots/CBM/Jev evidence in parent run
 `evidence/pilot20-independent-review/`. No runtime validation or acceptance.
+
+### Ops20 and Luna medium20 review consolidation — 2026-10-03 UTC
+
+Both completed worker submissions received documentary changes-requested reviews.
+Exact sets and manifests33/31 pass. Four bounded whole-commit source dispositions
+verified;36 full-hash remainders retained across parent evidence
+ops20-independent-review/ and medium20-independent-review/. Canonical308
+“Finished ops20 and Luna medium20 independent reviews” owns detailed source
+corrections, prerequisite grouping, Jev distributions and precise limits; BACKLOG
+tracks remaining work. No global semantic parity, runtime validation or acceptance
+claimed. Workers remain idle/open; full merge/constituent audit is incomplete.

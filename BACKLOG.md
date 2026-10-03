@@ -207,9 +207,11 @@ completion/acceptance or semantic-closure counter advanced.
  All20 remain open for complete independent verification; resume through a successor
  run, retaining sealed evidence. See canonical308 cleanup/partial checkpoint.
 
-- [ ] Review Luna medium independent runtime20 batch evidence from
- `CBM-RECON-LUNA-MEDIUM20-20261003`; assignment disjoint from prior pilot20.
- Launch/index receipt in canonical308 launch section; no closure credited.
+- [ ] Complete Luna medium runtime20 whole-commit source review: documentary
+ changes requested; manifest31 passes, two bounded source dispositions verified,
+18 exact full-hash remainders in parent evidence/medium20-independent-review/review.json.
+ Group262ab012 telemetry with3507d955 Windows OS hard cap; no runtime/acceptance credit.
+ Canonical308 finished-batch review owns corrections.
 - [ ] Diagnose generic full-index pipeline failure for clean frozen worktree
  `/tmp/cbm-recon-luna-medium20-20261003`; logs preserved in medium20 staging.
  Worker safely uses verified existing runtime graph; no daemon changes made.
@@ -223,5 +225,9 @@ completion/acceptance or semantic-closure counter advanced.
  Correct false absent-alias/YAML/fd-guard/Codex claims, map missing CLI regressions,
  and preserve stale worker checksum failure; four source reviews credited, no
  runtime/acceptance claims. Canonical308 verification section owns corrections.
-- [ ] Independently review NEW ops20 successor
- `CBM-RECON-DEEPSEEK-BATCH2-20-20261003`; exact assignment disjoint from prior40.
+- [ ] Complete DeepSeek ops20 whole-commit source review: documentary changes
+ requested; manifest33 passes, two bounded source dispositions verified,18 exact
+ full-hash remainders in parent evidence/ops20-independent-review/review.json. Correct
+56516eff recursive-grep fallback, group26650255 redesign/f339aa62 scope prerequisites,
+ separate e5c17de6 unchanged cap context and canonical SQL/stale refusal obligations.
+ Preserve MCP-test versus CLI acceptance distinction. Canonical308 owns corrections.
