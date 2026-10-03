@@ -1,5 +1,12 @@
 # Upstream CLI Merge Plan — 2026-09-12
 
+> Historical plan only. Current dispositions and queue are owned by
+> [the canonical ledger](UPSTREAM_308_CANDIDATE_AUDIT_20260912.md) and
+> [BACKLOG.md](../BACKLOG.md). Its active-worker memory recommendation and
+> reverse-patch coverage rule are superseded by the 2026-10-02 source audit.
+> Patch applicability is mechanical evidence, not semantic representation.
+> This audit permits no local validation; parent uses the shared Jenkins venue.
+
 ## Scope and boundary
 
 Selectively port the next CLI-relevant fixes from
