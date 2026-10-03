@@ -27,14 +27,27 @@ milestone tree comparison; they are not separately credited as functionality.
 The isolated trial resolves five conflict paths. MCP source/tests stay deleted;
 shared fixes and native adaptations remain. Exact-worktree CBM full indexing
 completed with ready root; flagged parse-partial paths use exact source fallback.
-Only formatting and git diff checks ran locally. The full Jenkins gate is pending;
-there is no runtime acceptance, main integration or push yet. Jev-1.13.0 source
+Only formatting and git diff checks ran locally. The full Jenkins gate #54
+completed SUCCESS at `d3e2ac401ec8dccff0bf9d1c33150fe5c67ee8de`: 7,528 ordinary
+tests passed, zero failed and three platform skips; ThreadSanitizer reported
+671 passed and two platform skips. The named backoff, selector and numeric-limit
+regressions passed. Both archived source-revision files match that exact SHA.
+CodeRabbit reviewed all seven changed source files with zero findings; its one
+minor test-timer cleanup finding was fixed, and a fresh review of all three
+changed test files completed with zero findings. Main was fast-forwarded to the
+validated source after this gate. Origin publication is separately recorded in
+run evidence `five-slice-merge-trial/final-promotion.json`. This is Linux validation,
+not native Windows qualification or acceptance of the whole upstream audit.
+Jev-1.13.0 source
 advice: consistent 0.65 / defect 0.30 / insufficient 0.05; Qoder skill regression
 applicable 0.77 / inapplicable 0.22 / insufficient 0.01. Source inspection and Jenkins
 retain authority. The preceding ten-task source confirmation is separate.
 
-If integrated, this milestone reduces the frozen upstream ancestry difference
-from 678 to 665. It does not resolve the global semantic audit remainder.
+The integrated milestone reduces the upstream ancestry difference from 678 to
+665. Read-only remote checks confirmed upstream still points at the frozen
+`96c3f41cf334d87670cb085f1fcf16f637293222`. Final local/remote branch receipts
+are in run evidence. This trial does not resolve the global semantic audit
+remainder or credit thirteen commits as thirteen newly implemented features.
 
 
 This is the single canonical document for upstream merge work in this

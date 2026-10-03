@@ -2,12 +2,15 @@
 
 ## Five-slice upstream merge trial — 2026-10-03
 
-- [ ] Validate and integrate the first five upstream PR milestones through
+- [x] Validate and integrate the first five upstream PR milestones through
   `4d8ac9e1cea0d645a02f876f47536c54a5bfa406`. Isolated merge source is reconciled:
   native trace representation, numeric daemon admission logging, EINTR-safe
   backoff, native help and registry selector filtering. Three branch-sync merges
   accompany five PR merges/five non-merges (13 ancestry commits total).
-  Full Jenkins validation, main integration and origin push remain pending.
+  Full Jenkins #54 passed at `d3e2ac40` (7,528 tests, zero failures; TSan 671
+  passed). Main was fast-forwarded after validation. Final origin publication
+  and branch receipts are recorded in run evidence `final-promotion.json`.
+  The ancestry gap is 665, reduced by 13; the global semantic audit remains open.
   Canonical full-hash dispositions and acceptance are in the 308 audit's
   “Five-slice upstream ancestry trial” section; evidence is in the existing
   CBM-UPSTREAM-SOL-20261002-R2 run's `five-slice-merge-trial/` directory.
