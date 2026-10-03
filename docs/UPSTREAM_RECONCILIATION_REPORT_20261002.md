@@ -507,3 +507,15 @@ All worker scopes were processed, but integration explicitly did not complete fu
 Exact requests: runtime-request-payload.json, ops-request-payload.json, integration-request-payload.json. Full results: corresponding *-response.json. Deterministic receipt: deterministic-integrity.json. Graph source/snippets/traces/coverage: graph/. Exact Git source excerpts are embedded in requests; target-scope-receipt.json records additional full-blob symbol checks. All115 independent primary diffs: *-diffs/. Full-hash independent-review crosswalk: review-crosswalk.jsonl. Machine-readable finding/distribution/advice-use record: review.json.
 
 Graph generations match recorded exact-worktree indexes. Partial internal/cbm/cbm.c and CLI/activation paths were verified from Git source; no negative claim rests on graph absence. Broad coverage search was discovery-only, not an exhaustive pagination claim. Initial multi-path coverage invocation failed syntax; per-path retries succeeded, both outputs retained.
+
+## Luna low pilot20 launch — 2026-10-03 UTC
+
+Independent verification continues with a bounded20-commit Luna low pilot in
+Herdr `wC:pJ`, run `CBM-RECON-LUNA-LOW-PILOT20-20261003`. Its exact assignment
+excludes six already-reviewed hashes and is grouped by shared behavior;89 other
+unreviewed commits remain outside scope. The canonical308 pilot section owns
+current plan. Actual Codex low-model argv/Jev-token inheritance and ready exact
+full-index generation were verified. Existing comparisons remain discovery only,
+and detailed batched Jev/source/checkpoint evidence is required. Completed
+DeepSeek panes `wC:pG`/`wC:pH` closed; runtime pane was already absent.
+All worktrees and saved handoffs retained. Launch is not semantic closure.

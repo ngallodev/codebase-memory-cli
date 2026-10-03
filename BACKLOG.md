@@ -196,3 +196,11 @@
 requests, full distributions and source corrections are in the canonical308 review
 section and consolidated report; machine crosswalk stays handoff evidence. No
 completion/acceptance or semantic-closure counter advanced.
+
+- [ ] Review Luna low pilot20 findings before expanding independent verification.
+ `CBM-RECON-LUNA-LOW-PILOT20-20261003` runs in Herdr `wC:pJ` on20 related
+ integration hashes from the109 unreviewed remainder;89 remain outside scope.
+ Full-function/hunk/target verification, batched primary-evidence Jev decisions
+ and detailed successor checkpoints required. Indexed frozen worktree and actual
+ Jev-token inheritance verified. See canonical308 pilot section; no closure
+ or acceptance claimed from launch.

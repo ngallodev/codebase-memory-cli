@@ -2003,3 +2003,35 @@ unresolved row; operations retains four remainders. Runtime finish requires host
 verification binding; operations/integration finished partial. Worker completion,
 source comparison, review, Jenkins validation, acceptance and integration remain
 separate. No whole-commit closure counter is advanced by this bounded review.
+
+### Luna low verification pilot20 — 2026-10-03 UTC
+
+At the user's request, prepared external run `CBM-RECON-LUNA-LOW-PILOT20-20261003`
+for independent function-level verification of20 existing integration findings.
+Its exact full-hash assignment is a subset of the109 independently unreviewed
+commits, excludes all six parent-reviewed hashes, and groups related config
+symlink/uninstall, activation guard/alias followups, help, YAML, Codex guidance,
+hook-path and sidecar behavior. Other89 remain outside the pilot. Related prior
+source diffs/receipts are reused as discovery, not verdict authority; every changed
+hunk and frozen target behavior must receive source evidence or explicit unknowns.
+
+Interactive Codex `gpt-6-luna` with `model_reasoning_effort=low` launched in
+Herdr `wC:pJ`, label `codex - luna-review-pilot20`, with `--no-daemon`. Actual
+Codex process argv, managed pane environment and Jev-token inheritance are verified
+without logging credential values. The official Jev footer is in the prepared
+prompt once; bounded shared-context questions must be batched through the official
+helper, with saved requests, full distributions and advice-use notes.
+
+The pilot reuses `/tmp/cbm-recon-deepseek-integration-20261003` after its prior
+worker stopped: source remains clean frozenQA `559214af`, and fresh status/root/
+coverage generation matches its full persistence-disabled index
+`2026-10-03T01:27:06Z` (26,764nodes/129,775edges,91 partial files).
+Exact launch/index/assignment/ownership plan remains run evidence and
+`handoffs/CBM-LUNA-LOW-PILOT20-20261003/`, not a second canonical ledger.
+The worker must retain detailed checkpoints/handoffs at each batch and stop.
+
+User-authorized cleanup: completed DeepSeek operations `wC:pG` and integration
+`wC:pH` panes closed after handoff/checkpoint/disposition and manifest verification.
+Runtime `wC:pF` was already absent. Other panes and all worktrees/evidence retained.
+Pilot launch is not completed verification, runtime validation or acceptance;
+no tests/builds/Jenkins/remote operations are authorized or performed.
