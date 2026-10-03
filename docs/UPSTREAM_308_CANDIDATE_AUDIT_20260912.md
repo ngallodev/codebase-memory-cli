@@ -2065,3 +2065,21 @@ and external exits are saved at
 `/home/nate/.local/state/agent-workflow/handoffs/CBM-LUNA-CLEANUP-20261003/`.
 No local builds/tests, Jenkins, independent acceptance, push or main integration
 occurred in this cleanup. Overall audit remains incomplete.
+
+## Luna medium independent batch20 launch — 2026-10-03 UTC
+
+User authorized a different20-commit comparison with Luna medium. Run
+`CBM-RECON-LUNA-MEDIUM20-20261003` owns20 independently unreviewed runtime
+hashes, disjoint from the previous pilot20 and six parent-reviewed rows. Exact
+assignment, prepared prompt and launch receipts:
+`/home/nate/.local/state/agent-workflow/handoffs/CBM-LUNA-MEDIUM20-20261003/`.
+Worker uses interactive Herdr `wC:pK`, `codex - luna-review-medium20`, with
+GPT-6-Luna medium, sourced Jev environment and batched primary-evidence guidance.
+
+New isolated worktree full index failed with only a generic pipeline error;
+clean failed worktree retained for diagnosis. Reused idle former runtime worker
+worktree `/tmp/cbm-recon-adapter-low2-20261003`, frozen QA559214af, ready full
+index generation2026-10-03T01:07:59Z,26764nodes/129401edges,91 partial files.
+Fresh status/root/coverage generation and unchanged clean Git baseline verified.
+No shared daemon/cache changes. Launch does not establish source closure,
+runtime validation, review or acceptance; detailed checkpoints are required.

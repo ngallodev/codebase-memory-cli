@@ -206,3 +206,10 @@ completion/acceptance or semantic-closure counter advanced.
  or acceptance claimed from launch. First6 were examined incompletely;14 untouched.
  All20 remain open for complete independent verification; resume through a successor
  run, retaining sealed evidence. See canonical308 cleanup/partial checkpoint.
+
+- [ ] Review Luna medium independent runtime20 batch evidence from
+ `CBM-RECON-LUNA-MEDIUM20-20261003`; assignment disjoint from prior pilot20.
+ Launch/index receipt in canonical308 launch section; no closure credited.
+- [ ] Diagnose generic full-index pipeline failure for clean frozen worktree
+ `/tmp/cbm-recon-luna-medium20-20261003`; logs preserved in medium20 staging.
+ Worker safely uses verified existing runtime graph; no daemon changes made.
