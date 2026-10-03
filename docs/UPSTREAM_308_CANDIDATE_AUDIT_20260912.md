@@ -156,6 +156,44 @@ run/cwd/branch/hash acknowledgement before comparison resumes. No predecessor
 completion is reissued, and no sealed predecessor evidence is rewritten by recovery.
 This is a preparation/failed-delivery record; Phase1 is incomplete.
 
+### Interactive Herdr recovery — 2026-10-03 UTC
+
+The user explicitly requested interactive **Codex `--model deepseek-flash`**
+workers, with Jev credentials/instructions and indexed worktrees. Three new
+external runs were prepared before launching in the same Herdr workspace:
+
+| Piece | Successor durable run | Herdr pane / agent | Hashes |
+|---|---|---|---:|
+| Runtime/process/resources | `CBM-RECON-DEEPSEEK-RUNTIME-HERDR-PHASE1-20261003` | `wC:pF` / `ds-runtime-phase1` | 39 |
+| Operations/pipeline/query | `CBM-RECON-DEEPSEEK-OPS-HERDR-PHASE1-20261003` | `wC:pG` / `ds-ops-phase1` | 26 |
+| CLI/build/adapter/integration | `CBM-RECON-DEEPSEEK-INTEGRATION-HERDR-PHASE1-20261003` | `wC:pH` / `ds-integration-phase1` | 50 |
+
+All three are observed working and have written correct worker-issued launch
+acknowledgements naming their run, isolated cwd/branch and assigned count. The
+exact assignment sets match the original plan, are disjoint, and all 115 full
+hashes resolve as commits. Completed predecessor comparisons remain excluded.
+The original 367-hash effective ownership crosswalk is refreshed in launch
+evidence, preserving one owner per hash; it is not another canonical ledger.
+
+Their unchanged clean QA `559214af` worktrees retain the prior full nonpersistent
+indexes. Fresh status/root and coverage receipts verify ready graphs and matching
+generations. Each prepared prompt includes the official Jev footer once and all
+source/graph/no-test constraints. The authorized TypeSafe env was sourced directly
+into each pane shell before restarting Codex; actual Codex-process inheritance of
+the token was verified as a boolean, without recording its value. The verified API
+destination is `https://api.typesafe.ai`. Each session uses `--no-daemon`, approvals
+never and full filesystem access within its evidence-only assignment.
+
+Run-owned evidence includes `parent-herdr-launch-receipt.json`,
+`codex-process-env-receipt.json`, `launch-acknowledgement.json`, index/assignment
+receipts and correlated worker acknowledgement evidence. Runtime/operations
+acknowledgements are worker-issued handoff control intents; integration also has
+a journal acknowledgement. Full launch staging is the original Phase1 handoff
+directory's `herdr-launch/`. Detailed batch/stopping handoffs remain required.
+Activity and launch acknowledgement establish execution of the assigned task;
+they establish no source completeness, Jev decision result, review, Jenkins
+validation, acceptance or integration. Phase1 comparison remains in progress.
+
 ## Frozen merge and source audit — 2026-10-02, Sol R2
 
 This section supersedes historical queue, exclusion, fetch and completion claims

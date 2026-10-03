@@ -384,6 +384,15 @@ the canonical plan records the failed-delivery boundary and unexpected predecess
 activity. No result is represented as complete or accepted. The original
 capture tables remain dated evidence, not silently refreshed progress counters.
 
+Interactive recovery now uses three Codex `--model deepseek-flash` sessions in
+Herdr `wC:pF` / `wC:pG` / `wC:pH` under the corresponding
+`CBM-RECON-DEEPSEEK-{RUNTIME,OPS,INTEGRATION}-HERDR-PHASE1-20261003` runs.
+All three are observed working and have correct run/cwd/count launch acknowledgements.
+Actual Codex processes inherited the silently sourced Jev token; destination,
+official footer and matching ready CBM index generations are verified. The exact
+39/26/50 assignments remain disjoint. The canonical interactive recovery section
+owns current status; this is launch evidence, not completed comparison or acceptance.
+
 ## Appendix: non-unresolved auditor checkpoint claims
 
 This is a source-finding snapshot, not another task ledger. It makes the collected

@@ -73,8 +73,11 @@
   Phase1 plan. Native assignment delivery failed: all three returned predecessor
   reports, including after persisted steering and direct follow-ups. Sessions
   were stopped; zero assigned comparisons or correlated worker acknowledgements
-  are established, and all 115 hashes remain pending. Recover task delivery before
-  resuming; no worker result/acceptance is inferred from preparation or launch.
+  were established by that failed attempt. Interactive recovery now runs Codex
+  `--model deepseek-flash` in Herdr `wC:pF` / `wC:pG` / `wC:pH`, with correct
+  worker-issued run/cwd/count launch acknowledgements and actual process Jev-token
+  inheritance verified. The same 115 hashes remain the comparison scope; see the
+  canonical interactive recovery section. No completion/acceptance is inferred.
 - [ ] Review additional bounded missing behaviors: malformed confidence parsing
   `62b44519c68b403ea44d9a85ba8ee74cddee66e6` (first additional localized candidate),
   route handler position `592894a4387a50e1d128ff6a2695ff48f8cc32a5`, late annotation
