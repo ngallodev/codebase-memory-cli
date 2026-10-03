@@ -477,6 +477,10 @@ linux_artifacts = fix / "linux-artifacts"
 shutil.copytree(artifacts, linux_artifacts, symlinks=True)
 for provenance in provenance_paths(linux_artifacts):
     if not provenance.parent.name.startswith("linux-"):
+        # Copied candidate modes become FILE_ATTRIBUTE_READONLY on Windows.
+        for candidate in provenance.parent.rglob("*"):
+            if candidate.is_file() and not candidate.is_symlink():
+                candidate.chmod(0o700)
         shutil.rmtree(provenance.parent)
 # Counts are bound to the chosen set: 4 targets / 12 candidates, never 8 / 24.
 result = run(stage_tool, linux_artifacts, fix / "linux-bad-count", "--targets", LINUX_CSV,
