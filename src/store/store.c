@@ -8,6 +8,7 @@
 
 // for ISO timestamp
 
+#include <limits.h>
 #include <stdint.h>
 #include "foundation/constants.h"
 #include "foundation/hash_table.h"
@@ -300,9 +301,25 @@ static int init_schema(cbm_store_t *s) {
         "  PRIMARY KEY (project, rel_path)"
         ");"
         /* Best-effort indexing-coverage signal (#963). One row per file the
-         * indexer could not fully cover: kind "parse_partial" (indexed, but the
-         * parse tree had ERROR/MISSING regions — detail = 1-based line ranges)
-         * or a skip phase ("read"/"extract"/"oversized" — detail = reason).
+         * indexer could not fully cover. `kind` says which of three things
+         * happened, and `detail` means something different in each:
+         *
+         *   "parse_partial"   the file WAS indexed, but the parse tree had
+         *                     ERROR/MISSING regions. detail = 1-based line
+         *                     ranges, "start-end,start-end", with an optional
+         *                     trailing "+<N>" saying N more ranges were dropped
+         *                     by the producer's cap. Read those lines.
+         *   "parse_unusable"  the file WAS indexed, but one range covers 80% or
+         *                     more of it, so naming the lines is useless advice.
+         *                     detail = the same range string. Read the source.
+         *   a skip phase      the file was NOT indexed at all: "read",
+         *                     "extract" or "oversized". detail = the reason.
+         *
+         * The first two are easy to confuse with the third, and the difference
+         * matters to a reader: a skipped file is absent from the graph, while
+         * the other two are present but incomplete. Name a new kind so that
+         * distinction stays obvious — "parse_failed" would read as a skip.
+         *
          * Deliberately SEPARATE from the graph tables: coverage is metadata
          * about the graph, not part of it. */
         "CREATE TABLE IF NOT EXISTS index_coverage ("
@@ -4464,8 +4481,18 @@ int cbm_store_list_files(cbm_store_t *s, const char *project, char ***out, int *
         return CBM_STORE_ERR;
     }
 
+    /* A node path can name a graph-only identity such as a Folder,
+     * <python-builtins>, or another synthetic source. Published indexes have
+     * one canonical File node per scannable path, so prefer that exact set.
+     * Legacy/manual stores without File nodes retain their previous node-path
+     * fallback (minus Folder directories). Missing canonical paths stay in
+     * the list so search_code still fails closed on a stale snapshot. */
     const char *sql = "SELECT DISTINCT file_path FROM nodes "
-                      "WHERE project = ?1 AND file_path IS NOT NULL AND file_path != ''";
+                      "WHERE project = ?1 AND label != 'Folder' "
+                      "AND file_path IS NOT NULL AND file_path != '' "
+                      "AND (label = 'File' OR NOT EXISTS ("
+                      "SELECT 1 FROM nodes WHERE project = ?1 AND label = 'File')) "
+                      "ORDER BY file_path";
     sqlite3_stmt *stmt = NULL;
     if (sqlite3_prepare_v2(s->db, sql, CBM_NOT_FOUND, &stmt, NULL) != SQLITE_OK) {
         return CBM_STORE_ERR;
@@ -5583,10 +5610,14 @@ void cbm_store_search_free(cbm_search_output_t *out) {
 
 static int bfs_collect_edges(cbm_store_t *s, int64_t start_id, const cbm_node_hop_t *visited,
                              int visited_count, const char *types_clause, const char **edge_types,
-                             int edge_type_count, cbm_edge_info_t **out_edges,
-                             int *out_edge_count) {
+                             int edge_type_count, int max_edges, cbm_edge_info_t **out_edges,
+                             int *out_edge_count, bool *out_truncated) {
     *out_edges = NULL;
     *out_edge_count = 0;
+    *out_truncated = false;
+    if (max_edges == 0) {
+        return CBM_STORE_OK;
+    }
 
     /* Visited-ID set via a per-connection TEMP table. The previous approach
      * interpolated the ids into a fixed 4KB SQL string: past ~1000 visited
@@ -5598,22 +5629,37 @@ static int bfs_collect_edges(cbm_store_t *s, int64_t start_id, const cbm_node_ho
                      "CREATE TEMP TABLE IF NOT EXISTS bfs_ids (id INTEGER PRIMARY KEY);"
                      "DELETE FROM bfs_ids;",
                      NULL, NULL, NULL) != SQLITE_OK) {
-        return CBM_STORE_OK; /* best-effort: nodes without edges beat an error */
+        store_set_error_sqlite(s, "bfs edge ids");
+        return CBM_STORE_ERR;
     }
     sqlite3_stmt *ins = NULL;
     if (sqlite3_prepare_v2(s->db, "INSERT OR IGNORE INTO bfs_ids(id) VALUES (?1)", CBM_NOT_FOUND,
                            &ins, NULL) != SQLITE_OK) {
-        return CBM_STORE_OK;
+        store_set_error_sqlite(s, "bfs edge ids prepare");
+        return CBM_STORE_ERR;
     }
     sqlite3_bind_int64(ins, SKIP_ONE, start_id);
-    (void)sqlite3_step(ins);
+    if (sqlite3_step(ins) != SQLITE_DONE) {
+        store_set_error_sqlite(s, "bfs edge root id");
+        sqlite3_finalize(ins);
+        return CBM_STORE_ERR;
+    }
     for (int i = 0; i < visited_count; i++) {
         sqlite3_reset(ins);
         sqlite3_bind_int64(ins, SKIP_ONE, visited[i].node.id);
-        (void)sqlite3_step(ins);
+        if (sqlite3_step(ins) != SQLITE_DONE) {
+            store_set_error_sqlite(s, "bfs edge visited id");
+            sqlite3_finalize(ins);
+            return CBM_STORE_ERR;
+        }
     }
     sqlite3_finalize(ins);
 
+    char limit_clause[ST_BUF_64] = "";
+    if (max_edges > 0) {
+        snprintf(limit_clause, sizeof(limit_clause), " LIMIT %d",
+                 max_edges < INT_MAX ? max_edges + SKIP_ONE : max_edges);
+    }
     char edge_sql[ST_SQL_BUF];
     snprintf(edge_sql, sizeof(edge_sql),
              "SELECT n1.name, n2.name, e.type, e.source_id, e.target_id, e.properties "
@@ -5622,15 +5668,15 @@ static int bfs_collect_edges(cbm_store_t *s, int64_t start_id, const cbm_node_ho
              "JOIN nodes n2 ON n2.id = e.target_id "
              "WHERE e.source_id IN (SELECT id FROM bfs_ids) "
              "AND e.target_id IN (SELECT id FROM bfs_ids) "
-             "AND e.type IN (%s)",
-             types_clause);
+             "AND e.type IN (%s) "
+             "ORDER BY e.source_id, e.target_id, e.type%s",
+             types_clause, limit_clause);
 
     sqlite3_stmt *estmt = NULL;
     int rc = sqlite3_prepare_v2(s->db, edge_sql, CBM_NOT_FOUND, &estmt, NULL);
     if (rc != SQLITE_OK) {
-        *out_edges = NULL;
-        *out_edge_count = 0;
-        return CBM_STORE_OK;
+        store_set_error_sqlite(s, "bfs edges prepare");
+        return CBM_STORE_ERR;
     }
 
     if (edge_type_count > 0) {
@@ -5668,6 +5714,15 @@ static int bfs_collect_edges(cbm_store_t *s, int64_t start_id, const cbm_node_ho
         return CBM_STORE_ERR;
     }
     sqlite3_finalize(estmt);
+
+    if (max_edges > 0 && en > max_edges) {
+        en = max_edges;
+        safe_str_free(&edges[en].from_name);
+        safe_str_free(&edges[en].to_name);
+        safe_str_free(&edges[en].type);
+        safe_str_free(&edges[en].properties_json);
+        *out_truncated = true;
+    }
 
     *out_edges = edges;
     *out_edge_count = en;
@@ -5723,8 +5778,11 @@ static int bfs_cte_row_limit_for_depth(int max_results, int max_depth) {
 
 static int store_bfs(cbm_store_t *s, int64_t start_id, const char *direction,
                      const char **edge_types, int edge_type_count, int max_depth, int max_results,
-                     bool trail, cbm_traverse_result_t *out) {
+                     bool trail, int max_edges, cbm_traverse_result_t *out) {
     memset(out, 0, sizeof(*out));
+    if (max_results < 0) {
+        max_results = 0;
+    }
 
     cbm_node_t root = {0};
     int rc = cbm_store_find_node_by_id(s, start_id, &root);
@@ -5750,6 +5808,8 @@ static int store_bfs(cbm_store_t *s, int64_t start_id, const char *direction,
         next_id = "e.target_id";
     }
 
+    /* One extra row makes max_results saturation observable on both branches. */
+    int probe_limit = max_results < INT_MAX ? max_results + SKIP_ONE : max_results;
     int cte_row_limit = 0;
     if (trail) {
         cte_row_limit = bfs_cte_row_limit_for_depth(max_results, max_depth);
@@ -5778,7 +5838,7 @@ static int store_bfs(cbm_store_t *s, int64_t start_id, const char *direction,
                  "FROM bfs JOIN nodes n ON n.id = bfs.node_id "
                  "WHERE bfs.hop > 0 ORDER BY bfs.hop, n.id LIMIT %d;",
                  (long long)start_id, next_id, join_cond, types_clause, max_depth,
-                 cte_row_limit + SKIP_ONE, max_results);
+                 cte_row_limit + SKIP_ONE, probe_limit);
     } else {
         snprintf(sql, sizeof(sql),
                  /* SHORTEST-PATH semantics: the UNION dedupes (node, hop) pairs.
@@ -5801,7 +5861,7 @@ static int store_bfs(cbm_store_t *s, int64_t start_id, const char *direction,
                  "GROUP BY n.id "
                  "ORDER BY hop, n.id "
                  "LIMIT %d;",
-                 (long long)start_id, next_id, join_cond, types_clause, max_depth, max_results);
+                 (long long)start_id, next_id, join_cond, types_clause, max_depth, probe_limit);
     }
 
     sqlite3_stmt *stmt = NULL;
@@ -5854,14 +5914,26 @@ static int store_bfs(cbm_store_t *s, int64_t start_id, const char *direction,
         snprintf(limit_buf, sizeof(limit_buf), "%d", cte_row_limit);
         cbm_log_warn("cypher.trail_truncated", "cte_rows", limit_buf, "result", "partial");
     }
+    if (n > max_results) {
+        /* The extra probe row fired: drop it and report the ceiling honestly. */
+        n = max_results;
+        cbm_node_free_fields(&visited[n].node);
+        out->truncated = true;
+    }
 
     out->visited = visited;
     out->visited_count = n;
 
-    /* Collect edges between visited nodes (including root) */
-    if (n > 0) {
-        bfs_collect_edges(s, start_id, out->visited, n, types_clause, edge_types, edge_type_count,
-                          &out->edges, &out->edge_count);
+    /* Edge properties are a secondary, potentially dense all-pairs lookup.
+     * Lean callers pass max_edges=0 and avoid it entirely; diagnostics callers
+     * pass an explicit ceiling and receive an honest saturation bit. */
+    if (n > 0 && max_edges != 0) {
+        rc = bfs_collect_edges(s, start_id, out->visited, n, types_clause, edge_types,
+                               edge_type_count, max_edges, &out->edges, &out->edge_count,
+                               &out->edges_truncated);
+        if (rc != CBM_STORE_OK) {
+            return rc;
+        }
     } else {
         out->edges = NULL;
         out->edge_count = 0;
@@ -5873,14 +5945,23 @@ static int store_bfs(cbm_store_t *s, int64_t start_id, const char *direction,
 int cbm_store_bfs(cbm_store_t *s, int64_t start_id, const char *direction, const char **edge_types,
                   int edge_type_count, int max_depth, int max_results, cbm_traverse_result_t *out) {
     return store_bfs(s, start_id, direction, edge_types, edge_type_count, max_depth, max_results,
-                     false, out);
+                     false, -1, out);
 }
 
 int cbm_store_bfs_trail(cbm_store_t *s, int64_t start_id, const char *direction,
                         const char **edge_types, int edge_type_count, int max_depth,
                         int max_results, cbm_traverse_result_t *out) {
     return store_bfs(s, start_id, direction, edge_types, edge_type_count, max_depth, max_results,
-                     true, out);
+                     true, -1, out);
+}
+
+int cbm_store_bfs_with_edge_limit(cbm_store_t *s, int64_t start_id, const char *direction,
+                                  const char **edge_types, int edge_type_count, int max_depth,
+                                  int max_results, int max_edges, cbm_traverse_result_t *out) {
+    /* Bounded edge-data variant for lean callers: node traversal is the plain
+     * shortest-path BFS; max_edges=0 skips the all-pairs edge lookup entirely. */
+    return store_bfs(s, start_id, direction, edge_types, edge_type_count, max_depth, max_results,
+                     false, max_edges, out);
 }
 
 /* Multi-source BFS: one recursive CTE anchored on ALL seeds (via a temp
@@ -9953,25 +10034,42 @@ static int vs_build_keyword_vectors(cbm_store_t *s, const char *project, const c
     return actual_kw;
 }
 
+/* L2 norm of every quantized keyword vector, computed once per search
+ * instead of once per (node, keyword) pair inside the scoring loop. */
+static void vs_keyword_norms(const int8_t (*kw_vecs)[VS_VEC_DIM], int actual_kw, double *kw_norms) {
+    for (int k = 0; k < actual_kw; k++) {
+        int32_t ma = 0;
+        for (int d = 0; d < VS_VEC_DIM; d++) {
+            ma += (int32_t)kw_vecs[k][d] * (int32_t)kw_vecs[k][d];
+        }
+        kw_norms[k] = sqrt((double)ma);
+    }
+}
+
 /* Compute the per-keyword min cosine score between a node's int8 vector and
- * each of the query vectors.  Returns 0.0 if the node vector is unavailable
- * or mis-sized. */
+ * each of the query vectors.  `kw_norms[k]` is the precomputed L2 norm of
+ * kw_vecs[k]; the node norm is computed once per node.  The integer sums are
+ * exact, so factoring the norms out of the pair loop leaves every score
+ * bit-identical to the fused form.  Returns 0.0 if the node vector is
+ * unavailable or mis-sized. */
 static double vs_min_cosine_score(const int8_t *node_vec, int node_vec_len,
-                                  const int8_t (*kw_vecs)[VS_VEC_DIM], int actual_kw) {
+                                  const int8_t (*kw_vecs)[VS_VEC_DIM], const double *kw_norms,
+                                  int actual_kw) {
     if (!node_vec || node_vec_len != VS_VEC_DIM) {
         return 0.0;
     }
+    int32_t mb = 0;
+    for (int d = 0; d < VS_VEC_DIM; d++) {
+        mb += (int32_t)node_vec[d] * (int32_t)node_vec[d];
+    }
+    double node_norm = sqrt((double)mb);
     double min_score = CBM_STORE_UNIT_POS_D;
     for (int k = 0; k < actual_kw; k++) {
         int32_t dot = 0;
-        int32_t ma = 0;
-        int32_t mb = 0;
         for (int d = 0; d < VS_VEC_DIM; d++) {
             dot += (int32_t)kw_vecs[k][d] * (int32_t)node_vec[d];
-            ma += (int32_t)kw_vecs[k][d] * (int32_t)kw_vecs[k][d];
-            mb += (int32_t)node_vec[d] * (int32_t)node_vec[d];
         }
-        double denom = sqrt((double)ma) * sqrt((double)mb);
+        double denom = kw_norms[k] * node_norm;
         double cos_k = denom > CBM_STORE_DENOM_EPS_D ? (double)dot / denom : 0.0;
         if (cos_k < min_score) {
             min_score = cos_k;
@@ -9980,35 +10078,81 @@ static double vs_min_cosine_score(const int8_t *node_vec, int node_vec_len,
     return min_score;
 }
 
-/* Append one candidate row read from the scan statement into the result
- * vector.  Grows the results array geometrically on demand.  Returns the
- * (possibly grown) results pointer, or NULL on allocation failure. */
-static cbm_vector_result_t *vs_append_result(cbm_vector_result_t *results, int *count, int *cap,
-                                             sqlite3_stmt *stmt,
-                                             const int8_t (*kw_vecs)[VS_VEC_DIM], int actual_kw) {
+/* Append one candidate row read from the scan statement into `*results`,
+ * growing the array geometrically on demand.  Returns CBM_STORE_OK, or
+ * CBM_STORE_ERR on allocation failure — in which case `*results` still owns
+ * exactly `*count` complete rows (a row is only counted once every string
+ * copy succeeded), so the caller's usual free path stays valid. */
+static int vs_append_result(cbm_vector_result_t **results, int *count, int *cap, sqlite3_stmt *stmt,
+                            const int8_t (*kw_vecs)[VS_VEC_DIM], const double *kw_norms,
+                            int actual_kw) {
     if (*count >= *cap) {
         int nc = *cap < CBM_SZ_16 ? CBM_SZ_16 : *cap * ST_COL_2;
-        cbm_vector_result_t *grown = realloc(results, (size_t)nc * sizeof(cbm_vector_result_t));
+        cbm_vector_result_t *grown = realloc(*results, (size_t)nc * sizeof(cbm_vector_result_t));
         if (!grown) {
-            return NULL;
+            return CBM_STORE_ERR;
         }
-        results = grown;
+        *results = grown;
         *cap = nc;
     }
-    int idx = (*count)++;
-    results[idx].node_id = sqlite3_column_int64(stmt, 0);
+    cbm_vector_result_t *row = &(*results)[*count];
+    row->node_id = sqlite3_column_int64(stmt, 0);
     const char *name = (const char *)sqlite3_column_text(stmt, SKIP_ONE);
     const char *qn = (const char *)sqlite3_column_text(stmt, ST_COL_2);
     const char *fp = (const char *)sqlite3_column_text(stmt, ST_COL_3);
     const char *label = (const char *)sqlite3_column_text(stmt, ST_COL_4);
-    results[idx].name = name ? strdup(name) : strdup("");
-    results[idx].qualified_name = qn ? strdup(qn) : strdup("");
-    results[idx].file_path = fp ? strdup(fp) : strdup("");
-    results[idx].label = label ? strdup(label) : strdup("");
+    row->name = strdup(name ? name : "");
+    row->qualified_name = strdup(qn ? qn : "");
+    row->file_path = strdup(fp ? fp : "");
+    row->label = strdup(label ? label : "");
+    if (!row->name || !row->qualified_name || !row->file_path || !row->label) {
+        free(row->name);
+        free(row->qualified_name);
+        free(row->file_path);
+        free(row->label);
+        return CBM_STORE_ERR;
+    }
     const int8_t *node_vec = (const int8_t *)sqlite3_column_blob(stmt, ST_COL_6);
     int node_vec_len = sqlite3_column_bytes(stmt, ST_COL_6);
-    results[idx].score = vs_min_cosine_score(node_vec, node_vec_len, kw_vecs, actual_kw);
-    return results;
+    row->score = vs_min_cosine_score(node_vec, node_vec_len, kw_vecs, kw_norms, actual_kw);
+    (*count)++;
+    return CBM_STORE_OK;
+}
+
+/* A lean index carries no node_vectors table at all.  That is an empty
+ * semantic universe, not a scan failure, and callers must be able to tell
+ * the two apart — so probe the schema before preparing the scan.  Returns
+ * CBM_STORE_OK (present), CBM_STORE_NOT_FOUND (absent) or CBM_STORE_ERR. */
+static int vs_probe_node_vectors_table(cbm_store_t *s) {
+    sqlite3_stmt *probe = NULL;
+    const char *sql =
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='node_vectors' LIMIT 1;";
+    if (sqlite3_prepare_v2(s->db, sql, SQLITE_AUTO_LEN, &probe, NULL) != SQLITE_OK) {
+        (void)fprintf(stderr, "vector_search: %s\n", sqlite3_errmsg(s->db));
+        return CBM_STORE_ERR;
+    }
+    int step_rc = sqlite3_step(probe);
+    sqlite3_finalize(probe);
+    if (step_rc == SQLITE_ROW) {
+        return CBM_STORE_OK;
+    }
+    if (step_rc == SQLITE_DONE) {
+        return CBM_STORE_NOT_FOUND;
+    }
+    (void)fprintf(stderr, "vector_search: %s\n", sqlite3_errmsg(s->db));
+    return CBM_STORE_ERR;
+}
+
+static int vs_ranked_result_cmp(const void *lhs, const void *rhs) {
+    const cbm_vector_result_t *a = lhs;
+    const cbm_vector_result_t *b = rhs;
+    if (a->score > b->score) {
+        return -1;
+    }
+    if (a->score < b->score) {
+        return 1;
+    }
+    return (a->node_id > b->node_id) - (a->node_id < b->node_id);
 }
 
 int cbm_store_vector_search(cbm_store_t *s, const char *project, const char **keywords,
@@ -10020,22 +10164,28 @@ int cbm_store_vector_search(cbm_store_t *s, const char *project, const char **ke
         return CBM_STORE_ERR;
     }
 
+    int probe_rc = vs_probe_node_vectors_table(s);
+    if (probe_rc != CBM_STORE_OK) {
+        return probe_rc;
+    }
+
     int8_t kw_vecs[VS_MAX_KW][VS_VEC_DIM];
     int actual_kw = vs_build_keyword_vectors(s, project, keywords, keyword_count, kw_vecs);
     if (actual_kw == 0) {
         return CBM_STORE_OK;
     }
+    double kw_norms[VS_MAX_KW];
+    vs_keyword_norms(kw_vecs, actual_kw, kw_norms);
 
-    /* Scan all node vectors, compute per-keyword cosine, take min.
-     * We use the FIRST keyword as the SQL sort (for top-K pre-filter),
-     * then re-score with min across all keywords in the append helper. */
+    /* Use the first keyword for a cheap candidate ordering, then score each
+     * materialized candidate by min-cosine across every keyword. */
     const char *sql = "SELECT n.id, n.name, n.qualified_name, n.file_path, n.label,"
                       "       cbm_cosine_i8(v.vector, ?1) as score, v.vector"
                       " FROM node_vectors v"
                       " INNER JOIN nodes n ON n.id = v.node_id"
                       " WHERE v.project = ?2"
                       " AND n.label IN (" CBM_SQL_CALLABLE_OR_TYPE_LABELS ")"
-                      " ORDER BY score DESC"
+                      " ORDER BY score DESC, n.id ASC"
                       " LIMIT ?3";
 
     sqlite3_stmt *stmt = NULL;
@@ -10045,59 +10195,72 @@ int cbm_store_vector_search(cbm_store_t *s, const char *project, const char **ke
         return CBM_STORE_ERR;
     }
 
-    /* Use first keyword for SQL pre-filter, fetch more candidates for re-ranking */
-    int fetch_limit = (limit > 0 ? limit : CBM_SZ_16) * ST_COL_5;
+    /* A fixed 5x prefilter is normally ample, but it is not a proof: a later
+     * candidate can have a lower first-keyword score and a much higher
+     * all-keyword min-score. Expand until either the scan is exhausted or the
+     * Kth final score is strictly above the best possible omitted score. This
+     * makes top-K prefixes identical for every requested K, which semantic
+     * offset pagination requires. */
+    int requested_limit = limit > 0 ? limit : CBM_SZ_16;
+    int fetch_limit = requested_limit > INT_MAX / ST_COL_5 ? INT_MAX : requested_limit * ST_COL_5;
     sqlite3_bind_blob(stmt, SKIP_ONE, kw_vecs[0], VS_VEC_DIM, SQLITE_STATIC);
     sqlite3_bind_text(stmt, ST_COL_2, project, SQLITE_AUTO_LEN, SQLITE_STATIC);
-    sqlite3_bind_int(stmt, ST_COL_3, fetch_limit);
+
+    cbm_vector_result_t *results = NULL;
+    int count = 0;
+    for (;;) {
+        int cap = 0;
+        int step_rc;
+        double omitted_score_ceiling = 0.0;
+        sqlite3_bind_int(stmt, ST_COL_3, fetch_limit);
+        while ((step_rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+            omitted_score_ceiling = sqlite3_column_double(stmt, ST_COL_5);
+            if (vs_append_result(&results, &count, &cap, stmt, kw_vecs, kw_norms, actual_kw) !=
+                CBM_STORE_OK) {
+                step_rc = SQLITE_NOMEM;
+                break;
+            }
+        }
+        if (step_rc != SQLITE_DONE) {
+            char rc_buf[VS_STR_BUF];
+            snprintf(rc_buf, sizeof(rc_buf), "%d", step_rc);
+            cbm_log_warn("vector_search.step_error", "rc", rc_buf, "msg", sqlite3_errmsg(s->db));
+            cbm_store_free_vector_results(results, count);
+            sqlite3_finalize(stmt);
+            return CBM_STORE_ERR;
+        }
+
+        if (count > 1) {
+            qsort(results, (size_t)count, sizeof(*results), vs_ranked_result_cmp);
+        }
+        bool scan_exhausted = count < fetch_limit;
+        bool top_k_certified = scan_exhausted || count < requested_limit ||
+                               results[requested_limit - 1].score > omitted_score_ceiling;
+        if (top_k_certified || fetch_limit == INT_MAX) {
+            break;
+        }
+
+        cbm_store_free_vector_results(results, count);
+        results = NULL;
+        count = 0;
+        fetch_limit = fetch_limit > INT_MAX / ST_COL_2 ? INT_MAX : fetch_limit * ST_COL_2;
+        sqlite3_reset(stmt);
+    }
 
     {
         char kw_buf[VS_STR_BUF];
         char fl_buf[VS_STR_BUF];
+        char cnt_buf[VS_STR_BUF];
         snprintf(kw_buf, sizeof(kw_buf), "%d", actual_kw);
         snprintf(fl_buf, sizeof(fl_buf), "%d", fetch_limit);
-        cbm_log_info("vector_search.exec", "kw_count", kw_buf, "fetch_limit", fl_buf, "project",
-                     project);
-    }
-
-    cbm_vector_result_t *results = NULL;
-    int count = 0;
-    int cap = 0;
-    int step_rc = 0;
-    while ((step_rc = sqlite3_step(stmt)) == SQLITE_ROW) {
-        cbm_vector_result_t *grown =
-            vs_append_result(results, &count, &cap, stmt, kw_vecs, actual_kw);
-        if (!grown) {
-            break;
-        }
-        results = grown;
-    }
-
-    if (step_rc != SQLITE_DONE) {
-        char rc_buf[VS_STR_BUF];
-        snprintf(rc_buf, sizeof(rc_buf), "%d", step_rc);
-        cbm_log_warn("vector_search.step_error", "rc", rc_buf, "msg", sqlite3_errmsg(s->db));
-    }
-    {
-        char cnt_buf[VS_STR_BUF];
         snprintf(cnt_buf, sizeof(cnt_buf), "%d", count);
-        cbm_log_info("vector_search.done", "candidates", cnt_buf);
+        cbm_log_info("vector_search.done", "kw_count", kw_buf, "fetch_limit", fl_buf, "candidates",
+                     cnt_buf);
     }
     sqlite3_finalize(stmt);
 
-    /* Re-sort by min-score (SQL sorted by first keyword only) */
-    for (int i = 0; i < count - SKIP_ONE; i++) {
-        for (int j = i + SKIP_ONE; j < count; j++) {
-            if (results[j].score > results[i].score) {
-                cbm_vector_result_t tmp = results[i];
-                results[i] = results[j];
-                results[j] = tmp;
-            }
-        }
-    }
-
     /* Trim to requested limit */
-    int final_limit = limit > 0 ? limit : CBM_SZ_16;
+    int final_limit = requested_limit;
     if (count > final_limit) {
         for (int i = final_limit; i < count; i++) {
             free(results[i].name);

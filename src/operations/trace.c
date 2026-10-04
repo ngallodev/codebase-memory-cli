@@ -1,3 +1,4 @@
+#include "operations/result_wire.h"
 #include "operations/trace.h"
 #include "operations/store_host.h"
 
@@ -5,6 +6,9 @@
 #include "store/store.h"
 #include "yyjson/yyjson.h"
 
+#include <ctype.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -77,7 +81,7 @@ static bool bool_arg(const char *args, const char *name) {
 static cbm_operation_result_t json_result(yyjson_mut_doc *doc, bool error) {
     if (!doc)
         return cbm_operation_result_copy("{\"error\":\"result allocation failed\"}", true);
-    char *json = yyjson_mut_write(doc, 0, NULL);
+    char *json = cbm_operation_json_write(doc);
     yyjson_mut_doc_free(doc);
     return json ? cbm_operation_result_take(json, error)
                 : cbm_operation_result_copy("{\"error\":\"result encoding failed\"}", true);
@@ -212,23 +216,28 @@ static bool grow_edges(cbm_traverse_result_t *out, int *capacity) {
     return true;
 }
 
-/* Preserve edge properties for data-flow/evidence output. cbm_store_bfs_multi()
- * intentionally returns only nodes today, so trace still unions the individual
- * traversals until the store primitive grows an edge-preserving multi-seed form. */
+/* Union the traversals of every same-name seed. Edge properties are skipped for
+ * lean traces (edge_limit 0) or merged under an explicit edge_limit for
+ * data-flow/evidence output; saturation of either bound is reported through
+ * out->truncated / out->edges_truncated, never silently. cbm_store_bfs_multi()
+ * returns only nodes, so the individual traversals are unioned here. */
 static bool bfs_union(cbm_store_t *store, const cbm_node_t *seeds, int seed_count,
                       const char *direction, const char **edge_types, int edge_type_count,
-                      int depth, int limit, cbm_traverse_result_t *out) {
+                      int depth, int limit, int edge_limit, cbm_traverse_result_t *out) {
     memset(out, 0, sizeof(*out));
     int vcap = 0;
     int ecap = 0;
     for (int seed = 0; seed < seed_count; ++seed) {
         cbm_traverse_result_t current = {0};
-        if (cbm_store_bfs(store, seeds[seed].id, direction, edge_types, edge_type_count, depth,
-                          limit, &current) != CBM_STORE_OK) {
+        if (cbm_store_bfs_with_edge_limit(store, seeds[seed].id, direction, edge_types,
+                                          edge_type_count, depth, limit, edge_limit,
+                                          &current) != CBM_STORE_OK) {
             cbm_store_traverse_free(&current);
             cbm_store_traverse_free(out);
             return false;
         }
+        out->truncated = out->truncated || current.truncated;
+        out->edges_truncated = out->edges_truncated || current.edges_truncated;
         for (int i = 0; i < current.visited_count; ++i) {
             int existing = -1;
             for (int j = 0; j < out->visited_count; ++j) {
@@ -240,6 +249,10 @@ static bool bfs_union(cbm_store_t *store, const cbm_node_t *seeds, int seed_coun
             if (existing >= 0) {
                 if (current.visited[i].hop < out->visited[existing].hop)
                     out->visited[existing].hop = current.visited[i].hop;
+                continue;
+            }
+            if (out->visited_count >= limit) {
+                out->truncated = true;
                 continue;
             }
             if (!grow_visited(out, &vcap)) {
@@ -264,6 +277,10 @@ static bool bfs_union(cbm_store_t *store, const cbm_node_t *seeds, int seed_coun
             }
             if (duplicate)
                 continue;
+            if (edge_limit > 0 && out->edge_count >= edge_limit) {
+                out->edges_truncated = true;
+                continue;
+            }
             if (!grow_edges(out, &ecap)) {
                 cbm_store_traverse_free(&current);
                 cbm_store_traverse_free(out);
@@ -277,6 +294,25 @@ static bool bfs_union(cbm_store_t *store, const cbm_node_t *seeds, int seed_coun
     if (out->visited_count > 1)
         qsort(out->visited, (size_t)out->visited_count, sizeof(*out->visited), hop_id_cmp);
     return true;
+}
+
+/* Filtering belongs before page-window calculation: hidden test rows must not
+ * consume the caller's visible limit or become cursor watermarks. Compact the
+ * owned traversal array in place, preserving canonical (hop,id) order. */
+static void filter_test_rows(cbm_traverse_result_t *result) {
+    int write_index = 0;
+    for (int read_index = 0; read_index < result->visited_count; ++read_index) {
+        if (is_test_file(result->visited[read_index].node.file_path)) {
+            cbm_node_free_fields(&result->visited[read_index].node);
+            continue;
+        }
+        if (write_index != read_index) {
+            result->visited[write_index] = result->visited[read_index];
+            memset(&result->visited[read_index], 0, sizeof(result->visited[read_index]));
+        }
+        ++write_index;
+    }
+    result->visited_count = write_index;
 }
 
 static yyjson_doc *resolve_edge_types(const char *args, const char *mode, const char **types,
@@ -327,7 +363,9 @@ static uint64_t fnv1a(const char *text, uint64_t hash) {
 }
 
 static uint64_t params_hash(const char *project, const char *function, const char *direction,
-                            const char *mode, int depth, bool include_tests, int limit) {
+                            const char *mode, const char *parameter_name, int depth,
+                            bool include_tests, bool risk_labels, bool include_evidence, int limit,
+                            const char *args) {
     uint64_t hash = UINT64_C(0xcbf29ce484222325);
     hash = fnv1a(project ? project : "", hash);
     hash = fnv1a("|", hash);
@@ -336,9 +374,30 @@ static uint64_t params_hash(const char *project, const char *function, const cha
     hash = fnv1a(direction ? direction : "", hash);
     hash = fnv1a("|", hash);
     hash = fnv1a(mode ? mode : "", hash);
+    hash = fnv1a("|", hash);
+    hash = fnv1a(parameter_name ? parameter_name : "", hash);
     char numbers[64];
-    (void)snprintf(numbers, sizeof(numbers), "|%d|%d|%d", depth, include_tests ? 1 : 0, limit);
-    return fnv1a(numbers, hash);
+    (void)snprintf(numbers, sizeof(numbers), "|%d|%d|%d|%d|%d", depth, include_tests ? 1 : 0,
+                   risk_labels ? 1 : 0, include_evidence ? 1 : 0, limit);
+    hash = fnv1a(numbers, hash);
+    /* Explicit edge types define the traversed graph. Omitting them would let a
+     * token minted for CALLS resume an IMPORTS traversal at an unrelated
+     * watermark. Caller order is preserved: cursors require unchanged args. */
+    yyjson_doc *doc = args_doc(args);
+    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
+    yyjson_val *types = yyjson_is_obj(root) ? yyjson_obj_get(root, "edge_types") : NULL;
+    hash = fnv1a("|edge_types=", hash);
+    if (yyjson_is_arr(types)) {
+        size_t index, max;
+        yyjson_val *value;
+        yyjson_arr_foreach(types, index, max, value) {
+            hash = fnv1a(yyjson_is_str(value) ? yyjson_get_str(value) : "<non-string>", hash);
+            hash = fnv1a(";", hash);
+        }
+    }
+    if (doc)
+        yyjson_doc_free(doc);
+    return hash;
 }
 
 static void cursor_encode(const trace_cursor_t *cursor, char *buffer, size_t size) {
@@ -352,19 +411,40 @@ static const char *cursor_decode(const char *token, const char *generation, uint
     if (!token || strncmp(token, "c1.", 3U) != 0)
         return "invalid_cursor";
     const char *p = token + 3;
-    if (*p != 'o' && *p != 'i')
+    if ((*p != 'o' && *p != 'i') || p[1] != '.')
         return "invalid_cursor";
     out->leg = *p;
     p += 2;
     const char *end = strchr(p, '.');
-    if (!end || (size_t)(end - p) >= sizeof(out->generation))
+    if (!end || end == p || (size_t)(end - p) >= sizeof(out->generation))
         return "invalid_cursor";
     memcpy(out->generation, p, (size_t)(end - p));
     out->generation[end - p] = '\0';
-    unsigned long long hash = 0;
-    long long node = 0;
-    if (sscanf(end + 1, "%16llx.%d.%lld", &hash, &out->hop, &node) != 3)
+    const char *hash_start = end + 1;
+    const char *hash_end = strchr(hash_start, '.');
+    if (!hash_end || hash_end - hash_start != 16)
         return "invalid_cursor";
+    for (const char *digit = hash_start; digit < hash_end; ++digit)
+        if (!isxdigit((unsigned char)*digit))
+            return "invalid_cursor";
+    errno = 0;
+    char *parsed_end = NULL;
+    unsigned long long hash = strtoull(hash_start, &parsed_end, 16);
+    if (errno == ERANGE || parsed_end != hash_end)
+        return "invalid_cursor";
+    const char *hop_start = hash_end + 1;
+    const char *hop_end = strchr(hop_start, '.');
+    errno = 0;
+    long parsed_hop = hop_end ? strtol(hop_start, &parsed_end, 10) : -1;
+    if (!hop_end || hop_end == hop_start || errno == ERANGE || parsed_end != hop_end ||
+        parsed_hop < 1 || parsed_hop > INT_MAX)
+        return "invalid_cursor";
+    const char *node_start = hop_end + 1;
+    errno = 0;
+    long long node = strtoll(node_start, &parsed_end, 10);
+    if (node_start == parsed_end || errno == ERANGE || *parsed_end != '\0' || node <= 0)
+        return "invalid_cursor";
+    out->hop = (int)parsed_hop;
     out->qhash = (uint64_t)hash;
     out->node_id = (int64_t)node;
     if (out->qhash != expected)
@@ -374,40 +454,99 @@ static const char *cursor_decode(const char *token, const char *generation, uint
     return NULL;
 }
 
-static int watermark_index(const cbm_traverse_result_t *result, int hop, int64_t node_id) {
+/* Validate an exactly-issued watermark and return the first row after it.
+ * Treating an arbitrary (hop,id) as an insertion point would let a syntactically
+ * valid but edited cursor skip rows. The watermarked row must still exist in the
+ * selected, test-filtered leg for this generation; -1 means it does not. */
+static int watermark_next_index(const cbm_traverse_result_t *result, int hop, int64_t node_id) {
     for (int i = 0; i < result->visited_count; ++i) {
+        if (result->visited[i].hop == hop && result->visited[i].node.id == node_id)
+            return i + 1;
         if (result->visited[i].hop > hop ||
             (result->visited[i].hop == hop && result->visited[i].node.id > node_id))
-            return i;
+            break;
     }
-    return result->visited_count;
+    return -1;
 }
 
-static const char *edge_args(const cbm_traverse_result_t *result, int64_t node_id, size_t *length) {
-    for (int i = 0; i < result->edge_count; ++i) {
-        if (result->edges[i].source_id != node_id && result->edges[i].target_id != node_id)
+/* Edge collection returns the whole induced subgraph, not a predecessor tree,
+ * so an arbitrary incident edge can point sideways or away from the root. The
+ * evidence and args for a row must come from a deterministic edge that can
+ * actually precede it on a shortest path: it has the traversal direction and
+ * connects hop h to hop h-1 (or a resolved root for hop 1). */
+typedef struct {
+    const cbm_traverse_result_t *full;
+    const cbm_node_t *roots;
+    int root_count;
+    bool inbound;
+} trace_edge_context_t;
+
+static bool root_contains(const trace_edge_context_t *ctx, int64_t node_id) {
+    for (int i = 0; ctx && i < ctx->root_count; ++i)
+        if (ctx->roots[i].id == node_id)
+            return true;
+    return false;
+}
+
+static int hop_for_node(const trace_edge_context_t *ctx, int64_t node_id) {
+    if (!ctx || !ctx->full)
+        return -1;
+    for (int i = 0; i < ctx->full->visited_count; ++i)
+        if (ctx->full->visited[i].node.id == node_id)
+            return ctx->full->visited[i].hop;
+    return -1;
+}
+
+static const cbm_edge_info_t *predecessor_edge(const trace_edge_context_t *ctx,
+                                               const cbm_node_hop_t *hop_node) {
+    if (!ctx || !ctx->full || !hop_node || hop_node->hop <= 0)
+        return NULL;
+    const cbm_edge_info_t *best = NULL;
+    int64_t best_predecessor = INT64_MAX;
+    for (int e = 0; e < ctx->full->edge_count; ++e) {
+        const cbm_edge_info_t *edge = &ctx->full->edges[e];
+        if ((ctx->inbound && edge->source_id != hop_node->node.id) ||
+            (!ctx->inbound && edge->target_id != hop_node->node.id))
             continue;
-        const char *properties = result->edges[i].properties_json;
-        const char *key = properties ? strstr(properties, "\"args\"") : NULL;
-        const char *open = key ? strchr(key, '[') : NULL;
-        if (!open)
+        int64_t predecessor = ctx->inbound ? edge->target_id : edge->source_id;
+        bool previous_hop = hop_node->hop == 1
+                                ? root_contains(ctx, predecessor)
+                                : hop_for_node(ctx, predecessor) == hop_node->hop - 1;
+        if (!previous_hop)
             continue;
-        int depth = 0;
-        const char *p = open;
-        for (; *p; ++p) {
-            if (*p == '[')
-                ++depth;
-            else if (*p == ']' && --depth == 0) {
-                ++p;
-                break;
-            }
+        const char *edge_type = edge->type ? edge->type : "";
+        const char *best_type = best && best->type ? best->type : "";
+        if (!best || predecessor < best_predecessor ||
+            (predecessor == best_predecessor && strcmp(edge_type, best_type) < 0)) {
+            best = edge;
+            best_predecessor = predecessor;
         }
-        if (depth != 0)
-            continue;
-        *length = (size_t)(p - open);
-        return open;
     }
-    return NULL;
+    return best;
+}
+
+/* Serialized argument-expression array from the selected predecessor edge. The
+ * returned slice is borrowed from properties_json. */
+static const char *edge_args(const cbm_edge_info_t *edge, size_t *length) {
+    const char *properties = edge ? edge->properties_json : NULL;
+    const char *key = properties ? strstr(properties, "\"args\"") : NULL;
+    const char *open = key ? strchr(key, '[') : NULL;
+    if (!open)
+        return NULL;
+    int depth = 0;
+    const char *p = open;
+    for (; *p; ++p) {
+        if (*p == '[')
+            ++depth;
+        else if (*p == ']' && --depth == 0) {
+            ++p;
+            break;
+        }
+    }
+    if (depth != 0)
+        return NULL;
+    *length = (size_t)(p - open);
+    return open;
 }
 
 static const char *strategy_class(const char *strategy) {
@@ -422,44 +561,38 @@ static const char *strategy_class(const char *strategy) {
     return "heuristic";
 }
 
-static bool edge_evidence(const cbm_traverse_result_t *result, int64_t node_id,
-                          char class_buffer[32], double *confidence) {
-    for (int i = 0; i < result->edge_count; ++i) {
-        if (result->edges[i].source_id != node_id && result->edges[i].target_id != node_id)
-            continue;
-        const char *properties = result->edges[i].properties_json;
-        const char *key = properties ? strstr(properties, "\"strategy\"") : NULL;
-        const char *open = key ? strchr(key + 10, '"') : NULL;
-        if (!open)
-            continue;
-        ++open;
-        const char *close = strchr(open, '"');
-        if (!close || close == open)
-            continue;
-        char raw[64];
-        size_t length = (size_t)(close - open);
-        if (length >= sizeof(raw))
-            length = sizeof(raw) - 1U;
-        memcpy(raw, open, length);
-        raw[length] = '\0';
-        const char *classification = strategy_class(raw);
-        if (!classification)
-            continue;
-        (void)snprintf(class_buffer, 32U, "%s", classification);
-        *confidence = -1.0;
-        const char *conf = strstr(properties, "\"confidence\"");
-        const char *colon = conf ? strchr(conf, ':') : NULL;
-        if (colon) {
-            /* strtod answers 0.0 for text it cannot read, and callers publish any value >= 0
-             * as a recorded confidence. Keep the -1 when nothing was parsed. */
-            char *end = NULL;
-            double parsed = strtod(colon + 1, &end);
-            if (end != colon + 1)
-                *confidence = parsed;
-        }
-        return true;
+static bool edge_evidence(const cbm_edge_info_t *edge, char class_buffer[32], double *confidence) {
+    const char *properties = edge ? edge->properties_json : NULL;
+    const char *key = properties ? strstr(properties, "\"strategy\"") : NULL;
+    const char *open = key ? strchr(key + 10, '"') : NULL;
+    if (!open)
+        return false;
+    ++open;
+    const char *close = strchr(open, '"');
+    if (!close || close == open)
+        return false;
+    char raw[64];
+    size_t length = (size_t)(close - open);
+    if (length >= sizeof(raw))
+        length = sizeof(raw) - 1U;
+    memcpy(raw, open, length);
+    raw[length] = '\0';
+    const char *classification = strategy_class(raw);
+    if (!classification)
+        return false;
+    (void)snprintf(class_buffer, 32U, "%s", classification);
+    *confidence = -1.0;
+    const char *conf = strstr(properties, "\"confidence\"");
+    const char *colon = conf ? strchr(conf, ':') : NULL;
+    if (colon) {
+        /* strtod answers 0.0 for text it cannot read, and callers publish any value >= 0
+         * as a recorded confidence. Keep the -1 when nothing was parsed. */
+        char *end = NULL;
+        double parsed = strtod(colon + 1, &end);
+        if (end != colon + 1)
+            *confidence = parsed;
     }
-    return false;
+    return true;
 }
 
 static size_t qn_prefix_length(const char *qualified_name) {
@@ -469,13 +602,18 @@ static size_t qn_prefix_length(const char *qualified_name) {
 
 static yyjson_mut_val *leg_json(yyjson_mut_doc *doc, const cbm_traverse_result_t *result,
                                 bool risk_labels, bool include_tests, bool data_flow,
-                                bool include_evidence) {
+                                bool include_evidence, const trace_edge_context_t *edge_ctx) {
     yyjson_mut_val *leg = yyjson_mut_obj(doc);
+    yyjson_mut_obj_add_str(doc, leg, "qn_rule",
+                           "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name");
     yyjson_mut_val *columns = yyjson_mut_arr(doc);
     yyjson_mut_arr_add_str(doc, columns, "name");
     yyjson_mut_arr_add_str(doc, columns, "hop");
     if (risk_labels)
         yyjson_mut_arr_add_str(doc, columns, "risk");
+    if (include_tests)
+        yyjson_mut_arr_add_str(doc, columns, "test");
+    /* Declaration order matches row emission: strategy, confidence, then args. */
     if (include_evidence) {
         yyjson_mut_arr_add_str(doc, columns, "strategy");
         yyjson_mut_arr_add_str(doc, columns, "confidence");
@@ -489,8 +627,6 @@ static yyjson_mut_val *leg_json(yyjson_mut_doc *doc, const cbm_traverse_result_t
     bool have_group = false;
     for (int i = 0; i < result->visited_count; ++i) {
         const cbm_node_hop_t *hop = &result->visited[i];
-        if (!include_tests && is_test_file(hop->node.file_path))
-            continue;
         const char *qn = hop->node.qualified_name ? hop->node.qualified_name : "";
         size_t prefix = qn_prefix_length(qn);
         if (prefix >= sizeof(group_name))
@@ -509,10 +645,14 @@ static yyjson_mut_val *leg_json(yyjson_mut_doc *doc, const cbm_traverse_result_t
         yyjson_mut_arr_add_int(doc, row, hop->hop);
         if (risk_labels)
             yyjson_mut_arr_add_str(doc, row, cbm_risk_label(cbm_hop_to_risk(hop->hop)));
+        if (include_tests)
+            yyjson_mut_arr_add_bool(doc, row, is_test_file(hop->node.file_path));
+        const cbm_edge_info_t *predecessor =
+            (data_flow || include_evidence) ? predecessor_edge(edge_ctx, hop) : NULL;
         if (include_evidence) {
             char classification[32];
             double confidence = -1.0;
-            if (edge_evidence(result, hop->node.id, classification, &confidence)) {
+            if (edge_evidence(predecessor, classification, &confidence)) {
                 yyjson_mut_arr_add_strcpy(doc, row, classification);
                 if (confidence >= 0.0)
                     yyjson_mut_arr_add_real(doc, row, confidence);
@@ -525,7 +665,7 @@ static yyjson_mut_val *leg_json(yyjson_mut_doc *doc, const cbm_traverse_result_t
         }
         if (data_flow) {
             size_t length = 0U;
-            const char *raw = edge_args(result, hop->node.id, &length);
+            const char *raw = edge_args(predecessor, &length);
             yyjson_mut_val *value = raw && length ? yyjson_mut_rawn(doc, raw, length) : NULL;
             if (value)
                 yyjson_mut_arr_add_val(row, value);
@@ -538,19 +678,12 @@ static yyjson_mut_val *leg_json(yyjson_mut_doc *doc, const cbm_traverse_result_t
     return leg;
 }
 
-static int visible_count(const cbm_traverse_result_t *result, bool include_tests) {
-    int count = 0;
-    for (int i = 0; i < result->visited_count; ++i)
-        if (include_tests || !is_test_file(result->visited[i].node.file_path))
-            ++count;
-    return count;
-}
-
 cbm_operation_result_t cbm_trace_operation_execute(const char *args) {
     char *function = string_arg(args, "function_name");
     char *project = string_arg(args, "project");
     char *direction = string_arg(args, "direction");
     char *mode = string_arg(args, "mode");
+    char *parameter_name = string_arg(args, "parameter_name");
     char *cursor_text = string_arg(args, "cursor");
     bool risk_labels = bool_arg(args, "risk_labels");
     bool include_tests = bool_arg(args, "include_tests");
@@ -629,8 +762,9 @@ cbm_operation_result_t cbm_trace_operation_execute(const char *args) {
     bool legacy_generation = strcmp(generation, "legacy") == 0;
     trace_cursor_t cursor = {0};
     bool have_cursor = cursor_text && cursor_text[0];
-    uint64_t hash = params_hash(project, function, direction, mode, requested_depth, include_tests,
-                                requested_limit);
+    uint64_t hash =
+        params_hash(project, function, direction, mode, parameter_name, requested_depth,
+                    include_tests, risk_labels, include_evidence, requested_limit, args);
     if (have_cursor) {
         if (legacy_generation) {
             result = error_result(
@@ -645,6 +779,13 @@ cbm_operation_result_t cbm_trace_operation_execute(const char *args) {
                 "Re-run without cursor, or pass it back with all other arguments unchanged.");
             goto done;
         }
+        if ((cursor.leg == 'o' && strcmp(direction, "inbound") == 0) ||
+            (cursor.leg == 'i' && strcmp(direction, "outbound") == 0)) {
+            result = error_result("invalid_cursor",
+                                  "The cursor leg is incompatible with the requested direction; "
+                                  "re-run the original query without cursor.");
+            goto done;
+        }
     }
 
     const char *edge_types[TRACE_MAX_EDGE_TYPES];
@@ -652,25 +793,44 @@ cbm_operation_result_t cbm_trace_operation_execute(const char *args) {
     edge_doc = resolve_edge_types(args, mode, edge_types, &edge_type_count);
     bool do_outbound = strcmp(direction, "outbound") == 0 || strcmp(direction, "both") == 0;
     bool do_inbound = strcmp(direction, "inbound") == 0 || strcmp(direction, "both") == 0;
+    bool data_flow = mode && strcmp(mode, "data_flow") == 0;
+    /* Edge properties are only needed for data-flow args and evidence columns. */
+    int edge_data_limit = data_flow || include_evidence ? TRACE_MAX_LIMIT : 0;
+    /* Traverse with the safety ceiling, not the page size: the traversal
+     * enumerates the whole depth-bounded reachable set regardless, so exact
+     * totals and the rows every later page needs come for free. */
     if (do_outbound && !bfs_union(store, nodes, node_count, "outbound", edge_types, edge_type_count,
-                                  depth, TRACE_MAX_LIMIT, &outbound)) {
-        result = error_result("trace traversal failed", NULL);
+                                  depth, TRACE_MAX_LIMIT, edge_data_limit, &outbound)) {
+        result = error_result("trace traversal failed", "Inspect index status and retry.");
         goto done;
     }
     if (do_inbound && !bfs_union(store, nodes, node_count, "inbound", edge_types, edge_type_count,
-                                 depth, TRACE_MAX_LIMIT, &inbound)) {
-        result = error_result("trace traversal failed", NULL);
+                                 depth, TRACE_MAX_LIMIT, edge_data_limit, &inbound)) {
+        result = error_result("trace traversal failed", "Inspect index status and retry.");
         goto done;
+    }
+    if (!include_tests) {
+        filter_test_rows(&outbound);
+        filter_test_rows(&inbound);
     }
 
     int out_start = 0;
     int in_start = 0;
     if (have_cursor) {
-        if (cursor.leg == 'o')
-            out_start = watermark_index(&outbound, cursor.hop, cursor.node_id);
-        else {
-            out_start = outbound.visited_count;
-            in_start = watermark_index(&inbound, cursor.hop, cursor.node_id);
+        int watermark_next;
+        if (cursor.leg == 'o') {
+            watermark_next = watermark_next_index(&outbound, cursor.hop, cursor.node_id);
+            out_start = watermark_next;
+        } else {
+            out_start = outbound.visited_count; /* callees leg already drained */
+            watermark_next = watermark_next_index(&inbound, cursor.hop, cursor.node_id);
+            in_start = watermark_next;
+        }
+        if (watermark_next < 0) {
+            result = error_result("invalid_cursor",
+                                  "The watermark is not present in the selected trace leg; "
+                                  "re-run the original query without cursor.");
+            goto done;
         }
     }
     int budget = limit;
@@ -684,6 +844,8 @@ cbm_operation_result_t cbm_trace_operation_execute(const char *args) {
     bool out_more = do_outbound && out_start + out_len < outbound.visited_count;
     bool in_more = do_inbound && in_start + in_len < inbound.visited_count;
     bool more = out_more || in_more;
+    bool engine_saturated = outbound.truncated || inbound.truncated;
+    bool edge_data_saturated = outbound.edges_truncated || inbound.edges_truncated;
     char next[192] = "";
     if (more && !legacy_generation) {
         trace_cursor_t next_cursor = {0};
@@ -730,27 +892,56 @@ cbm_operation_result_t cbm_trace_operation_execute(const char *args) {
             doc, root, "depth_note",
             "requested depth was capped by the configured traversal safety limit");
     }
-    bool data_flow = mode && strcmp(mode, "data_flow") == 0;
+    /* Totals count exactly what the caller can enumerate: test rows were
+     * filtered before windowing when include_tests is false. "gte" flags the
+     * traversal safety ceiling. */
+    trace_edge_context_t out_edge_ctx = {
+        .full = &outbound, .roots = nodes, .root_count = node_count, .inbound = false};
+    trace_edge_context_t in_edge_ctx = {
+        .full = &inbound, .roots = nodes, .root_count = node_count, .inbound = true};
     if (do_outbound) {
-        yyjson_mut_obj_add_int(doc, root, "callees_total", visible_count(&outbound, include_tests));
-        yyjson_mut_obj_add_val(
-            doc, root, "callees",
-            leg_json(doc, &out_view, risk_labels, include_tests, data_flow, include_evidence));
+        yyjson_mut_obj_add_int(doc, root, "callees_total", outbound.visited_count);
+        yyjson_mut_obj_add_str(doc, root, "callees_total_relation",
+                               outbound.truncated ? "gte" : "eq");
+        yyjson_mut_obj_add_val(doc, root, "callees",
+                               leg_json(doc, &out_view, risk_labels, include_tests, data_flow,
+                                        include_evidence, &out_edge_ctx));
     }
     if (do_inbound) {
-        yyjson_mut_obj_add_int(doc, root, "callers_total", visible_count(&inbound, include_tests));
-        yyjson_mut_obj_add_val(
-            doc, root, "callers",
-            leg_json(doc, &in_view, risk_labels, include_tests, data_flow, include_evidence));
+        yyjson_mut_obj_add_int(doc, root, "callers_total", inbound.visited_count);
+        yyjson_mut_obj_add_str(doc, root, "callers_total_relation",
+                               inbound.truncated ? "gte" : "eq");
+        yyjson_mut_obj_add_val(doc, root, "callers",
+                               leg_json(doc, &in_view, risk_labels, include_tests, data_flow,
+                                        include_evidence, &in_edge_ctx));
     }
-    if (more) {
+    if (more || engine_saturated || edge_data_saturated) {
         yyjson_mut_obj_add_bool(doc, root, "truncated", true);
-        if (next[0])
+        yyjson_mut_obj_add_bool(doc, root, "has_more", more);
+        yyjson_mut_obj_add_str(doc, root, "truncation_reason",
+                               more               ? "page_limit"
+                               : engine_saturated ? "engine_limit"
+                                                  : "edge_data_limit");
+        if (engine_saturated)
+            yyjson_mut_obj_add_bool(doc, root, "engine_saturated", true);
+        if (edge_data_saturated)
+            yyjson_mut_obj_add_bool(doc, root, "edge_data_saturated", true);
+        if (next[0]) {
             yyjson_mut_obj_add_strcpy(doc, root, "next_cursor", next);
-        else
+        } else if (more) {
             yyjson_mut_obj_add_str(doc, root, "hint",
                                    "More rows exist; raise limit because this legacy index cannot "
                                    "mint a safe cursor.");
+        } else if (engine_saturated) {
+            yyjson_mut_obj_add_str(doc, root, "hint",
+                                   "Traversal reached the 5000-node safety ceiling; narrow "
+                                   "depth/edge_types or use query for a differently bounded "
+                                   "traversal.");
+        } else {
+            yyjson_mut_obj_add_str(doc, root, "hint",
+                                   "Optional edge evidence reached its 5000-edge ceiling; narrow "
+                                   "depth/edge_types or disable data_flow/include_evidence.");
+        }
     }
     result = json_result(doc, false);
 
@@ -767,6 +958,7 @@ done:
     free(project);
     free(direction);
     free(mode);
+    free(parameter_name);
     free(cursor_text);
     return result;
 }

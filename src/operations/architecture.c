@@ -1,3 +1,4 @@
+#include "operations/result_wire.h"
 #include "operations/architecture.h"
 #include "operations/store_host.h"
 
@@ -336,19 +337,20 @@ static void append_cross_repo_summary(yyjson_mut_doc *doc, yyjson_mut_val *root,
     }
 }
 
-/* Join a string list into buf with ';' separators (keeps TOON cells
- * comma-free so they need no quoting). Truncates silently at sz. */
-static void arch_join_list(char *buf, size_t sz, const char **items, int n) {
-    size_t pos = 0;
-    buf[0] = '\0';
+/* Join a string list with ';' separators (keeps TOON cells comma-free so they
+ * need no quoting). Heap-built so a long identifier is never silently cut;
+ * caller frees. NULL only on allocation failure. */
+static char *arch_join_list(const char **items, int n) {
+    cbm_sb_t joined;
+    cbm_sb_init(&joined);
     for (int i = 0; i < n; i++) {
         const char *s = items[i] ? items[i] : "";
-        int w = snprintf(buf + pos, sz - pos, "%s%s", i > 0 ? ";" : "", s);
-        if (w < 0 || (size_t)w >= sz - pos) {
-            break;
+        if (i > 0) {
+            cbm_sb_append(&joined, ";");
         }
-        pos += (size_t)w;
+        cbm_sb_append(&joined, s);
     }
+    return cbm_sb_finish(&joined);
 }
 
 /* Compute the circular-dependency SCCs (size > 1) of the CALLS graph. Returns
@@ -501,15 +503,20 @@ static yyjson_mut_val *arch_json_section(yyjson_mut_doc *doc, yyjson_mut_val *ro
     return rows;
 }
 
-/* Fetch the qualified_name for a node id, or a "#<id>" fallback. */
-static void arch_node_qn(cbm_store_t *store, int64_t id, char *out, size_t outsz) {
+/* Fetch the qualified_name for a node id, or a "#<id>" fallback. Heap copy,
+ * caller frees; NULL only on allocation failure. */
+static char *arch_node_qn(cbm_store_t *store, int64_t id) {
     cbm_node_t n = {0};
+    char *out = NULL;
     if (cbm_store_find_node_by_id(store, id, &n) == CBM_STORE_OK && n.qualified_name) {
-        snprintf(out, outsz, "%s", n.qualified_name);
+        out = architecture_copy_string(n.qualified_name);
     } else {
-        snprintf(out, outsz, "#%lld", (long long)id);
+        char fallback[48];
+        snprintf(fallback, sizeof(fallback), "#%lld", (long long)id);
+        out = architecture_copy_string(fallback);
     }
     cbm_node_free_fields(&n);
+    return out;
 }
 
 cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
@@ -621,8 +628,10 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
 
     int node_count = cbm_store_count_nodes_scoped(store, project, scope_path);
     int edge_count = cbm_store_count_edges_scoped(store, project, scope_path);
-    char norm_path[CBM_SZ_512];
-    bool path_scoped = cbm_store_normalize_arch_path(scope_path, norm_path, sizeof(norm_path));
+    size_t norm_path_cap = scope_path ? strlen(scope_path) + 2U : 2U;
+    char *norm_path = malloc(norm_path_cap);
+    bool path_scoped =
+        norm_path && cbm_store_normalize_arch_path(scope_path, norm_path, norm_path_cap);
 
     /* Response encoding: tree tables by default; format:"json" emits the
      * same model as structured JSON ({cols, rows} per section). */
@@ -776,19 +785,21 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
             cbm_tree_table_header(&sb, "clusters", arch.cluster_count, ccols, 7);
             for (int i = 0; i < arch.cluster_count; i++) {
                 const cbm_cluster_info_t *c = &arch.clusters[i];
-                char joined[CBM_SZ_1K];
                 cbm_tree_row_begin(&sb);
                 cbm_tree_cell_int(&sb, c->id, true);
                 cbm_tree_cell_str(&sb, c->label, false);
                 cbm_tree_cell_int(&sb, c->members, false);
                 cbm_tree_cell_real(&sb, c->cohesion, false);
-                arch_join_list(joined, sizeof(joined), c->top_nodes, c->top_node_count);
-                cbm_tree_cell_str(&sb, joined, false);
-                arch_join_list(joined, sizeof(joined), c->packages, c->package_count);
-                cbm_tree_cell_str(&sb, joined, false);
-                arch_join_list(joined, sizeof(joined), c->edge_types, c->edge_type_count);
-                cbm_tree_cell_str(&sb, joined, false);
+                char *top_nodes = arch_join_list(c->top_nodes, c->top_node_count);
+                char *packages = arch_join_list(c->packages, c->package_count);
+                char *edge_types = arch_join_list(c->edge_types, c->edge_type_count);
+                cbm_tree_cell_str(&sb, top_nodes ? top_nodes : "(out-of-memory)", false);
+                cbm_tree_cell_str(&sb, packages ? packages : "(out-of-memory)", false);
+                cbm_tree_cell_str(&sb, edge_types ? edge_types : "(out-of-memory)", false);
                 cbm_tree_row_end(&sb);
+                free(top_nodes);
+                free(packages);
+                free(edge_types);
             }
         }
         if (arch.file_tree_count > 0) {
@@ -851,20 +862,29 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
                          "cycles: %d  (rows: size members; circular CALLS dependencies)\n", ncyc);
                 cbm_sb_append(&sb, hdr);
                 for (int c = 0; c < ncyc; c++) {
-                    char row[CBM_SZ_2K];
-                    int off = snprintf(row, sizeof(row), "  %d ", sizes[c]);
                     bool clipped = sizes[c] > ARCH_SCC_MEMBERS_SHOWN;
                     int show = clipped ? ARCH_SCC_MEMBERS_SHOWN : sizes[c];
-                    for (int m = 0; m < show && off < (int)sizeof(row) - 2; m++) {
-                        char qn[CBM_SZ_512];
-                        arch_node_qn(store, members[c][m], qn, sizeof(qn));
-                        off += snprintf(row + off, sizeof(row) - off, "%s%s", m ? ";" : "", qn);
+                    cbm_sb_t member_list;
+                    cbm_sb_init(&member_list);
+                    for (int m = 0; m < show; m++) {
+                        char *qn = arch_node_qn(store, members[c][m]);
+                        if (m > 0) {
+                            cbm_sb_append(&member_list, ";");
+                        }
+                        cbm_sb_append(&member_list, qn ? qn : "(out-of-memory)");
+                        free(qn);
                     }
-                    if (clipped && off < (int)sizeof(row) - 8) {
-                        snprintf(row + off, sizeof(row) - off, ";+%d", sizes[c] - show);
+                    if (clipped) {
+                        char omitted[48];
+                        snprintf(omitted, sizeof(omitted), ";+%d", sizes[c] - show);
+                        cbm_sb_append(&member_list, omitted);
                     }
-                    cbm_sb_append(&sb, row);
-                    cbm_sb_append(&sb, "\n");
+                    char *member_text = cbm_sb_finish(&member_list);
+                    cbm_tree_row_begin(&sb);
+                    cbm_tree_cell_int(&sb, sizes[c], true);
+                    cbm_tree_cell_str(&sb, member_text ? member_text : "(out-of-memory)", false);
+                    cbm_tree_row_end(&sb);
+                    free(member_text);
                     free(members[c]);
                 }
                 free(members);
@@ -879,6 +899,7 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
         }
         free(project);
         free(scope_path);
+        free(norm_path);
         char *text = cbm_sb_finish(&sb);
         if (!text) {
             cbm_store_close(store);
@@ -1115,9 +1136,9 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
                 yyjson_mut_val *mem = yyjson_mut_arr(doc);
                 int show = sizes[c] < ARCH_SCC_MEMBERS_SHOWN ? sizes[c] : ARCH_SCC_MEMBERS_SHOWN;
                 for (int m = 0; m < show; m++) {
-                    char qn[CBM_SZ_512];
-                    arch_node_qn(store, members[c][m], qn, sizeof(qn));
-                    yyjson_mut_arr_add_strcpy(doc, mem, qn);
+                    char *qn = arch_node_qn(store, members[c][m]);
+                    yyjson_mut_arr_add_strcpy(doc, mem, qn ? qn : "(out-of-memory)");
+                    free(qn);
                 }
                 yyjson_mut_obj_add_val(doc, o, "members", mem);
                 yyjson_mut_arr_add_val(cyc, o);
@@ -1129,7 +1150,7 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
         }
     }
 
-    char *json = yyjson_mut_write(doc, 0, NULL);
+    char *json = cbm_operation_json_write(doc);
     yyjson_mut_doc_free(doc);
     cbm_store_architecture_free(&arch);
     cbm_store_schema_free(&schema);
@@ -1138,6 +1159,7 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
     }
     free(project);
     free(scope_path);
+    free(norm_path);
 
     cbm_store_close(store);
     return json ? cbm_operation_result_take(json, false)

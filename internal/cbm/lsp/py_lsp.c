@@ -238,6 +238,7 @@ void py_lsp_init(PyLSPContext *ctx, CBMArena *arena, const char *source, int sou
     ctx->source = source;
     ctx->source_len = source_len;
     ctx->registry = registry;
+    ctx->registry_head = (CBMTypeRegistry *)registry;
     ctx->module_qn = module_qn;
     ctx->resolved_calls = out;
     ctx->current_scope = py_scope_push_checked(ctx);
@@ -1187,16 +1188,10 @@ static void py_register_instance_field(PyLSPContext *ctx, const char *class_qn,
         return;
     }
 
-    // Find the type entry. cbm_registry_lookup_type returns a const pointer;
-    // we need a mutable pointer into the registry's array.
-    CBMRegisteredType *rt = NULL;
-    for (int i = 0; i < ctx->registry->type_count; i++) {
-        const char *qn = ctx->registry->types[i].qualified_name;
-        if (qn && strcmp(qn, class_qn) == 0) {
-            rt = &ctx->registry->types[i];
-            break;
-        }
-    }
+    // The writable entry for the class: the head's own, or a copy of the
+    // base entry made in the head (copy-on-write). The shared base is never
+    // written -- it used to be, from every parallel resolve worker.
+    CBMRegisteredType *rt = cbm_registry_type_for_update(ctx->registry_head, class_qn);
     if (!rt)
         return;
 
@@ -1562,11 +1557,12 @@ static const CBMType *py_eval_expr_type_uncached(PyLSPContext *ctx, TSNode node)
             const char *prefix = cbm_arena_sprintf(ctx->arena, "%s.", qn);
             size_t prefix_len = strlen(prefix);
             bool is_submodule = false;
-            for (int i = 0; i < ctx->registry->func_count; i++) {
-                const char *fqn = ctx->registry->funcs[i].qualified_name;
+            CBMFreeFuncIter all_funcs;
+            cbm_registry_all_funcs_chain(ctx->registry, &all_funcs);
+            for (int i = -1; !is_submodule && (i = cbm_free_func_iter_next(&all_funcs)) >= 0;) {
+                const char *fqn = all_funcs.reg->funcs[i].qualified_name;
                 if (fqn && strncmp(fqn, prefix, prefix_len) == 0) {
                     is_submodule = true;
-                    break;
                 }
             }
             if (is_submodule)
@@ -4186,8 +4182,10 @@ static void py_bind_external_module_classes(PyLSPContext *ctx, TSNode root) {
     if (!ctx || !ctx->registry || !ctx->module_qn)
         return;
     size_t prefix_len = strlen(ctx->module_qn);
-    for (int i = 0; i < ctx->registry->type_count; i++) {
-        const CBMRegisteredType *type = &ctx->registry->types[i];
+    CBMTypeShortIter all_types;
+    cbm_registry_all_types_chain(ctx->registry, &all_types);
+    for (int i = -1; (i = cbm_type_short_iter_next(&all_types)) >= 0;) {
+        const CBMRegisteredType *type = &all_types.reg->types[i];
         const char *qn = type->qualified_name;
         const char *name = type->short_name;
         if (!qn || !name || strncmp(qn, ctx->module_qn, prefix_len) != 0 || qn[prefix_len] != '.' ||

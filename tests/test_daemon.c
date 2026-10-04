@@ -373,6 +373,25 @@ TEST(daemon_sessions_keep_distinct_roots_and_allowed_root_policy) {
     PASS();
 }
 
+/* The session policy keeps a root in the spelling the daemon canonicalized it
+ * to - the platform's native form, backslashes on Windows. The sensitive-root
+ * and allowed-root containment checks compare that spelling byte-exact against
+ * HOME and the granted roots, so a root respelled with forward slashes on the
+ * way in stopped matching them, and $HOME was admitted for auto-index and
+ * watch on Windows. One directory being one root for the job registry is
+ * folded at that comparison, never by respelling the policy. */
+TEST(daemon_session_context_keeps_the_policy_spelling_of_a_root) {
+    cbm_operation_session_state_t *srv = cbm_operation_session_state_new();
+    ASSERT_NOT_NULL(srv);
+
+    ASSERT_TRUE(cbm_operation_session_state_set_context(srv, "C:\\repos\\cbm", "C:\\repos", true));
+    ASSERT_STR_EQ(cbm_operation_session_root(srv), "C:\\repos\\cbm");
+    ASSERT_STR_EQ(cbm_operation_session_allowed_root(srv), "C:\\repos");
+
+    cbm_operation_session_state_free(srv);
+    PASS();
+}
+
 SUITE(daemon) {
     RUN_TEST(daemon_client_ids_are_connection_bound);
     RUN_TEST(daemon_shared_job_survives_until_final_subscriber_disconnects);
@@ -382,4 +401,5 @@ SUITE(daemon) {
     RUN_TEST(daemon_completed_job_is_not_cancelled_on_later_disconnect);
     RUN_TEST(daemon_frame_header_rejects_wrong_protocol_and_oversize);
     RUN_TEST(daemon_sessions_keep_distinct_roots_and_allowed_root_policy);
+    RUN_TEST(daemon_session_context_keeps_the_policy_spelling_of_a_root);
 }

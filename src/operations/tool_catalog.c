@@ -98,7 +98,13 @@ static const tool_def_t TOOLS[] = {
      "Missing values emit as empty cells.\"},"
      "\"detail\":{\"type\":\"string\",\"enum\":[\"ids\",\"default\"],\"default\":\"default\","
      "\"description\":\"ids: bare qualified-name enumeration (one column) — cheapest form "
-     "for wide sweeps where per-row metadata is noise. default: full rows.\"}},"
+     "for wide sweeps where per-row metadata is noise. default: full rows.\"},"
+     "\"semantic_limit\":{\"type\":\"integer\",\"default\":50,\"minimum\":0,\"maximum\":500,"
+     "\"description\":\"Semantic rows per page. The response carries semantic_total (with "
+     "semantic_total_relation eq|gte), semantic_has_more and semantic_next_offset.\"},"
+     "\"semantic_offset\":{\"type\":\"integer\",\"default\":0,\"minimum\":0,\"maximum\":99998,"
+     "\"description\":\"Skip the first N ranked semantic rows; continue only with an emitted "
+     "semantic_next_offset. query and semantic_query are mutually exclusive.\"}},"
      "\"required\":[\"project\"]}"},
 
     {"query_graph", "Query graph",
@@ -129,10 +135,16 @@ static const tool_def_t TOOLS[] = {
      "\"graph\":{\"type\":\"string\",\"enum\":[\"code\",\"missed\"],\"default\":\"code\","
      "\"description\":\"Which graph to query: the code knowledge graph (default) or the "
      "missed graph (only files not fully indexed, laid out as their file structure).\"},"
-     "\"max_rows\":{\"type\":\"integer\","
+     "\"max_rows\":{\"type\":\"integer\",\"minimum\":0,\"default\":200,"
      "\"description\":"
-     "\"Optional row limit. Default: unlimited up to a 100k row "
-     "ceiling. No offset support — use search_graph for paginated browsing.\"}},"
+     "\"Visible rows per page (default 200; max 99998; 0 uses the legacy maximum). The query is "
+     "always evaluated in full; this only bounds what the response shows. total, total_relation "
+     "and truncated report exactness.\"},"
+     "\"offset\":{\"type\":\"integer\",\"minimum\":0,\"default\":0,"
+     "\"description\":\"Live compatibility paging; cannot be combined with cursor.\"},"
+     "\"cursor\":{\"type\":\"string\",\"description\":\"Snapshot continuation from "
+     "next_cursor; keep query/project/graph unchanged. Fails closed (stale_cursor) when the "
+     "index or the materialized result changed.\"}},"
      "\"required\":[\"query\",\"project\"]}"},
 
     {"trace_path", "Trace path",
@@ -187,7 +199,16 @@ static const tool_def_t TOOLS[] = {
      "{\"type\":\"object\",\"properties\":{\"qualified_name\":{\"type\":\"string\",\"description\":"
      "\"Full qualified_name from search_graph, or short function name\"},\"project\":{"
      "\"type\":\"string\"},\"include_neighbors\":{"
-     "\"type\":\"boolean\",\"default\":false}},\"required\":[\"qualified_name\",\"project\"]}"},
+     "\"type\":\"boolean\",\"default\":false},"
+     "\"source_mode\":{\"type\":\"string\",\"enum\":[\"full\",\"outline\"],\"description\":"
+     "\"outline returns the member list of a container instead of its source (the default for "
+     "containers of 200+ lines); full forces the source.\"},"
+     "\"start_line\":{\"type\":\"integer\",\"minimum\":1,\"description\":\"Resume a clipped "
+     "snippet at this line (use next_start_line).\"},"
+     "\"max_lines\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":500},"
+     "\"member_limit\":{\"type\":\"integer\",\"default\":50,\"minimum\":1,\"maximum\":500},"
+     "\"member_offset\":{\"type\":\"integer\",\"default\":0,\"minimum\":0}},"
+     "\"required\":[\"qualified_name\",\"project\"]}"},
 
     {"get_file_outline", "Get file outline",
      "Return a compact declaration outline for one exact repository-relative file. Results are "
@@ -206,8 +227,14 @@ static const tool_def_t TOOLS[] = {
 
     {"get_graph_schema", "Get graph schema",
      "Get the schema of the knowledge graph (node labels, edge types)",
-     "{\"type\":\"object\",\"properties\":{\"project\":{\"type\":\"string\"}},\"required\":["
-     "\"project\"]}"},
+     "{\"type\":\"object\",\"properties\":{\"project\":{\"type\":\"string\"},"
+     "\"diagnostics\":{\"type\":\"string\",\"enum\":[\"none\",\"full\"],\"default\":\"none\","
+     "\"description\":\"full adds the per-label and per-edge-type property listings; the "
+     "default is counts only.\"},"
+     "\"limit\":{\"type\":\"integer\",\"default\":50,\"minimum\":1,\"maximum\":500},"
+     "\"offset\":{\"type\":\"integer\",\"default\":0,\"minimum\":0,\"description\":\"Page over "
+     "labels then edge types, busiest first; follow next_offset while has_more.\"}},"
+     "\"required\":[\"project\"]}"},
 
     {"compare_graphs", "Compare graphs",
      "Compare two indexed project snapshots. Returns deterministic target-only additions and "
@@ -270,12 +297,25 @@ static const tool_def_t TOOLS[] = {
      "\"description\":\"Max enriched results per call. Default 10. Response includes "
      "'total_grep_matches' and 'total_results' so callers can detect truncation. No "
      "offset parameter — raise limit or narrow with file_pattern / path_filter to see more."
-     "\",\"default\":10,\"minimum\":1}},\"required\":[\"pattern\",\"project\"]}"},
+     "\",\"default\":10,\"minimum\":1},"
+     "\"result_limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":500,\"description\":"
+     "\"Graph results per page (defaults to limit).\"},"
+     "\"result_offset\":{\"type\":\"integer\",\"minimum\":0,\"default\":0,\"description\":"
+     "\"Skip the first N ranked graph results; follow next_offset while has_more.\"},"
+     "\"raw_limit\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":100,\"default\":5,"
+     "\"description\":\"Unclassified grep rows per page.\"},"
+     "\"raw_offset\":{\"type\":\"integer\",\"minimum\":0,\"default\":0},"
+     "\"raw_content_offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Byte offset "
+     "into over-long raw lines (use content_next_offset).\"},"
+     "\"format\":{\"type\":\"string\",\"enum\":[\"tree\",\"json\"],\"default\":\"tree\"}},"
+     "\"required\":[\"pattern\",\"project\"]}"},
 
     {"list_projects", "List projects", "List indexed projects with deterministic pagination",
      "{\"type\":\"object\",\"properties\":{\"offset\":{\"type\":\"integer\","
      "\"minimum\":0,\"default\":0},"
-     "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":100,\"default\":50},"
+     "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":500,\"default\":50},"
+     "\"detail\":{\"type\":\"string\",\"enum\":[\"stats\"],\"description\":\"stats includes "
+     "node/edge counts and database size (same as include_details).\"},"
      "\"include_details\":{\"type\":\"boolean\",\"default\":false,"
      "\"description\":\"Include branch, node/edge counts and database size. Slower.\"},"
      "\"metadata_only\":{\"type\":\"boolean\",\"description\":\"Deprecated compatibility "
@@ -299,7 +339,10 @@ static const tool_def_t TOOLS[] = {
      "{\"type\":\"object\",\"properties\":{\"project\":{\"type\":\"string\"},"
      "\"verbose\":{\"type\":\"boolean\",\"default\":false,\"description\":\"Include the git "
      "context block (worktree/shadow path variants). Only needed when debugging where an index "
-     "lives — omitted by default to keep the status lean.\"}},\"required\":["
+     "lives — omitted by default to keep the status lean.\"},"
+     "\"diagnostics\":{\"type\":\"string\",\"enum\":[\"none\",\"summary\",\"full\"],"
+     "\"default\":\"none\",\"description\":\"Coverage detail: none = counts only; summary = a few "
+     "sample paths per class; full = up to 500 paths per class.\"}},\"required\":["
      "\"project\"]}"},
 
     {"check_index_coverage", "Check index coverage",
@@ -318,8 +361,14 @@ static const tool_def_t TOOLS[] = {
      "\"scopes\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"maxItems\":32,"
      "\"description\":\"Repository-relative path prefixes; use . for the project root. Required "
      "if 'paths' is omitted.\"},"
-     "\"scope_limit\":{\"type\":\"integer\",\"default\":200,\"minimum\":1,\"maximum\":1000},"
-     "\"scope_offset\":{\"type\":\"integer\",\"default\":0,\"minimum\":0}},"
+     "\"scope_limit\":{\"type\":\"integer\",\"default\":20,\"minimum\":1,\"maximum\":1000,"
+     "\"description\":\"Coverage rows per page, counted across all scopes as one sequence.\"},"
+     "\"scope_offset\":{\"type\":\"integer\",\"default\":0,\"minimum\":0},"
+     "\"path_limit\":{\"type\":\"integer\",\"default\":20,\"minimum\":1,\"maximum\":128},"
+     "\"path_offset\":{\"type\":\"integer\",\"default\":0,\"minimum\":0},"
+     "\"diagnostics\":{\"type\":\"string\",\"enum\":[\"none\",\"full\"],\"default\":\"none\","
+     "\"description\":\"full keeps the raw stored detail on rows that also carry typed "
+     "ranges.\"}},"
      "\"required\":[\"project\"]"
      "}"},
 
@@ -348,7 +397,19 @@ static const tool_def_t TOOLS[] = {
      "\"string\",\"default\":\"main\"},\"since\":{\"type\":\"string\",\"description\":"
      "\"Git ref or tag to compare from (e.g. HEAD~5, v0.5.0). Diffs <ref>...HEAD and includes "
      "staged, unstaged, and untracked working-tree files.\"},"
-     "\"format\":{\"type\":\"string\",\"enum\":[\"tree\",\"json\"],\"default\":\"tree\"}},"
+     "\"format\":{\"type\":\"string\",\"enum\":[\"tree\",\"json\"],\"default\":\"tree\"},"
+     "\"impact_offset\":{\"type\":\"integer\",\"default\":0,\"minimum\":0},"
+     "\"changed_limit\":{\"type\":\"integer\",\"default\":20,\"minimum\":0,\"maximum\":5000},"
+     "\"changed_offset\":{\"type\":\"integer\",\"default\":0,\"minimum\":0},"
+     "\"module_limit\":{\"type\":\"integer\",\"default\":20,\"minimum\":0,\"maximum\":256},"
+     "\"module_offset\":{\"type\":\"integer\",\"default\":0,\"minimum\":0},"
+     "\"impact_cursor\":{\"type\":\"string\",\"description\":\"Snapshot continuation from "
+     "impacted_next_cursor; fails closed (snapshot_changed) if commits, worktree or graph "
+     "changed.\"},"
+     "\"changed_cursor\":{\"type\":\"string\",\"description\":\"Snapshot continuation from "
+     "changed_next_cursor.\"},"
+     "\"module_cursor\":{\"type\":\"string\",\"description\":\"Snapshot continuation from "
+     "module_next_cursor.\"}},"
      "\"required\":"
      "[\"project\"]}"},
 

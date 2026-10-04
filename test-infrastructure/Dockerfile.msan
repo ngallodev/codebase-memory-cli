@@ -39,9 +39,15 @@ RUN printf '%s\n' \
     > /usr/local/bin/retry \
     && chmod 0755 /usr/local/bin/retry
 
-# clang 21 from apt.llvm.org, matching the diag and analyzer lanes. Noble's
-# default is clang 18 — three majors behind everything else here, which is both
-# an inconsistency and a bad vantage point for debugging sanitizer behaviour.
+# clang 21 from apt.llvm.org — a modern sanitizer toolchain well ahead of
+# Noble's default clang 18 (three majors back), a better vantage point for
+# debugging sanitizer behaviour. We track the highest *stable* noble channel
+# apt.llvm.org serves rather than its bleeding edge: apt.llvm.org keeps only
+# the last few majors and rotates newer ones in and out, and the -22 channel
+# was transiently pulled out from under this build (#2123: "Unable to locate
+# package clang-22"), reddening test-msan repo-wide. Bump deliberately, and
+# only to a channel proven installable (and with a matching llvmorg-*.*.* tag
+# for the runtimes build below), never automatically to the newest number.
 # The key is fetched with `wget -O <file>` rather than `-qO- > <file>`: under
 # retry a redirect is opened once for all attempts, so a partial write from a
 # failed attempt would be prepended to the output of a later successful one.

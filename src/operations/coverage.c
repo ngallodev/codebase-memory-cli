@@ -1,3 +1,4 @@
+#include "operations/result_wire.h"
 #include "operations/operation.h"
 #include "operations/store_host.h"
 
@@ -20,9 +21,12 @@
 enum {
     OP_COVERAGE_PATH_MAX = 128,
     OP_COVERAGE_SCOPE_MAX = 32,
-    OP_COVERAGE_SCOPE_DEFAULT_LIMIT = 200,
+    OP_COVERAGE_PATH_DEFAULT_LIMIT = 20,
+    OP_COVERAGE_SCOPE_DEFAULT_LIMIT = 20,
     OP_COVERAGE_SCOPE_MAX_LIMIT = 1000,
-    OP_COVERAGE_RANGE_MAX = 128,
+    /* Matches CBM_MAX_ERROR_REGIONS: a lower value here would only move the
+     * silent clip downstream. */
+    OP_COVERAGE_RANGE_MAX = 256,
 };
 
 typedef enum op_coverage_path_result {
@@ -64,7 +68,7 @@ static int op_int_arg(const char *args, const char *name, int fallback) {
 static cbm_operation_result_t op_json_result(yyjson_mut_doc *doc, bool error) {
     if (!doc)
         return cbm_operation_result_copy("{\"error\":\"result allocation failed\"}", true);
-    char *json = yyjson_mut_write(doc, 0, NULL);
+    char *json = cbm_operation_json_write(doc);
     yyjson_mut_doc_free(doc);
     return json ? cbm_operation_result_take(json, error)
                 : cbm_operation_result_copy("{\"error\":\"result encoding failed\"}", true);
@@ -167,15 +171,25 @@ static const char *path_freshness(cbm_store_t *store, const char *project, const
     return matches ? "metadata_match" : "metadata_changed";
 }
 
-static void add_ranges(yyjson_mut_doc *doc, yyjson_mut_val *row, const char *detail) {
+/* Read a "start-end,start-end,...[,+<N>]" string into a JSON ranges array.
+ * The optional trailing "+<N>" says the producer's own cap threw N ranges
+ * away; without reading it a clipped list arrives looking complete. Sets
+ * "ranges_truncated" whenever ranges were lost, to that marker or to
+ * OP_COVERAGE_RANGE_MAX. Returns whether any range was emitted. */
+static bool add_ranges(yyjson_mut_doc *doc, yyjson_mut_val *row, const char *detail) {
     if (!detail || !detail[0])
-        return;
+        return false;
     yyjson_mut_val *ranges = yyjson_mut_arr(doc);
     const char *p = detail;
     int emitted = 0;
+    bool truncated = false;
     while (*p && emitted < OP_COVERAGE_RANGE_MAX) {
         while (*p == ' ' || *p == ',')
             ++p;
+        if (*p == '+') {
+            truncated = true;
+            break;
+        }
         if (!isdigit((unsigned char)*p))
             break;
         char *endptr = NULL;
@@ -202,23 +216,34 @@ static void add_ranges(yyjson_mut_doc *doc, yyjson_mut_val *row, const char *det
         if (*p && *p != ',')
             break;
     }
+    if (emitted >= OP_COVERAGE_RANGE_MAX && *p)
+        truncated = true;
     if (emitted > 0)
         yyjson_mut_obj_add_val(doc, row, "ranges", ranges);
+    if (truncated)
+        yyjson_mut_obj_add_bool(doc, row, "ranges_truncated", true);
+    return emitted > 0;
 }
 
 static void add_row(yyjson_mut_doc *doc, yyjson_mut_val *array, const cbm_coverage_row_t *row,
-                    const char *requested_path) {
+                    const char *requested_path, bool diagnostics_full) {
     yyjson_mut_val *item = yyjson_mut_obj(doc);
     yyjson_mut_obj_add_strcpy(doc, item, "path", row->rel_path ? row->rel_path : "");
     yyjson_mut_obj_add_strcpy(doc, item, "kind", row->kind ? row->kind : "");
-    yyjson_mut_obj_add_strcpy(doc, item, "detail", row->detail ? row->detail : "");
     if (requested_path) {
         yyjson_mut_obj_add_str(
             doc, item, "match",
             row->rel_path && strcmp(row->rel_path, requested_path) == 0 ? "exact" : "ancestor");
     }
-    if (row->kind && strcmp(row->kind, "parse_partial") == 0)
-        add_ranges(doc, item, row->detail);
+    bool ranges_added = false;
+    if (row->kind &&
+        (strcmp(row->kind, "parse_partial") == 0 || strcmp(row->kind, "parse_unusable") == 0))
+        ranges_added = add_ranges(doc, item, row->detail);
+    /* A parse_partial detail such as "3-4,9" is redundant once represented as
+     * typed ranges. Keep raw storage diagnostics on request, and keep every
+     * non-range detail by default: it may explain why a file was skipped. */
+    if (diagnostics_full || !ranges_added)
+        yyjson_mut_obj_add_strcpy(doc, item, "detail", row->detail ? row->detail : "");
     yyjson_mut_arr_add_val(array, item);
 }
 
@@ -240,6 +265,10 @@ static const char *coverage_status(const cbm_coverage_row_t *rows, int count,
             if (exact && (!rows[i].rel_path || strcmp(rows[i].rel_path, requested_path) != 0))
                 continue;
             const char *kind = rows[i].kind ? rows[i].kind : "";
+            /* parse_unusable needs its own case: the catch-all would report
+             * "skipped" for a file that WAS indexed. */
+            if (pass == 0 && strcmp(kind, "parse_unusable") == 0)
+                return "unusable";
             if (pass == 0 && strcmp(kind, "parse_partial") == 0)
                 return "partial";
             if (pass == 1 && strncmp(kind, "not_indexed", 11) == 0)
@@ -260,6 +289,8 @@ static const char *recommended_action(const char *status, const char *freshness)
         return "read_source_and_reindex";
     if (strcmp(status, "partial") == 0)
         return "read_ranges_and_verify_scope";
+    if (strcmp(status, "unusable") == 0)
+        return "read_source_directly";
     if (strcmp(status, "skipped") == 0)
         return "read_source_directly";
     if (strcmp(status, "excluded") == 0)
@@ -301,6 +332,18 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
         free(project);
         return op_error("paths or scopes is required (arrays; max 128 paths and 32 scopes)", NULL);
     }
+
+    int path_limit = op_int_arg(args, "path_limit", OP_COVERAGE_PATH_DEFAULT_LIMIT);
+    int path_offset = op_int_arg(args, "path_offset", 0);
+    if (path_limit < 1)
+        path_limit = 1;
+    else if (path_limit > OP_COVERAGE_PATH_MAX)
+        path_limit = OP_COVERAGE_PATH_MAX;
+    if (path_offset < 0)
+        path_offset = 0;
+    char *diagnostics = op_string_arg(args, "diagnostics");
+    bool diagnostics_full = diagnostics && strcmp(diagnostics, "full") == 0;
+    free(diagnostics);
 
     cbm_project_t proj = {0};
     bool have_project = cbm_store_get_project(store, project, &proj) == CBM_STORE_OK;
@@ -353,8 +396,11 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
     size_t idx, max;
     yyjson_val *value;
     yyjson_mut_val *path_results = yyjson_mut_arr(doc);
+    int path_returned = 0;
     if (paths) {
         yyjson_arr_foreach(paths, idx, max, value) {
+            if (idx < (size_t)path_offset || idx >= (size_t)path_offset + (size_t)path_limit)
+                continue;
             yyjson_mut_val *item = yyjson_mut_obj(doc);
             const char *input = yyjson_is_str(value) ? yyjson_get_str(value) : NULL;
             yyjson_mut_obj_add_strcpy(doc, item, "requested_path", input ? input : "");
@@ -368,6 +414,7 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
                 yyjson_mut_obj_add_str(doc, item, "recommended_action",
                                        "use_project_relative_path");
                 yyjson_mut_arr_add_val(path_results, item);
+                ++path_returned;
                 continue;
             }
             yyjson_mut_obj_add_strcpy(doc, item, "path", rel);
@@ -394,13 +441,20 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
                                       recommended_action(status, freshness));
             yyjson_mut_val *coverage = yyjson_mut_arr(doc);
             for (int i = 0; i < row_count; ++i)
-                add_row(doc, coverage, &rows[i], rel);
+                add_row(doc, coverage, &rows[i], rel, diagnostics_full);
             yyjson_mut_obj_add_val(doc, item, "coverage", coverage);
             cbm_store_free_coverage(rows, row_count);
             yyjson_mut_arr_add_val(path_results, item);
+            ++path_returned;
         }
     }
     yyjson_mut_obj_add_val(doc, root, "paths", path_results);
+    yyjson_mut_obj_add_int(doc, root, "path_total", (int64_t)path_count);
+    yyjson_mut_obj_add_int(doc, root, "path_returned", path_returned);
+    bool path_has_more = (size_t)path_offset + (size_t)path_returned < path_count;
+    yyjson_mut_obj_add_bool(doc, root, "path_has_more", path_has_more);
+    if (path_has_more)
+        yyjson_mut_obj_add_int(doc, root, "path_next_offset", path_offset + path_returned);
 
     int scope_limit = op_int_arg(args, "scope_limit", OP_COVERAGE_SCOPE_DEFAULT_LIMIT);
     int scope_offset = op_int_arg(args, "scope_offset", 0);
@@ -411,6 +465,8 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
     if (scope_offset < 0)
         scope_offset = 0;
     yyjson_mut_val *scope_results = yyjson_mut_arr(doc);
+    int scope_total = 0;
+    int scope_returned = 0;
     if (scopes) {
         yyjson_arr_foreach(scopes, idx, max, value) {
             yyjson_mut_val *item = yyjson_mut_obj(doc);
@@ -435,14 +491,27 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
                 yyjson_mut_obj_add_str(doc, item, "coverage_lookup", "error");
             }
             yyjson_mut_obj_add_int(doc, item, "total", row_count);
-            int start = scope_offset < row_count ? scope_offset : row_count;
-            int end = start + scope_limit < row_count ? start + scope_limit : row_count;
-            yyjson_mut_obj_add_bool(doc, item, "has_more", end < row_count);
-            if (end < row_count)
-                yyjson_mut_obj_add_int(doc, item, "next_offset", end);
+            /* The page window spans all scopes as one flat row sequence. */
+            int flat_start = scope_total;
+            int flat_end = flat_start + row_count;
+            int page_start = scope_offset;
+            int page_end = scope_offset + scope_limit;
+            int start = page_start > flat_start ? page_start - flat_start : 0;
+            int end = page_end < flat_end ? page_end - flat_start : row_count;
+            if (start < 0)
+                start = 0;
+            else if (start > row_count)
+                start = row_count;
+            if (end < start)
+                end = start;
+            else if (end > row_count)
+                end = row_count;
+            int returned = end - start;
+            yyjson_mut_obj_add_int(doc, item, "returned", returned);
+            yyjson_mut_obj_add_bool(doc, item, "truncated", returned < row_count);
             yyjson_mut_val *entries = yyjson_mut_arr(doc);
             for (int i = start; i < end; ++i)
-                add_row(doc, entries, &rows[i], NULL);
+                add_row(doc, entries, &rows[i], NULL, diagnostics_full);
             yyjson_mut_obj_add_val(doc, item, "entries", entries);
             const char *scope_status = !lookup_ok || !generation_matches ? "coverage_unavailable"
                                        : row_count > 0                   ? "known_gaps"
@@ -452,9 +521,17 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
             yyjson_mut_obj_add_str(doc, item, "status", scope_status);
             cbm_store_free_coverage(rows, row_count);
             yyjson_mut_arr_add_val(scope_results, item);
+            scope_total += row_count;
+            scope_returned += returned;
         }
     }
     yyjson_mut_obj_add_val(doc, root, "scopes", scope_results);
+    yyjson_mut_obj_add_int(doc, root, "scope_total", scope_total);
+    yyjson_mut_obj_add_int(doc, root, "scope_returned", scope_returned);
+    yyjson_mut_obj_add_bool(doc, root, "scope_truncated", scope_returned < scope_total);
+    yyjson_mut_obj_add_bool(doc, root, "has_more", scope_offset + scope_returned < scope_total);
+    if (scope_offset + scope_returned < scope_total)
+        yyjson_mut_obj_add_int(doc, root, "next_offset", scope_offset + scope_returned);
     yyjson_mut_obj_add_str(
         doc, root, "caveat",
         "Best-effort signal only. No recorded issue does not prove graph or source completeness; "

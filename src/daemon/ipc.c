@@ -1455,13 +1455,37 @@ static char *private_log_directory_path_copy(const char *directory_path) {
 
 /* #1830 — single-uid user-namespace ancestors.
  *
- * Inside a 1:1 user namespace, ancestors whose real owner is unmapped appear
- * owned by the kernel overflow uid. Refusing every overflow-owned ancestor
- * made the daemon unusable in that legitimate setup. The overflow owner is
- * tolerated for ancestors only when /proc/self/uid_map is a single-uid map
- * whose sole inside id is our euid. The private directory itself remains
- * strictly euid-owned.
- */
+ * Inside a 1:1 user namespace (for example `podman --userns=keep-id` or
+ * `unshare -U --map-current-user`), ancestors whose real owner is unmapped —
+ * the root-owned /, /tmp and the like — appear owned by the kernel overflow
+ * uid (`/proc/sys/kernel/overflowuid`, conventionally 65534). Refusing every
+ * overflow-owned ancestor made the daemon unusable in that legitimate setup.
+ *
+ * The overflow owner is tolerated for ANCESTORS ONLY, and ONLY when
+ * /proc/self/uid_map is a single-uid map whose sole inside id is our euid. In
+ * that shape no IN-NAMESPACE principal can be the overflow owner.
+ *
+ * Be precise about what that does and does not buy, because an earlier version
+ * of this comment overstated it. The overflow uid is what EVERY unmapped host
+ * uid maps to, not only host root (user_namespaces(7)), so "overflow-owned"
+ * does NOT prove "created by root". On a shared host, a directory owned by
+ * another local user is indistinguishable from root-owned /tmp once you are
+ * inside the namespace -- and there is no in-namespace discriminator that could
+ * tell them apart, which is precisely why the tolerance is scoped the way it
+ * is rather than made smarter. The real guarantee is narrower and still
+ * sufficient: no principal REACHABLE FROM INSIDE the namespace can create or
+ * mutate such an ancestor, and the private directory itself is never tolerated
+ * as overflow (see below), so a hostile host-side owner of an ancestor is
+ * bounded to denial of service and socket-path control. It cannot reach the
+ * leaf, which stays 0700 and euid-rechecked. A multi-uid map
+ * (rootless podman with subuids) still shows host root as overflow and is
+ * refused — conservative scope, not the safety argument. There is deliberately
+ * no environment escape hatch.
+ *
+ * The private directory itself is never tolerated as overflow: it is created by
+ * us (euid-owned) and re-checked `== geteuid()` by the created/final/snapshot
+ * gates, which stay strict. A host-squatted /tmp/cbm-daemon-<uid> appears
+ * overflow-owned and is refused there. */
 #define POSIX_NO_OVERFLOW_UID ((uid_t) - 1)
 
 #ifdef CBM_ENABLE_TEST_SEAMS
@@ -1475,6 +1499,10 @@ void cbm_daemon_ipc_posix_set_ancestor_overflow_uid_for_test(bool active,
 #endif
 
 #if defined(__linux__) || defined(CBM_ENABLE_TEST_SEAMS)
+/* Parse a /proc/self/uid_map image. True iff it is exactly one mapping line
+ * "<inside> <outside> <count>" with count == 1 and inside == euid. Extra lines,
+ * a count other than 1, a different inside id, or malformed input all yield
+ * false (no tolerance). */
 static bool posix_uid_map_is_single_uid(const char *uid_map, uid_t euid) {
     if (!uid_map) {
         return false;
@@ -1490,6 +1518,7 @@ static bool posix_uid_map_is_single_uid(const char *uid_map, uid_t euid) {
         return false;
     }
     (void)outside;
+    /* Reject a second mapping line: a single-uid map has exactly one. */
     const char *rest = uid_map + consumed;
     while (*rest == ' ' || *rest == '\t' || *rest == '\n' || *rest == '\r') {
         rest++;
@@ -1528,13 +1557,27 @@ static bool posix_read_small_proc_file(const char *path, char *buffer, size_t ca
     return true;
 }
 
+#ifdef CBM_ENABLE_TEST_SEAMS
+/* Counts real derivations. A cache here was a security hazard once (see the
+ * note above posix_ancestor_overflow_uid); the contract test asserts this
+ * climbs on EVERY call so re-introducing one fails loudly. */
+static unsigned g_posix_overflow_compute_count;
+unsigned cbm_daemon_ipc_posix_overflow_compute_count_for_test(void) {
+    return g_posix_overflow_compute_count;
+}
+#endif
+
 static uid_t posix_compute_ancestor_overflow_uid(void) {
+#ifdef CBM_ENABLE_TEST_SEAMS
+    g_posix_overflow_compute_count++;
+#endif
     char map[256];
     if (!posix_read_small_proc_file("/proc/self/uid_map", map, sizeof(map)) ||
         !posix_uid_map_is_single_uid(map, geteuid())) {
         return POSIX_NO_OVERFLOW_UID;
     }
     char overflow_text[32];
+    /* Unreadable → no tolerance; never hardcode 65534. */
     if (!posix_read_small_proc_file("/proc/sys/kernel/overflowuid", overflow_text,
                                     sizeof(overflow_text))) {
         return POSIX_NO_OVERFLOW_UID;
@@ -1548,6 +1591,25 @@ static uid_t posix_compute_ancestor_overflow_uid(void) {
 
 #endif /* __linux__ */
 
+/* The overflow uid tolerated for ancestors, or POSIX_NO_OVERFLOW_UID when none.
+ *
+ * DERIVED FRESH ON EVERY CALL, deliberately. This used to memoise via
+ * pthread_once behind a comment claiming "immutable /proc state". That claim
+ * was false in both halves: unshare(CLONE_NEWUSER) rewrites
+ * /proc/self/uid_map, and pthread_once state survives a forked child already
+ * marked done -- so a process that forked and then changed namespace kept the
+ * parent answer and refused a directory it should have accepted.
+ * (Spelled without the call syntax on purpose: scripts/security-audit.sh
+ * blocks that literal in src/, and an allow-list entry to let a COMMENT pass
+ * would weaken a real check on a real file.) It happened to be
+ * harmless because every caller today runs in a freshly exec'd process, but
+ * that made a security decision depend on an invariant nothing enforced, and
+ * the next fork-without-exec caller would have silently inherited a stale
+ * verdict.
+ *
+ * The cost of not caching is two small /proc reads per ancestor check, against
+ * an openat + fstat + fchmod + ACL check per path component in the same walk.
+ * Do not re-introduce a cache here; the contract test counts derivations. */
 static uid_t posix_ancestor_overflow_uid(void) {
 #ifdef CBM_ENABLE_TEST_SEAMS
     if (g_posix_overflow_override_active) {
@@ -1561,11 +1623,17 @@ static uid_t posix_ancestor_overflow_uid(void) {
 #endif
 }
 
+/* Ancestor owner acceptance. euid and root are always trusted; the namespace
+ * overflow uid is trusted only when overflow_uid != POSIX_NO_OVERFLOW_UID. */
 static bool posix_ancestor_owner_ok(uid_t owner, uid_t euid, uid_t overflow_uid) {
     return owner == (uid_t)0 || owner == euid ||
            (overflow_uid != POSIX_NO_OVERFLOW_UID && owner == overflow_uid);
 }
 
+/* Pure ancestor accept/refuse over (owner, mode). Mirrors the owner + write-bit
+ * policy of posix_directory_parent_secure so the decision is unit-testable
+ * without a chown-able overflow-owned directory (unprivileged tests cannot
+ * create one). The ACL and fstat checks stay in the caller. */
 static bool posix_ancestor_stat_ok(uid_t owner, mode_t mode, uid_t euid, uid_t overflow_uid) {
     if (!posix_ancestor_owner_ok(owner, euid, overflow_uid)) {
         return false;
@@ -1573,9 +1641,15 @@ static bool posix_ancestor_stat_ok(uid_t owner, mode_t mode, uid_t euid, uid_t o
     bool owner_is_overflow = overflow_uid != POSIX_NO_OVERFLOW_UID && owner == overflow_uid &&
                              owner != euid && owner != (uid_t)0;
     if ((mode & 0002) != 0) {
+        /* World-writable ancestor: only the root/overflow-owned sticky pattern
+         * (for example /tmp). A plain writable ancestor lets any local user swap
+         * a path component. */
         return (owner == (uid_t)0 || owner_is_overflow) && (mode & S_ISVTX) != 0;
     }
     if ((mode & 0020) != 0 && owner_is_overflow) {
+        /* Group-writable is admitted with a warning for euid/root owners where
+         * the group is knowable (#1537); for an unmapped overflow owner the
+         * host-side group membership is unknown, so refuse. */
         return false;
     }
     return true;
@@ -1610,10 +1684,13 @@ static bool posix_directory_parent_secure(int directory_fd) {
      * with a shared primary group), and refusing it here made the daemon
      * unusable with no way for the reader to see why.
      *
-     * WORLD-writable is still refused: any local user could swap a path
-     * component. Group-writable is admitted for ancestors only — the private
-     * directory itself is chmod'd to 0700 and verified after this walk, so the
-     * thing that actually holds data stays owner-private either way. */
+     * WORLD-writable is still refused (apart from the root/overflow-owned sticky
+     * pattern such as /tmp): any local user could swap a path component.
+     * Group-writable is admitted for ancestors only — the private directory
+     * itself is chmod'd to 0700 and verified after this walk, so the thing that
+     * actually holds data stays owner-private either way. #1830 extends the
+     * accepted owner set to the single-uid user-namespace overflow uid; see
+     * posix_ancestor_stat_ok. */
     if (!posix_ancestor_stat_ok(status.st_uid, status.st_mode, geteuid(),
                                 posix_ancestor_overflow_uid())) {
         return false;
@@ -1629,8 +1706,11 @@ static bool posix_directory_parent_secure(int directory_fd) {
 /* Validate a path transition only through the two already-open directory
  * handles.  A group/other-writable parent is unsafe unless it is the standard
  * root/overflow-owned sticky-directory pattern (for example /tmp) and both the
- * parent and the selected child are trusted-owned (euid/root, or overflow uid
- * for #1830). Existing ancestors are observed, never chmod'd or ACL-rewritten. */
+ * parent and the selected child are trusted-owned (euid/root, or the single-uid
+ * user-namespace overflow uid for #1830).  Existing ancestors are observed,
+ * never chmod'd or ACL-rewritten.  The euid-only enforcement that stops a
+ * squatted private directory lives in the created/final/snapshot checks, not
+ * here — this only walks ancestors. */
 static bool posix_directory_transition_secure(int parent_fd, int child_fd) {
     struct stat parent;
     struct stat child;
@@ -2214,6 +2294,26 @@ static bool posix_directory_sync(int dir_fd) {
     return unsupported;
 }
 
+static bool posix_socket_link_pair_unlink_if_matches(const cbm_daemon_ipc_endpoint_t *endpoint,
+                                                     const posix_socket_identity_t *identity) {
+    posix_socket_identity_t stable = {0};
+    posix_socket_identity_t anchor = {0};
+    struct stat stable_status = {0};
+    struct stat anchor_status = {0};
+    return endpoint && identity &&
+           posix_socket_path_identity_read(endpoint, endpoint->socket_name, &stable,
+                                           &stable_status) == 1 &&
+           posix_socket_path_identity_read(endpoint, endpoint->socket_anchor_name, &anchor,
+                                           &anchor_status) == 1 &&
+           stable_status.st_nlink == 2 && anchor_status.st_nlink == 2 &&
+           posix_socket_identity_equal(&stable, identity) &&
+           posix_socket_identity_equal(&anchor, identity) &&
+           posix_socket_path_unlink_inode_if_matches(endpoint->dir_fd, endpoint->socket_name,
+                                                     identity, 2) &&
+           posix_socket_path_unlink_inode_if_matches(endpoint->dir_fd, endpoint->socket_anchor_name,
+                                                     identity, 1);
+}
+
 static bool posix_socket_record_temp_name(const char *record_name, char temp_name[NAME_MAX + 1]) {
     if (!record_name || !temp_name) {
         return false;
@@ -2625,23 +2725,7 @@ static int posix_stale_generation_cleanup_locked(const cbm_daemon_ipc_endpoint_t
                 result = -1;
                 goto cleanup_done;
             }
-            posix_socket_identity_t confirmed_stable = {0};
-            posix_socket_identity_t confirmed_anchor = {0};
-            struct stat confirmed_stable_status = {0};
-            struct stat confirmed_anchor_status = {0};
-            bool confirmed =
-                posix_socket_path_identity_read(endpoint, endpoint->socket_name, &confirmed_stable,
-                                                &confirmed_stable_status) == 1 &&
-                posix_socket_path_identity_read(endpoint, endpoint->socket_anchor_name,
-                                                &confirmed_anchor, &confirmed_anchor_status) == 1 &&
-                confirmed_stable_status.st_nlink == 2 && confirmed_anchor_status.st_nlink == 2 &&
-                posix_socket_identity_equal(&confirmed_stable, &marker.identity) &&
-                posix_socket_identity_equal(&confirmed_anchor, &marker.identity);
-            if (!confirmed ||
-                !posix_socket_path_unlink_inode_if_matches(endpoint->dir_fd, endpoint->socket_name,
-                                                           &marker.identity, 2) ||
-                !posix_socket_path_unlink_inode_if_matches(
-                    endpoint->dir_fd, endpoint->socket_anchor_name, &marker.identity, 1)) {
+            if (!posix_socket_link_pair_unlink_if_matches(endpoint, &marker.identity)) {
                 result = -1;
                 goto cleanup_done;
             }
@@ -2700,10 +2784,33 @@ static int posix_stale_generation_cleanup_locked(const cbm_daemon_ipc_endpoint_t
         goto cleanup_done;
     }
 
+    /* A hard kill can land after the stable link is durable but before either
+     * publication record exists. With startup serialized and lifetime
+     * reserved above, the exact owner-private two-name/two-link shape is
+     * sufficient authority: no unrelated socket can acquire the deterministic
+     * anchor name without being the same inode. Re-read both names immediately
+     * before inode-matched unlinking so replacement or link-count races fail
+     * closed. */
+    if (stable_state == 1 && anchor_state == 1 && stable_status.st_nlink == 2 &&
+        anchor_status.st_nlink == 2 &&
+        posix_socket_identity_equal(&stable_identity, &anchor_identity)) {
+        if (!posix_socket_link_pair_unlink_if_matches(endpoint, &stable_identity) ||
+            !posix_directory_sync(endpoint->dir_fd)) {
+            result = -1;
+            goto cleanup_done;
+        }
+        result = 1;
+        goto cleanup_done;
+    }
+
     /* The deterministic generation-local anchor lets us collect the sole
      * otherwise-untrackable crash boundary: bind/listen completed but the
-     * pending record was not yet durable. It never grants authority over the
-     * public stable path. */
+     * pending record was not yet durable. It never grants authority over a
+     * differing stable socket, so preserve both names when one is present. */
+    if (anchor_state == 1 && stable_state == 1) {
+        result = 0;
+        goto cleanup_done;
+    }
     if (anchor_state == 1) {
         if (anchor_status.st_nlink != 1 ||
             !posix_socket_path_unlink_inode_if_matches(
@@ -3415,11 +3522,11 @@ int cbm_daemon_ipc_generation_probe_under_startup_lock(
     if (!posix_startup_lock_matches_endpoint(endpoint, startup_lock) || startup_lock->prepared) {
         return -1;
     }
-    int lifetime = cbm_daemon_ipc_lifetime_reservation_probe(endpoint);
-    if (lifetime != 0) {
-        return lifetime;
+    int cleanup = cbm_daemon_ipc_stale_generation_cleanup(endpoint, startup_lock);
+    if (cleanup == 1) {
+        return 0;
     }
-    return cbm_daemon_ipc_endpoint_probe(endpoint, 0);
+    return cleanup == 0 ? 1 : -1;
 }
 
 bool cbm_daemon_ipc_startup_lock_prepare_handoff(cbm_daemon_ipc_startup_lock_t *lock) {
@@ -3625,6 +3732,7 @@ bool cbm_daemon_ipc_local_transition_release(cbm_daemon_ipc_local_transition_t *
 #include <aclapi.h>
 #include <ntsecapi.h>
 #include <sddl.h>
+#include <ntsecapi.h>
 #include <fcntl.h>
 #include <io.h>
 #include <shlobj.h>
@@ -4282,8 +4390,24 @@ static bool win_sid_is_trusted_installer(const uint8_t *sid, size_t sid_length) 
     return true;
 }
 
-/* #1705: resolve THIS machine's built-in Administrator (RID 500) from the
- * local account-domain SID. LSA/synthesis failures leave the cache empty. */
+/* #1705: the built-in Administrator ACCOUNT of THIS machine — RID 500 under the
+ * local machine's own account-domain SID (S-1-5-21-<machine>-500) — is a
+ * legitimate owner/grantee of directories an elevated install created, even when
+ * that account has been renamed or is disabled. It is resolved by asking LSA for
+ * the local machine account-domain SID and synthesizing its RID-500 SID with
+ * CreateWellKnownSid, then compared with EqualSid.
+ *
+ * It is deliberately NOT tested with IsWellKnownSid(sid, WinAccountAdministratorSid)
+ * and NOT by matching a trailing RID of 500: BOTH of those accept ANY domain's
+ * -500 — a domain administrator, or another machine's built-in Administrator —
+ * which is exactly the cross-machine trust escalation this must never open. Only
+ * THIS machine's -500 is trusted.
+ *
+ * Resolved once per process and cached; any LSA or synthesis failure leaves the
+ * cache NULL and therefore grants NO tolerance at all (fail closed). advapi32 is
+ * reached through the already-loaded module handle in win_security_t and the
+ * function pointers are resolved dynamically, matching this file's SID-API style
+ * and adding no static import. */
 typedef NTSTATUS(NTAPI *lsa_open_policy_fn)(PLSA_UNICODE_STRING, PLSA_OBJECT_ATTRIBUTES,
                                             ACCESS_MASK, PLSA_HANDLE);
 typedef NTSTATUS(NTAPI *lsa_query_information_policy_fn)(LSA_HANDLE, POLICY_INFORMATION_CLASS,
@@ -4293,14 +4417,14 @@ typedef NTSTATUS(NTAPI *lsa_close_fn)(LSA_HANDLE);
 typedef BOOL(WINAPI *create_well_known_sid_fn)(WELL_KNOWN_SID_TYPE, PSID, PSID, DWORD *);
 
 static INIT_ONCE g_local_admin_sid_once = INIT_ONCE_STATIC_INIT;
-static PSID g_local_admin_sid = NULL;
+static PSID g_local_admin_sid = NULL; /* process-lifetime cache; NULL => no tolerance */
 
 static BOOL CALLBACK win_resolve_local_admin_sid(PINIT_ONCE once, PVOID parameter, PVOID *context) {
     (void)once;
     (void)context;
     win_security_t *security = (win_security_t *)parameter;
     if (!security || !security->advapi) {
-        return TRUE;
+        return TRUE; /* ran once; cache stays NULL (fail closed) */
     }
     HMODULE advapi = security->advapi;
     lsa_open_policy_fn lsa_open =
@@ -4318,6 +4442,8 @@ static BOOL CALLBACK win_resolve_local_admin_sid(PINIT_ONCE once, PVOID paramete
     LSA_OBJECT_ATTRIBUTES attributes;
     memset(&attributes, 0, sizeof(attributes));
     LSA_HANDLE policy = NULL;
+    /* STATUS_SUCCESS is 0; any other status (including informational positives) is
+     * treated as failure, keeping the outcome fail-closed. */
     if (lsa_open(NULL, &attributes, POLICY_VIEW_LOCAL_INFORMATION, &policy) != 0 || !policy) {
         return TRUE;
     }

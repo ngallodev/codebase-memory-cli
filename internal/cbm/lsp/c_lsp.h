@@ -13,6 +13,11 @@ typedef struct {
     const char *source;
     int source_len;
     const CBMTypeRegistry *registry;
+    /* The writable head of the registry chain: the per-file overlay the
+     * dispatcher hands in, or the per-file registry on the non-cross path.
+     * Every refinement (lazy add, min_params, template params) goes here
+     * via cbm_registry_*_for_update; nothing behind ->fallback is written. */
+    CBMTypeRegistry *registry_head;
     CBMScope *current_scope;
 
     // Include map: header_path -> namespace QN prefix

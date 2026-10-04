@@ -221,6 +221,7 @@ Design rules:
 
 - stdout is reserved for command results;
 - progress and diagnostics belong on stderr;
+- `cli --progress` forces lifecycle progress when stderr is redirected, `cli --quiet` disables automatic terminal progress and ordinary diagnostics while keeping errors (it cannot be combined with `--progress` or `cli --verbose`), and `cli --verbose` includes routine informational logs;
 - errors produce non-zero exit codes;
 - canonical JSON hides the historical transport envelope;
 - result ordering/pagination remain explicit where the underlying operation supports them.
@@ -279,7 +280,7 @@ Important environment variables include:
 | `CBM_ALLOWED_ROOT` | Constrain permissible indexing roots. |
 | `CBM_RUNTIME_DIR` | Override the secure local coordination rendezvous parent. |
 | `CBM_WORKERS` | Override indexing worker count. |
-| `CBM_LOG_LEVEL` | Control runtime logging. |
+| `CBM_LOG_LEVEL` | Control runtime logging. One-shot CLI and hook commands default to `warn`; the detached daemon and supervised index workers default to `info`. |
 
 See [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) for the full reference.
 

@@ -311,7 +311,6 @@ TEST(diagnostics_soak_discovers_daemon_emitted_paths) {
     PASS();
 }
 
-
 /* ── Discovery record contract ───────────────────────────────────────── */
 
 static char diagnostics_discovery_line[2048];
@@ -360,6 +359,7 @@ static bool diagnostics_discovery_value(const char *key, char *out, size_t out_s
 TEST(diagnostics_discovery_record_survives_suppressed_log_level) {
     diagnostics_discovery_records = 0;
     diagnostics_discovery_line[0] = '\0';
+    CBMLogLevel previous_log_level = cbm_log_get_level();
     cbm_log_set_level(CBM_LOG_NONE);
     cbm_log_set_sink_ex(diagnostics_discovery_sink, CBM_LOG_SINK_REPLACE);
     ASSERT_EQ(cbm_setenv("CBM_DIAGNOSTICS", "1", 1), 0);
@@ -369,14 +369,13 @@ TEST(diagnostics_discovery_record_survives_suppressed_log_level) {
     cbm_diag_stop();
     (void)cbm_unsetenv("CBM_DIAGNOSTICS");
     cbm_log_set_sink(NULL);
-    cbm_log_set_level(CBM_LOG_INFO);
+    cbm_log_set_level(previous_log_level);
 
     char recorded_snapshot[1024] = "";
     char recorded_trajectory[1024] = "";
     bool decoded =
         diagnostics_discovery_value("snapshot", recorded_snapshot, sizeof(recorded_snapshot)) &&
-        diagnostics_discovery_value("trajectory", recorded_trajectory,
-                                    sizeof(recorded_trajectory));
+        diagnostics_discovery_value("trajectory", recorded_trajectory, sizeof(recorded_trajectory));
     if (captured) {
         diagnostics_cleanup_outputs(&outputs);
     }
@@ -487,11 +486,10 @@ static bool diagnostics_windows_path_owner_private(const char *path, bool direct
     PSID user_sid = NULL;
     wchar_t *wide_path = diagnostics_windows_utf8_to_wide(path);
     DWORD flags = FILE_FLAG_OPEN_REPARSE_POINT | (directory ? FILE_FLAG_BACKUP_SEMANTICS : 0);
-    HANDLE handle = wide_path
-                        ? CreateFileW(wide_path, READ_CONTROL,
-                                      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
-                                      OPEN_EXISTING, flags, NULL)
-                        : INVALID_HANDLE_VALUE;
+    HANDLE handle = wide_path ? CreateFileW(wide_path, READ_CONTROL,
+                                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                            NULL, OPEN_EXISTING, flags, NULL)
+                              : INVALID_HANDLE_VALUE;
     PSID owner = NULL;
     PACL dacl = NULL;
     PSECURITY_DESCRIPTOR descriptor = NULL;
@@ -509,7 +507,7 @@ static bool diagnostics_windows_path_owner_private(const char *path, bool direct
         void *ace = NULL;
         ok = GetAce(dacl, 0, &ace) != 0 &&
              ((ACE_HEADER *)ace)->AceType == ACCESS_ALLOWED_ACE_TYPE &&
-             EqualSid((PSID)&((ACCESS_ALLOWED_ACE *)ace)->SidStart, user_sid);
+             EqualSid((PSID) & ((ACCESS_ALLOWED_ACE *)ace)->SidStart, user_sid);
     }
     if (descriptor) {
         (void)LocalFree(descriptor);
@@ -530,11 +528,10 @@ static bool diagnostics_windows_output_contract(const char *path) {
      * follow the machine's default-owner policy, e.g. Administrators on
      * GitHub-runner-class images). */
     wchar_t *wide_path = diagnostics_windows_utf8_to_wide(path);
-    HANDLE handle = wide_path
-                        ? CreateFileW(wide_path, GENERIC_READ,
-                                      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
-                                      OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, NULL)
-                        : INVALID_HANDLE_VALUE;
+    HANDLE handle = wide_path ? CreateFileW(wide_path, GENERIC_READ,
+                                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                            NULL, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, NULL)
+                              : INVALID_HANDLE_VALUE;
     BY_HANDLE_FILE_INFORMATION information;
     bool ok = handle != INVALID_HANDLE_VALUE && GetFileType(handle) == FILE_TYPE_DISK &&
               GetFileInformationByHandle(handle, &information) != 0 &&
@@ -568,7 +565,6 @@ TEST(diagnostics_outputs_are_owner_private_windows) {
     PASS();
 }
 #endif
-
 
 /* ── scaling probe (profile.h) ──────────────────────────────────────
  *

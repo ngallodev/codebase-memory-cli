@@ -1,3 +1,4 @@
+#include "operations/result_wire.h"
 #include "operations/file_outline.h"
 #include "operations/store_host.h"
 
@@ -130,7 +131,7 @@ static char *outline_json_payload(const char *file_path, cbm_file_outline_row_t 
     yyjson_mut_obj_add_int(doc, object, "limit", limit);
     yyjson_mut_obj_add_int(doc, object, "returned", row_count);
     yyjson_mut_obj_add_bool(doc, object, "has_more", (int64_t)offset + row_count < total);
-    char *payload = yyjson_mut_write(doc, 0, NULL);
+    char *payload = cbm_operation_json_write(doc);
     yyjson_mut_doc_free(doc);
     return payload;
 }

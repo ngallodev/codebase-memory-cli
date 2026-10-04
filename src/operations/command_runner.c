@@ -30,7 +30,8 @@ static bool operation_command_output_path(char out[CBM_SZ_2K]) {
     int written;
     if (cache && cache[0]) {
         written = snprintf(directory, sizeof(directory), "%s/logs", cache);
-        if (written <= 0 || written >= (int)sizeof(directory) || !cbm_mkdir_p(directory, 0700)) {
+        if (written <= 0 || written >= (int)sizeof(directory) ||
+            !cbm_mkdir_p_ex(directory, 0700, CBM_MKDIR_FOLLOW_OWNED)) {
             return false;
         }
     } else {

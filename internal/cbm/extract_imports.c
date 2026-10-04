@@ -1384,11 +1384,12 @@ static void parse_spec_imports(CBMExtractCtx *ctx) {
 }
 
 // --- Embedded-language structure and imports ---
-// Generic walker for host grammars (Svelte, Vue, HTML, Astro, ...) whose AST
-// keeps embedded sub-language source as raw_text (or similar) without parsing
-// it.  The host's CBMLangSpec.embedded_imports declares which content nodes
-// hold which sub-language; we re-parse each match with the embedded grammar
-// and run the standard ES import walker over the inner AST.
+// Generic walker for host grammars (Svelte, Vue, HTML, Astro, CFML, ...) whose
+// AST keeps embedded sub-language source as raw_text (or similar) without
+// parsing it.  The host's CBMLangSpec.embedded_imports declares which content
+// nodes hold which sub-language; we re-parse each match with the embedded
+// grammar and run the definition, import and call extractors over the inner
+// AST, so a component's script contributes symbols like a standalone file.
 //
 // No grammar symbols are referenced here — the embedded TSLanguage is
 // resolved through cbm_ts_language(spec->embedded_language), the same hook
@@ -1458,10 +1459,8 @@ static bool ascii_trimmed_equals(const char *value, const char *expected) {
     return true;
 }
 
-/* Vue is the only host that opts into structural embedded extraction. Restrict
- * its inline programs to the language forms whose parsers we can select
- * exactly. A src attribute always denotes an external program and therefore
- * suppresses any inline extraction, even for malformed mixed markup. */
+/* The text of a <script> attribute's value, or "" when it carries none
+ * (`<script type>`), so every attribute reads through one path. */
 static const char *script_attribute_value(CBMExtractCtx *ctx, TSNode attribute) {
     TSNode value_node = attribute;
     if (!find_first_descendant_of(attribute, "attribute_value", &value_node)) {
@@ -1470,6 +1469,17 @@ static const char *script_attribute_value(CBMExtractCtx *ctx, TSNode attribute) 
     return cbm_node_text(ctx->arena, value_node, ctx->source);
 }
 
+/* Apply one <script> attribute to the parse decision. Returns false when the
+ * attribute rules the block out of inline extraction:
+ *   src=   always names an external program, so nothing inline is extracted,
+ *          even for malformed mixed markup;
+ *   lang=  selects the JavaScript or TypeScript grammar; any other language
+ *          has no parser here;
+ *   type=  plain HTML routinely carries non-program blocks (application/json,
+ *          importmap, text/x-template, application/ld+json) that would parse
+ *          into garbage definitions and calls. Only the JavaScript forms in
+ *          current use pass — absent or empty, module, text/javascript,
+ *          application/javascript — and the rest bail. */
 static bool apply_script_attribute(CBMExtractCtx *ctx, TSNode attribute, CBMLanguage *language) {
     if (ts_node_named_child_count(attribute) == 0) {
         return false;
@@ -1499,6 +1509,11 @@ static bool apply_script_attribute(CBMExtractCtx *ctx, TSNode attribute, CBMLang
     return true;
 }
 
+/* Markup hosts (Vue, Svelte, HTML, Astro) hang the attributes that decide
+ * whether and how an inline program is parsed off the <script> start tag.
+ * *language enters holding the spec row's default and leaves holding the
+ * grammar to parse with; an attribute-free block (Astro's frontmatter fence)
+ * keeps the row's language rather than falling through to JavaScript. */
 static bool script_embedded_language(CBMExtractCtx *ctx, TSNode script, CBMLanguage *language) {
     enum { SCRIPT_ATTR_STACK_CAP = 128 };
     TSNode stack[SCRIPT_ATTR_STACK_CAP];
@@ -1523,6 +1538,8 @@ static bool script_embedded_language(CBMExtractCtx *ctx, TSNode script, CBMLangu
     return true;
 }
 
+/* CFML's <cfscript> carries no attributes and its embedded language is fixed
+ * by the spec row; only the markup hosts consult the <script> tag. */
 static bool markup_script_host(CBMLanguage language) {
     return language == CBM_LANG_VUE || language == CBM_LANG_SVELTE || language == CBM_LANG_HTML ||
            language == CBM_LANG_ASTRO;
@@ -1596,15 +1613,6 @@ static void parse_embedded_imports(CBMExtractCtx *ctx) {
         embedded_collect_content_nodes(ctx->root, e, hits, &hit_count, MAX_EMBEDDED_BLOCKS);
         for (int i = 0; i < hit_count; i++) {
             CBMLanguage embedded_language = e->embedded_language;
-            /* Structure (defs + calls), not just imports, for hosts whose
-             * embedded language carries real code. Vue since #1852; CFML's
-             * <cfscript> since the #1412 distillation. */
-            /* The attribute resolver is Vue's: it inspects <script lang=/src=>
-             * and OVERRIDES the spec's embedded language (JS default, TS on
-             * lang="ts", bail on src=). CFML's cf_script_tag carries no such
-             * attributes and its embedded language is fixed by the spec row
-             * (CFSCRIPT) — running the resolver would silently rewrite it to
-             * JavaScript. Resolve only for Vue. */
             if (markup_script_host(ctx->language) &&
                 !script_embedded_language(ctx, hits[i].script, &embedded_language)) {
                 continue;

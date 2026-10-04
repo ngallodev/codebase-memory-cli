@@ -414,7 +414,8 @@ TEST(es_calls_svelte_embedded_issue1807) {
         {"Toggle.svelte", "<script lang=\"ts\">\n"
                           "function callee(): number { return 42; }\n"
                           "function caller(): number { return callee(); }\n"
-                          "</script>\n"},
+                          "</script>\n"
+                          "<button on:click={caller}>Toggle</button>\n"},
     };
     ASSERT_EQ(es_exact_edge_by_name(f, 1, "CALLS", "caller", "callee"), 1);
     PASS();

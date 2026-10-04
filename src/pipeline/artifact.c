@@ -967,6 +967,10 @@ int cbm_artifact_export(const char *db_path, const char *repo_path, const char *
     if (dir_len < 0 || (size_t)dir_len >= sizeof(art_dir)) {
         return artifact_export_fail("prepare_artifact_dir", repo_path, "path_too_long", 0);
     }
+    /* Deliberately the STRICT walk: art_dir is inside the checkout being
+     * indexed, where a symlink is a checked-in file owned by whoever cloned.
+     * A repository shipping `.codebase-memory -> ~/.ssh` must not redirect
+     * this write, so user-owned links are not followed here. */
     errno = 0;
     if (!cbm_mkdir_p(art_dir, ART_DIR_PERMS)) {
         return artifact_export_fail("prepare_artifact_dir", art_dir, "mkdir_or_not_directory",
