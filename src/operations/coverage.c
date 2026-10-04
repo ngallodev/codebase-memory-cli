@@ -2,6 +2,7 @@
 #include "operations/operation.h"
 #include "operations/store_host.h"
 
+#include "foundation/compat_fs.h"
 #include "foundation/platform.h"
 #include "foundation/workspace.h"
 #include "store/store.h"
@@ -132,17 +133,6 @@ static op_coverage_path_result_t normalize_rel(const char *input, bool allow_roo
     return written > 0U || allow_root ? OP_COVERAGE_PATH_OK : OP_COVERAGE_PATH_INVALID;
 }
 
-static int64_t stat_mtime_ns(const struct stat *st) {
-#ifdef __APPLE__
-    return ((int64_t)st->st_mtimespec.tv_sec * CBM_NSEC_PER_SEC) +
-           (int64_t)st->st_mtimespec.tv_nsec;
-#elif defined(_WIN32)
-    return (int64_t)st->st_mtime * CBM_NSEC_PER_SEC;
-#else
-    return ((int64_t)st->st_mtim.tv_sec * CBM_NSEC_PER_SEC) + (int64_t)st->st_mtim.tv_nsec;
-#endif
-}
-
 static const char *path_freshness(cbm_store_t *store, const char *project, const char *root_path,
                                   const char *rel_path, bool *outside) {
     *outside = false;
@@ -153,8 +143,13 @@ static const char *path_freshness(cbm_store_t *store, const char *project, const
                      root_path[strlen(root_path) - 1U] == '/' ? "" : "/", rel_path);
     if (n < 0 || (size_t)n >= sizeof(abs_path))
         return "unavailable";
-    struct stat st;
-    if (stat(abs_path, &st) != 0)
+    /* #1714: mtime_ns must come from the SAME source the indexer recorded it
+     * with, cbm_path_info_utf8. Recomputing from struct stat truncates to
+     * seconds on Windows (st_mtime) while the file_hashes record carries
+     * FILETIME-resolution nanoseconds, so a byte-identical file never matched
+     * and every path was reported metadata_changed. */
+    cbm_path_info_t info;
+    if (cbm_path_info_utf8(abs_path, &info) != 0)
         return "missing";
     if (!cbm_path_within_root(root_path, abs_path)) {
         *outside = true;
@@ -166,7 +161,7 @@ static const char *path_freshness(cbm_store_t *store, const char *project, const
         return "not_tracked";
     if (rc != CBM_STORE_OK)
         return "unavailable";
-    bool matches = hash.mtime_ns == stat_mtime_ns(&st) && hash.size == st.st_size;
+    bool matches = hash.mtime_ns == info.mtime_ns && hash.size == info.size;
     cbm_store_clear_file_hash(&hash);
     return matches ? "metadata_match" : "metadata_changed";
 }

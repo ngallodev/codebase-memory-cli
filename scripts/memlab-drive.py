@@ -29,6 +29,16 @@ def operation_args(tool):
     }[tool]
 
 
+def tool_failed(reply):
+    """A JSON-RPC error, or a tool result the server marked isError: MCP reports
+    a failed tool call as a normal result, so checking only "error" counts every
+    failure as served (a lab measuring nothing looked healthy)."""
+    if "error" in reply:
+        return True
+    result = reply.get("result")
+    return isinstance(result, dict) and bool(result.get("isError"))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("binary")
@@ -59,6 +69,7 @@ def main():
             if indexed.returncode != 0:
                 print(f"index failed: {indexed.stderr.strip()}", file=sys.stderr)
                 return 3
+            project = (indexed.get("result", {}).get("structuredContent") or {}).get("project")
 
         halfway = args.requests // 2
         argv = operation_args(args.tool)

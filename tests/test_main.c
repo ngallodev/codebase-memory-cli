@@ -760,6 +760,7 @@ extern void suite_dyn_array(void);
 extern void suite_str_intern(void);
 extern void suite_log(void);
 extern void suite_str_util(void);
+extern void suite_index_policy(void);
 extern void suite_workspace(void);
 extern void suite_platform(void);
 extern void suite_diagnostics(void);
@@ -861,6 +862,7 @@ extern void suite_repro_harness_cleanup(void);
 extern void suite_repro_runner_filter(void);
 extern void suite_call_reference_contract(void);
 extern void suite_mem(void);
+extern void suite_mem_events(void);
 extern void suite_ui(void);
 extern void suite_httpd(void);
 extern void suite_security(void);
@@ -1030,6 +1032,7 @@ int main(int argc, char **argv) {
     RUN_SELECTED_SUITE(str_intern);
     RUN_SELECTED_SUITE(log);
     RUN_SELECTED_SUITE(str_util);
+    RUN_SELECTED_SUITE(index_policy);
     RUN_SELECTED_SUITE(workspace);
     RUN_SELECTED_SUITE(platform);
     RUN_SELECTED_SUITE(diagnostics);
@@ -1178,6 +1181,7 @@ int main(int argc, char **argv) {
     /* mem + arena + slab integration */
     RUN_SELECTED_SUITE(slab_alloc);
     RUN_SELECTED_SUITE(mem);
+    RUN_SELECTED_SUITE(mem_events);
 
     /* UI (config, external asset pack, layout) */
     RUN_SELECTED_SUITE(ui);

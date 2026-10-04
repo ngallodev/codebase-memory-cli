@@ -7096,6 +7096,13 @@ typedef struct {
     int cap;
     const char *path; // for the allocation error log (may be NULL)
     bool failed;
+    /* The per-file traversal scratch (ctx->scratch) when there is one: frames
+     * then come from memory the thread reuses file after file, where a malloc
+     * of 256 frames per file was 28 k allocations and 255 MB never written on
+     * the Go corpus (waste sanitizer, 2026-09-17). Growth copies into a
+     * doubled buffer and abandons the old one to the arena, like TSNodeStack.
+     * NULL: the heap, freed by the walk. */
+    CBMArena *arena;
 } wd_stack_t;
 
 enum { WD_STACK_INITIAL = 256 };
@@ -7111,7 +7118,14 @@ static bool wd_grow(wd_stack_t *s) {
     walk_defs_frame_t *nd = NULL;
     if (fits) {
         size_t bytes = (size_t)ncap * sizeof(walk_defs_frame_t);
-        nd = (walk_defs_frame_t *)realloc(s->data, bytes);
+        if (s->arena) {
+            nd = (walk_defs_frame_t *)cbm_arena_alloc(s->arena, bytes);
+            if (nd && s->top > 0) {
+                memcpy(nd, s->data, (size_t)s->top * sizeof(walk_defs_frame_t));
+            }
+        } else {
+            nd = (walk_defs_frame_t *)realloc(s->data, bytes);
+        }
     }
     if (!nd) {
         char pending[24];
@@ -7789,6 +7803,7 @@ static void walk_defs(CBMExtractCtx *ctx, TSNode root, const CBMLangSpec *spec, 
     (void)depth_unused;
     wd_stack_t s = {0};
     s.path = ctx->rel_path;
+    s.arena = ctx->scratch;
     wd_push(&s, root, ctx->enclosing_class_qn);
 
     while (s.top > 0) {
@@ -7941,7 +7956,9 @@ static void walk_defs(CBMExtractCtx *ctx, TSNode root, const CBMLangSpec *spec, 
          * collection is mandatory (see wd_push_children_reverse). */
         wd_push_children_reverse(&s, node, frame.enclosing_class_qn);
     }
-    free(s.data);
+    if (!s.arena) {
+        free(s.data);
+    }
     if (s.failed) {
         ctx->result->has_error = true;
         ctx->result->error_msg = "definitions walk: stack allocation failed";

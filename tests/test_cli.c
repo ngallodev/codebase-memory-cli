@@ -12512,6 +12512,34 @@ TEST(cli_build_args_json_bare_boolean_issue680) {
     PASS();
 }
 
+/* An array-typed flag given a JSON array literal — the shape the help's
+ * `<array>` invites — contributes the literal's elements, not one element
+ * holding the literal text (2026-09-16 probe: check_index_coverage reported
+ * the fake path `["lib","t"]`). Repeated plain values still accumulate. */
+TEST(cli_build_args_json_array_flag_accepts_json_literal) {
+    char *err = NULL;
+    char *argv[] = {"--project", "p", "--paths", "[\"lib\",\"t\"]"};
+    char *json = cbm_cli_build_args_json("check_index_coverage", 4, argv, &err);
+    ASSERT_NOT_NULL(json);
+    ASSERT_NULL(err);
+    ASSERT(strstr(json, "\"paths\":[\"lib\",\"t\"]") != NULL);
+    free(json);
+
+    char *argv2[] = {"--project", "p", "--paths", "lib", "--paths", "t"};
+    json = cbm_cli_build_args_json("check_index_coverage", 6, argv2, &err);
+    ASSERT_NOT_NULL(json);
+    ASSERT(strstr(json, "\"paths\":[\"lib\",\"t\"]") != NULL);
+    free(json);
+
+    /* A value that merely starts with '[' but is not JSON stays one element. */
+    char *argv3[] = {"--project", "p", "--paths", "[weird"};
+    json = cbm_cli_build_args_json("check_index_coverage", 4, argv3, &err);
+    ASSERT_NOT_NULL(json);
+    ASSERT(strstr(json, "\"paths\":[\"[weird\"]") != NULL);
+    free(json);
+    PASS();
+}
+
 /* An unknown flag for a KNOWN tool must be rejected loudly, not silently
  * typed as a string and dropped server-side (#997). GF1 eval: `trace_path
  * --max-depth 1` was accepted, the real --depth stayed at default 3, and
@@ -13681,6 +13709,7 @@ SUITE(cli) {
     RUN_TEST(cli_build_args_json_string_flag_issue680);
     RUN_TEST(cli_build_args_json_integer_flag_issue680);
     RUN_TEST(cli_build_args_json_bare_boolean_issue680);
+    RUN_TEST(cli_build_args_json_array_flag_accepts_json_literal);
     RUN_TEST(cli_build_args_json_unknown_flag_rejected);
     RUN_TEST(cli_build_args_json_repeated_array_issue680);
     RUN_TEST(cli_build_args_json_kebab_to_snake_issue680);

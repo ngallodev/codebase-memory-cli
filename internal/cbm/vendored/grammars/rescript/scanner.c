@@ -159,12 +159,7 @@ bool tree_sitter_rescript_external_scanner_scan(
     skip(lexer);
   }
 
-  // cbm local patch (#2176, see MANIFEST.md): NEWLINE is never valid inside
-  // a template string, so both valid at once means error recovery, where
-  // tree-sitter marks every external token valid and retries at each byte.
-  // Scanning template chars there ran to the next '`', '$', '\\' or NUL (the
-  // end of file when there is none) from every byte: O(n^2) per file.
-  if (valid_symbols[TEMPLATE_CHARS] && !valid_symbols[NEWLINE]) {
+  if (valid_symbols[TEMPLATE_CHARS]) {
     lexer->result_symbol = TEMPLATE_CHARS;
     for (bool has_content = false;; has_content = true) {
       lexer->mark_end(lexer);

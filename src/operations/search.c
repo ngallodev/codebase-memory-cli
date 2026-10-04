@@ -203,23 +203,34 @@ static cbm_store_t *open_indexed_project(const char *project,
 }
 
 static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *project,
-                                          const char *query, const char *file_pattern, int limit,
-                                          int offset) {
+                                          const char *query, const char *file_pattern,
+                                          const char *label_filter, int limit, int offset) {
     sqlite3 *db = cbm_store_get_db(store);
     char match[BM25_QUERY_BUFFER];
     if (!db || build_match(query, match, sizeof(match)) == 0)
         return cbm_operation_result_copy("", true);
     char *file_like = file_pattern_like(file_pattern);
+    /* Exact-name tier: a definition whose NAME is the query outranks every
+     * partial hit. BM25 term frequency otherwise rewards a long test-method
+     * name that repeats the token over the class itself, and the label tiers
+     * then push that class's own methods above it. The definition asked for by
+     * name comes first, a case-insensitive exact spelling next, and everything
+     * else keeps its BM25 order. */
     const char *sql =
         "SELECT n.id,n.label,n.name,n.qualified_name,n.file_path,n.start_line,n.end_line,"
-        "(fts.base_rank-CASE WHEN n.label IN ('Function','Method') THEN 10.0 "
+        "(fts.base_rank-CASE WHEN n.name=?8 THEN 30.0 "
+        "WHEN lower(n.name)=lower(?8) THEN 20.0 ELSE 0.0 END"
+        "-CASE WHEN n.label IN ('Function','Method') THEN 10.0 "
         "WHEN n.label='Route' THEN 8.0 WHEN n.label IN (" CBM_SQL_TYPE_LIKE_LABELS ") THEN 5.0 "
         "WHEN n.label IN (" CBM_SQL_RELATION_LABELS ") THEN 5.0 ELSE 0.0 END) AS rank "
         "FROM (SELECT rowid," BM25_WEIGHTS " AS base_rank FROM nodes_fts "
         "WHERE nodes_fts MATCH ?1 ORDER BY base_rank, rowid LIMIT ?5) fts "
         "JOIN nodes n ON n.id=fts.rowid WHERE n.project=?2 "
         "AND n.label NOT IN ('File','Folder','Variable','Project') "
-        "AND (?6 IS NULL OR n.file_path LIKE ?6) ORDER BY rank,n.id LIMIT ?3 OFFSET ?4";
+        "AND (?6 IS NULL OR n.file_path LIKE ?6) "
+        /* The label filter applies in query mode exactly as in structural mode.
+         * MIRRORED in the count query below. */
+        "AND (?7 IS NULL OR n.label=?7) ORDER BY rank,n.id LIMIT ?3 OFFSET ?4";
     sqlite3_stmt *statement = NULL;
     if (sqlite3_prepare_v2(db, sql, -1, &statement, NULL) != SQLITE_OK) {
         free(file_like);
@@ -236,6 +247,11 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
         sqlite3_bind_text(statement, 6, file_like, -1, destructor);
     else
         sqlite3_bind_null(statement, 6);
+    if (label_filter && label_filter[0])
+        sqlite3_bind_text(statement, 7, label_filter, -1, destructor);
+    else
+        sqlite3_bind_null(statement, 7);
+    sqlite3_bind_text(statement, 8, query, -1, destructor);
 
     int total = 0;
     const char *count_sql =
@@ -243,7 +259,8 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
         "WHERE nodes_fts MATCH ?1 ORDER BY " BM25_WEIGHTS " LIMIT ?3) fts "
         "JOIN nodes n ON n.id=fts.rowid WHERE n.project=?2 "
         "AND n.label NOT IN ('File','Folder','Variable','Project') "
-        "AND (?6 IS NULL OR n.file_path LIKE ?6))";
+        "AND (?6 IS NULL OR n.file_path LIKE ?6) "
+        "AND (?7 IS NULL OR n.label=?7))";
     sqlite3_stmt *counter = NULL;
     if (sqlite3_prepare_v2(db, count_sql, -1, &counter, NULL) == SQLITE_OK) {
         sqlite3_bind_text(counter, 1, match, -1, destructor);
@@ -253,6 +270,10 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
             sqlite3_bind_text(counter, 6, file_like, -1, destructor);
         else
             sqlite3_bind_null(counter, 6);
+        if (label_filter && label_filter[0])
+            sqlite3_bind_text(counter, 7, label_filter, -1, destructor);
+        else
+            sqlite3_bind_null(counter, 7);
         if (sqlite3_step(counter) == SQLITE_ROW)
             total = sqlite3_column_int(counter, 0);
         sqlite3_finalize(counter);
@@ -660,7 +681,7 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
     }
 
     if (query && query[0]) {
-        result = bm25_search(store, project, query, file_pattern, limit, offset);
+        result = bm25_search(store, project, query, file_pattern, label, limit, offset);
         if (result.payload && result.payload[0])
             goto done;
         cbm_operation_result_dispose(&result);

@@ -14,6 +14,8 @@
 #include <store/store.h>
 #include <pipeline/pipeline.h>
 #include <foundation/log.h>
+#include <foundation/compat_fs.h>
+#include <foundation/constants.h>
 #include <foundation/platform.h>
 
 #include <string.h>
@@ -830,6 +832,201 @@ TEST(index_reports_excluded_subtrees_issue411) {
  *  SUITE
  * ══════════════════════════════════════════════════════════════════ */
 
+/* ══════════════════════════════════════════════════════════════════
+ *  CLI OPERATION BEHAVIOUR PORTED FROM UPSTREAM (search_graph, coverage)
+ * ══════════════════════════════════════════════════════════════════ */
+
+/* Fixture for the two BM25 findability probes (measured upstream on
+ * JetBrains/Exposed and django/django): a Class named exactly like the query,
+ * that class's own Methods, and test Methods whose long names repeat the
+ * query token. Written to <cache>/<project>.db so the search operation opens it
+ * exactly as it opens an indexed project. */
+static bool integ_write_bm25_fixture(const char *cache, const char *project) {
+    char db_path[512];
+    snprintf(db_path, sizeof(db_path), "%s/%s.db", cache, project);
+    cbm_store_t *store = cbm_store_open_path(db_path);
+    if (!store)
+        return false;
+    cbm_store_upsert_project(store, project, "/tmp/bm25-findability");
+    struct {
+        const char *label, *name, *qn, *file;
+    } rows[] = {
+        {"Class", "Table", "bm25-find.core.Table.Table", "core/Table.kt"},
+        {"Method", "unquoted", "bm25-find.core.Table.Table.unquoted", "core/Table.kt"},
+        {"Method", "describe", "bm25-find.core.Table.Table.describe", "core/Table.kt"},
+        {"Method", "table references table with same name in other database",
+         "bm25-find.tests.SchemaTests.table_references_table_with_same_name", "tests/Schema.kt"},
+        {"Method", "table references table with same name in mysql",
+         "bm25-find.tests.SchemaTests.table_references_table_with_same_name_mysql",
+         "tests/Schema.kt"},
+        {"Function", "get_object_or_404", "bm25-find.shortcuts.get_object_or_404", "shortcuts.py"},
+        {"Method", "test_get_object_or_404",
+         "bm25-find.tests.GetObjectOr404Tests.test_get_object_or_404", "tests/tests.py"},
+        {"Method", "test_get_object_or_404_queryset_attribute_error",
+         "bm25-find.tests.GetObjectOr404Tests.test_get_object_or_404_queryset_attribute_error",
+         "tests/tests.py"},
+        {"Method", "test_get_object_or_404_bad_class",
+         "bm25-find.tests.GetListObjectOr404Test.test_get_object_or_404_bad_class",
+         "tests/async.py"},
+    };
+    for (size_t i = 0; i < sizeof(rows) / sizeof(rows[0]); i++) {
+        cbm_node_t node = {.project = project,
+                           .label = rows[i].label,
+                           .name = rows[i].name,
+                           .qualified_name = rows[i].qn,
+                           .file_path = rows[i].file,
+                           .start_line = (int)i + 1,
+                           .end_line = (int)i + 2};
+        cbm_store_upsert_node(store, &node);
+    }
+    cbm_store_exec(store, "INSERT INTO nodes_fts(nodes_fts) VALUES('delete-all');");
+    cbm_store_exec(store, "INSERT INTO nodes_fts(rowid, name, qualified_name, label, "
+                          "file_path) SELECT id, cbm_camel_split(name), qualified_name, "
+                          "label, file_path FROM nodes;");
+    cbm_store_close(store);
+    return true;
+}
+
+static void integ_restore_cache_dir(const char *saved) {
+    if (saved)
+        (void)cbm_setenv("CBM_CACHE_DIR", saved, 1);
+    else
+        (void)cbm_unsetenv("CBM_CACHE_DIR");
+}
+
+/* The label filter must apply in query (BM25) mode exactly as in structural
+ * mode: `query=Table label=Class` returns the class, and no Method. */
+TEST(integ_search_graph_bm25_applies_label_filter) {
+    char *cache = th_mktempdir("cbm_integ_bm25_label");
+    ASSERT_NOT_NULL(cache);
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? strdup(saved) : NULL;
+    (void)cbm_setenv("CBM_CACHE_DIR", cache, 1);
+    bool fixture = integ_write_bm25_fixture(cache, "bm25-find");
+    cbm_test_operation_host_t *host = fixture ? cbm_test_operation_host_new(NULL) : NULL;
+    char *resp = host ? cbm_test_operation_execute(host, "search_graph",
+                                                   "{\"project\":\"bm25-find\",\"query\":\"Table\","
+                                                   "\"label\":\"Class\",\"limit\":5}")
+                      : NULL;
+    bool class_found = resp && strstr(resp, "\"bm25-find.core.Table.Table\",\"Class\"") != NULL;
+    bool no_method = resp && strstr(resp, "\"Method\"") == NULL;
+    /* The reported total describes the filtered rows, not the unfiltered window. */
+    bool total_one = resp && strstr(resp, "\"total\":1") != NULL;
+    free(resp);
+    cbm_test_operation_host_free(host);
+    integ_restore_cache_dir(saved_copy);
+    free(saved_copy);
+    th_cleanup(cache);
+    ASSERT_TRUE(fixture);
+    ASSERT_TRUE(class_found);
+    ASSERT_TRUE(no_method);
+    ASSERT_TRUE(total_one);
+    PASS();
+}
+
+/* The definition whose NAME is the query ranks first: the `Table` class above
+ * its own methods and above test methods that repeat "table" three times; the
+ * `get_object_or_404` function above the test methods that contain it. */
+TEST(integ_search_graph_bm25_ranks_exact_name_first) {
+    char *cache = th_mktempdir("cbm_integ_bm25_exact");
+    ASSERT_NOT_NULL(cache);
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? strdup(saved) : NULL;
+    (void)cbm_setenv("CBM_CACHE_DIR", cache, 1);
+    bool fixture = integ_write_bm25_fixture(cache, "bm25-find");
+    cbm_test_operation_host_t *host = fixture ? cbm_test_operation_host_new(NULL) : NULL;
+
+    char *table = host ? cbm_test_operation_execute(
+                             host, "search_graph",
+                             "{\"project\":\"bm25-find\",\"query\":\"Table\",\"limit\":5}")
+                       : NULL;
+    const char *table_rows = table ? strstr(table, "\"rows\":[[") : NULL;
+    bool table_first =
+        table_rows && strncmp(table_rows + 8, "[\"bm25-find.core.Table.Table\"", 29) == 0;
+    free(table);
+
+    char *get404 = host ? cbm_test_operation_execute(
+                              host, "search_graph",
+                              "{\"project\":\"bm25-find\",\"query\":\"get_object_or_404\","
+                              "\"limit\":5}")
+                        : NULL;
+    const char *get404_rows = get404 ? strstr(get404, "\"rows\":[[") : NULL;
+    bool function_first =
+        get404_rows &&
+        strncmp(get404_rows + 8, "[\"bm25-find.shortcuts.get_object_or_404\"", 40) == 0;
+    free(get404);
+
+    cbm_test_operation_host_free(host);
+    integ_restore_cache_dir(saved_copy);
+    free(saved_copy);
+    th_cleanup(cache);
+    ASSERT_TRUE(fixture);
+    ASSERT_TRUE(table_first);
+    ASSERT_TRUE(function_first);
+    PASS();
+}
+
+/* #1714: coverage freshness must compare mtime_ns at the SAME precision the
+ * indexer records it. The pipeline records cbm_path_info_utf8's value (on
+ * Windows derived from FILETIME, nanosecond), while the freshness reader used
+ * to recompute from struct stat, which on Windows truncates to seconds. A
+ * byte-identical file therefore never matched and every path was reported
+ * metadata_changed. The reader now uses the indexer's own source. */
+TEST(integ_coverage_freshness_uses_indexer_mtime_source_issue1714) {
+    char *cache = th_mktempdir("cbm_integ_cov_cache");
+    char *root = th_mktempdir("cbm_integ_cov_root");
+    ASSERT_NOT_NULL(cache);
+    ASSERT_NOT_NULL(root);
+    ASSERT_EQ(th_write_file(TH_PATH(root, "main.go"), "package main\nfunc main() {}\n"), 0);
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? strdup(saved) : NULL;
+    (void)cbm_setenv("CBM_CACHE_DIR", cache, 1);
+
+    char source_path[512];
+    snprintf(source_path, sizeof(source_path), "%s/main.go", root);
+    cbm_path_info_t info;
+    bool have_info = cbm_path_info_utf8(source_path, &info) == 0;
+
+    char db_path[512];
+    snprintf(db_path, sizeof(db_path), "%s/cov-fresh.db", cache);
+    cbm_store_t *store = have_info ? cbm_store_open_path(db_path) : NULL;
+    bool stored = store && cbm_store_upsert_project(store, "cov-fresh", root) == CBM_STORE_OK &&
+                  cbm_store_upsert_file_hash(store, "cov-fresh", "main.go", "", info.mtime_ns,
+                                             info.size) == CBM_STORE_OK;
+    cbm_test_operation_host_t *host = stored ? cbm_test_operation_host_new(NULL) : NULL;
+    const char *args = "{\"project\":\"cov-fresh\",\"paths\":[\"main.go\"],\"format\":\"json\"}";
+    char *resp = host ? cbm_test_operation_execute(host, "check_index_coverage", args) : NULL;
+    bool match = resp && strstr(resp, "\"freshness\":\"metadata_match\"") != NULL;
+    free(resp);
+
+    /* A hash stored at seconds precision (what a stat-based reader compared
+     * against) must NOT match an unchanged file: the comparison stays
+     * nanosecond-exact, or part of mtime resolution is silently dropped. */
+    bool changed = true;
+    int64_t seconds_mtime_ns =
+        have_info ? (info.mtime_ns / (int64_t)CBM_NSEC_PER_SEC) * (int64_t)CBM_NSEC_PER_SEC : 0;
+    if (stored && seconds_mtime_ns != info.mtime_ns) {
+        changed = cbm_store_upsert_file_hash(store, "cov-fresh", "main.go", "", seconds_mtime_ns,
+                                             info.size) == CBM_STORE_OK;
+        resp = changed ? cbm_test_operation_execute(host, "check_index_coverage", args) : NULL;
+        changed = changed && resp && strstr(resp, "\"freshness\":\"metadata_changed\"") != NULL;
+        free(resp);
+    }
+
+    cbm_test_operation_host_free(host);
+    if (store)
+        cbm_store_close(store);
+    integ_restore_cache_dir(saved_copy);
+    free(saved_copy);
+    th_cleanup(cache);
+    th_cleanup(root);
+    ASSERT_TRUE(have_info);
+    ASSERT_TRUE(stored);
+    ASSERT_TRUE(match);
+    ASSERT_TRUE(changed);
+    PASS();
+}
+
 SUITE(integration) {
     RUN_TEST(index_reports_excluded_subtrees_issue411);
     /* Set up: create temp project and index it */
@@ -854,6 +1051,9 @@ SUITE(integration) {
     RUN_TEST(integ_mcp_list_projects);
     RUN_TEST(integ_mcp_search_graph_by_label);
     RUN_TEST(integ_mcp_search_graph_by_name);
+    RUN_TEST(integ_search_graph_bm25_applies_label_filter);
+    RUN_TEST(integ_search_graph_bm25_ranks_exact_name_first);
+    RUN_TEST(integ_coverage_freshness_uses_indexer_mtime_source_issue1714);
     RUN_TEST(integ_mcp_query_graph_functions);
     RUN_TEST(integ_mcp_query_graph_calls);
     RUN_TEST(integ_mcp_get_graph_schema);

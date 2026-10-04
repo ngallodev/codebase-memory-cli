@@ -804,18 +804,31 @@ TEST(c_ifdef_split_is_partial_never_unusable) {
  * says so, instead of leaving a wrong note in the plan. (The plan's Phase 0
  * also listed the pointer form as failing. It does not fail today.) */
 TEST(c_thread_local_grammar_limit_is_pinned_issue963) {
+    /* The init form used to read as "parses clean", but that was a masking
+     * effect, not a clean parse: the grammar leaves an ERROR on line 1 and
+     * salvages a one-line Variable named `int` from it, which the old
+     * all-or-nothing recovery rule accepted as evidence the line was
+     * understood. Since 2026-09-16 a one-line salvage is not evidence, so the
+     * line is flagged — honest, because `x` is what the graph lacks. */
     CBMFileResult *ok = do_extract("static _Thread_local int x = 0;\n"
                                    "void f(void) { x = 1; }\n",
                                    CBM_LANG_C, "tls_init.c");
     ASSERT_NOT_NULL(ok);
-    ASSERT_FALSE(ok->parse_incomplete);
+    ASSERT_TRUE(ok->parse_incomplete);
+    ASSERT_NOT_NULL(ok->error_ranges);
+    ASSERT_STR_EQ("1-1", ok->error_ranges);
+    ASSERT_TRUE(has_def(ok, "f"));
     cbm_free_result(ok);
 
+    /* The pointer form: the same masking, the same honest answer now. */
     CBMFileResult *ptr = do_extract("static _Thread_local int *p;\n"
                                     "void f(void) { p = 0; }\n",
                                     CBM_LANG_C, "tls_ptr.c");
     ASSERT_NOT_NULL(ptr);
-    ASSERT_FALSE(ptr->parse_incomplete);
+    ASSERT_TRUE(ptr->parse_incomplete);
+    ASSERT_NOT_NULL(ptr->error_ranges);
+    ASSERT_STR_EQ("1-1", ptr->error_ranges);
+    ASSERT_TRUE(has_def(ptr, "f"));
     cbm_free_result(ptr);
 
     CBMFileResult *arr = do_extract("static _Thread_local char b[8];\n"
@@ -877,6 +890,99 @@ TEST(coverage_range_never_ends_past_the_last_line_issue963) {
     PASS();
 }
 
+/* ── Residual ranges (2026-09-16) ─────────────────────────────────────────
+ * The recovery subtraction used to be all-or-nothing: a region stayed flagged
+ * whole unless every one of its lines was covered by a definition that started
+ * inside it. On torvalds/linux one ERROR node that swallowed the second half of
+ * kernel/sched/core.c (lines 5522-11284) survived on the strength of the
+ * comment and macro lines BETWEEN its 286 extracted functions, and
+ * check_index_coverage told a reader 68 % of the scheduler was unindexed. The
+ * ranges must now name only the lines no extracted definition covers. */
+
+/* A brace-unbalanced junk line between two clean functions: the recovery
+ * walker still extracts both functions, so the reported range must not cover
+ * either of them, only the junk. */
+static const char *C_JUNK_BETWEEN_FUNCTIONS = "int alpha(void) {\n" /* 1 */
+                                              "    return 1;\n"     /* 2 */
+                                              "}\n"                 /* 3 */
+                                              "\n"                  /* 4 */
+                                              "} ] junk ( {\n"      /* 5 */
+                                              "\n"                  /* 6 */
+                                              "int beta(void) {\n"  /* 7 */
+                                              "    return 2;\n"     /* 8 */
+                                              "}\n"                 /* 9 */
+                                              "\n"                  /* 10 */
+                                              "int gamma(void) {\n" /* 11 */
+                                              "    return 3;\n"     /* 12 */
+                                              "}\n";                /* 13 */
+
+static int range_covers_line(const char *ranges, unsigned int line) {
+    const char *p = ranges;
+    while (p && *p) {
+        unsigned int s = 0;
+        unsigned int e = 0;
+        if (sscanf(p, "%u-%u", &s, &e) == 2 && s <= line && line <= e) {
+            return 1;
+        }
+        p = strchr(p, ',');
+        if (p) {
+            p++;
+        }
+    }
+    return 0;
+}
+
+TEST(coverage_range_never_covers_an_extracted_definition) {
+    CBMFileResult *r = do_extract(C_JUNK_BETWEEN_FUNCTIONS, CBM_LANG_C, "junk.c");
+    ASSERT_NOT_NULL(r);
+    ASSERT_TRUE(has_def(r, "alpha"));
+    ASSERT_TRUE(has_def(r, "beta"));
+    ASSERT_TRUE(has_def(r, "gamma"));
+    ASSERT_TRUE(r->parse_incomplete);
+    ASSERT_NOT_NULL(r->error_ranges);
+    /* Every extracted definition's own lines are in the graph, so no reported
+     * range may cover its start line. */
+    for (int i = 0; i < r->defs.count; i++) {
+        const CBMDefinition *d = &r->defs.items[i];
+        if (!d->label || strcmp(d->label, "Module") == 0) {
+            continue;
+        }
+        ASSERT_FALSE(range_covers_line(r->error_ranges, d->start_line));
+    }
+    /* And the junk line itself is still reported. */
+    ASSERT_TRUE(range_covers_line(r->error_ranges, 5u));
+    cbm_free_result(r);
+    PASS();
+}
+
+/* The lines between recovered definitions are comments and blanks here: a gap
+ * with no code in it is not a miss, so nothing may be reported for it. The
+ * junk line stays reported. */
+static const char *C_JUNK_WITH_COMMENT_GAPS = "int alpha(void) {\n"                /* 1 */
+                                              "    return 1;\n"                    /* 2 */
+                                              "}\n"                                /* 3 */
+                                              "/* between alpha and the junk */\n" /* 4 */
+                                              "} ] junk ( {\n"                     /* 5 */
+                                              "// trailing note\n"                 /* 6 */
+                                              "int beta(void) {\n"                 /* 7 */
+                                              "    return 2;\n"                    /* 8 */
+                                              "}\n";                               /* 9 */
+
+TEST(coverage_gap_of_only_comments_is_not_a_miss) {
+    CBMFileResult *r = do_extract(C_JUNK_WITH_COMMENT_GAPS, CBM_LANG_C, "gaps.c");
+    ASSERT_NOT_NULL(r);
+    ASSERT_TRUE(has_def(r, "alpha"));
+    ASSERT_TRUE(has_def(r, "beta"));
+    ASSERT_TRUE(r->parse_incomplete);
+    ASSERT_NOT_NULL(r->error_ranges);
+    ASSERT_TRUE(range_covers_line(r->error_ranges, 5u));
+    ASSERT_FALSE(range_covers_line(r->error_ranges, 1u));
+    ASSERT_FALSE(range_covers_line(r->error_ranges, 7u));
+    ASSERT_FALSE(range_covers_line(r->error_ranges, 9u));
+    cbm_free_result(r);
+    PASS();
+}
+
 SUITE(parse_coverage) {
     RUN_TEST(c_ifdef_split_brace_sets_parse_incomplete);
     RUN_TEST(c_ifdef_split_brace_neighbors_still_extracted);
@@ -915,4 +1021,6 @@ SUITE(parse_coverage) {
     RUN_TEST(c_thread_local_grammar_limit_is_pinned_issue963);
     RUN_TEST(coverage_repeated_error_line_reports_one_range_issue963);
     RUN_TEST(coverage_range_never_ends_past_the_last_line_issue963);
+    RUN_TEST(coverage_range_never_covers_an_extracted_definition);
+    RUN_TEST(coverage_gap_of_only_comments_is_not_a_miss);
 }

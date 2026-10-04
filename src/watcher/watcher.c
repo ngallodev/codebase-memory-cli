@@ -76,7 +76,14 @@ typedef struct {
     uint64_t last_dirty_sig;       /* committed dirty-state signature */
     uint64_t pending_dirty_sig;    /* observed at check time */
     char pending_head[CBM_SZ_128]; /* HEAD observed at check time */
-    int index_failures;            /* consecutive hard index failures */
+    /* Consecutive hard index failures (index_fn < 0). A hard error is
+     * usually persistent — a poisoned coordination endpoint, an unreadable
+     * DB — so retrying it at the plain poll interval re-forks a worker that
+     * fails identically, for as long as the daemon lives. #937 deliberately
+     * leaves the baseline uncommitted so the change is never lost; this
+     * decays the retry cadence so "never lost" does not also mean "retried
+     * forever". Reset to 0 by any successful reindex. */
+    int index_failures;
     /* Hop from root_path up to the repository root ("" when they are the same),
      * from `rev-parse --show-cdup`. Porcelain paths are repository-relative, so
      * the signature needs this to stat them. Resolved once at baseline. */
@@ -116,10 +123,14 @@ struct cbm_watcher {
 #define POLL_FILE_STEP 500 /* add 1s per this many files */
 #define POLL_MAX_MS 60000
 
-/* Consecutive hard failures double the normal poll delay, capped at five
- * minutes. Capping the shift keeps the intermediate value bounded. */
+/* Hard index-failure backoff. Doubling per consecutive failure, capped, so a
+ * persistently failing project costs ~12 attempts/hour instead of ~480 while
+ * still recovering on its own within the ceiling once the cause clears. The
+ * shift cap keeps the intermediate value well inside int64 for any interval. */
 #define INDEX_FAIL_SHIFT_MAX 6
-#define INDEX_FAIL_CEILING_MS 300000
+#define INDEX_FAIL_CEILING_MS 300000 /* 5 min */
+/* Log a distinct line once the failures are clearly not transient, so the
+ * daemon log names the stuck project instead of only repeating the warning. */
 #define INDEX_FAIL_SUSTAINED 10
 
 /* Stale-root pruning (#286): a watched project whose root directory stays
@@ -160,16 +171,16 @@ int cbm_watcher_index_backoff_ms(int interval_ms, int consecutive_failures) {
     }
     int shift =
         consecutive_failures < INDEX_FAIL_SHIFT_MAX ? consecutive_failures : INDEX_FAIL_SHIFT_MAX;
-    int64_t delay_ms = (int64_t)interval_ms << shift;
-    if (delay_ms > INDEX_FAIL_CEILING_MS) {
-        delay_ms = INDEX_FAIL_CEILING_MS;
+    int64_t delay = (int64_t)interval_ms << shift;
+    if (delay > INDEX_FAIL_CEILING_MS) {
+        delay = INDEX_FAIL_CEILING_MS;
     }
-    /* Keep the retry delay monotonic even for caller-supplied intervals above
-     * the ceiling. */
-    if (delay_ms < interval_ms) {
-        delay_ms = interval_ms;
-    }
-    return (int)delay_ms;
+    /* Backing off must never schedule SOONER than the project's own cadence.
+     * Unreachable today (POLL_MAX_MS < the ceiling), but clamping here keeps
+     * the function monotonic for every input rather than only for the inputs
+     * the current constants can produce — the caller's contract is "a delay
+     * that never shrinks as failures accumulate". */
+    return (int)(delay < interval_ms ? interval_ms : delay);
 }
 
 int cbm_watcher_poll_interval_ms(int file_count) {
@@ -1178,6 +1189,17 @@ void cbm_watcher_touch(cbm_watcher_t *w, const char *project_name) {
     cbm_mutex_unlock(&w->projects_lock);
 }
 
+int cbm_watcher_index_failure_count(cbm_watcher_t *w, const char *project_name) {
+    if (!w || !project_name) {
+        return -1;
+    }
+    cbm_mutex_lock(&w->projects_lock);
+    project_state_t *s = cbm_ht_get(w->projects, project_name);
+    int failures = s ? s->index_failures : -1;
+    cbm_mutex_unlock(&w->projects_lock);
+    return failures;
+}
+
 int cbm_watcher_watch_count(cbm_watcher_t *w) {
     if (!w) {
         return 0;
@@ -1496,11 +1518,13 @@ static void poll_project(const char *key, void *val, void *ud) {
             /* Busy-skip keeps the uncommitted baseline and any prior failure streak. */
             cbm_log_info("watcher.index.retry", "project", s->project_name);
         } else {
+            /* itoa_buf returns one shared per-thread buffer, so two of them
+             * in one call would print the same value twice. */
+            char rc_text[CBM_SZ_32];
+            char streak_text[CBM_SZ_32];
             if (s->index_failures < INT_MAX) {
                 s->index_failures++;
             }
-            char rc_text[CBM_SZ_32];
-            char streak_text[CBM_SZ_32];
             snprintf(rc_text, sizeof(rc_text), "%d", rc);
             snprintf(streak_text, sizeof(streak_text), "%d", s->index_failures);
             cbm_log_warn("watcher.index.err", "project", s->project_name, "rc", rc_text,
@@ -1512,12 +1536,10 @@ static void poll_project(const char *key, void *val, void *ud) {
         }
     }
 
-    /* index_fn and the follow-up file count can be slow. Start the delay from
-     * a fresh monotonic reading so it cannot expire before this poll returns. */
-    int64_t schedule_ns = now_ns();
-    int64_t delay_ns =
-        (int64_t)cbm_watcher_index_backoff_ms(s->interval_ms, s->index_failures) * US_PER_MS;
-    s->next_poll_ns = schedule_ns > INT64_MAX - delay_ns ? INT64_MAX : schedule_ns + delay_ns;
+    /* Failures back off; success and busy-skip keep the adaptive cadence. */
+    s->next_poll_ns =
+        ctx->now +
+        ((int64_t)cbm_watcher_index_backoff_ms(s->interval_ms, s->index_failures) * US_PER_MS);
 }
 
 /* Callback to snapshot project state pointers into an array. */

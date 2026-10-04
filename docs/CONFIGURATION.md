@@ -89,6 +89,8 @@ Current keys:
 | `auto_index_limit` | `50000` | Maximum file count allowed for automatic indexing of a new project. |
 | `auto_watch` | `true` | Register an active project with the retained background watcher when a warm runtime/hook integration supplies project context. The ordinary one-shot CLI does not require this. |
 | `watcher_enabled` | `true` | Master switch for the retained background watcher subsystem. Set `false` to stop its poll thread/project registration. Reindex manually with `codebase-memory-cli index` when disabled. |
+| `index_max_files` | `off` | Optional maximum number of accepted source files in one discovery run. |
+| `index_max_source_mb` | `off` | Optional maximum accepted source size in MiB in one discovery run. |
 
 > **`watcher_enabled` vs `auto_watch`.** `watcher_enabled` controls whether the
 > retained watcher subsystem starts at all. `auto_watch` is narrower: it controls
@@ -99,6 +101,14 @@ Current keys:
 > while that runtime is active, retire it so the next runtime observes the new
 > value. Disabling the watcher does not disable explicit `index`, `search`,
 > `trace`, `snippet`, or `coverage` commands.
+
+The two `index_max_*` settings are independent and disabled by default. They
+apply to explicit indexing, automatic indexing, and watcher re-indexing, but not
+to `cross-repo-intelligence`, which does not scan repository source files.
+Equality is allowed; exceeding either setting fails the complete index request
+and preserves any previously serving database. See
+[Index resource limits](INDEX_RESOURCE_LIMITS.md) for counting, validation, and
+error-response details.
 
 ## 3. UI Settings
 

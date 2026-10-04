@@ -1,4 +1,6 @@
 #include "operations/index.h"
+#include "cli/cli.h"
+#include "foundation/index_policy.h"
 #include "operations/result_wire.h"
 #include "operations/cross_repo.h"
 #include "operations/index_supervisor.h"
@@ -225,8 +227,96 @@ static char *index_args_with_string(const char *args_json, const char *key, cons
     return out;
 }
 
-static char *index_args_with_repo_path(const char *args_json, const char *repo_path) {
-    return index_args_with_string(args_json, "repo_path", repo_path);
+#define INDEX_WORKER_POLICY_KEY "_cbm_index_policy"
+
+/* Encode the complete trusted discovery policy on an internal worker request.
+ * Callers must remove any untrusted field with the same name first. */
+bool cbm_index_operation_policy_add_to_args(yyjson_mut_doc *doc, yyjson_mut_val *root,
+                                            const cbm_index_resource_policy_t *policy) {
+    yyjson_mut_val *encoded = doc && root && policy ? yyjson_mut_obj(doc) : NULL;
+    bool valid = encoded != NULL;
+    for (size_t index = 0; valid && index < cbm_index_policy_key_count(); index++) {
+        const char *key = cbm_index_policy_key_at(index);
+        char value[CBM_SZ_64];
+        valid = cbm_index_policy_format(policy, key, value, sizeof(value)) &&
+                yyjson_mut_obj_add_strcpy(doc, encoded, key, value);
+    }
+    return valid && yyjson_mut_obj_add_val(doc, root, INDEX_WORKER_POLICY_KEY, encoded);
+}
+
+static bool index_policy_from_worker_args(const char *args_json,
+                                          cbm_index_resource_policy_t *policy, char *error,
+                                          size_t error_size) {
+    yyjson_doc *doc = args_json ? yyjson_read(args_json, strlen(args_json), 0) : NULL;
+    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
+    yyjson_val *encoded =
+        root && yyjson_is_obj(root) ? yyjson_obj_get(root, INDEX_WORKER_POLICY_KEY) : NULL;
+    if (!encoded || !yyjson_is_obj(encoded) ||
+        yyjson_obj_size(encoded) != cbm_index_policy_key_count()) {
+        yyjson_doc_free(doc);
+        (void)snprintf(error, error_size, "missing or incomplete trusted worker policy");
+        return false;
+    }
+    cbm_index_policy_init(policy);
+    bool valid = true;
+    for (size_t index = 0; valid && index < cbm_index_policy_key_count(); index++) {
+        const char *key = cbm_index_policy_key_at(index);
+        yyjson_val *value = yyjson_obj_get(encoded, key);
+        valid = value && yyjson_is_str(value) &&
+                cbm_index_policy_set(policy, key, yyjson_get_str(value), error, error_size);
+    }
+    yyjson_doc_free(doc);
+    if (!valid && error && error_size > 0 && error[0] == '\0') {
+        (void)snprintf(error, error_size, "invalid trusted worker policy");
+    }
+    return valid;
+}
+
+/* A worker trusts the policy its supervisor encoded; every other caller reads
+ * the operator's config, so a caller-supplied value can never relax a guard. */
+static bool index_load_policy(const char *args_json, cbm_index_resource_policy_t *policy,
+                              char *error, size_t error_size) {
+    if (cbm_index_worker_active()) {
+        return index_policy_from_worker_args(args_json, policy, error, error_size);
+    }
+    cbm_config_t *config = cbm_config_open(cbm_resolve_cache_dir());
+    bool loaded = cbm_config_load_index_policy(config, policy, error, error_size);
+    cbm_config_close(config);
+    return loaded;
+}
+
+static char *index_args_with_repo_path(const char *args_json, const char *repo_path,
+                                       const cbm_index_resource_policy_t *policy) {
+    const char *json = args_json ? args_json : "{}";
+    yyjson_doc *source = yyjson_read(json, strlen(json), 0);
+    yyjson_val *source_root = source ? yyjson_doc_get_root(source) : NULL;
+    if (!yyjson_is_obj(source_root) || !repo_path || !policy) {
+        if (source)
+            yyjson_doc_free(source);
+        return NULL;
+    }
+    yyjson_mut_doc *copy = yyjson_doc_mut_copy(source, NULL);
+    yyjson_doc_free(source);
+    yyjson_mut_val *root = copy ? yyjson_mut_doc_get_root(copy) : NULL;
+    if (!yyjson_mut_is_obj(root)) {
+        if (copy)
+            yyjson_mut_doc_free(copy);
+        return NULL;
+    }
+    while (yyjson_mut_obj_get(root, "repo_path")) {
+        (void)yyjson_mut_obj_remove_key(root, "repo_path");
+    }
+    while (yyjson_mut_obj_get(root, INDEX_WORKER_POLICY_KEY)) {
+        (void)yyjson_mut_obj_remove_key(root, INDEX_WORKER_POLICY_KEY);
+    }
+    if (!yyjson_mut_obj_add_strcpy(copy, root, "repo_path", repo_path) ||
+        !cbm_index_operation_policy_add_to_args(copy, root, policy)) {
+        yyjson_mut_doc_free(copy);
+        return NULL;
+    }
+    char *out = yyjson_mut_write(copy, 0, NULL);
+    yyjson_mut_doc_free(copy);
+    return out;
 }
 
 static bool index_db_path(const char *project, char *out, size_t out_size) {
@@ -254,6 +344,22 @@ static char *index_repo_path_from_project(const char *args_json) {
     }
     free(project);
     return root_path;
+}
+
+/* True when the project's database opens and records a root path, i.e. the
+ * previous index is still servable. Used to say truthfully whether a refused
+ * run left the serving index intact. */
+static bool index_project_db_is_servable(const char *project, const char *db_path) {
+    cbm_store_t *store = db_path && db_path[0] ? cbm_store_open_path_query(db_path) : NULL;
+    if (!store) {
+        return false;
+    }
+    cbm_project_t stored_project = {0};
+    bool servable = cbm_store_get_project(store, project, &stored_project) == CBM_STORE_OK &&
+                    stored_project.root_path && stored_project.root_path[0];
+    cbm_project_free_fields(&stored_project);
+    cbm_store_close(store);
+    return servable;
 }
 
 static bool index_project_has_adr(cbm_store_t *store, const char *project, const char *root_path) {
@@ -595,7 +701,9 @@ static void index_fill_run_response(yyjson_mut_doc *doc, yyjson_mut_val *root, c
                                     const char *repo_path, bool persistence,
                                     cbm_pipeline_t *pipeline, int rc, char **excluded,
                                     int excluded_count, const cbm_file_error_t *errors,
-                                    int error_count, bool metrics_failed) {
+                                    int error_count, bool metrics_failed,
+                                    const cbm_index_resource_violation_t *violation,
+                                    bool serving_index_preserved) {
     yyjson_mut_obj_add_strcpy(doc, root, "project", project ? project : "");
     if (rc == 0) {
         char logfile[CBM_SZ_1K] = {0};
@@ -660,6 +768,21 @@ static void index_fill_run_response(yyjson_mut_doc *doc, yyjson_mut_val *root, c
                                "The validated staging database could not be published. Check "
                                "free disk space and permissions on the cache directory; the "
                                "previous index may have been rolled back.");
+    } else if (rc == CBM_PIPELINE_RESOURCE_LIMIT && violation &&
+               violation->resource != CBM_INDEX_RESOURCE_NONE) {
+        const char *config_key = cbm_index_resource_config_key(violation->resource);
+        char message[CBM_SZ_256];
+        (void)snprintf(message, sizeof(message), "Index discovery exceeded %s", config_key);
+        yyjson_mut_obj_add_str(doc, root, "status", "error");
+        yyjson_mut_obj_add_str(doc, root, "code", "resource_limit_exceeded");
+        yyjson_mut_obj_add_str(doc, root, "stage", "discovery");
+        yyjson_mut_obj_add_str(doc, root, "resource", cbm_index_resource_name(violation->resource));
+        yyjson_mut_obj_add_uint(doc, root, "observed", violation->observed);
+        yyjson_mut_obj_add_uint(doc, root, "limit", violation->limit);
+        yyjson_mut_obj_add_str(doc, root, "unit", cbm_index_resource_unit(violation->resource));
+        yyjson_mut_obj_add_bool(doc, root, "retryable", true);
+        yyjson_mut_obj_add_bool(doc, root, "serving_index_preserved", serving_index_preserved);
+        yyjson_mut_obj_add_strcpy(doc, root, "message", message);
     } else {
         yyjson_mut_obj_add_str(doc, root, "status", "error");
         yyjson_mut_obj_add_str(doc, root, "hint",
@@ -671,7 +794,9 @@ static void index_fill_run_response(yyjson_mut_doc *doc, yyjson_mut_val *root, c
 static char *index_encode_run_response(const char *project, const char *repo_path, bool persistence,
                                        cbm_pipeline_t *pipeline, int rc, char **excluded,
                                        int excluded_count, const cbm_file_error_t *errors,
-                                       int error_count, bool metrics_failed) {
+                                       int error_count, bool metrics_failed,
+                                       const cbm_index_resource_violation_t *violation,
+                                       bool serving_index_preserved) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
     if (!root) {
@@ -682,7 +807,8 @@ static char *index_encode_run_response(const char *project, const char *repo_pat
     }
     yyjson_mut_doc_set_root(doc, root);
     index_fill_run_response(doc, root, project, repo_path, persistence, pipeline, rc, excluded,
-                            excluded_count, errors, error_count, metrics_failed);
+                            excluded_count, errors, error_count, metrics_failed, violation,
+                            serving_index_preserved);
     char *payload = cbm_operation_json_write(doc);
     yyjson_mut_doc_free(doc);
     return payload;
@@ -745,8 +871,23 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
     }
     free(name);
     cbm_pipeline_set_persistence(pipeline, persistence);
+    cbm_index_resource_policy_t resource_policy;
+    char policy_error[CBM_SZ_256] = {0};
+    if (!index_policy_from_worker_args(args_json, &resource_policy, policy_error,
+                                       sizeof(policy_error))) {
+        cbm_pipeline_free(pipeline);
+        runtime->mutation_end(runtime->mutation_context, mutation_project);
+        free(metrics_out);
+        free(mutation_project);
+        return index_text_error(policy_error);
+    }
+    cbm_pipeline_set_resource_policy(pipeline, &resource_policy);
     char *project = index_strdup(cbm_pipeline_project_name(pipeline));
     index_try_artifact_bootstrap(project, repo_path);
+    char serving_db_path[CBM_SZ_1K] = {0};
+    bool serving_path_known = index_db_path(project, serving_db_path, sizeof(serving_db_path));
+    bool serving_index_was_servable =
+        serving_path_known && index_project_db_is_servable(project, serving_db_path);
     if (runtime->project_invalidate)
         runtime->project_invalidate(runtime->project_invalidate_context, project);
     cbm_pipeline_lock();
@@ -760,6 +901,8 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
     cbm_file_error_t *errors = NULL;
     int error_count = 0;
     cbm_pipeline_get_file_errors(pipeline, &errors, &error_count);
+    cbm_index_resource_violation_t resource_violation = {0};
+    cbm_pipeline_get_resource_violation(pipeline, &resource_violation);
     cbm_mem_collect();
     bool metrics_failed = !index_write_metrics(metrics_out, mode_name, project, pipeline, rc);
     if (metrics_failed) {
@@ -768,9 +911,11 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
     free(metrics_out);
     if (runtime->project_invalidate)
         runtime->project_invalidate(runtime->project_invalidate_context, project);
-    char *payload =
-        index_encode_run_response(project, repo_path, persistence, pipeline, rc, excluded,
-                                  excluded_count, errors, error_count, metrics_failed);
+    char *payload = index_encode_run_response(
+        project, repo_path, persistence, pipeline, rc, excluded, excluded_count, errors,
+        error_count, metrics_failed, &resource_violation,
+        serving_index_was_servable && serving_path_known &&
+            index_project_db_is_servable(project, serving_db_path));
     if (cbm_index_worker_active())
         cbm_log_info("index.worker.fast_exit", "skip", "pipeline_free");
     else
@@ -886,7 +1031,13 @@ cbm_operation_result_t cbm_index_operation_execute(const char *args_json,
         return out;
     }
     free(mode);
-    char *worker_args = index_args_with_repo_path(json, repo_path);
+    cbm_index_resource_policy_t resource_policy;
+    char policy_error[CBM_SZ_256] = {0};
+    if (!index_load_policy(json, &resource_policy, policy_error, sizeof(policy_error))) {
+        free(repo_path);
+        return index_text_error(policy_error);
+    }
+    char *worker_args = index_args_with_repo_path(json, repo_path, &resource_policy);
     if (!worker_args) {
         free(repo_path);
         return index_text_error("failed to prepare index request");
