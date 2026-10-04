@@ -4840,9 +4840,10 @@ TEST(daemon_application_over_budget_response_passes_through_without_recovery) {
         setup
             ? app_test_request(&callbacks, session, tool, tool_length, &response, &response_length)
             : CBM_DAEMON_RUNTIME_APPLICATION_HANDLER_ERROR;
-    bool passed_through = response && response_length > 0 &&
-                          strstr((char *)response, "over_memory_budget") != NULL &&
-                          strstr((char *)response, "\"isError\":true") != NULL;
+    bool passed_through =
+        response && response_length > 1U && response[0] == 0U &&
+        app_test_response_contains(response + 1U, response_length - 1U, "over_memory_budget") &&
+        app_test_response_contains(response + 1U, response_length - 1U, "\"isError\":true");
     free(response);
     free(context);
     free(tool);
