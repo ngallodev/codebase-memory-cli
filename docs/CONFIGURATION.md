@@ -195,7 +195,7 @@ not name is permitted.
 
 ## 5. Agent and Editor Integration Files
 
-The CLI-first `install` path can write Codebase Memory skills and durable CLI instructions for detected agents. Hooks are a separate explicit opt-in via `codebase-memory-cli install-hooks`. Neither lifecycle surface creates, migrates, adopts, or removes MCP registrations or MCP-owned assets; existing MCP state is treated as foreign for side-by-side safety.
+The CLI-first `install` path can write Codebase Memory skills and durable CLI instructions for detected agents. Hooks are a separate explicit opt-in via `codebase-memory-cli install-hooks`. Neither lifecycle surface creates, migrates, adopts, or removes MCP registrations or MCP-owned assets; existing MCP state is treated as foreign for side-by-side safety. Both `install` and `uninstall` warn when an instruction file still contains a legacy `codebase-memory-mcp` managed block from the upstream MCP tool, but they leave that block in place for you to remove by hand.
 
 Those target paths vary by tool and platform, so the easiest way to inspect the exact files for your machine is:
 

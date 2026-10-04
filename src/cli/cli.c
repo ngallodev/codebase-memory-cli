@@ -3229,6 +3229,40 @@ int cbm_remove_instructions(const char *path) {
                                                                                       : CLI_ERR;
 }
 
+/* Upstream codebase-memory-mcp wrote its own managed instruction blocks. The
+ * fork's CP78 side-by-side policy treats that MCP state as foreign, so install
+ * and uninstall never rewrite or remove it — but the block still points at MCP
+ * tools this CLI-only fork does not provide, so warn once per file. Read-only:
+ * this never modifies the file. */
+#define LEGACY_MCP_MARKER_START "<!-- codebase-memory-mcp:start -->"
+#define LEGACY_MCP_MARKER_END "<!-- codebase-memory-mcp:end -->"
+
+static bool cbm_file_has_legacy_mcp_block(const char *path) {
+    if (!path || !path[0]) {
+        return false;
+    }
+    char *content = read_file_str(path, NULL);
+    if (!content) {
+        return false;
+    }
+    const char *begin = strstr(content, LEGACY_MCP_MARKER_START);
+    bool complete = begin != NULL &&
+                    strstr(begin + strlen(LEGACY_MCP_MARKER_START), LEGACY_MCP_MARKER_END) != NULL;
+    free(content);
+    return complete;
+}
+
+static void cbm_warn_legacy_mcp_block(const char *path) {
+    if (!cbm_file_has_legacy_mcp_block(path)) {
+        return;
+    }
+    (void)fprintf(stderr,
+                  "  warning: %s still contains a legacy codebase-memory-mcp instruction block; "
+                  "it refers to MCP tools that codebase-memory-cli does not provide. Remove it "
+                  "manually if it is no longer wanted.\n",
+                  path);
+}
+
 /* ── Codex MCP config (TOML) ─────────────────────────────────── */
 
 #define CODEX_CMM_TABLE "mcp_servers.codebase-memory-mcp"
@@ -7816,6 +7850,9 @@ static bool install_generic_agent_config(const char *label, const char *instr_pa
     if (g_install_plan) {
         if (instr_path) {
             plan_record(label, "instructions", instr_path);
+            if (cbm_file_has_legacy_mcp_block(instr_path)) {
+                plan_record(label, "warning", instr_path);
+            }
         }
         return true;
     }
@@ -7823,6 +7860,7 @@ static bool install_generic_agent_config(const char *label, const char *instr_pa
     printf("  integration: CLI instructions only; hooks require `codebase-memory-cli "
            "install-hooks`\n");
     if (instr_path) {
+        cbm_warn_legacy_mcp_block(instr_path);
         if (!dry_run) {
             if (!prepare_config_parent(instr_path) ||
                 cbm_upsert_instructions(instr_path, agent_instructions_content) != CLI_OK) {
@@ -9518,6 +9556,7 @@ static char *cbm_build_install_plan_json_options(const char *home, const char *b
     yyjson_mut_val *agent_files = yyjson_mut_arr(doc);
     yyjson_mut_val *prompt_files = yyjson_mut_arr(doc);
     yyjson_mut_val *hooks = yyjson_mut_arr(doc);
+    yyjson_mut_val *warnings = yyjson_mut_arr(doc);
     for (int i = 0; i < plan.count; i++) {
         cbm_plan_entry_t *e = &plan.items[i];
         if (strcmp(e->kind, "config") == 0 || strcmp(e->kind, "mcp_config") == 0) {
@@ -9536,6 +9575,8 @@ static char *cbm_build_install_plan_json_options(const char *home, const char *b
         } else if (strcmp(e->kind, "prompt") == 0) {
             yyjson_mut_arr_add_strcpy(doc, prompt_files, e->path);
             yyjson_mut_arr_add_strcpy(doc, instrs, e->path);
+        } else if (strcmp(e->kind, "warning") == 0) {
+            yyjson_mut_arr_add_strcpy(doc, warnings, e->path);
         } else {
             yyjson_mut_arr_add_strcpy(doc, instrs, e->path);
         }
@@ -9546,6 +9587,7 @@ static char *cbm_build_install_plan_json_options(const char *home, const char *b
     yyjson_mut_obj_add_val(doc, root, "agent_files_planned", agent_files);
     yyjson_mut_obj_add_val(doc, root, "prompt_files_planned", prompt_files);
     yyjson_mut_obj_add_val(doc, root, "hooks_planned", hooks);
+    yyjson_mut_obj_add_val(doc, root, "warnings", warnings);
     yyjson_mut_obj_add_bool(doc, root, "writes_started", false);
     yyjson_mut_obj_add_bool(doc, root, "network_after_install", false);
     yyjson_mut_obj_add_str(doc, root, "next_safe_command",
@@ -10258,6 +10300,7 @@ static void uninstall_agent_mcp_instr(mcp_uninstall_args_t paths, bool dry_run,
     const char *instr_path = paths.instr_path;
     printf("%s: preserved MCP config by CP78 side-by-side policy\n", name);
     if (instr_path) {
+        cbm_warn_legacy_mcp_block(instr_path);
         if (!dry_run && cbm_remove_instructions(instr_path) != CLI_OK) {
             record_agent_config_error(true, name, "instructions_uninstall", instr_path);
         }

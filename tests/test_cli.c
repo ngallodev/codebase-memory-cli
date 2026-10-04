@@ -7335,6 +7335,99 @@ TEST(cli_codex_respects_codex_home) {
     PASS();
 }
 
+TEST(cli_install_warns_about_legacy_mcp_instruction_block) {
+    char tmpdir[256];
+    snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-codex-legacy-mcp-XXXXXX");
+    if (!cbm_mkdtemp(tmpdir))
+        FAIL("cbm_mkdtemp failed");
+
+    char codex_home[512];
+    char agents_path[640];
+    char binary_path[768];
+    snprintf(codex_home, sizeof(codex_home), "%s/.codex", tmpdir);
+    snprintf(agents_path, sizeof(agents_path), "%s/AGENTS.md", codex_home);
+#ifdef _WIN32
+    snprintf(binary_path, sizeof(binary_path), "%s/.local/bin/codebase-memory-cli.exe", tmpdir);
+#else
+    snprintf(binary_path, sizeof(binary_path), "%s/.local/bin/codebase-memory-cli", tmpdir);
+#endif
+    ASSERT_EQ(test_mkdirp(codex_home), 0);
+
+    const char *user_guidance = "# Personal Codex guidance\nKeep this byte-for-byte.\n";
+    const char *legacy_block = "<!-- codebase-memory-mcp:start -->\n"
+                               "Call search_graph and trace_path.\n"
+                               "<!-- codebase-memory-mcp:end -->\n";
+    char seeded[2048];
+    snprintf(seeded, sizeof(seeded), "%s%s", user_guidance, legacy_block);
+    ASSERT_EQ(write_test_file(agents_path, seeded), 0);
+
+    char *saved_home = save_test_env("HOME");
+    char *saved_path = save_test_env("PATH");
+    char *saved_codex = save_test_env("CODEX_HOME");
+    cbm_setenv("HOME", tmpdir, 1);
+    cbm_setenv("PATH", tmpdir, 1);
+    cbm_setenv("CODEX_HOME", codex_home, 1);
+
+    /* A dry run warns and writes nothing. */
+#ifndef _WIN32
+    cli_fd_capture_t dry_capture;
+    cli_fd_capture_begin(&dry_capture, stderr, STDERR_FILENO);
+#endif
+    int dry_rc = cbm_install_agent_configs(tmpdir, binary_path, false, true);
+#ifndef _WIN32
+    char *dry_err = cli_fd_capture_end(&dry_capture);
+#else
+    char *dry_err = NULL;
+#endif
+    char *after_dry = read_test_file_alloc(agents_path);
+    bool dry_preserved = after_dry && strcmp(after_dry, seeded) == 0;
+    bool dry_warned = true;
+#ifndef _WIN32
+    dry_warned =
+        dry_err && strstr(dry_err, agents_path) != NULL &&
+        strstr(dry_err, "still contains a legacy codebase-memory-mcp instruction block") != NULL;
+#endif
+    free(after_dry);
+    free(dry_err);
+
+    /* A real install warns, leaves the legacy bytes intact, and adds our block once. */
+#ifndef _WIN32
+    cli_fd_capture_t install_capture;
+    cli_fd_capture_begin(&install_capture, stderr, STDERR_FILENO);
+#endif
+    int install_rc = cbm_install_agent_configs(tmpdir, binary_path, false, false);
+#ifndef _WIN32
+    char *install_err = cli_fd_capture_end(&install_capture);
+#else
+    char *install_err = NULL;
+#endif
+    char *after = read_test_file_alloc(agents_path);
+    bool legacy_preserved = after && strstr(after, legacy_block) != NULL;
+    bool user_preserved = after && strstr(after, user_guidance) != NULL;
+    bool cli_block_added_once =
+        after && test_count_substring(after, test_cli_managed_block_start) == 1U;
+    bool install_warned = true;
+#ifndef _WIN32
+    install_warned =
+        install_err && strstr(install_err, agents_path) != NULL &&
+        strstr(install_err, "still contains a legacy codebase-memory-mcp instruction block") !=
+            NULL;
+#endif
+
+    free(after);
+    free(install_err);
+    restore_test_env("HOME", saved_home);
+    restore_test_env("PATH", saved_path);
+    restore_test_env("CODEX_HOME", saved_codex);
+    test_rmdir_r(tmpdir);
+
+    if (dry_rc != 0 || install_rc != 0 || !dry_preserved || !dry_warned || !legacy_preserved ||
+        !user_preserved || !cli_block_added_once || !install_warned)
+        FAIL("Codex install must warn about a legacy codebase-memory-mcp block in --dry-run and "
+             "on install, keep its bytes and the user's, and add one CLI managed block");
+    PASS();
+}
+
 TEST(cli_codex_install_manages_global_instruction_block_issue1689) {
     char tmpdir[256];
     snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-codex-agents-pointer-XXXXXX");
@@ -13519,6 +13612,7 @@ SUITE(cli) {
     RUN_TEST(cli_registry_installs_codebuddy_bob_and_pochi_durable_context);
     RUN_TEST(cli_openclaw_resolves_active_json5_workspace);
     RUN_TEST(cli_codex_respects_codex_home);
+    RUN_TEST(cli_install_warns_about_legacy_mcp_instruction_block);
     RUN_TEST(cli_grok_respects_grok_home);
     RUN_TEST(cli_codex_install_manages_global_instruction_block_issue1689);
     RUN_TEST(cli_gemini_session_hook_uses_json_for_all_sources);
