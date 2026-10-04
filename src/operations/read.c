@@ -539,8 +539,24 @@ static cbm_operation_result_t execute_status(const char *args_json) {
     }
     yyjson_mut_doc_set_root(doc, root);
     yyjson_mut_obj_add_strcpy(doc, root, "project", project);
-    yyjson_mut_obj_add_int(doc, root, "nodes", nodes);
-    yyjson_mut_obj_add_int(doc, root, "edges", edges);
+    bool counts_unreadable = nodes < 0 || edges < 0;
+    yyjson_mut_obj_add_int(doc, root, "nodes", counts_unreadable ? 0 : nodes);
+    yyjson_mut_obj_add_int(doc, root, "edges", counts_unreadable ? 0 : edges);
+    if (counts_unreadable) {
+        const char *tables;
+        if (nodes < 0 && edges < 0)
+            tables = "nodes and edges";
+        else if (nodes < 0)
+            tables = "nodes";
+        else
+            tables = "edges";
+        char hint[CBM_SZ_512];
+        snprintf(hint, sizeof(hint),
+                 "The %s table(s) could not be read; the database may be corrupt. "
+                 "Re-run codebase-memory-cli index or remove the project cache and re-index.",
+                 tables);
+        yyjson_mut_obj_add_strcpy(doc, root, "hint", hint);
+    }
     const char *status = "empty";
     if (nodes < 0 || edges < 0) {
         status = "error";

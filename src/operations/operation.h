@@ -69,9 +69,13 @@ typedef bool (*cbm_operation_mutation_begin_fn)(void *context, const char *proje
 typedef bool (*cbm_operation_mutation_try_begin_fn)(void *context, const char *project);
 typedef void (*cbm_operation_mutation_end_fn)(void *context, const char *project);
 typedef void (*cbm_operation_project_detach_fn)(void *context, const char *project);
+/* async (#2144) asks the host to start or join the project's index job and
+ * return at once; the job must then outlive the request and its session. */
 typedef cbm_operation_result_t (*cbm_operation_index_execute_fn)(void *context,
                                                                  const char *root_path,
-                                                                 const char *args_json);
+                                                                 const char *args_json, bool async);
+/* The state of the running or most recent index job for one project key. */
+typedef cbm_operation_result_t (*cbm_operation_index_status_fn)(void *context, const char *project);
 typedef void (*cbm_operation_project_invalidate_fn)(void *context, const char *project);
 
 typedef struct cbm_operation_runtime {
@@ -107,6 +111,12 @@ typedef struct cbm_operation_runtime {
      * executes the physical pipeline separately. */
     cbm_operation_index_execute_fn index_execute;
     void *index_execute_context;
+
+    /* Optional daemon-owned index job status (#2144). Hosts without one
+     * (in-process CLI workers, embedders) refuse the index operation's async
+     * and status modes. */
+    cbm_operation_index_status_fn index_status;
+    void *index_status_context;
 
     /* Host/session policy required by the physical index worker. These values
      * are borrowed for the synchronous operation call. */

@@ -26,8 +26,17 @@ static bool project_arg_is_db_file(const char *name, size_t len) {
 }
 
 static char *project_arg_normalize(char *project) {
-    if (!project || (!strchr(project, '/') && !strchr(project, '\\')))
+    if (!project)
         return project;
+    if (!strchr(project, '/') && !strchr(project, '\\')) {
+        bool non_ascii = false;
+        for (const unsigned char *p = (const unsigned char *)project; *p; p++)
+            non_ascii |= *p >= 0x80;
+        char *encoded = non_ascii ? cbm_project_name_sanitize(project) : NULL;
+        bool usable = encoded && strcmp(encoded, "root") != 0 && cbm_validate_project_name(encoded);
+        free(usable ? project : encoded);
+        return usable ? encoded : project;
+    }
 
     char real[CBM_SZ_4K];
     if (cbm_canonical_path(project, real, sizeof(real))) {

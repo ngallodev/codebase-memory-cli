@@ -322,8 +322,10 @@ bool cbm_is_project_index_db(const char *filename) {
         return false;
     }
     size_t len = strlen(filename);
-    return len > ext_len && strcmp(filename + len - ext_len, db_ext) == 0 &&
-           !cbm_is_internal_cache_db(filename);
+    if (len <= ext_len || strcmp(filename + len - ext_len, db_ext) != 0) {
+        return false;
+    }
+    return !cbm_is_internal_cache_db(filename);
 }
 
 int cbm_utf8_trim_partial(char *buf) {

@@ -182,6 +182,20 @@ same validation as the default, and a value that fails it is refused rather than
 silently ignored. Because the rendezvous is how sessions find each other, every
 process that should share one daemon must see the same value — set it consistently for any shells or agent processes that should share the same retained runtime coordination.
 
+**WSL2 and Windows drives (`/mnt/c`, `/mnt/e`, ...).** `CBM_CACHE_DIR` goes through
+the same private-directory check. With WSL's default automount options, DrvFs
+reports every directory as `0777` and ignores `chmod`, so a cache under
+`/mnt/<drive>` is refused, and the refusal names this remedy. Either turn on
+permission metadata in `/etc/wsl.conf`, then run `wsl --shutdown` and reopen WSL:
+
+```ini
+[automount]
+options = "metadata,umask=22,fmask=11"
+```
+
+or keep the cache on the Linux filesystem (the default `~/.cache/codebase-memory-mcp`),
+which is also much faster than a 9p-mounted Windows drive.
+
 Environment used by retained runtime-owned components—such as diagnostics, logging, and process-wide indexing resource limits—is captured when that runtime starts. Later participants cannot replace those values. `CBM_ALLOWED_ROOT` remains caller-specific, a conflicting `CBM_CACHE_DIR` is rejected, and one-shot CLI commands use their own current environment.
 
 

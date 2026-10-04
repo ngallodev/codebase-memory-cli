@@ -5,6 +5,7 @@
 #include "operations/cross_repo.h"
 #include "operations/index_supervisor.h"
 #include "operations/project_arg.h"
+#include "operations/read.h"
 
 #include "foundation/compat_fs.h"
 #include "foundation/compat.h"
@@ -306,6 +307,10 @@ static char *index_args_with_repo_path(const char *args_json, const char *repo_p
     while (yyjson_mut_obj_get(root, "repo_path")) {
         (void)yyjson_mut_obj_remove_key(root, "repo_path");
     }
+    while (yyjson_mut_obj_get(root, "async"))
+        (void)yyjson_mut_obj_remove_key(root, "async");
+    while (yyjson_mut_obj_get(root, "status"))
+        (void)yyjson_mut_obj_remove_key(root, "status");
     while (yyjson_mut_obj_get(root, INDEX_WORKER_POLICY_KEY)) {
         (void)yyjson_mut_obj_remove_key(root, INDEX_WORKER_POLICY_KEY);
     }
@@ -757,17 +762,28 @@ static void index_fill_run_response(yyjson_mut_doc *doc, yyjson_mut_val *root, c
     } else if (rc == CBM_PIPELINE_ABORT_PRESERVE_DB) {
         /* Aborted pre-publication; the previous index is intact. */
         yyjson_mut_obj_add_str(doc, root, "status", "aborted_previous_preserved");
-        yyjson_mut_obj_add_str(doc, root, "hint",
-                               "Indexing aborted before publication; the previous index is "
-                               "intact and still serving. Causes: files changed while the run "
-                               "was in flight, or a discovery/manifest phase failed "
-                               "transiently. Retry; if it repeats, check the run log.");
+        yyjson_mut_obj_add_str(
+            doc, root, "hint",
+            "Indexing aborted before publication; the previous index is "
+            "intact and still serving. Causes: files changed while the run "
+            "was in flight, or a discovery/manifest phase failed "
+            "transiently. Retry; if it repeats, check the run log. " CBM_INDEX_ASYNC_HINT);
     } else if (rc == CBM_PIPELINE_PERSIST_FAILED) {
         yyjson_mut_obj_add_str(doc, root, "status", "persist_failed");
-        yyjson_mut_obj_add_str(doc, root, "hint",
-                               "The validated staging database could not be published. Check "
-                               "free disk space and permissions on the cache directory; the "
-                               "previous index may have been rolled back.");
+        const char *export_error = cbm_pipeline_export_error(pipeline);
+        if (export_error && export_error[0]) {
+            char hint[CBM_SZ_2K];
+            snprintf(hint, sizeof(hint),
+                     "The database was published, but the artifact export failed: %s. "
+                     "Check repository permissions and free disk space.",
+                     export_error);
+            yyjson_mut_obj_add_strcpy(doc, root, "hint", hint);
+        } else {
+            yyjson_mut_obj_add_str(doc, root, "hint",
+                                   "The validated staging database could not be published. Check "
+                                   "free disk space and permissions on the cache directory; the "
+                                   "previous index may have been rolled back.");
+        }
     } else if (rc == CBM_PIPELINE_RESOURCE_LIMIT && violation &&
                violation->resource != CBM_INDEX_RESOURCE_NONE) {
         const char *config_key = cbm_index_resource_config_key(violation->resource);
@@ -1000,9 +1016,115 @@ static bool index_validate_metrics_out(const char *json, const cbm_operation_run
     return true;
 }
 
+/* Unnamed starts and polls must use the same existing owner (#2134). */
+static char *index_root_project(const char *path, char *error, size_t error_size) {
+    char *derived = cbm_project_name_from_path(path);
+    char *owner = NULL;
+    bool ambiguous = false;
+    for (int offset = 0; derived;) {
+        char args[CBM_SZ_256];
+        snprintf(args, sizeof(args), "{\"metadata_only\":true,\"limit\":500,\"offset\":%d}",
+                 offset);
+        cbm_operation_result_t listing =
+            cbm_read_operation_execute(CBM_OPERATION_PROJECTS, args, NULL);
+        yyjson_doc *doc =
+            listing.payload ? yyjson_read(listing.payload, strlen(listing.payload), 0) : NULL;
+        yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
+        yyjson_val *projects = yyjson_obj_get(root, "projects");
+        if (listing.is_error || !yyjson_is_arr(projects)) {
+            snprintf(error, error_size, "could not resolve index root owner");
+            yyjson_doc_free(doc);
+            cbm_operation_result_dispose(&listing);
+            free(owner);
+            free(derived);
+            return NULL;
+        }
+        size_t i, max;
+        yyjson_val *item;
+        yyjson_arr_foreach(projects, i, max, item) {
+            const char *name = yyjson_get_str(yyjson_obj_get(item, "name"));
+            const char *root_path = yyjson_get_str(yyjson_obj_get(item, "root_path"));
+            if (!name || !root_path || strcmp(root_path, path))
+                continue;
+            if (!strcmp(name, derived)) {
+                yyjson_doc_free(doc);
+                cbm_operation_result_dispose(&listing);
+                free(owner);
+                return derived;
+            }
+            if (owner && strcmp(owner, name))
+                ambiguous = true;
+            if (!owner) {
+                owner = index_strdup(name);
+                if (!owner) {
+                    snprintf(error, error_size, "out of memory while resolving index root owner");
+                    yyjson_doc_free(doc);
+                    cbm_operation_result_dispose(&listing);
+                    free(derived);
+                    return NULL;
+                }
+            }
+        }
+        bool more = yyjson_get_bool(yyjson_obj_get(root, "has_more"));
+        int next = (int)yyjson_get_sint(yyjson_obj_get(root, "next_offset"));
+        yyjson_doc_free(doc);
+        cbm_operation_result_dispose(&listing);
+        if (!more)
+            break;
+        if (next <= offset) {
+            snprintf(error, error_size, "invalid project listing continuation");
+            free(owner);
+            free(derived);
+            return NULL;
+        }
+        offset = next;
+    }
+    if (ambiguous) {
+        snprintf(error, error_size,
+                 "several indexed projects share root_path %s; pass --name to choose", path);
+        free(owner);
+        free(derived);
+        return NULL;
+    }
+    if (owner) {
+        free(derived);
+        return owner;
+    }
+    return derived;
+}
+
+static bool index_call_mode_arg(const char *json, const char *key, bool *out) {
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *value = doc ? yyjson_obj_get(yyjson_doc_get_root(doc), key) : NULL;
+    bool valid = !value || yyjson_is_bool(value);
+    *out = value && yyjson_get_bool(value);
+    yyjson_doc_free(doc);
+    return valid;
+}
+
 cbm_operation_result_t cbm_index_operation_execute(const char *args_json,
                                                    const cbm_operation_runtime_t *runtime) {
     const char *json = args_json ? args_json : "{}";
+    bool async_mode = false, status_mode = false;
+    if (!index_call_mode_arg(json, "async", &async_mode) ||
+        !index_call_mode_arg(json, "status", &status_mode))
+        return index_text_error("async and status must be booleans");
+    if (async_mode && status_mode)
+        return index_text_error(
+            "async and status are exclusive: start with --async, then poll with --status");
+    if (async_mode && (!runtime || !runtime->index_execute))
+        return index_text_error("async needs the daemon-backed CLI; run daemon start first");
+    if (status_mode && (!runtime || !runtime->index_status))
+        return index_text_error("index job status needs the daemon-backed CLI");
+    char *raw_name = index_string_arg(json, "name");
+    char *name = raw_name && raw_name[0] ? cbm_project_name_sanitize(raw_name) : NULL;
+    free(raw_name);
+    if (status_mode && name && cbm_validate_project_name(name)) {
+        cbm_operation_result_t out = runtime->index_status(runtime->index_status_context, name);
+        free(name);
+        return out;
+    }
+    free(name);
     char *repo_path = index_string_arg(json, "repo_path");
     if (!repo_path)
         repo_path = index_repo_path_from_project(json);
@@ -1026,18 +1148,50 @@ cbm_operation_result_t cbm_index_operation_execute(const char *args_json,
     char *mode = index_string_arg(json, "mode");
     if (mode && !strcmp(mode, "cross-repo-intelligence")) {
         free(mode);
+        if (async_mode || status_mode) {
+            free(repo_path);
+            return index_text_error(
+                "async and status are not supported for cross-repo-intelligence");
+        }
         cbm_operation_result_t out = cbm_cross_repo_operation_execute(repo_path, json, runtime);
         free(repo_path);
         return out;
     }
     free(mode);
+    char owner_error[CBM_SZ_4K] = {0};
+    raw_name = index_string_arg(json, "name");
+    char *project = raw_name && raw_name[0] ? cbm_project_name_sanitize(raw_name) : NULL;
+    free(raw_name);
+    if (!project || !project[0]) {
+        free(project);
+        project = index_root_project(repo_path, owner_error, sizeof(owner_error));
+    }
+    if (!project || !cbm_validate_project_name(project)) {
+        free(project);
+        free(repo_path);
+        return index_text_error(owner_error[0] ? owner_error : "invalid index project name");
+    }
+    if (status_mode) {
+        cbm_operation_result_t out = runtime->index_status(runtime->index_status_context, project);
+        free(project);
+        free(repo_path);
+        return out;
+    }
+    char *named_args = index_args_with_string(json, "name", project);
+    free(project);
+    if (!named_args) {
+        free(repo_path);
+        return index_text_error("failed to prepare named index request");
+    }
     cbm_index_resource_policy_t resource_policy;
     char policy_error[CBM_SZ_256] = {0};
     if (!index_load_policy(json, &resource_policy, policy_error, sizeof(policy_error))) {
+        free(named_args);
         free(repo_path);
         return index_text_error(policy_error);
     }
-    char *worker_args = index_args_with_repo_path(json, repo_path, &resource_policy);
+    char *worker_args = index_args_with_repo_path(named_args, repo_path, &resource_policy);
+    free(named_args);
     if (!worker_args) {
         free(repo_path);
         return index_text_error("failed to prepare index request");
@@ -1049,8 +1203,8 @@ cbm_operation_result_t cbm_index_operation_execute(const char *args_json,
         return index_text_error(boundary);
     }
     if (runtime && runtime->index_execute) {
-        cbm_operation_result_t out =
-            runtime->index_execute(runtime->index_execute_context, repo_path, worker_args);
+        cbm_operation_result_t out = runtime->index_execute(runtime->index_execute_context,
+                                                            repo_path, worker_args, async_mode);
         free(worker_args);
         free(repo_path);
         return out;

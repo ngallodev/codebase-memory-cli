@@ -41,6 +41,11 @@ static const tool_def_t TOOLS[] = {
      "\"persistence\":{\"type\":\"boolean\",\"default\":false,\"description\":"
      "\"Write compressed artifact to .codebase-memory/graph.db.zst for team sharing. "
      "Teammates can bootstrap from the artifact instead of full re-indexing.\"},"
+     "\"async\":{\"type\":\"boolean\",\"default\":false,\"description\":"
+     "\"Start or join a background index. Requires a durable daemon (run daemon start). Poll with "
+     "--status.\"},"
+     "\"status\":{\"type\":\"boolean\",\"default\":false,\"description\":"
+     "\"Report the running or last index job; pass the same repo_path and name as the start.\"},"
      "\"metrics_out\":{\"type\":\"string\",\"description\":"
      "\"Write one versioned, count-and-timing-only index metrics JSON artifact.\"}"
      "},\"required\":[\"repo_path\"]}"},

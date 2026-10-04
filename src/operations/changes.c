@@ -808,7 +808,7 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
     changes_git_t git = {0};
 
     /* Reject shell metacharacters, and a leading '-', in the user-supplied
-     * branch name. base_branch is spliced into `git diff --name-only
+     * branch name. base_branch is spliced into `git diff --relative --name-only
      * "<base>"...HEAD`; a value starting with '-' would be read by git as an
      * option rather than a ref (e.g. `--output=<path>` writes the diff to an
      * arbitrary file). A real git ref never begins with '-'. */
@@ -869,21 +869,34 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
      * advance cannot mix revisions within one answer. */
     char head_oid[65] = "";
     char base_oid[65] = "";
+    char git_prefix[CBM_SZ_4K] = "";
     char cmd[CBM_SZ_2K];
 #ifdef _WIN32
-    snprintf(cmd, sizeof(cmd), "git -C \"%s\" rev-parse \"HEAD^{commit}\" \"%s^{commit}\" 2>NUL",
+    snprintf(cmd, sizeof(cmd),
+             "git -C \"%s\" rev-parse --show-prefix \"HEAD^{commit}\" \"%s^{commit}\" 2>NUL",
              root_path, base_branch);
 #else
-    snprintf(cmd, sizeof(cmd), "git -C '%s' rev-parse 'HEAD^{commit}' '%s^{commit}' 2>/dev/null",
+    snprintf(cmd, sizeof(cmd),
+             "git -C '%s' rev-parse --show-prefix 'HEAD^{commit}' '%s^{commit}' 2>/dev/null",
              root_path, base_branch);
 #endif
     changes_git_run(runtime, cmd, &git);
     bool resolve_oom = false;
     bool resolve_ok = false;
     if (git.fp) {
+        bool terminated = false;
+        char *prefix = detect_read_record(git.fp, '\n', &resolve_oom, &terminated);
+        size_t prefix_len = prefix ? strlen(prefix) : 0;
+        if (prefix_len && prefix[prefix_len - 1] == '\r')
+            prefix[--prefix_len] = '\0';
+        bool prefix_ok = prefix && terminated && prefix_len < sizeof(git_prefix) &&
+                         (!prefix_len || prefix[prefix_len - 1] == '/');
+        if (prefix_ok)
+            memcpy(git_prefix, prefix, prefix_len + 1U);
+        free(prefix);
         bool head_ok = changes_read_oid(git.fp, head_oid, &resolve_oom);
         bool base_ok = changes_read_oid(git.fp, base_oid, &resolve_oom);
-        resolve_ok = head_ok && base_ok && !resolve_oom;
+        resolve_ok = prefix_ok && head_ok && base_ok && !resolve_oom;
     }
     if (!resolve_ok) {
         bool cancelled = git.cancelled;
@@ -928,13 +941,15 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
     bool changed_path_malformed = false;
 #ifdef _WIN32
     snprintf(cmd, sizeof(cmd),
-             "git -c core.quotePath=false -C \"%s\" diff --name-only -z \"%s\" \"%s\" -- 2>NUL "
-             "&& git -c core.quotePath=false -C \"%s\" diff --name-only -z -- 2>NUL",
+             "git -c core.quotePath=false -C \"%s\" diff --relative --name-only -z \"%s\" \"%s\" "
+             "-- 2>NUL "
+             "&& git -c core.quotePath=false -C \"%s\" diff --relative --name-only -z -- 2>NUL",
              root_path, merge_base, head_oid, root_path);
 #else
     snprintf(cmd, sizeof(cmd),
-             "git -c core.quotePath=false -C '%s' diff --name-only -z '%s' '%s' -- 2>/dev/null "
-             "&& git -c core.quotePath=false -C '%s' diff --name-only -z -- 2>/dev/null",
+             "git -c core.quotePath=false -C '%s' diff --relative --name-only -z '%s' '%s' -- "
+             "2>/dev/null "
+             "&& git -c core.quotePath=false -C '%s' diff --relative --name-only -z -- 2>/dev/null",
              root_path, merge_base, head_oid, root_path);
 #endif
     changes_git_run(runtime, cmd, &git);
@@ -1001,8 +1016,12 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
                 free(record);
                 break;
             }
-            if (!detect_add_changed_path(&files, &file_count, &file_cap,
-                                         record + CHANGES_PAIR_LEN + 1U)) {
+            const char *git_path = record + CHANGES_PAIR_LEN + 1U;
+            size_t prefix_len = strlen(git_prefix);
+            const char *project_path =
+                strncmp(git_path, git_prefix, prefix_len) == 0 ? git_path + prefix_len : NULL;
+            if (project_path &&
+                !detect_add_changed_path(&files, &file_count, &file_cap, project_path)) {
                 changed_path_oom = true;
                 free(record);
                 break;
@@ -1096,13 +1115,13 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
     if (want_symbols) {
 #ifdef _WIN32
         snprintf(cmd, sizeof(cmd),
-                 "git -C \"%s\" diff --unified=0 \"%s\" \"%s\" -- 2>NUL && "
-                 "git -C \"%s\" diff --unified=0 -- 2>NUL",
+                 "git -C \"%s\" diff --relative --unified=0 \"%s\" \"%s\" -- 2>NUL && "
+                 "git -C \"%s\" diff --relative --unified=0 -- 2>NUL",
                  root_path, merge_base, head_oid, root_path);
 #else
         snprintf(cmd, sizeof(cmd),
-                 "git -C '%s' diff --unified=0 '%s' '%s' -- 2>/dev/null && "
-                 "git -C '%s' diff --unified=0 -- 2>/dev/null",
+                 "git -C '%s' diff --relative --unified=0 '%s' '%s' -- 2>/dev/null && "
+                 "git -C '%s' diff --relative --unified=0 -- 2>/dev/null",
                  root_path, merge_base, head_oid, root_path);
 #endif
         changes_git_run(runtime, cmd, &git);

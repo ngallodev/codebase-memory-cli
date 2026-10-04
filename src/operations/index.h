@@ -7,6 +7,14 @@
 #include <stdbool.h>
 #include <yyjson/yyjson.h>
 
+/* #2144: the advice every cut-short synchronous index surfaces. A long index
+ * can outlive a client's per-call deadline; --async lets the daemon finish it
+ * while the client polls with --status. */
+#define CBM_INDEX_ASYNC_HINT                                                              \
+    "Long indexes can exceed a client's per-call deadline: retry with the index command " \
+    "and --async, then poll with the same command and --status until state is "           \
+    "succeeded, failed or cancelled."
+
 /* Encode the complete trusted discovery policy on an internal worker request.
  * Callers must remove any untrusted field with the same name before invoking
  * this. */

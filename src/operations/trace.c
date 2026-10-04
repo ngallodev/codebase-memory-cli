@@ -736,6 +736,7 @@ cbm_operation_result_t cbm_trace_operation_execute(const char *args) {
     if (node_count == 0) {
         cbm_node_t exact = {0};
         if (cbm_store_find_node_by_qn(store, project, function, &exact) == CBM_STORE_OK) {
+            cbm_store_free_nodes(nodes, 0);
             nodes = malloc(sizeof(*nodes));
             if (!nodes) {
                 cbm_node_free_fields(&exact);

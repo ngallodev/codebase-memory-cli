@@ -7,6 +7,8 @@ Usage: scripts/smoke-test.sh <binary-path> [--agent-config-only]
 
 Run CLI-first smoke invariants and, when a release fixture URL is supplied,
 the installer round-trip against the installed executable.
+The daemon runtime and cache are private to the run: every product process is
+started under a CBM_RUNTIME_DIR/CBM_CACHE_DIR this harness owns.
 EOF
 }
 
@@ -22,6 +24,18 @@ BINARY="${1:?usage: smoke-test.sh <binary-path> [--agent-config-only]}"
 MODE="${2:-}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 [[ -x "$BINARY" ]] || { echo "smoke-test: binary not executable: $BINARY" >&2; exit 2; }
+
+# Every product process below -- the invariant battery, the install dry-run and
+# the installer round-trip -- must reach a daemon rendezvous this run owns. Only
+# CBM_RUNTIME_DIR moves that rendezvous; a sandboxed HOME/TMPDIR/CBM_CACHE_DIR
+# alone does not, so without this a daemon stop lands on the operator's live
+# account daemon (#1691, #1696).
+# shellcheck source=test-runtime.sh
+source "$ROOT/scripts/test-runtime.sh"
+cbm_test_runtime_init
+# Armed before any fixture work, so a failure under `set -e` cannot leave the
+# private root behind.
+trap 'cbm_test_runtime_cleanup "$BINARY"' EXIT
 
 if [[ "$MODE" == "--agent-config-only" ]]; then
     # Agent configuration is now CLI/skill based. A dry-run install is the
