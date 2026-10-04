@@ -164,7 +164,4 @@ size_t cbm_daemon_application_job_subscribers(cbm_daemon_application_t *applicat
 size_t cbm_daemon_application_physical_job_limit(cbm_daemon_application_t *application);
 size_t cbm_daemon_application_worker_memory_budget_bytes(cbm_daemon_application_t *application);
 
-/* Recovery-round cap read from CBM_INDEX_MAX_RESTARTS (zero means none). */
-int cbm_index_restart_cap_for_testing(void);
-
 #endif /* CBM_DAEMON_APPLICATION_H */

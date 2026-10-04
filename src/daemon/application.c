@@ -1816,10 +1816,6 @@ bool cbm_daemon_application_index_args_equal_for_test(const char *left, const ch
     return application_index_args_equal(left, right);
 }
 
-int cbm_index_restart_cap_for_testing(void) {
-    return application_max_restarts();
-}
-
 /* Caller holds application->mutex. Keeping watcher ownership validation and
  * this admission in the same critical section closes the unwatch race. */
 static cbm_daemon_application_job_t *application_job_subscribe_locked(
