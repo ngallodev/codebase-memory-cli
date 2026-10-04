@@ -1,3 +1,4 @@
+#include "operations/output_budget.h"
 #include "operations/result_wire.h"
 #include "operations/changes.h"
 
@@ -757,6 +758,49 @@ static bool changes_read_oid(FILE *fp, char out[65], bool *oom) {
     return valid;
 }
 
+/* The mandatory detect_changes metadata (base/direction/scalars) is not rows:
+ * if it alone cannot fit, answer with a small truthful record rather than
+ * slicing a path or an identifier. */
+static char *detect_budget_floor(bool legacy_json, bool engine_saturated, size_t budget_bytes) {
+    if (!legacy_json) {
+        cbm_sb_t sb;
+        cbm_sb_init(&sb);
+        cbm_tree_scalar_str(&sb, "truncation_reason", "output_budget");
+        cbm_tree_scalar_bool(&sb, "truncated", true);
+        cbm_tree_scalar_bool(&sb, "output_budget_floor_exceeded", true);
+        if (engine_saturated) {
+            cbm_tree_scalar_bool(&sb, "engine_saturated", true);
+        }
+        cbm_tree_scalar_int(&sb, "max_output_bytes", (long long)budget_bytes);
+        cbm_tree_scalar_str(&sb, "hint",
+                            "mandatory detect_changes metadata exceeds the budget; raise "
+                            "max_output_tokens (no path or identifier was sliced)");
+        return cbm_sb_finish(&sb);
+    }
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *floor = doc ? yyjson_mut_obj(doc) : NULL;
+    if (!doc || !floor) {
+        if (doc) {
+            yyjson_mut_doc_free(doc);
+        }
+        return NULL;
+    }
+    yyjson_mut_doc_set_root(doc, floor);
+    yyjson_mut_obj_add_str(doc, floor, "truncation_reason", "output_budget");
+    yyjson_mut_obj_add_bool(doc, floor, "truncated", true);
+    yyjson_mut_obj_add_bool(doc, floor, "output_budget_floor_exceeded", true);
+    if (engine_saturated) {
+        yyjson_mut_obj_add_bool(doc, floor, "engine_saturated", true);
+    }
+    yyjson_mut_obj_add_uint(doc, floor, "max_output_bytes", budget_bytes);
+    yyjson_mut_obj_add_str(doc, floor, "hint",
+                           "mandatory detect_changes metadata exceeds the budget; raise "
+                           "max_output_tokens (no path or identifier was sliced)");
+    char *json = changes_doc_to_str(doc);
+    yyjson_mut_doc_free(doc);
+    return json;
+}
+
 cbm_operation_result_t cbm_changes_operation_execute(const char *args,
                                                      const cbm_operation_runtime_t *runtime) {
     char *project = changes_project_arg(args);
@@ -1062,6 +1106,9 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
     if (changed_offset < 0) {
         changed_offset = 0;
     }
+    /* Absent max_output_tokens = no byte budget: detect_changes keeps emitting
+     * exactly the response it always has. */
+    size_t output_budget_bytes = cbm_output_budget_bytes(cbm_output_budget_tokens(args, 0));
     int module_limit = changes_int_arg(args, "module_limit", CHANGES_DEFAULT_PAGE_LIMIT);
     int module_offset = changes_int_arg(args, "module_offset", 0);
     if (module_limit < 0) {
@@ -1238,11 +1285,15 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
     if (imp_returned > imp_limit) {
         imp_returned = imp_limit;
     }
+    bool output_budget_hit = false;
+    bool output_budget_floor_exceeded = false;
+
+render_detect_output:;
     bool changed_has_more = changed_start + changed_returned < file_count;
     bool impacted_has_more = want_symbols && imp_start + imp_returned < impact.visited_count;
     bool module_has_more = want_symbols && module_start + module_returned < module_total;
-    bool response_truncated =
-        engine_saturated || changed_has_more || impacted_has_more || module_has_more;
+    bool response_truncated = engine_saturated || output_budget_hit || changed_has_more ||
+                              impacted_has_more || module_has_more;
 
     if (!legacy_json) {
         cbm_sb_t sb;
@@ -1251,6 +1302,13 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
         cbm_tree_scalar_bool(&sb, "working_tree_included", true);
         cbm_tree_scalar_str(&sb, "merge_base", merge_base);
         cbm_tree_scalar_str(&sb, "direction", direction);
+        if (output_budget_hit) {
+            cbm_tree_scalar_str(&sb, "truncation_reason", "output_budget");
+            cbm_tree_scalar_int(&sb, "max_output_bytes", (long long)output_budget_bytes);
+        }
+        if (output_budget_floor_exceeded) {
+            cbm_tree_scalar_bool(&sb, "output_budget_floor_exceeded", true);
+        }
         if (engine_saturated) {
             cbm_tree_scalar_bool(&sb, "engine_saturated", true);
         }
@@ -1365,6 +1423,13 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
         yyjson_mut_obj_add_bool(doc, root_obj, "working_tree_included", true);
         yyjson_mut_obj_add_strcpy(doc, root_obj, "merge_base", merge_base);
         yyjson_mut_obj_add_strcpy(doc, root_obj, "direction", direction);
+        if (output_budget_hit) {
+            yyjson_mut_obj_add_str(doc, root_obj, "truncation_reason", "output_budget");
+            yyjson_mut_obj_add_uint(doc, root_obj, "max_output_bytes", output_budget_bytes);
+        }
+        if (output_budget_floor_exceeded) {
+            yyjson_mut_obj_add_bool(doc, root_obj, "output_budget_floor_exceeded", true);
+        }
         if (engine_saturated) {
             yyjson_mut_obj_add_bool(doc, root_obj, "engine_saturated", true);
         }
@@ -1460,6 +1525,33 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
         out_str = changes_doc_to_str(doc);
         yyjson_mut_doc_free(doc);
     }
+    /* Exact serialized-size check with semantic reductions only. Low-value
+     * rollups and file names yield as whole sections before graph rows, and
+     * every continuation above remains exactly valid for the rows emitted.
+     * Nothing is ever byte-sliced. */
+    if (output_budget_bytes > 0 && out_str && strlen(out_str) > output_budget_bytes) {
+        output_budget_hit = true;
+        if (module_returned > 0) {
+            module_returned = 0;
+        } else if (changed_returned > 0) {
+            changed_returned = 0;
+        } else if (imp_returned > 0) {
+            /* Prefix-directory factoring can make N rows smaller than N-1, so
+             * probe every smaller whole-row prefix. */
+            imp_returned--;
+        } else if (!output_budget_floor_exceeded) {
+            output_budget_floor_exceeded = true;
+        } else {
+            free(out_str);
+            out_str = detect_budget_floor(legacy_json, engine_saturated, output_budget_bytes);
+            goto detect_output_done;
+        }
+        free(out_str);
+        out_str = NULL;
+        goto render_detect_output;
+    }
+
+detect_output_done:
     result = out_str ? cbm_operation_result_take(out_str, false)
                      : changes_error("out of memory while rendering detect_changes");
     out_str = NULL;

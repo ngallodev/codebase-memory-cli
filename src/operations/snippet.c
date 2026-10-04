@@ -1,3 +1,4 @@
+#include "operations/output_budget.h"
 #include "operations/result_wire.h"
 #include "operations/operation.h"
 #include "operations/store_host.h"
@@ -228,6 +229,67 @@ static cbm_operation_result_t ambiguous_result(const char *input, const cbm_node
     return json_result(doc, false);
 }
 
+/* Serialized size of a candidate response without mutating the live document:
+ * cbm_operation_json_write normalizes non-UTF-8 strings in place, so probes run
+ * on a deep copy and the real document is serialized exactly once. */
+static size_t snippet_probe_len(yyjson_mut_val *root) {
+    yyjson_mut_doc *probe = yyjson_mut_doc_new(NULL);
+    if (!probe) {
+        return (size_t)-1;
+    }
+    yyjson_mut_val *copy = yyjson_mut_val_mut_copy(probe, root);
+    if (!copy) {
+        yyjson_mut_doc_free(probe);
+        return (size_t)-1;
+    }
+    yyjson_mut_doc_set_root(probe, copy);
+    char *json = cbm_operation_json_write(probe);
+    yyjson_mut_doc_free(probe);
+    if (!json) {
+        return (size_t)-1;
+    }
+    size_t length = strlen(json);
+    free(json);
+    return length;
+}
+
+/* Whole lines of `source` (NUL-terminated), never splitting a line. */
+static int snippet_source_line_count(const char *source) {
+    if (!source || !source[0]) {
+        return 0;
+    }
+    int lines = 1;
+    for (const char *p = source; *p; p++) {
+        if (*p == '\n' && p[1] != '\0') {
+            lines++;
+        }
+    }
+    return lines;
+}
+
+/* The floor is metadata only: no partial line or identifier is ever emitted. */
+static char *snippet_budget_floor(int max_output_tokens) {
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
+    if (!doc || !root) {
+        if (doc) {
+            yyjson_mut_doc_free(doc);
+        }
+        return NULL;
+    }
+    yyjson_mut_doc_set_root(doc, root);
+    yyjson_mut_obj_add_str(doc, root, "source_mode", "omitted");
+    yyjson_mut_obj_add_bool(doc, root, "truncated", true);
+    yyjson_mut_obj_add_str(doc, root, "truncation_reason", "output_budget");
+    yyjson_mut_obj_add_int(doc, root, "max_output_tokens", max_output_tokens);
+    yyjson_mut_obj_add_bool(doc, root, "continuation_requires_higher_budget", true);
+    yyjson_mut_obj_add_str(doc, root, "continuation",
+                           "raise max_output_tokens; no partial line or identifier was emitted");
+    char *json = cbm_operation_json_write(doc);
+    yyjson_mut_doc_free(doc);
+    return json;
+}
+
 static cbm_operation_result_t node_result(cbm_store_t *store, const char *project,
                                           const cbm_node_t *node, const char *match,
                                           bool include_neighbors, const char *args) {
@@ -284,6 +346,15 @@ static cbm_operation_result_t node_result(cbm_store_t *store, const char *projec
         return error_result("source file could not be read",
                             "The index may be stale. Re-index or inspect the file directly.");
     }
+    int max_output_tokens = cbm_output_budget_tokens(args, 0);
+    size_t byte_budget = cbm_output_budget_bytes(max_output_tokens);
+
+    /* Outline page state, hoisted so the byte ceiling can drop whole member
+     * rows in place and still report an exact continuation. */
+    yyjson_mut_val *member_rows = NULL;
+    int member_offset_used = 0;
+    int member_total = 0;
+    int members_returned = 0;
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
@@ -329,7 +400,7 @@ static cbm_operation_result_t node_result(cbm_store_t *store, const char *projec
             if (members[i].id != node->id && members[i].start_line >= original_start &&
                 members[i].end_line <= original_end)
                 ++eligible;
-        yyjson_mut_val *member_rows = yyjson_mut_arr(doc);
+        member_rows = yyjson_mut_arr(doc);
         int seen = 0;
         int emitted = 0;
         for (int i = 0; i < member_count && emitted < member_limit; ++i) {
@@ -348,6 +419,9 @@ static cbm_operation_result_t node_result(cbm_store_t *store, const char *projec
             yyjson_mut_arr_add_val(member_rows, member);
             ++emitted;
         }
+        member_offset_used = member_offset;
+        member_total = eligible;
+        members_returned = emitted;
         yyjson_mut_obj_add_str(doc, root, "source_mode", "outline");
         yyjson_mut_obj_add_val(doc, root, "members", member_rows);
         yyjson_mut_obj_add_int(doc, root, "members_total", eligible);
@@ -420,9 +494,79 @@ static cbm_operation_result_t node_result(cbm_store_t *store, const char *projec
         }
     }
 
-    free(source);
-    cbm_project_free_fields(&project_info);
-    return json_result(doc, false);
+    if (byte_budget > 0 && snippet_probe_len(root) > byte_budget) {
+        yyjson_mut_obj_add_str(doc, root, "truncation_reason", "output_budget");
+        if (outline && member_rows && members_returned > 0) {
+            /* An outline is already the quality-preserving alternative; page
+             * whole member rows before falling back to the floor. */
+            while (snippet_probe_len(root) > byte_budget && members_returned > 0) {
+                members_returned--;
+                (void)yyjson_mut_arr_remove(member_rows, (size_t)members_returned);
+                (void)yyjson_mut_obj_remove_key(root, "members_returned");
+                yyjson_mut_obj_add_int(doc, root, "members_returned", members_returned);
+                (void)yyjson_mut_obj_remove_key(root, "members_has_more");
+                yyjson_mut_obj_add_bool(doc, root, "members_has_more",
+                                        member_offset_used + members_returned < member_total);
+                (void)yyjson_mut_obj_remove_key(root, "next_member_offset");
+                if (member_offset_used + members_returned < member_total) {
+                    yyjson_mut_obj_add_int(doc, root, "next_member_offset",
+                                           member_offset_used + members_returned);
+                }
+            }
+        } else if (!outline && source) {
+            /* Binary-search the largest whole-line source prefix that fits. */
+            int available = snippet_source_line_count(source);
+            int low = 0;
+            int high = available;
+            int best_lines = -1;
+            while (low <= high) {
+                int middle = low + (high - low) / 2;
+                size_t keep = 0;
+                int line = 0;
+                if (middle > 0) {
+                    for (const char *q = source; *q; q++) {
+                        keep++;
+                        if (*q == '\n' && ++line >= middle) {
+                            break;
+                        }
+                    }
+                }
+                yyjson_mut_val *value = yyjson_mut_strncpy(doc, source, keep);
+                if (value) {
+                    (void)yyjson_mut_obj_remove_key(root, "source");
+                    yyjson_mut_obj_add_val(doc, root, "source", value);
+                }
+                if (snippet_probe_len(root) <= byte_budget) {
+                    best_lines = middle;
+                    low = middle + 1;
+                } else {
+                    high = middle - 1;
+                }
+            }
+            if (best_lines >= 0) {
+                yyjson_mut_obj_add_bool(doc, root, "source_truncated", true);
+                yyjson_mut_obj_add_bool(doc, root, "source_clipped", true);
+                yyjson_mut_obj_add_int(doc, root, "next_start_line", start_line + best_lines);
+                yyjson_mut_obj_add_int(doc, root, "original_end_line", original_end);
+            }
+        }
+        if (snippet_probe_len(root) > byte_budget) {
+            free(source);
+            cbm_project_free_fields(&project_info);
+            yyjson_mut_doc_free(doc);
+            char *floor = snippet_budget_floor(max_output_tokens);
+            return floor ? cbm_operation_result_take(floor, false)
+                         : error_result("out of memory", NULL);
+        }
+    }
+    {
+        char *json = cbm_operation_json_write(doc);
+        yyjson_mut_doc_free(doc);
+        free(source);
+        cbm_project_free_fields(&project_info);
+        return json ? cbm_operation_result_take(json, false)
+                    : error_result("result encoding failed", NULL);
+    }
 }
 
 cbm_operation_result_t cbm_snippet_operation_execute(const char *args) {
