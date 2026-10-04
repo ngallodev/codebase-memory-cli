@@ -10,6 +10,7 @@
 #include "foundation/workspace.h"
 #include "operations/command_runner.h"
 #include "operations/compact_out.h"
+#include "operations/output_budget.h"
 #include "operations/store_host.h"
 #include "store/store.h"
 #include "yyjson/yyjson.h"
@@ -46,6 +47,13 @@ enum {
     SOURCE_MAX_RESULT_LIMIT = 500,
     SOURCE_DEFAULT_RAW_LIMIT = 5,
     SOURCE_MAX_RAW_LIMIT = 100,
+    SOURCE_DEFAULT_DIRECTORY_LIMIT = 20,
+    SOURCE_MAX_DIRECTORY_LIMIT = 64,
+    SOURCE_DEFAULT_MATCH_LIMIT = 8,
+    SOURCE_MAX_MATCH_LIMIT = 500,
+    SOURCE_DEFAULT_SOURCE_MAX_LINES = 20,
+    SOURCE_MIN_SOURCE_MAX_LINES = 1,
+    SOURCE_MAX_SOURCE_MAX_LINES = 200,
 };
 
 #define SOURCE_SEARCH_OUTPUT_MAX ((size_t)64U * 1024U * 1024U)
@@ -488,7 +496,8 @@ static yyjson_mut_val *build_dedup_files_array(yyjson_mut_doc *doc, search_resul
 
 /* Attach source or context lines to a search result JSON item. */
 static void attach_result_source(yyjson_mut_doc *doc, yyjson_mut_val *item, search_result_t *r,
-                                 int mode, int context_lines, const char *root_path) {
+                                 int mode, int context_lines, int source_max_lines,
+                                 const char *root_path) {
     enum { MODE_FULL = 1 };
     if (r->start_line <= 0 || r->end_line <= 0) {
         return;
@@ -509,15 +518,21 @@ static void attach_result_source(yyjson_mut_doc *doc, yyjson_mut_val *item, sear
          * whole-symbol dumps ran to 5.7KB × N hits (142KB responses). The
          * complete symbol stays one get_code_snippet call away;
          * source_start/source_truncated make the cut explicit. */
-        enum { SC_FULL_MAX_LINES = 60, SC_FULL_LEAD = 5 };
+        enum { SC_FULL_LEAD = 5 };
+        if (source_max_lines <= 0) {
+            /* Budget trimming dropped the source tier entirely; say so instead
+             * of silently returning rows without their promised cell. */
+            yyjson_mut_obj_add_bool(doc, item, "source_omitted", true);
+            return;
+        }
         int s = r->start_line;
         int e = r->end_line;
         bool truncated = false;
-        if (e - s + 1 > SC_FULL_MAX_LINES) {
+        if (e - s + 1 > source_max_lines) {
             if (r->match_count > 0 && r->match_lines[0] - SC_FULL_LEAD > s) {
                 s = r->match_lines[0] - SC_FULL_LEAD;
             }
-            e = s + SC_FULL_MAX_LINES - 1;
+            e = s + source_max_lines - 1;
             if (e > r->end_line) {
                 e = r->end_line;
             }
@@ -548,6 +563,31 @@ static void attach_result_source(yyjson_mut_doc *doc, yyjson_mut_val *item, sear
 }
 
 /* Build directory distribution object from search results (top-level dir → count). */
+/* The requested result/raw/directory window and the totals around it. */
+typedef struct {
+    int sr_count;
+    int raw_count; /* exact number of unclassified hits */
+    int raw_content_truncated;
+    int gm_count;
+    int result_start;
+    int result_limit;
+    int output_count;
+    int raw_start;
+    int raw_limit;
+    int raw_output; /* rows retained for the requested raw page */
+    int directory_start;
+    int directory_limit;
+    int directory_output;
+    int directory_total;
+    int match_limit;      /* matching line numbers shown per result */
+    int source_max_lines; /* full-mode per-hit source window (0 = omitted) */
+    bool budget_hit;      /* the byte ceiling forced whole rows to be dropped */
+} search_page_t;
+
+static bool search_directories_has_more(const search_page_t *page) {
+    return page->directory_start + page->directory_output < page->directory_total;
+}
+
 /* Aggregate hits by top-level directory. Shared by the JSON object and the
  * TOON table emission. Returns the number of distinct directories. */
 static int aggregate_search_dirs(search_result_t *sr, int sr_count, char dir_names[][CBM_SZ_128],
@@ -585,12 +625,15 @@ static int aggregate_search_dirs(search_result_t *sr, int sr_count, char dir_nam
 }
 
 static yyjson_mut_val *build_dir_distribution(yyjson_mut_doc *doc, search_result_t *sr,
-                                              int sr_count) {
+                                              const search_page_t *page) {
     yyjson_mut_val *dirs = yyjson_mut_obj(doc);
     char dir_names[CBM_SZ_64][CBM_SZ_128];
     int dir_counts[CBM_SZ_64];
-    int dir_n = aggregate_search_dirs(sr, sr_count, dir_names, dir_counts, CBM_SZ_64);
-    for (int d = 0; d < dir_n; d++) {
+    int dir_n = aggregate_search_dirs(sr, page->sr_count, dir_names, dir_counts, CBM_SZ_64);
+    int end = page->directory_start + page->directory_output;
+    if (end > dir_n)
+        end = dir_n;
+    for (int d = page->directory_start; d < end; d++) {
         yyjson_mut_val *key = yyjson_mut_strcpy(doc, dir_names[d]);
         yyjson_mut_val *val = yyjson_mut_int(doc, dir_counts[d]);
         yyjson_mut_obj_add(dirs, key, val);
@@ -611,20 +654,6 @@ static bool raw_match_fully_returned(const grep_match_t *match) {
            content_end >= match->match_end_byte;
 }
 
-/* The requested result/raw window and the totals around it. */
-typedef struct {
-    int sr_count;
-    int raw_count; /* exact number of unclassified hits */
-    int raw_content_truncated;
-    int gm_count;
-    int result_start;
-    int result_limit;
-    int output_count;
-    int raw_start;
-    int raw_limit;
-    int raw_output; /* rows retained for the requested raw page */
-} search_page_t;
-
 /* Pagination scalars shared by the tree and JSON encodings. */
 static void search_page_scalars_tree(cbm_sb_t *sb, const search_page_t *page) {
     bool has_more = page->result_start + page->output_count < page->sr_count;
@@ -644,7 +673,23 @@ static void search_page_scalars_tree(cbm_sb_t *sb, const search_page_t *page) {
         cbm_tree_scalar_bool(sb, "raw_continuation_requires_positive_limit", true);
     if (page->raw_content_truncated > 0)
         cbm_tree_scalar_int(sb, "raw_content_truncated", page->raw_content_truncated);
-    cbm_tree_scalar_bool(sb, "truncated", has_more || raw_has_more);
+    cbm_tree_scalar_int(sb, "directories_total", page->directory_total);
+    cbm_tree_scalar_int(sb, "directories_returned", page->directory_output);
+    bool directories_has_more = search_directories_has_more(page);
+    cbm_tree_scalar_bool(sb, "directories_has_more", directories_has_more);
+    if (directories_has_more && page->directory_output > 0)
+        cbm_tree_scalar_int(sb, "directory_next_offset",
+                            page->directory_start + page->directory_output);
+    else if (directories_has_more)
+        cbm_tree_scalar_bool(sb,
+                             page->directory_limit == 0
+                                 ? "directory_continuation_requires_positive_limit"
+                                 : "directory_continuation_requires_higher_budget",
+                             true);
+    cbm_tree_scalar_bool(sb, "truncated",
+                         has_more || raw_has_more || directories_has_more || page->budget_hit);
+    if (page->budget_hit)
+        cbm_tree_scalar_str(sb, "truncation_reason", "output_budget");
 }
 
 static void search_page_scalars_json(yyjson_mut_doc *doc, yyjson_mut_val *root,
@@ -666,7 +711,23 @@ static void search_page_scalars_json(yyjson_mut_doc *doc, yyjson_mut_val *root,
         yyjson_mut_obj_add_bool(doc, root, "raw_continuation_requires_positive_limit", true);
     if (page->raw_content_truncated > 0)
         yyjson_mut_obj_add_int(doc, root, "raw_content_truncated", page->raw_content_truncated);
-    yyjson_mut_obj_add_bool(doc, root, "truncated", has_more || raw_has_more);
+    yyjson_mut_obj_add_int(doc, root, "directories_total", page->directory_total);
+    yyjson_mut_obj_add_int(doc, root, "directories_returned", page->directory_output);
+    bool directories_has_more = search_directories_has_more(page);
+    yyjson_mut_obj_add_bool(doc, root, "directories_has_more", directories_has_more);
+    if (directories_has_more && page->directory_output > 0)
+        yyjson_mut_obj_add_int(doc, root, "directory_next_offset",
+                               page->directory_start + page->directory_output);
+    else if (directories_has_more)
+        yyjson_mut_obj_add_bool(doc, root,
+                                page->directory_limit == 0
+                                    ? "directory_continuation_requires_positive_limit"
+                                    : "directory_continuation_requires_higher_budget",
+                                true);
+    yyjson_mut_obj_add_bool(doc, root, "truncated",
+                            has_more || raw_has_more || directories_has_more || page->budget_hit);
+    if (page->budget_hit)
+        yyjson_mut_obj_add_str(doc, root, "truncation_reason", "output_budget");
 }
 
 static void search_lines_text(const search_result_t *r, char *out, size_t out_size) {
@@ -677,11 +738,23 @@ static void search_lines_text(const search_result_t *r, char *out, size_t out_si
         out[0] = '\0';
 }
 
-/* match line numbers ';'-joined (no comma, so no cell quoting) */
-static void search_matches_text(const search_result_t *r, char *out, size_t out_size) {
+/* match line numbers ';'-joined (no comma, so no cell quoting). Only the
+ * requested window is shown; matches_omitted reports the withheld remainder so
+ * a caller can re-call with a larger match_limit. */
+static int search_matches_shown(const search_result_t *r, int match_limit) {
+    int shown = r->match_count;
+    if (match_limit > 0 && shown > match_limit) {
+        shown = match_limit;
+    }
+    return shown;
+}
+
+static void search_matches_text(const search_result_t *r, char *out, size_t out_size,
+                                int match_limit) {
     size_t used = 0;
+    int shown = search_matches_shown(r, match_limit);
     out[0] = '\0';
-    for (int j = 0; j < r->match_count && used + 12 < out_size; j++) {
+    for (int j = 0; j < shown && used + 12 < out_size; j++) {
         int n = snprintf(out + used, out_size - used, "%s%d", j > 0 ? ";" : "", r->match_lines[j]);
         if (n < 0)
             break;
@@ -723,9 +796,10 @@ static char *assemble_search_output_toon(search_result_t *sr, grep_match_t *raw,
     for (int ri = 0; ri < output_count; ri++) {
         search_result_t *r = &sr[page->result_start + ri];
         search_lines_text(r, rendered[ri].lines, sizeof(rendered[ri].lines));
-        search_matches_text(r, rendered[ri].matches, sizeof(rendered[ri].matches));
+        search_matches_text(r, rendered[ri].matches, sizeof(rendered[ri].matches),
+                            page->match_limit);
         snprintf(rendered[ri].matches_omitted, sizeof(rendered[ri].matches_omitted), "%d",
-                 r->match_total - r->match_count);
+                 r->match_total - search_matches_shown(r, page->match_limit));
         snprintf(rendered[ri].inbound, sizeof(rendered[ri].inbound), "%d", r->in_degree);
         snprintf(rendered[ri].outbound, sizeof(rendered[ri].outbound), "%d", r->out_degree);
         size_t base = (size_t)ri * RESULT_COLS;
@@ -808,15 +882,17 @@ static char *assemble_search_output_toon(search_result_t *sr, grep_match_t *raw,
     char dir_names[CBM_SZ_64][CBM_SZ_128];
     int dir_counts[CBM_SZ_64];
     int dir_n = aggregate_search_dirs(sr, page->sr_count, dir_names, dir_counts, CBM_SZ_64);
-    if (dir_n > 0) {
-        static const char *const dcols[] = {"dir", "hits"};
-        cbm_tree_table_header(&sb, "dirs", dir_n, dcols, 2);
-        for (int d = 0; d < dir_n; d++) {
-            cbm_tree_row_begin(&sb);
-            cbm_tree_cell_str(&sb, dir_names[d], true);
-            cbm_tree_cell_int(&sb, dir_counts[d], false);
-            cbm_tree_row_end(&sb);
-        }
+    int dir_end = page->directory_start + page->directory_output;
+    if (dir_end > dir_n) {
+        dir_end = dir_n;
+    }
+    static const char *const dcols[] = {"dir", "hits"};
+    cbm_tree_table_header(&sb, "dirs", page->directory_output, dcols, 2);
+    for (int d = page->directory_start; d < dir_end; d++) {
+        cbm_tree_row_begin(&sb);
+        cbm_tree_cell_str(&sb, dir_names[d], true);
+        cbm_tree_cell_int(&sb, dir_counts[d], false);
+        cbm_tree_row_end(&sb);
     }
 
     cbm_tree_scalar_int(&sb, "total_grep_matches", page->gm_count);
@@ -894,16 +970,18 @@ static char *assemble_search_output(search_result_t *sr, grep_match_t *raw,
             yyjson_mut_arr_add_strcpy(doc, row, r->file);
             yyjson_mut_arr_add_strcpy(doc, row, lines);
             yyjson_mut_val *ml = yyjson_mut_arr(doc);
-            for (int j = 0; j < r->match_count; j++) {
+            int matches_shown = search_matches_shown(r, page->match_limit);
+            for (int j = 0; j < matches_shown; j++) {
                 yyjson_mut_arr_add_int(doc, ml, r->match_lines[j]);
             }
             yyjson_mut_arr_add_val(row, ml);
-            yyjson_mut_arr_add_int(doc, row, r->match_total - r->match_count);
+            yyjson_mut_arr_add_int(doc, row, r->match_total - matches_shown);
             yyjson_mut_arr_add_int(doc, row, r->in_degree);
             yyjson_mut_arr_add_int(doc, row, r->out_degree);
             if (mode == MODE_FULL || attach_context) {
                 yyjson_mut_val *src = yyjson_mut_obj(doc);
-                attach_result_source(doc, src, r, mode, context_lines, root_path);
+                attach_result_source(doc, src, r, mode, context_lines, page->source_max_lines,
+                                     root_path);
                 yyjson_mut_arr_add_val(row, src);
             }
             yyjson_mut_arr_add_val(results_arr, row);
@@ -956,14 +1034,16 @@ static char *assemble_search_output(search_result_t *sr, grep_match_t *raw,
         yyjson_mut_obj_add_val(doc, root_obj, "raw_matches", raw_obj);
     }
 
-    yyjson_mut_obj_add_val(doc, root_obj, "directories",
-                           build_dir_distribution(doc, sr, page->sr_count));
+    yyjson_mut_obj_add_val(doc, root_obj, "directories", build_dir_distribution(doc, sr, page));
 
     /* Summary stats */
     yyjson_mut_obj_add_int(doc, root_obj, "total_grep_matches", page->gm_count);
     yyjson_mut_obj_add_int(doc, root_obj, "total_results", page->sr_count);
     yyjson_mut_obj_add_int(doc, root_obj, "raw_match_count", page->raw_count);
     search_page_scalars_json(doc, root_obj, page);
+    if (mode == MODE_FULL) {
+        yyjson_mut_obj_add_int(doc, root_obj, "source_max_lines_returned", page->source_max_lines);
+    }
     if (metrics->include_phase_timings) {
         yyjson_mut_obj_add_uint(doc, root_obj, "scope_ms", metrics->scope_ms);
         yyjson_mut_obj_add_uint(doc, root_obj, "scan_ms", metrics->scan_ms);
@@ -1754,6 +1834,99 @@ static cbm_operation_result_t search_code_scan_error(
     return source_error(message);
 }
 
+/* Render the same response model as the direct JSON or the lean compact tree. */
+static char *render_search_payload(search_result_t *sr, grep_match_t *raw,
+                                   const search_page_t *page, int mode, int context_lines,
+                                   const char *root_path, bool warn_literal_pipe,
+                                   const search_metrics_t *metrics, bool json_format) {
+    if (mode == 0 && !json_format) {
+        return assemble_search_output_toon(sr, raw, page, warn_literal_pipe, metrics);
+    }
+    return assemble_search_output(sr, raw, page, mode, context_lines, root_path, warn_literal_pipe,
+                                  metrics);
+}
+
+/* A single pathological qualified name, path, or source line can be larger than
+ * the caller's whole budget. Never byte-slice it: return a small, truthful
+ * floor describing exactly what exists and which continuation to use. */
+static char *search_budget_floor(const search_page_t *page, int mode, bool json_format) {
+    bool result_has_more = page->result_start < page->sr_count;
+    bool raw_has_more = page->raw_start < page->raw_count;
+    bool directories_has_more = search_directories_has_more(page);
+    if (mode == 0 && !json_format) {
+        cbm_sb_t sb;
+        cbm_sb_init(&sb);
+        cbm_tree_scalar_int(&sb, "total_results", page->sr_count);
+        cbm_tree_scalar_int(&sb, "raw_match_count", page->raw_count);
+        cbm_tree_scalar_int(&sb, "result_offset", page->result_start);
+        cbm_tree_scalar_int(&sb, "results_returned", 0);
+        cbm_tree_scalar_bool(&sb, "has_more", result_has_more);
+        if (result_has_more) {
+            cbm_tree_scalar_bool(&sb,
+                                 page->result_limit == 0
+                                     ? "result_continuation_requires_positive_limit"
+                                     : "result_continuation_requires_higher_budget",
+                                 true);
+        }
+        cbm_tree_scalar_int(&sb, "raw_offset", page->raw_start);
+        cbm_tree_scalar_int(&sb, "raw_returned", 0);
+        cbm_tree_scalar_bool(&sb, "raw_has_more", raw_has_more);
+        if (raw_has_more && page->raw_limit == 0) {
+            cbm_tree_scalar_bool(&sb, "raw_continuation_requires_positive_limit", true);
+        }
+        cbm_tree_scalar_int(&sb, "directories_total", page->directory_total);
+        cbm_tree_scalar_int(&sb, "directory_offset", page->directory_start);
+        cbm_tree_scalar_int(&sb, "directories_returned", 0);
+        cbm_tree_scalar_bool(&sb, "directories_has_more", directories_has_more);
+        if (directories_has_more && page->directory_limit == 0) {
+            cbm_tree_scalar_bool(&sb, "directory_continuation_requires_positive_limit", true);
+        }
+        cbm_tree_scalar_bool(&sb, "truncated", true);
+        cbm_tree_scalar_str(&sb, "truncation_reason", "output_budget");
+        return cbm_sb_finish(&sb);
+    }
+
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
+    if (!doc || !root) {
+        if (doc) {
+            yyjson_mut_doc_free(doc);
+        }
+        return NULL;
+    }
+    yyjson_mut_doc_set_root(doc, root);
+    yyjson_mut_obj_add_int(doc, root, "total_results", page->sr_count);
+    yyjson_mut_obj_add_int(doc, root, "raw_match_count", page->raw_count);
+    yyjson_mut_obj_add_int(doc, root, "result_offset", page->result_start);
+    yyjson_mut_obj_add_int(doc, root, "results_returned", 0);
+    yyjson_mut_obj_add_bool(doc, root, "has_more", result_has_more);
+    if (result_has_more) {
+        yyjson_mut_obj_add_bool(doc, root,
+                                page->result_limit == 0
+                                    ? "result_continuation_requires_positive_limit"
+                                    : "result_continuation_requires_higher_budget",
+                                true);
+    }
+    yyjson_mut_obj_add_int(doc, root, "raw_offset", page->raw_start);
+    yyjson_mut_obj_add_int(doc, root, "raw_returned", 0);
+    yyjson_mut_obj_add_bool(doc, root, "raw_has_more", raw_has_more);
+    if (raw_has_more && page->raw_limit == 0) {
+        yyjson_mut_obj_add_bool(doc, root, "raw_continuation_requires_positive_limit", true);
+    }
+    yyjson_mut_obj_add_int(doc, root, "directories_total", page->directory_total);
+    yyjson_mut_obj_add_int(doc, root, "directory_offset", page->directory_start);
+    yyjson_mut_obj_add_int(doc, root, "directories_returned", 0);
+    yyjson_mut_obj_add_bool(doc, root, "directories_has_more", directories_has_more);
+    if (directories_has_more && page->directory_limit == 0) {
+        yyjson_mut_obj_add_bool(doc, root, "directory_continuation_requires_positive_limit", true);
+    }
+    yyjson_mut_obj_add_bool(doc, root, "truncated", true);
+    yyjson_mut_obj_add_str(doc, root, "truncation_reason", "output_budget");
+    char *json = source_doc_to_str(doc);
+    yyjson_mut_doc_free(doc);
+    return json;
+}
+
 cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
                                                            const cbm_operation_runtime_t *runtime) {
     char *pattern = source_string_arg(args, "pattern");
@@ -1804,6 +1977,32 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
         if (offset_doc)
             yyjson_doc_free(offset_doc);
     }
+    int directory_limit = source_int_arg(args, "directory_limit", SOURCE_DEFAULT_DIRECTORY_LIMIT);
+    if (directory_limit < 0) {
+        directory_limit = 0;
+    } else if (directory_limit > SOURCE_MAX_DIRECTORY_LIMIT) {
+        directory_limit = SOURCE_MAX_DIRECTORY_LIMIT;
+    }
+    int directory_offset = source_int_arg(args, "directory_offset", 0);
+    if (directory_offset < 0) {
+        directory_offset = 0;
+    }
+    int match_limit = source_int_arg(args, "match_limit", SOURCE_DEFAULT_MATCH_LIMIT);
+    if (match_limit < 1) {
+        match_limit = 1;
+    } else if (match_limit > SOURCE_MAX_MATCH_LIMIT) {
+        match_limit = SOURCE_MAX_MATCH_LIMIT;
+    }
+    int source_max_lines =
+        source_int_arg(args, "source_max_lines", SOURCE_DEFAULT_SOURCE_MAX_LINES);
+    if (source_max_lines < SOURCE_MIN_SOURCE_MAX_LINES) {
+        source_max_lines = SOURCE_MIN_SOURCE_MAX_LINES;
+    } else if (source_max_lines > SOURCE_MAX_SOURCE_MAX_LINES) {
+        source_max_lines = SOURCE_MAX_SOURCE_MAX_LINES;
+    }
+    /* Absent max_output_tokens = no byte budget: the serialized response is
+     * left exactly as this operation has always produced it. */
+    size_t byte_budget = cbm_output_budget_bytes(cbm_output_budget_tokens(args, 0));
     int context_lines = source_int_arg(args, "context", 0);
     bool use_regex = source_bool_arg(args, "regex", false);
     uint64_t search_t0 = cbm_now_ms();
@@ -2132,6 +2331,10 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
     bool sc_legacy_json = sc_format && strcmp(sc_format, "json") == 0;
     free(sc_format);
 
+    char dir_names[CBM_SZ_64][CBM_SZ_128];
+    int dir_counts[CBM_SZ_64];
+    int dir_total = aggregate_search_dirs(sr, sr_count, dir_names, dir_counts, CBM_SZ_64);
+
     search_page_t page = {.sr_count = sr_count,
                           .raw_count = raw_count,
                           .raw_content_truncated = raw_content_truncated,
@@ -2140,21 +2343,103 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
                           .result_limit = result_limit,
                           .raw_start = raw_offset < raw_count ? raw_offset : raw_count,
                           .raw_limit = raw_limit,
-                          .raw_output = raw_stored_count};
+                          .raw_output = raw_stored_count,
+                          .directory_limit = directory_limit,
+                          .directory_total = dir_total,
+                          .match_limit = match_limit,
+                          .source_max_lines = source_max_lines};
     page.output_count = sr_count - page.result_start;
     if (page.output_count > result_limit) {
         page.output_count = result_limit;
     }
-
-    char *result = NULL;
-    bool result_error = false;
-    if (mode == 0 && !sc_legacy_json) {
-        result = assemble_search_output_toon(sr, raw, &page, pat_has_pipe && !use_regex, &metrics);
-    } else {
-        result = assemble_search_output(sr, raw, &page, mode, context_lines, root_path,
-                                        pat_has_pipe && !use_regex, &metrics);
+    page.directory_start = directory_offset < dir_total ? directory_offset : dir_total;
+    page.directory_output = dir_total - page.directory_start;
+    if (page.directory_output > directory_limit) {
+        page.directory_output = directory_limit;
     }
-    result_error = result == NULL;
+    bool page_json = !(mode == 0 && !sc_legacy_json);
+    bool warn_pipe = pat_has_pipe && !use_regex;
+
+    char *result = render_search_payload(sr, raw, &page, mode, context_lines, root_path, warn_pipe,
+                                         &metrics, page_json);
+
+    /* Exact serialized-size check with semantic reductions only: unclassified
+     * raw rows first, then directory diagnostics, then the per-hit source
+     * window, then whole ranked rows. Every reduction is a whole semantic unit
+     * and every continuation stays exactly correct for the rows actually
+     * emitted. No identifier is ever byte-sliced. */
+    if (byte_budget > 0 && result && strlen(result) > byte_budget) {
+        page.budget_hit = true;
+        free(result);
+        result = render_search_payload(sr, raw, &page, mode, context_lines, root_path, warn_pipe,
+                                       &metrics, page_json);
+    }
+    while (byte_budget > 0 && result && strlen(result) > byte_budget && page.raw_output > 0) {
+        page.raw_output--;
+        free(result);
+        result = render_search_payload(sr, raw, &page, mode, context_lines, root_path, warn_pipe,
+                                       &metrics, page_json);
+    }
+    while (byte_budget > 0 && result && strlen(result) > byte_budget && page.directory_output > 0) {
+        page.directory_output--;
+        free(result);
+        result = render_search_payload(sr, raw, &page, mode, context_lines, root_path, warn_pipe,
+                                       &metrics, page_json);
+    }
+    if (byte_budget > 0 && result && strlen(result) > byte_budget && mode == 1 &&
+        page.source_max_lines > 0) {
+        int low = 0;
+        int high = page.source_max_lines - 1;
+        int best_lines = -1;
+        char *best = NULL;
+        while (low <= high) {
+            int middle = low + (high - low) / 2;
+            page.source_max_lines = middle;
+            char *candidate = render_search_payload(sr, raw, &page, mode, context_lines, root_path,
+                                                    warn_pipe, &metrics, page_json);
+            if (candidate && strlen(candidate) <= byte_budget) {
+                free(best);
+                best = candidate;
+                best_lines = middle;
+                low = middle + 1;
+            } else {
+                free(candidate);
+                high = middle - 1;
+            }
+        }
+        free(result);
+        if (best) {
+            result = best;
+            page.source_max_lines = best_lines;
+        } else {
+            page.source_max_lines = 0;
+            result = render_search_payload(sr, raw, &page, mode, context_lines, root_path,
+                                           warn_pipe, &metrics, page_json);
+        }
+    }
+    if (byte_budget > 0 && result && strlen(result) > byte_budget && page.output_count > 0) {
+        char *best = NULL;
+        for (int candidate_rows = page.output_count - 1; candidate_rows >= 0; candidate_rows--) {
+            int saved_rows = page.output_count;
+            page.output_count = candidate_rows;
+            char *candidate = render_search_payload(sr, raw, &page, mode, context_lines, root_path,
+                                                    warn_pipe, &metrics, page_json);
+            if (candidate && strlen(candidate) <= byte_budget) {
+                best = candidate;
+                break;
+            }
+            page.output_count = saved_rows;
+            free(candidate);
+        }
+        free(result);
+        result = best;
+    }
+    if (byte_budget > 0 && (!result || strlen(result) > byte_budget)) {
+        free(result);
+        result = search_budget_floor(&page, mode, page_json);
+    }
+
+    bool result_error = result == NULL;
     if (!result)
         result = source_strdup("out of memory");
     free(sr);

@@ -546,7 +546,9 @@ TEST(index_parse_unusable_names_the_range_end) {
 
     yyjson_doc *d = yyjson_read(resp, strlen(resp), 0);
     ASSERT_NOT_NULL(d);
-    yyjson_val *sc = yyjson_obj_get(yyjson_doc_get_root(d), "structuredContent");
+    /* CLI operations return their JSON payload directly; only the removed MCP
+     * transport wrapped this object in structuredContent. */
+    yyjson_val *sc = yyjson_doc_get_root(d);
     ASSERT_NOT_NULL(sc);
     ASSERT_EQ(yyjson_get_int(yyjson_obj_get(sc, "parse_unusable_count")), 1);
 

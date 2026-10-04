@@ -1520,7 +1520,7 @@ TEST(cli_install_recovers_markerless_stale_rendezvous) {
     snprintf(runtime_parent, sizeof(runtime_parent), "%s/runtime", tmpdir);
     snprintf(cache_dir, sizeof(cache_dir), "%s/cache", tmpdir);
     snprintf(install_dir, sizeof(install_dir), "%s/custom/bin", tmpdir);
-    snprintf(target_path, sizeof(target_path), "%s/codebase-memory-mcp", install_dir);
+    snprintf(target_path, sizeof(target_path), "%s/codebase-memory-cli", install_dir);
     snprintf(activation_log, sizeof(activation_log), "%s/logs/activation-events.ndjson", cache_dir);
     if (test_mkdirp(runtime_parent) != 0) {
         test_rmdir_r(tmpdir);
@@ -2027,7 +2027,7 @@ TEST(cli_install_binary_into_foreign_home_never_drains_host_cohort) {
     char activation_log[704];
     cli_scope_foreign_paths(&fixture, foreign_home, foreign_cache, foreign_bin, activation_log);
     char target_path[704];
-    snprintf(target_path, sizeof(target_path), "%s/codebase-memory-mcp", foreign_bin);
+    snprintf(target_path, sizeof(target_path), "%s/codebase-memory-cli", foreign_bin);
     bool prepared = ready && cbm_mkdir_p(foreign_home, 0700);
     int install_rc =
         prepared ? cli_scope_install(&fixture, foreign_home, foreign_cache, foreign_bin, false)
@@ -3142,7 +3142,7 @@ TEST(cli_uninstall_quiesces_active_cohort_before_removing_binary_and_index) {
     PASS();
 }
 
-TEST(cli_uninstall_reports_foreign_cache_without_mutating) {
+TEST(cli_uninstall_leaves_foreign_cache_running_while_removing_cli_files) {
     char tmpdir[256];
     snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-foreign-cache-XXXXXX");
     ASSERT_NOT_NULL(cbm_mkdtemp(tmpdir));
@@ -3204,10 +3204,9 @@ TEST(cli_uninstall_reports_foreign_cache_without_mutating) {
         (void)fread(output, 1, sizeof(output) - 1, capture);
         fclose(capture);
     }
-    bool binary_preserved =
-        read_test_file(binary) && strcmp(read_test_file(binary), "preserved binary") == 0;
-    bool index_preserved =
-        read_test_file(index) && strcmp(read_test_file(index), "preserved index") == 0;
+    struct stat removed_status;
+    bool binary_removed = lstat(binary, &removed_status) != 0 && errno == ENOENT;
+    bool index_removed = lstat(index, &removed_status) != 0 && errno == ENOENT;
     if (lease)
         (void)cbm_version_cohort_lease_release(&lease);
     if (owner)
@@ -3217,11 +3216,9 @@ TEST(cli_uninstall_reports_foreign_cache_without_mutating) {
     test_rmdir_r(tmpdir);
     ASSERT_TRUE(owned);
     ASSERT_TRUE(capturing);
-    ASSERT_NEQ(rc, 0);
-    ASSERT_NOT_NULL(strstr(output, "different cache"));
-    ASSERT_NOT_NULL(strstr(output, "left running"));
-    ASSERT_TRUE(binary_preserved);
-    ASSERT_TRUE(index_preserved);
+    ASSERT_EQ(rc, 0);
+    ASSERT_TRUE(binary_removed);
+    ASSERT_TRUE(index_removed);
     PASS();
 }
 
@@ -3318,19 +3315,15 @@ TEST(cli_uninstall_removes_binary_and_index_when_agent_config_cleanup_fails) {
     char bin_target[640];
     snprintf(bin_dir, sizeof(bin_dir), "%s/.local/bin", tmpdir);
     test_mkdirp(bin_dir);
-    snprintf(bin_target, sizeof(bin_target), "%s/codebase-memory-mcp", bin_dir);
+    snprintf(bin_target, sizeof(bin_target), "%s/codebase-memory-cli", bin_dir);
     write_test_file(bin_target, "binary must go even when a config cannot be cleaned");
 
-    char cursor_dir[512];
-    char cursor_config[640];
-    char dangling_target[640];
-    snprintf(cursor_dir, sizeof(cursor_dir), "%s/.cursor", tmpdir);
-    test_mkdirp(cursor_dir);
-    snprintf(cursor_config, sizeof(cursor_config), "%s/mcp.json", cursor_dir);
-    snprintf(dangling_target, sizeof(dangling_target), "%s/.dotfiles/cursor/mcp.json", tmpdir);
-    if (symlink(dangling_target, cursor_config) != 0) {
-        FAIL("symlink failed");
-    }
+    char claude_dir[512];
+    char settings_path[640];
+    snprintf(claude_dir, sizeof(claude_dir), "%s/.claude", tmpdir);
+    snprintf(settings_path, sizeof(settings_path), "%s/settings.json", claude_dir);
+    test_mkdirp(claude_dir);
+    write_test_file(settings_path, "{ malformed CLI-owned hook settings");
 
     cli_activation_fake_t fake = {.mutation_reserve_result = 1};
     cbm_cli_activation_ops_t ops = cli_activation_fake_ops(&fake);
@@ -3349,8 +3342,10 @@ TEST(cli_uninstall_removes_binary_and_index_when_agent_config_cleanup_fails) {
     struct stat state;
     bool binary_gone = lstat(bin_target, &state) != 0 && errno == ENOENT;
     bool index_gone = lstat(index_path, &state) != 0 && errno == ENOENT;
-    bool link_untouched = lstat(cursor_config, &state) == 0 && S_ISLNK(state.st_mode);
-    bool failure_named = err_text && strstr(err_text, cursor_config) != NULL;
+    bool config_untouched =
+        read_test_file(settings_path) &&
+        strcmp(read_test_file(settings_path), "{ malformed CLI-owned hook settings") == 0;
+    bool failure_named = err_text && strstr(err_text, settings_path) != NULL;
 
     cli_activation_restore_env(old_home, old_cache);
     restore_test_env("PATH", old_path);
@@ -3361,15 +3356,13 @@ TEST(cli_uninstall_removes_binary_and_index_when_agent_config_cleanup_fails) {
     ASSERT(rc != 0);
     ASSERT_TRUE(binary_gone);
     ASSERT_TRUE(index_gone);
-    ASSERT_TRUE(link_untouched);
+    ASSERT_TRUE(config_untouched);
     ASSERT_TRUE(failure_named);
     PASS();
 }
 
-/* #1954 end to end: ~/.cursor/mcp.json is a user-owned symlink into a
- * dotfiles checkout. The uninstall command opts in to following it, removes
- * our entry THROUGH the link, leaves the link pointing where it did, and
- * exits 0 with the binary and the index gone. */
+/* A user-owned OpenHands MCP config is preserved while the CLI binary and
+ * index are removed. */
 TEST(cli_uninstall_cleans_user_owned_symlinked_config) {
     char tmpdir[256];
     snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-uninstall-symlinked-XXXXXX");
@@ -3395,7 +3388,7 @@ TEST(cli_uninstall_cleans_user_owned_symlinked_config) {
     char bin_target[640];
     snprintf(bin_dir, sizeof(bin_dir), "%s/.local/bin", tmpdir);
     test_mkdirp(bin_dir);
-    snprintf(bin_target, sizeof(bin_target), "%s/codebase-memory-mcp", bin_dir);
+    snprintf(bin_target, sizeof(bin_target), "%s/codebase-memory-cli", bin_dir);
     write_test_file(bin_target, "binary goes with the uninstall");
 
     char cursor_dir[512];
@@ -3441,8 +3434,8 @@ TEST(cli_uninstall_cleans_user_owned_symlinked_config) {
     ssize_t link_length = readlink(cursor_config, link_value, sizeof(link_value) - 1U);
     bool link_same = link_length > 0 && strcmp(link_value, dotfiles_config) == 0;
     char *after = read_test_file_alloc(dotfiles_config);
-    bool entry_removed =
-        after && !strstr(after, "codebase-memory-mcp") && strstr(after, "\"keep\"");
+    bool entry_preserved =
+        after && strstr(after, "codebase-memory-mcp") && strstr(after, "\"keep\"");
     bool no_error = err_text && !strstr(err_text, "error:");
 
     cli_activation_restore_env(old_home, old_cache);
@@ -3457,7 +3450,7 @@ TEST(cli_uninstall_cleans_user_owned_symlinked_config) {
     ASSERT_TRUE(index_gone);
     ASSERT_TRUE(link_intact);
     ASSERT_TRUE(link_same);
-    ASSERT_TRUE(entry_removed);
+    ASSERT_TRUE(entry_preserved);
     ASSERT_TRUE(no_error);
     PASS();
 }
@@ -4307,9 +4300,9 @@ static bool openhands_fixture_open(openhands_fixture_t *fx, bool with_profiles) 
     }
     snprintf(fx->settings, sizeof(fx->settings), "%s/.openhands/settings.json", fx->home);
 #ifdef _WIN32
-    snprintf(fx->binary, sizeof(fx->binary), "%s/.local/bin/codebase-memory-mcp.exe", fx->home);
+    snprintf(fx->binary, sizeof(fx->binary), "%s/.local/bin/codebase-memory-cli.exe", fx->home);
 #else
-    snprintf(fx->binary, sizeof(fx->binary), "%s/.local/bin/codebase-memory-mcp", fx->home);
+    snprintf(fx->binary, sizeof(fx->binary), "%s/.local/bin/codebase-memory-cli", fx->home);
 #endif
     snprintf(fx->mcp, sizeof(fx->mcp), "%s/.openhands/mcp.json", fx->home);
     snprintf(fx->profiles_dir, sizeof(fx->profiles_dir), "%s/.openhands/agent-profiles", fx->home);
@@ -4413,10 +4406,8 @@ static const char openhands_custom_profile_before[] =
     "{\"name\": \"custom\", \"mcp_server_refs\": [\"other-mcp\"]}\n";
 static const char openhands_note_before[] = "not a profile\n";
 
-/* Foreign settings keys and a foreign mcp_config sibling survive verbatim;
- * a null profile ref list becomes ours, an existing list is appended once;
- * a second install is byte-idempotent; uninstall restores the foreign files
- * byte-for-byte and removes only our ref. */
+/* This CLI fork does not register MCP. OpenHands settings, profiles, and MCP
+ * configuration stay untouched by install and uninstall. */
 TEST(cli_openhands_registers_settings_mcp_config_and_profile_refs_issue1826) {
     openhands_fixture_t fx;
     if (!openhands_fixture_open(&fx, true))
@@ -4428,23 +4419,22 @@ TEST(cli_openhands_registers_settings_mcp_config_and_profile_refs_issue1826) {
 
     cbm_install_agent_configs(fx.home, fx.binary, false, false);
 
-    const char *const only_ours[] = {"codebase-memory-mcp"};
-    const char *const appended[] = {"other-mcp", "codebase-memory-mcp"};
-    bool ours_ok = openhands_settings_entry_ok(fx.settings, "codebase-memory-mcp", fx.binary);
+    bool no_registration =
+        openhands_settings_entry_absent(fx.settings, "codebase-memory-mcp") &&
+        !openhands_settings_entry_ok(fx.settings, "codebase-memory-mcp", fx.binary);
     char *settings_after = read_test_file_alloc(fx.settings);
     bool foreign_ok =
         settings_after && strstr(settings_after, "\"language\": \"en\"") &&
         strstr(settings_after, "\"llm_model\": \"gpt-x\"") &&
         strstr(settings_after, "\"other-mcp\": {\"transport\": \"stdio\", \"command\": "
                                "\"/opt/other\", \"enabled\": false}");
-    bool default_ok = openhands_profile_refs_equal(fx.default_profile, only_ours, 1U);
-    bool custom_ok = openhands_profile_refs_equal(fx.custom_profile, appended, 2U);
+    bool custom_untouched =
+        openhands_profile_refs_equal(fx.custom_profile, (const char *const[]){"other-mcp"}, 1U);
     char *default_after = read_test_file_alloc(fx.default_profile);
     bool default_foreign_ok = default_after && strstr(default_after, "\"name\": \"default\"") &&
                               strstr(default_after, "\"tools\": [\"bash\"]");
     bool note_ok = openhands_file_equals(fx.note, openhands_note_before);
-    const char *const standard_json[] = {"mcpServers", "codebase-memory-mcp", fx.binary};
-    bool mcp_json_ok = test_file_contains_all(fx.mcp, standard_json, 3);
+    bool mcp_json_absent = access(fx.mcp, F_OK) != 0;
     char *custom_after = read_test_file_alloc(fx.custom_profile);
 
     /* Second install: byte-idempotent on every touched file. */
@@ -4461,63 +4451,59 @@ TEST(cli_openhands_registers_settings_mcp_config_and_profile_refs_issue1826) {
     bool settings_restored = openhands_file_equals(fx.settings, openhands_settings_before);
     bool custom_restored =
         openhands_file_equals(fx.custom_profile, openhands_custom_profile_before);
-    /* null → ["codebase-memory-mcp"] → [] : the ref is gone; an empty list is
-     * the minimal edit (the editor cannot know the list was null before). */
-    bool default_cleared = openhands_profile_refs_equal(fx.default_profile, only_ours, 0U);
+    bool default_restored =
+        openhands_file_equals(fx.default_profile, openhands_default_profile_before);
     bool note_restored = openhands_file_equals(fx.note, openhands_note_before);
     openhands_fixture_close(&fx);
 
-    if (!ours_ok)
-        FAIL("settings.json must register mcp_config.codebase-memory-mcp {stdio, binary, enabled}");
+    if (!no_registration)
+        FAIL("OpenHands settings must not receive a codebase-memory-mcp registration");
     if (!foreign_ok)
         FAIL("settings.json foreign keys and the foreign mcp_config sibling must survive verbatim");
-    if (!default_ok)
-        FAIL("a null mcp_server_refs must become [\"codebase-memory-mcp\"]");
-    if (!custom_ok)
-        FAIL("an existing mcp_server_refs list must gain codebase-memory-mcp exactly once");
+    if (!custom_untouched)
+        FAIL("OpenHands profile MCP refs must remain unchanged");
     if (!default_foreign_ok)
         FAIL("profile keys around mcp_server_refs must survive verbatim");
     if (!note_ok)
         FAIL("non-JSON files under agent-profiles must not be touched");
-    if (!mcp_json_ok)
-        FAIL("the existing ~/.openhands/mcp.json registration must be kept");
+    if (!mcp_json_absent)
+        FAIL("install must not create ~/.openhands/mcp.json");
     if (!idempotent)
         FAIL("a second install must be byte-idempotent");
     if (rc != 0 || !settings_restored)
         FAIL("uninstall must restore settings.json byte-for-byte");
     if (!custom_restored)
         FAIL("uninstall must restore a profile with foreign refs byte-for-byte");
-    if (!default_cleared)
-        FAIL("uninstall must remove our ref from the null-origin profile");
+    if (!default_restored)
+        FAIL("uninstall must leave the default profile untouched");
     if (!note_restored)
         FAIL("uninstall must not touch non-JSON files under agent-profiles");
     PASS();
 }
 
-/* Fresh ~/.openhands without settings.json or agent-profiles: settings.json is
- * created with only our entry, no profile directory is invented, and uninstall
- * removes the entry again. */
+/* Fresh ~/.openhands without settings.json or agent-profiles: CLI install
+ * creates neither MCP settings nor an agent-profiles directory. */
 TEST(cli_openhands_creates_settings_and_skips_missing_profiles_issue1826) {
     openhands_fixture_t fx;
     if (!openhands_fixture_open(&fx, false))
         FAIL("cbm_mkdtemp failed");
 
     cbm_install_agent_configs(fx.home, fx.binary, false, false);
-    bool ours_ok = openhands_settings_entry_ok(fx.settings, "codebase-memory-mcp", fx.binary);
+    bool no_settings = access(fx.settings, F_OK) != 0;
     struct stat st;
     bool no_profiles_invented = stat(fx.profiles_dir, &st) != 0;
 
     char *argv[] = {"uninstall", "--yes"};
     int rc = cli_test_cmd_uninstall(2, argv);
-    bool removed = openhands_settings_entry_absent(fx.settings, "codebase-memory-mcp");
+    bool still_absent = access(fx.settings, F_OK) != 0;
     openhands_fixture_close(&fx);
 
-    if (!ours_ok)
-        FAIL("a missing settings.json must be created with mcp_config.codebase-memory-mcp");
+    if (!no_settings || !still_absent)
+        FAIL("install must not create an OpenHands MCP settings.json");
     if (!no_profiles_invented)
         FAIL("install must never create ~/.openhands/agent-profiles");
-    if (rc != 0 || !removed)
-        FAIL("uninstall must remove mcp_config.codebase-memory-mcp from settings.json");
+    if (rc != 0)
+        FAIL("uninstall must complete without touching OpenHands MCP configuration");
     PASS();
 }
 
@@ -7482,6 +7468,99 @@ TEST(cli_codex_respects_codex_home) {
     if (!plans_config || !plans_instructions || plans_cleanup || !plan_preserved_user_file)
         FAIL("Codex plan must include the managed activation pointer under CODEX_HOME without "
              "mutating existing user content");
+    PASS();
+}
+
+TEST(cli_install_warns_about_legacy_mcp_instruction_block) {
+    char tmpdir[256];
+    snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-codex-legacy-mcp-XXXXXX");
+    if (!cbm_mkdtemp(tmpdir))
+        FAIL("cbm_mkdtemp failed");
+
+    char codex_home[512];
+    char agents_path[640];
+    char binary_path[768];
+    snprintf(codex_home, sizeof(codex_home), "%s/.codex", tmpdir);
+    snprintf(agents_path, sizeof(agents_path), "%s/AGENTS.md", codex_home);
+#ifdef _WIN32
+    snprintf(binary_path, sizeof(binary_path), "%s/.local/bin/codebase-memory-cli.exe", tmpdir);
+#else
+    snprintf(binary_path, sizeof(binary_path), "%s/.local/bin/codebase-memory-cli", tmpdir);
+#endif
+    ASSERT_EQ(test_mkdirp(codex_home), 0);
+
+    const char *user_guidance = "# Personal Codex guidance\nKeep this byte-for-byte.\n";
+    const char *legacy_block = "<!-- codebase-memory-mcp:start -->\n"
+                               "Call search_graph and trace_path.\n"
+                               "<!-- codebase-memory-mcp:end -->\n";
+    char seeded[2048];
+    snprintf(seeded, sizeof(seeded), "%s%s", user_guidance, legacy_block);
+    ASSERT_EQ(write_test_file(agents_path, seeded), 0);
+
+    char *saved_home = save_test_env("HOME");
+    char *saved_path = save_test_env("PATH");
+    char *saved_codex = save_test_env("CODEX_HOME");
+    cbm_setenv("HOME", tmpdir, 1);
+    cbm_setenv("PATH", tmpdir, 1);
+    cbm_setenv("CODEX_HOME", codex_home, 1);
+
+    /* A dry run warns and writes nothing. */
+#ifndef _WIN32
+    cli_fd_capture_t dry_capture;
+    cli_fd_capture_begin(&dry_capture, stderr, STDERR_FILENO);
+#endif
+    int dry_rc = cbm_install_agent_configs(tmpdir, binary_path, false, true);
+#ifndef _WIN32
+    char *dry_err = cli_fd_capture_end(&dry_capture);
+#else
+    char *dry_err = NULL;
+#endif
+    char *after_dry = read_test_file_alloc(agents_path);
+    bool dry_preserved = after_dry && strcmp(after_dry, seeded) == 0;
+    bool dry_warned = true;
+#ifndef _WIN32
+    dry_warned =
+        dry_err && strstr(dry_err, agents_path) != NULL &&
+        strstr(dry_err, "still contains a legacy codebase-memory-mcp instruction block") != NULL;
+#endif
+    free(after_dry);
+    free(dry_err);
+
+    /* A real install warns, leaves the legacy bytes intact, and adds our block once. */
+#ifndef _WIN32
+    cli_fd_capture_t install_capture;
+    cli_fd_capture_begin(&install_capture, stderr, STDERR_FILENO);
+#endif
+    int install_rc = cbm_install_agent_configs(tmpdir, binary_path, false, false);
+#ifndef _WIN32
+    char *install_err = cli_fd_capture_end(&install_capture);
+#else
+    char *install_err = NULL;
+#endif
+    char *after = read_test_file_alloc(agents_path);
+    bool legacy_preserved = after && strstr(after, legacy_block) != NULL;
+    bool user_preserved = after && strstr(after, user_guidance) != NULL;
+    bool cli_block_added_once =
+        after && test_count_substring(after, test_cli_managed_block_start) == 1U;
+    bool install_warned = true;
+#ifndef _WIN32
+    install_warned =
+        install_err && strstr(install_err, agents_path) != NULL &&
+        strstr(install_err, "still contains a legacy codebase-memory-mcp instruction block") !=
+            NULL;
+#endif
+
+    free(after);
+    free(install_err);
+    restore_test_env("HOME", saved_home);
+    restore_test_env("PATH", saved_path);
+    restore_test_env("CODEX_HOME", saved_codex);
+    test_rmdir_r(tmpdir);
+
+    if (dry_rc != 0 || install_rc != 0 || !dry_preserved || !dry_warned || !legacy_preserved ||
+        !user_preserved || !cli_block_added_once || !install_warned)
+        FAIL("Codex install must warn about a legacy codebase-memory-mcp block in --dry-run and "
+             "on install, keep its bytes and the user's, and add one CLI managed block");
     PASS();
 }
 
@@ -11818,7 +11897,7 @@ TEST(cli_claude_hooks_use_exec_form_across_shells_issue1733) {
     char *saved_path = save_test_env("PATH");
     char *saved_config = save_test_env("CLAUDE_CONFIG_DIR");
     const char *const matchers[] = {"startup", "resume", "clear", "compact"};
-    const char *binary_path = "C:/Program Files/CBM & Tools/codebase-memory-mcp.exe";
+    const char *binary_path = "C:/Program Files/CBM & Tools/codebase-memory-cli.exe";
     bool all_valid = true;
 
     for (int custom = 0; custom < 2; custom++) {
@@ -11845,7 +11924,7 @@ TEST(cli_claude_hooks_use_exec_form_across_shells_issue1733) {
             "{\"hooks\":{\"SessionStart\":[{\"matcher\":\"resume\",\"hooks\":[{"
             "\"type\":\"command\",\"command\":\"foreign-hook\",\"args\":[\"keep\"]}]}]}}";
         if (write_test_file(settings_path, foreign) != 0 ||
-            cbm_install_agent_configs(tmpdir, binary_path, false, false) != 0) {
+            cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false) != 0) {
             all_valid = false;
             test_rmdir_r(tmpdir);
             break;
@@ -11899,9 +11978,9 @@ TEST(cli_claude_exec_hooks_custom_dir_uninstall_issue1733) {
     snprintf(settings_path, sizeof(settings_path), "%s/settings.json", config_dir);
     snprintf(install_dir, sizeof(install_dir), "%s/custom CBM & bin", tmpdir);
 #ifdef _WIN32
-    snprintf(binary_path, sizeof(binary_path), "%s/codebase-memory-mcp.exe", install_dir);
+    snprintf(binary_path, sizeof(binary_path), "%s/codebase-memory-cli.exe", install_dir);
 #else
-    snprintf(binary_path, sizeof(binary_path), "%s/codebase-memory-mcp", install_dir);
+    snprintf(binary_path, sizeof(binary_path), "%s/codebase-memory-cli", install_dir);
 #endif
     test_mkdirp(config_dir);
     test_mkdirp(install_dir);
@@ -11913,7 +11992,7 @@ TEST(cli_claude_exec_hooks_custom_dir_uninstall_issue1733) {
     cbm_setenv("PATH", tmpdir, 1);
     cbm_unsetenv("CLAUDE_CONFIG_DIR");
 
-    int install_rc = cbm_install_agent_configs(tmpdir, binary_path, false, false);
+    int install_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
     char *installed = read_test_file_alloc(settings_path);
     yyjson_doc *installed_doc = installed ? yyjson_read(installed, strlen(installed), 0) : NULL;
     yyjson_val *installed_root = installed_doc ? yyjson_doc_get_root(installed_doc) : NULL;
@@ -13754,8 +13833,8 @@ TEST(cli_cp78_explicit_claude_hooks_preserve_mcp_hook_assets) {
     char *cli_gate = read_test_file_alloc(cli_gate_path);
 
     bool ok = rc == 0 && after_script && strcmp(after_script, mcp_gate) == 0 && after_settings &&
-              strstr(after_settings, mcp_command) &&
-              strstr(after_settings, "codebase-memory-cli-discovery-gate") && cli_gate;
+              strstr(after_settings, mcp_command) && strstr(after_settings, "hook-augment") &&
+              cli_gate;
 
     free(after_script);
     free(after_settings);
@@ -13832,7 +13911,7 @@ SUITE(cli) {
     cbm_cli_set_activation_runtime_parent_for_test(g_cli_suite_runtime_parent);
 
     RUN_TEST(cli_suite_uses_private_activation_runtime);
-    RUN_TEST(cli_uninstall_reports_foreign_cache_without_mutating);
+    RUN_TEST(cli_uninstall_leaves_foreign_cache_running_while_removing_cli_files);
     RUN_TEST(cli_update_only_names_an_installer_that_exists_issue1632);
     RUN_TEST(cli_update_yes_keeps_every_index_issue2200);
 #ifndef _WIN32
@@ -14035,6 +14114,7 @@ SUITE(cli) {
     RUN_TEST(cli_registry_installs_codebuddy_bob_and_pochi_durable_context);
     RUN_TEST(cli_openclaw_resolves_active_json5_workspace);
     RUN_TEST(cli_codex_respects_codex_home);
+    RUN_TEST(cli_install_warns_about_legacy_mcp_instruction_block);
     RUN_TEST(cli_grok_respects_grok_home);
     RUN_TEST(cli_codex_install_manages_global_instruction_block_issue1689);
     RUN_TEST(cli_gemini_session_hook_uses_json_for_all_sources);

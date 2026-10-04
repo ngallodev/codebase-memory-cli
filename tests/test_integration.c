@@ -11,6 +11,8 @@
 #include "test_framework.h"
 #include "test_helpers.h"
 #include "test_operation_host.h"
+#include "operations/output_budget.h"
+#include <yyjson/yyjson.h>
 #include <store/store.h>
 #include <pipeline/pipeline.h>
 #include <foundation/log.h>
@@ -93,6 +95,17 @@ static int create_test_project(void) {
                "    }\n"
                "    return null;\n"
                "}\n");
+    /* `manyMatches` calls twelve resolvable leaves: enough matching lines in a
+     * single node to exercise search_code's bounded match locations, and enough
+     * trace rows to exceed a small output ceiling. */
+    for (int i = 1; i <= 12; i++) {
+        fprintf(f, "function budgetMarker%d() { return %d; }\n", i, i);
+    }
+    fprintf(f, "\nfunction manyMatches() {\n");
+    for (int i = 1; i <= 12; i++) {
+        fprintf(f, "    budgetMarker%d();\n", i);
+    }
+    fprintf(f, "}\n");
     fclose(f);
 
     return 0;
@@ -437,6 +450,134 @@ TEST(integ_mcp_trace_path_cross_service) {
     free(resp);
 
     cbm_test_operation_host_free(srv);
+    PASS();
+}
+
+/* Column-ordered search_code JSON row lookup by a substring of its qn cell. */
+static yyjson_val *search_row_by_name(yyjson_val *root, const char *needle) {
+    yyjson_val *rows = yyjson_obj_get(root, "rows");
+    if (!yyjson_is_arr(rows))
+        return NULL;
+    size_t index, maximum;
+    yyjson_val *row;
+    yyjson_arr_foreach(rows, index, maximum, row) {
+        yyjson_val *qn = yyjson_arr_get(row, 0);
+        if (yyjson_is_str(qn) && strstr(yyjson_get_str(qn), needle))
+            return row;
+    }
+    return NULL;
+}
+
+TEST(integ_mcp_search_code_match_limit_and_budget) {
+    char args[512];
+    yyjson_doc *doc = NULL;
+
+    /* No max_output_tokens: no byte budget, so the response is exactly what the
+     * operation has always produced. */
+    snprintf(args, sizeof(args),
+             "{\"project\":\"%s\",\"pattern\":\"budgetMarker\",\"format\":\"json\","
+             "\"limit\":50}",
+             g_project);
+    char *base = call_tool("search_code", args);
+    ASSERT_NOT_NULL(base);
+    ASSERT_NULL(strstr(base, "truncation_reason"));
+
+    doc = yyjson_read(base, strlen(base), 0);
+    ASSERT_NOT_NULL(doc);
+    yyjson_val *row = search_row_by_name(yyjson_doc_get_root(doc), "manyMatches");
+    ASSERT_NOT_NULL(row);
+    /* Upstream default match_limit is 8; the withheld remainder is explicit. */
+    ASSERT_EQ((int)yyjson_arr_size(yyjson_arr_get(row, 4)), 8);
+    ASSERT_EQ((int)yyjson_get_int(yyjson_arr_get(row, 5)), 4);
+    yyjson_doc_free(doc);
+    doc = NULL;
+
+    /* A ceiling far above the payload changes nothing: omitting the argument
+     * applies no implicit budget. */
+    snprintf(args, sizeof(args),
+             "{\"project\":\"%s\",\"pattern\":\"budgetMarker\",\"format\":\"json\","
+             "\"limit\":50,\"max_output_tokens\":100000}",
+             g_project);
+    char *roomy = call_tool("search_code", args);
+    ASSERT_NOT_NULL(roomy);
+    /* `elapsed_ms` is a real measurement, so compare the model, not the bytes:
+     * the generous ceiling leaves the same rows and the same reason-free shape. */
+    ASSERT_NULL(strstr(roomy, "truncation_reason"));
+    doc = yyjson_read(roomy, strlen(roomy), 0);
+    ASSERT_NOT_NULL(doc);
+    row = search_row_by_name(yyjson_doc_get_root(doc), "manyMatches");
+    ASSERT_NOT_NULL(row);
+    ASSERT_EQ((int)yyjson_arr_size(yyjson_arr_get(row, 4)), 8);
+    ASSERT_EQ((int)yyjson_get_int(yyjson_arr_get(row, 5)), 4);
+    yyjson_doc_free(doc);
+    doc = NULL;
+    free(roomy);
+
+    /* An explicit match_limit bounds the shown locations. */
+    snprintf(args, sizeof(args),
+             "{\"project\":\"%s\",\"pattern\":\"budgetMarker\",\"format\":\"json\","
+             "\"limit\":50,\"match_limit\":3}",
+             g_project);
+    char *limited = call_tool("search_code", args);
+    ASSERT_NOT_NULL(limited);
+    doc = yyjson_read(limited, strlen(limited), 0);
+    ASSERT_NOT_NULL(doc);
+    row = search_row_by_name(yyjson_doc_get_root(doc), "manyMatches");
+    ASSERT_NOT_NULL(row);
+    ASSERT_EQ((int)yyjson_arr_size(yyjson_arr_get(row, 4)), 3);
+    ASSERT_EQ((int)yyjson_get_int(yyjson_arr_get(row, 5)), 9);
+    yyjson_doc_free(doc);
+    doc = NULL;
+    free(limited);
+
+    /* A tiny ceiling trims whole rows and names the reason. */
+    snprintf(args, sizeof(args),
+             "{\"project\":\"%s\",\"pattern\":\"budgetMarker\",\"format\":\"json\","
+             "\"limit\":50,\"max_output_tokens\":128}",
+             g_project);
+    char *small = call_tool("search_code", args);
+    ASSERT_NOT_NULL(small);
+    ASSERT_TRUE(strlen(small) <= (size_t)CBM_OUTPUT_TOKENS_MIN * CBM_OUTPUT_BYTES_PER_TOKEN);
+    ASSERT_NOT_NULL(strstr(small, "output_budget"));
+    free(small);
+    free(base);
+    PASS();
+}
+
+TEST(integ_mcp_trace_path_output_budget) {
+    char args[512];
+
+    snprintf(args, sizeof(args),
+             "{\"function_name\":\"manyMatches\",\"project\":\"%s\","
+             "\"direction\":\"outbound\"}",
+             g_project);
+    char *base = call_tool("trace_path", args);
+    ASSERT_NOT_NULL(base);
+    ASSERT_NULL(strstr(base, "output_budget"));
+
+    /* Same response with a ceiling far above the payload. */
+    snprintf(args, sizeof(args),
+             "{\"function_name\":\"manyMatches\",\"project\":\"%s\","
+             "\"direction\":\"outbound\",\"max_output_tokens\":100000}",
+             g_project);
+    char *roomy = call_tool("trace_path", args);
+    ASSERT_NOT_NULL(roomy);
+    ASSERT_STR_EQ(roomy, base);
+    free(roomy);
+
+    /* A tiny ceiling keeps only the whole rows that fit and reports the budget,
+     * with no identifier sliced. */
+    snprintf(args, sizeof(args),
+             "{\"function_name\":\"manyMatches\",\"project\":\"%s\","
+             "\"direction\":\"outbound\",\"max_output_tokens\":128}",
+             g_project);
+    char *small = call_tool("trace_path", args);
+    ASSERT_NOT_NULL(small);
+    ASSERT_TRUE(strlen(small) <= (size_t)CBM_OUTPUT_TOKENS_MIN * CBM_OUTPUT_BYTES_PER_TOKEN);
+    ASSERT_NOT_NULL(strstr(small, "output_budget"));
+    ASSERT_TRUE(strlen(small) < strlen(base));
+    free(small);
+    free(base);
     PASS();
 }
 
@@ -1060,6 +1201,8 @@ SUITE(integration) {
     RUN_TEST(integ_mcp_get_architecture);
     RUN_TEST(integ_mcp_trace_path);
     RUN_TEST(integ_mcp_trace_path_cross_service);
+    RUN_TEST(integ_mcp_search_code_match_limit_and_budget);
+    RUN_TEST(integ_mcp_trace_path_output_budget);
     RUN_TEST(integ_mcp_index_status);
     RUN_TEST(integ_mcp_adr_outline_fence_status);
 

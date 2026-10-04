@@ -1,3 +1,4 @@
+#include "operations/output_budget.h"
 #include "operations/result_wire.h"
 #include "operations/trace.h"
 #include "operations/store_host.h"
@@ -76,6 +77,33 @@ static bool bool_arg(const char *args, const char *name) {
     if (doc)
         yyjson_doc_free(doc);
     return result;
+}
+
+static char *doc_to_str(yyjson_mut_doc *doc) {
+    if (!doc) {
+        return NULL;
+    }
+    char *json = cbm_operation_json_write(doc);
+    yyjson_mut_doc_free(doc);
+    return json;
+}
+
+/* The optional evidence/args columns are presentation detail: they yield to the
+ * byte ceiling before any graph row does, and the response says so. */
+static void emit_omitted_optional_fields(yyjson_mut_doc *doc, yyjson_mut_val *root,
+                                         bool risk_labels, bool data_flow, bool include_evidence) {
+    yyjson_mut_val *fields = yyjson_mut_arr(doc);
+    if (risk_labels) {
+        yyjson_mut_arr_add_str(doc, fields, "risk_labels");
+    }
+    if (data_flow) {
+        yyjson_mut_arr_add_str(doc, fields, "data_flow");
+    }
+    if (include_evidence) {
+        yyjson_mut_arr_add_str(doc, fields, "include_evidence");
+    }
+    yyjson_mut_obj_add_bool(doc, root, "optional_fields_omitted", true);
+    yyjson_mut_obj_add_val(doc, root, "omitted_optional_fields", fields);
 }
 
 static cbm_operation_result_t json_result(yyjson_mut_doc *doc, bool error) {
@@ -835,13 +863,40 @@ cbm_operation_result_t cbm_trace_operation_execute(const char *args) {
         }
     }
     int budget = limit;
-    int out_len = do_outbound ? outbound.visited_count - out_start : 0;
-    if (out_len > budget)
-        out_len = budget;
-    budget -= out_len;
-    int in_len = do_inbound ? inbound.visited_count - in_start : 0;
-    if (in_len > budget)
-        in_len = budget;
+    int requested_out_len = 0;
+    int requested_in_len = 0;
+    if (do_outbound) {
+        requested_out_len = outbound.visited_count - out_start;
+        if (requested_out_len > budget)
+            requested_out_len = budget;
+        budget -= requested_out_len;
+    }
+    if (do_inbound) {
+        requested_in_len = inbound.visited_count - in_start;
+        if (requested_in_len > budget)
+            requested_in_len = budget;
+    }
+    /* The requested page is fixed by `limit`; the byte ceiling may only shrink
+     * the emitted whole-row window, never slice an identifier. Cursors are
+     * recomputed on every render so `next_cursor` always follows the last row
+     * that was actually emitted. */
+    const int requested_page_rows = requested_out_len + requested_in_len;
+    int row_target = requested_page_rows;
+    int budget_search_low = 0;
+    int budget_search_high = requested_page_rows;
+    int budget_search_best = 0;
+    bool budget_search_active = false;
+    bool output_budget_hit = false;
+    bool emit_optional_fields = risk_labels || data_flow || include_evidence;
+    bool optional_fields_omitted = false;
+    size_t output_budget_bytes = cbm_output_budget_bytes(cbm_output_budget_tokens(args, 0));
+    char *json = NULL;
+
+render_trace_output:;
+    int rows_left = row_target;
+    int out_len = requested_out_len < rows_left ? requested_out_len : rows_left;
+    rows_left -= out_len;
+    int in_len = requested_in_len < rows_left ? requested_in_len : rows_left;
     bool out_more = do_outbound && out_start + out_len < outbound.visited_count;
     bool in_more = do_inbound && in_start + in_len < inbound.visited_count;
     bool more = out_more || in_more;
@@ -905,24 +960,31 @@ cbm_operation_result_t cbm_trace_operation_execute(const char *args) {
         yyjson_mut_obj_add_str(doc, root, "callees_total_relation",
                                outbound.truncated ? "gte" : "eq");
         yyjson_mut_obj_add_val(doc, root, "callees",
-                               leg_json(doc, &out_view, risk_labels, include_tests, data_flow,
-                                        include_evidence, &out_edge_ctx));
+                               leg_json(doc, &out_view, risk_labels && emit_optional_fields,
+                                        include_tests, data_flow && emit_optional_fields,
+                                        include_evidence && emit_optional_fields, &out_edge_ctx));
     }
     if (do_inbound) {
         yyjson_mut_obj_add_int(doc, root, "callers_total", inbound.visited_count);
         yyjson_mut_obj_add_str(doc, root, "callers_total_relation",
                                inbound.truncated ? "gte" : "eq");
         yyjson_mut_obj_add_val(doc, root, "callers",
-                               leg_json(doc, &in_view, risk_labels, include_tests, data_flow,
-                                        include_evidence, &in_edge_ctx));
+                               leg_json(doc, &in_view, risk_labels && emit_optional_fields,
+                                        include_tests, data_flow && emit_optional_fields,
+                                        include_evidence && emit_optional_fields, &in_edge_ctx));
     }
-    if (more || engine_saturated || edge_data_saturated) {
+    if (more || engine_saturated || edge_data_saturated || output_budget_hit) {
         yyjson_mut_obj_add_bool(doc, root, "truncated", true);
         yyjson_mut_obj_add_bool(doc, root, "has_more", more);
         yyjson_mut_obj_add_str(doc, root, "truncation_reason",
-                               more               ? "page_limit"
+                               output_budget_hit  ? "output_budget"
+                               : more             ? "page_limit"
                                : engine_saturated ? "engine_limit"
                                                   : "edge_data_limit");
+        if (output_budget_hit)
+            yyjson_mut_obj_add_uint(doc, root, "max_output_bytes", output_budget_bytes);
+        if (optional_fields_omitted)
+            emit_omitted_optional_fields(doc, root, risk_labels, data_flow, include_evidence);
         if (engine_saturated)
             yyjson_mut_obj_add_bool(doc, root, "engine_saturated", true);
         if (edge_data_saturated)
@@ -944,7 +1006,86 @@ cbm_operation_result_t cbm_trace_operation_execute(const char *args) {
                                    "depth/edge_types or disable data_flow/include_evidence.");
         }
     }
-    result = json_result(doc, false);
+    json = doc_to_str(doc);
+    doc = NULL;
+
+    if (output_budget_bytes > 0 && json && strlen(json) > output_budget_bytes) {
+        output_budget_hit = true;
+        free(json);
+        json = NULL;
+        if (emit_optional_fields) {
+            emit_optional_fields = false;
+            optional_fields_omitted = true;
+            goto render_trace_output;
+        }
+        if (row_target <= 1 || requested_page_rows == 0) {
+            /* Even one graph row cannot fit: report the exact totals and the
+             * continuation without emitting a fabricated cursor. */
+            yyjson_mut_doc *floor_doc = yyjson_mut_doc_new(NULL);
+            yyjson_mut_val *floor = floor_doc ? yyjson_mut_obj(floor_doc) : NULL;
+            if (!floor_doc || !floor) {
+                if (floor_doc)
+                    yyjson_mut_doc_free(floor_doc);
+                result = error_result("result allocation failed", NULL);
+                goto done;
+            }
+            yyjson_mut_doc_set_root(floor_doc, floor);
+            if (do_outbound) {
+                yyjson_mut_obj_add_int(floor_doc, floor, "callees_total", outbound.visited_count);
+                yyjson_mut_obj_add_str(floor_doc, floor, "callees_total_relation",
+                                       outbound.truncated ? "gte" : "eq");
+            }
+            if (do_inbound) {
+                yyjson_mut_obj_add_int(floor_doc, floor, "callers_total", inbound.visited_count);
+                yyjson_mut_obj_add_str(floor_doc, floor, "callers_total_relation",
+                                       inbound.truncated ? "gte" : "eq");
+            }
+            bool floor_has_more = requested_page_rows > 0;
+            yyjson_mut_obj_add_bool(floor_doc, floor, "has_more", floor_has_more);
+            if (floor_has_more)
+                yyjson_mut_obj_add_bool(floor_doc, floor, "continuation_requires_higher_budget",
+                                        true);
+            yyjson_mut_obj_add_bool(floor_doc, floor, "truncated", true);
+            yyjson_mut_obj_add_str(floor_doc, floor, "truncation_reason", "output_budget");
+            yyjson_mut_obj_add_bool(floor_doc, floor, "output_budget_floor_exceeded", true);
+            yyjson_mut_obj_add_uint(floor_doc, floor, "max_output_bytes", output_budget_bytes);
+            if (optional_fields_omitted)
+                emit_omitted_optional_fields(floor_doc, floor, risk_labels, data_flow,
+                                             include_evidence);
+            yyjson_mut_obj_add_str(floor_doc, floor, "hint",
+                                   "raise max_output_tokens; no identifier was sliced");
+            json = doc_to_str(floor_doc);
+            goto trace_output_ready;
+        }
+        if (!budget_search_active) {
+            budget_search_active = true;
+            budget_search_low = 1;
+            budget_search_high = row_target - 1;
+        } else {
+            budget_search_high = row_target - 1;
+        }
+        if (budget_search_low > budget_search_high) {
+            row_target = budget_search_best < 1 ? 1 : budget_search_best;
+            budget_search_active = false;
+            goto render_trace_output;
+        }
+        row_target = budget_search_low + (budget_search_high - budget_search_low) / 2;
+        goto render_trace_output;
+    }
+    if (budget_search_active && json && strlen(json) <= output_budget_bytes) {
+        budget_search_best = row_target;
+        budget_search_low = row_target + 1;
+        if (budget_search_low <= budget_search_high) {
+            free(json);
+            json = NULL;
+            row_target = budget_search_low + (budget_search_high - budget_search_low + 1) / 2;
+            goto render_trace_output;
+        }
+    }
+
+trace_output_ready:
+    result = json ? cbm_operation_result_take(json, false) : error_result("out of memory", NULL);
+    json = NULL;
 
 done:
     if (edge_doc)

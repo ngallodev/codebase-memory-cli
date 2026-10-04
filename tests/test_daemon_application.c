@@ -4974,9 +4974,14 @@ TEST(daemon_application_over_budget_response_passes_through_without_recovery) {
         setup
             ? app_test_request(&callbacks, session, tool, tool_length, &response, &response_length)
             : CBM_DAEMON_RUNTIME_APPLICATION_HANDLER_ERROR;
-    bool passed_through = response && response_length > 0 &&
-                          strstr((char *)response, "over_memory_budget") != NULL &&
-                          strstr((char *)response, "\"is_error\":true") != NULL;
+    /* Binary-safe over the whole frame: the error flag precedes a length-delimited
+     * payload, and the result wire spells the flag is_error (operation layer) or
+     * isError (passthrough body). */
+    bool passed_through =
+        response && response_length > 0 &&
+        app_test_response_contains(response, response_length, "over_memory_budget") &&
+        (app_test_response_contains(response, response_length, "\"is_error\":true") ||
+         app_test_response_contains(response, response_length, "\"isError\":true"));
     free(response);
     free(context);
     free(tool);
