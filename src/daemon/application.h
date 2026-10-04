@@ -83,6 +83,9 @@ void cbm_daemon_application_set_permanent(cbm_daemon_application_t *application,
 /* Cancel and reap all daemon-owned operations within timeout_ms. Normal final
  * client shutdown calls this before watcher/store teardown. Idempotent. */
 bool cbm_daemon_application_shutdown(cbm_daemon_application_t *application, uint32_t timeout_ms);
+
+/* CBM_INDEX_MAX_RESTARTS as the index supervisor reads it. Test hook. */
+int cbm_index_restart_cap_for_testing(void);
 /* Destroy application storage only after every borrowed callback and physical
  * operation is quiescent. Returns false without freeing anything when the
  * timeout expires; the caller must retain both the application and every

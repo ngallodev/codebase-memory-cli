@@ -764,8 +764,6 @@ TEST(daemon_application_accepts_utf8_session_context_root) {
     ASSERT_TRUE(stopped);
     PASS();
 }
-PASS();
-}
 
 static int app_test_index_noop(const char *project_name, const char *root_path, void *context) {
     (void)project_name;

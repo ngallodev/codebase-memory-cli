@@ -17,6 +17,7 @@
 #include <cli/activation_transaction.h>
 #include <cli/cli.h>
 #include <cli/progress_sink.h>
+#include <daemon/application.h>
 #include <daemon/bootstrap.h>
 #include <daemon/runtime.h>
 #include <daemon/version_cohort.h>
