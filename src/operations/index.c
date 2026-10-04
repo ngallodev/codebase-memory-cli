@@ -13,6 +13,7 @@
 #include "foundation/dump_verify.h"
 #include "foundation/log.h"
 #include "foundation/mem.h"
+#include "foundation/mem_core.h"
 #include "foundation/platform.h"
 #include "foundation/str_util.h"
 #include "foundation/workspace.h"
