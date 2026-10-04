@@ -11,6 +11,7 @@
 #include "operations/source_search.h"
 #include "operations/file_outline.h"
 #include "operations/compare.h"
+#include "operations/store_host.h"
 
 #include "foundation/platform.h"
 #include "foundation/compat_fs.h"
@@ -414,11 +415,15 @@ static cbm_operation_result_t execute_status(const char *args_json) {
         return json_doc_result(doc, false);
     }
 
-    cbm_store_t *store = cbm_store_open(project);
+    cbm_store_open_status_t open_status = CBM_STORE_OPEN_OK;
+    cbm_store_t *store = cbm_store_host_open_query(project, &open_status);
     if (!store) {
-        cbm_operation_result_t error = json_error(
-            "project not indexed",
-            "Run 'codebase-memory-cli index .' in the repository or specify an indexed --project.");
+        cbm_operation_result_t error =
+            open_status == CBM_STORE_OPEN_CORRUPT
+                ? json_error(CBM_STORE_CORRUPT_MESSAGE, CBM_STORE_CORRUPT_HINT)
+                : json_error("project not indexed",
+                             "Run 'codebase-memory-cli index .' in the repository or specify an "
+                             "indexed --project.");
         free(project);
         return error;
     }

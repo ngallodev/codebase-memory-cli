@@ -1,4 +1,5 @@
 #include "operations/file_outline.h"
+#include "operations/store_host.h"
 
 #include "foundation/constants.h"
 #include "operations/compact_out.h"
@@ -258,11 +259,14 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
             labels[label_count++] = label;
         }
     }
-    cbm_store_t *store = cbm_store_open(project);
+    cbm_store_open_status_t open_status = CBM_STORE_OPEN_OK;
+    cbm_store_t *store = cbm_store_host_open_query(project, &open_status);
     if (!store) {
         free(project);
         yyjson_doc_free(doc);
-        return outline_error("project not found or not indexed");
+        return outline_error(open_status == CBM_STORE_OPEN_CORRUPT
+                                 ? CBM_STORE_CORRUPT_ERROR
+                                 : "project not found or not indexed");
     }
     cbm_project_t info = {0};
     if (cbm_store_get_project(store, project, &info) != CBM_STORE_OK) {

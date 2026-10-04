@@ -9,6 +9,7 @@
 #include "foundation/workspace.h"
 #include "operations/command_runner.h"
 #include "operations/compact_out.h"
+#include "operations/store_host.h"
 #include "store/store.h"
 #include "yyjson/yyjson.h"
 
@@ -104,7 +105,11 @@ static cbm_operation_result_t source_error(const char *message) {
     return cbm_operation_result_copy(message ? message : "source search failed", true);
 }
 
-static cbm_operation_result_t source_project_error(const char *project) {
+static cbm_operation_result_t source_project_error(const char *project,
+                                                   cbm_store_open_status_t open_status) {
+    if (open_status == CBM_STORE_OPEN_CORRUPT) {
+        return source_error(CBM_STORE_CORRUPT_ERROR);
+    }
     if (!project) {
         return source_error("{\"error\":\"missing required argument: project\",\"hint\":\"Pass the "
                             "project argument. Run projects to see indexed projects.\"}");
@@ -113,11 +118,13 @@ static cbm_operation_result_t source_project_error(const char *project) {
                         "to see indexed projects.\"}");
 }
 
-static cbm_store_t *source_open_store_and_root(const char *project, char **root_path_out) {
+static cbm_store_t *source_open_store_and_root(const char *project, char **root_path_out,
+                                               cbm_store_open_status_t *open_status) {
     *root_path_out = NULL;
+    *open_status = CBM_STORE_OPEN_NOT_FOUND;
     if (!project || !project[0])
         return NULL;
-    cbm_store_t *store = cbm_store_open(project);
+    cbm_store_t *store = cbm_store_host_open_query(project, open_status);
     if (!store)
         return NULL;
     cbm_project_t info = {0};
@@ -313,6 +320,36 @@ bool cbm_search_code_file_pattern_can_prefilter(const char *file_pattern) {
     return true;
 }
 
+bool cbm_search_code_windows_path_matches_prefilter(const char *path, const char *file_pattern) {
+    if (!path || !cbm_search_code_file_pattern_can_prefilter(file_pattern)) {
+        return false;
+    }
+
+    const char *suffix = file_pattern + 1;
+    size_t path_len = strlen(path);
+    size_t suffix_len = strlen(suffix);
+    if (path_len < suffix_len) {
+        return false;
+    }
+
+    const unsigned char *candidate = (const unsigned char *)path + path_len - suffix_len;
+    const unsigned char *expected = (const unsigned char *)suffix;
+    for (size_t i = 0; i < suffix_len; i++) {
+        unsigned char left = candidate[i];
+        unsigned char right = expected[i];
+        if (left >= 'A' && left <= 'Z') {
+            left = (unsigned char)(left - 'A' + 'a');
+        }
+        if (right >= 'A' && right <= 'Z') {
+            right = (unsigned char)(right - 'A' + 'a');
+        }
+        if (left != right) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /* Build the grep/search command string based on scoped vs recursive mode.
  * On Windows, uses PowerShell Select-String with tab-delimited output.
  * On POSIX, uses grep with colon-delimited output. */
@@ -332,30 +369,16 @@ void cbm_search_code_build_grep_cmd(char *cmd, size_t cmd_sz, bool use_regex, bo
     const char *sm = use_regex ? "" : " -SimpleMatch";
     if (scoped) {
         if (file_pattern) {
-            if (cbm_search_code_file_pattern_can_prefilter(file_pattern)) {
-                snprintf(
-                    cmd, cmd_sz,
-                    "powershell -Command \"" SOURCE_PS_UTF8_PRELUDE
-                    "$pat = Get-Content -Encoding UTF8 -LiteralPath '%s'; "
-                    "Get-Content -Encoding UTF8 -LiteralPath '%s'"
-                    " | Where-Object { $_ -like '%s' }"
-                    " | ForEach-Object { Select-String -LiteralPath $_ -Pattern $pat%s "
-                    "-ErrorAction SilentlyContinue }"
-                    " | Where-Object { $_.Path -like '*%s' }"
-                    " | ForEach-Object { $_.Path + [char]9 + $_.LineNumber + [char]9 + $_.Line }\"",
-                    tmpfile, filelist, file_pattern, sm, file_pattern);
-            } else {
-                snprintf(
-                    cmd, cmd_sz,
-                    "powershell -Command \"" SOURCE_PS_UTF8_PRELUDE
-                    "$pat = Get-Content -Encoding UTF8 -LiteralPath '%s'; "
-                    "Get-Content -Encoding UTF8 -LiteralPath '%s' | ForEach-Object { Select-String "
-                    "-LiteralPath $_ -Pattern $pat%s "
-                    "-ErrorAction SilentlyContinue }"
-                    " | Where-Object { $_.Path -like '*%s' }"
-                    " | ForEach-Object { $_.Path + [char]9 + $_.LineNumber + [char]9 + $_.Line }\"",
-                    tmpfile, filelist, sm, file_pattern);
-            }
+            snprintf(
+                cmd, cmd_sz,
+                "powershell -Command \"" SOURCE_PS_UTF8_PRELUDE
+                "$pat = Get-Content -Encoding UTF8 -LiteralPath '%s'; "
+                "Get-Content -Encoding UTF8 -LiteralPath '%s' | ForEach-Object { Select-String "
+                "-LiteralPath $_ -Pattern $pat%s "
+                "-ErrorAction SilentlyContinue }"
+                " | Where-Object { $_.Path -like '*%s' }"
+                " | ForEach-Object { $_.Path + [char]9 + $_.LineNumber + [char]9 + $_.Line }\"",
+                tmpfile, filelist, sm, file_pattern);
         } else {
             snprintf(
                 cmd, cmd_sz,
@@ -997,8 +1020,11 @@ static void classify_all_grep_hits(grep_match_t *gm, int gm_count, cbm_store_t *
  * created inside the private scratch directory; this function never opens or
  * closes it, so the list is never reachable through a predictable pathname. */
 static bool write_scoped_filelist(cbm_store_t *pre_store, const char *project,
-                                  const char *root_path, FILE *fl, bool has_path_filter,
-                                  cbm_regex_t *path_regex, int *out_written) {
+                                  const char *root_path, FILE *fl, const char *file_pattern,
+                                  bool has_path_filter, cbm_regex_t *path_regex, int *out_written) {
+#ifndef _WIN32
+    (void)file_pattern;
+#endif
     *out_written = 0;
     if (!pre_store) {
         return false;
@@ -1034,6 +1060,12 @@ static bool write_scoped_filelist(cbm_store_t *pre_store, const char *project,
                     continue;
                 }
             }
+#ifdef _WIN32
+            if (cbm_search_code_file_pattern_can_prefilter(file_pattern) &&
+                !cbm_search_code_windows_path_matches_prefilter(indexed_files[fi], file_pattern)) {
+                continue;
+            }
+#endif
             size_t root_len = strlen(root_path);
             size_t file_len = strlen(indexed_files[fi]);
             if (root_len > SIZE_MAX - file_len - 2) {
@@ -1363,13 +1395,14 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
     if (!project) {
         free(pattern);
         free(file_pattern);
-        return source_project_error(NULL);
+        return source_project_error(NULL, CBM_STORE_OPEN_NOT_FOUND);
     }
 
     char *root_path = NULL;
-    cbm_store_t *store = source_open_store_and_root(project, &root_path);
+    cbm_store_open_status_t open_status = CBM_STORE_OPEN_NOT_FOUND;
+    cbm_store_t *store = source_open_store_and_root(project, &root_path, &open_status);
     if (!store) {
-        cbm_operation_result_t error = source_project_error(project);
+        cbm_operation_result_t error = source_project_error(project, open_status);
         free(pattern);
         free(project);
         free(file_pattern);
@@ -1496,8 +1529,9 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
 
     uint64_t scope_t0 = metrics.include_phase_timings ? cbm_now_ms() : 0;
     if (!scan_cancellation_latched && !scan_deadline_latched) {
-        scoped = write_scoped_filelist(store, project, root_path, scratch.filelist, has_path_filter,
-                                       has_path_filter ? &path_regex : NULL, &scoped_written);
+        scoped = write_scoped_filelist(store, project, root_path, scratch.filelist, file_pattern,
+                                       has_path_filter, has_path_filter ? &path_regex : NULL,
+                                       &scoped_written);
     }
     /* Close before grep runs: this is what flushes the records the helper wrote
      * through the descriptor. Clearing the field hands ownership to

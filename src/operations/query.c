@@ -1,4 +1,5 @@
 #include "operations/query.h"
+#include "operations/store_host.h"
 
 #include "cypher/cypher.h"
 #include "store/store.h"
@@ -79,11 +80,14 @@ cbm_operation_result_t cbm_query_operation_execute(const char *args_json) {
         return error_result("project is required");
     }
 
-    cbm_store_t *store = cbm_store_open(project);
+    cbm_store_open_status_t open_status = CBM_STORE_OPEN_OK;
+    cbm_store_t *store = cbm_store_host_open_query(project, &open_status);
     if (!store) {
         free(query);
         free(project);
-        return error_result("project not found or not indexed");
+        return error_result(open_status == CBM_STORE_OPEN_CORRUPT
+                                ? CBM_STORE_CORRUPT_ERROR
+                                : "project not found or not indexed");
     }
     if (cbm_store_count_nodes(store, project) <= 0) {
         cbm_store_close(store);

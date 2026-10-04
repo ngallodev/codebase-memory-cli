@@ -33,6 +33,9 @@
 #include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef CBM_VERSION
+#define CBM_VERSION "dev"
+#endif
 #ifndef _WIN32
 #include <sys/stat.h>
 #endif
@@ -1514,6 +1517,23 @@ TEST(ui_server_ui_config_detects_zh_accept_language) {
     PASS();
 }
 
+TEST(ui_server_ui_config_includes_serving_version_issue1820) {
+    th_server_t ts;
+    ASSERT_EQ(th_server_start(&ts), 0);
+
+    char resp[4096];
+    int n = th_http(cbm_http_server_port(ts.srv), "GET /api/ui-config HTTP/1.1\r\n\r\n", resp,
+                    sizeof(resp));
+    ASSERT_TRUE(n > 0);
+    ASSERT_EQ(th_status(resp), 200);
+    char expected_version[128];
+    snprintf(expected_version, sizeof(expected_version), "\"version\":\"%s\"", CBM_VERSION);
+    ASSERT_NOT_NULL(strstr(resp, expected_version));
+
+    th_server_stop(&ts);
+    PASS();
+}
+
 TEST(ui_server_ui_config_prefers_config_lang) {
     char tmpdir[256];
     snprintf(tmpdir, sizeof(tmpdir), "/tmp/cbm_httpd_cfg_XXXXXX");
@@ -1917,8 +1937,7 @@ TEST(ui_server_index_status_responds_under_watchdog) {
     th_server_t ts;
     ASSERT_EQ(th_server_start(&ts), 0);
     char resp[8192];
-    int n = th_http_deadline(cbm_http_server_port(ts.srv),
-                             "GET /api/index-status HTTP/1.1\r\n\r\n",
+    int n = th_http_deadline(cbm_http_server_port(ts.srv), "GET /api/index-status HTTP/1.1\r\n\r\n",
                              resp, sizeof(resp), 15000);
     th_server_stop(&ts);
     ASSERT_GT(n, 0);
@@ -2313,7 +2332,7 @@ SUITE(httpd) {
     RUN_TEST(ui_server_same_origin_request_is_allowed);
     RUN_TEST(ui_server_rejects_foreign_and_null_origins);
     RUN_TEST(ui_server_mutations_require_json_content_type);
-        RUN_TEST(ui_server_oversized_body_rejected);
+    RUN_TEST(ui_server_oversized_body_rejected);
     RUN_TEST(ui_server_encoded_slash_not_routed);
     RUN_TEST(ui_server_nul_in_target_rejected);
     RUN_TEST(ui_server_browse_traversal_probe);
@@ -2328,6 +2347,7 @@ SUITE(httpd) {
     RUN_TEST(ui_server_delete_project_invalid_name_keeps_watch);
     RUN_TEST(ui_server_delete_project_unlink_failure_keeps_watch);
     RUN_TEST(ui_server_ui_config_detects_zh_accept_language);
+    RUN_TEST(ui_server_ui_config_includes_serving_version_issue1820);
     RUN_TEST(ui_server_ui_config_prefers_config_lang);
     RUN_TEST(ui_server_slow_request_hits_deadline);
     RUN_TEST(ui_server_access_log_redacts_query);

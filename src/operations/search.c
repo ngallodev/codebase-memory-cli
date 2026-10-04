@@ -1,4 +1,5 @@
 #include "operations/search.h"
+#include "operations/store_host.h"
 
 #include "foundation/constants.h"
 #include "foundation/platform.h"
@@ -163,7 +164,8 @@ static char *file_pattern_like(const char *pattern) {
     return contains;
 }
 
-static cbm_store_t *open_indexed_project(const char *project) {
+static cbm_store_t *open_indexed_project(const char *project,
+                                         cbm_store_open_status_t *open_status) {
     if (!project || !cbm_validate_project_name(project))
         return NULL;
     const char *cache_dir = cbm_resolve_cache_dir();
@@ -175,7 +177,7 @@ static cbm_store_t *open_indexed_project(const char *project) {
     if (n <= 0 || (size_t)n >= sizeof(db_path))
         return NULL;
 
-    cbm_store_t *store = cbm_store_open_path_query(db_path);
+    cbm_store_t *store = cbm_store_host_open_query_path(db_path, open_status);
     if (!store)
         return NULL;
     cbm_project_t indexed = {0};
@@ -509,6 +511,7 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
 
     cbm_operation_result_t result = {0};
     cbm_store_t *store = NULL;
+    cbm_store_open_status_t open_status = CBM_STORE_OPEN_NOT_FOUND;
     cbm_search_output_t output = {0};
     cbm_vector_result_t *vectors = NULL;
     int vector_count = 0;
@@ -522,9 +525,12 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
         result = error_result("relationship must be uppercase letters and underscores", NULL);
         goto done;
     }
-    store = open_indexed_project(project);
+    store = open_indexed_project(project, &open_status);
     if (!store) {
-        result = error_result("project not indexed", "Run 'codebase-memory-cli index .' first.");
+        result =
+            open_status == CBM_STORE_OPEN_CORRUPT
+                ? error_result(CBM_STORE_CORRUPT_MESSAGE, CBM_STORE_CORRUPT_HINT)
+                : error_result("project not indexed", "Run 'codebase-memory-cli index .' first.");
         goto done;
     }
 

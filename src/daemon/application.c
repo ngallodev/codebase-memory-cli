@@ -905,15 +905,22 @@ static bool application_append_quarantine(const char *path, const char *relative
 }
 
 static int application_max_restarts(void) {
-    char value[32] = {0};
-    if (!cbm_safe_getenv("CBM_INDEX_MAX_RESTARTS", value, sizeof(value), NULL) || !value[0]) {
+    long v = 0;
+    if (!cbm_env_long("CBM_INDEX_MAX_RESTARTS", &v)) {
+        /* Unset is the ordinary case and says nothing. A value that is set but
+         * unreadable is a person's intent being dropped, so name it. */
+        char raw[64] = {0};
+        if (cbm_safe_getenv("CBM_INDEX_MAX_RESTARTS", raw, sizeof(raw), NULL) && raw[0]) {
+            cbm_log_warn("index.restart_cap.ignored", "value", raw, "action", "using_default");
+        }
         return APPLICATION_DEFAULT_MAX_RESTARTS;
     }
-    char *end = NULL;
-    long parsed = strtol(value, &end, 10);
-    return end && *end == '\0' && parsed > 0 && parsed <= INT_MAX
-               ? (int)parsed
-               : APPLICATION_DEFAULT_MAX_RESTARTS;
+    /* Zero is a real answer meaning no recovery rounds. */
+    if (v < 0 || v > INT_MAX) {
+        cbm_log_warn("index.restart_cap.out_of_range", "action", "using_default");
+        return APPLICATION_DEFAULT_MAX_RESTARTS;
+    }
+    return (int)v;
 }
 
 static void application_attempt_init(application_attempt_t *attempt) {

@@ -42,35 +42,11 @@ enum TokenType {
 
 #define OPERATOR_COUNT 20
 
-const char* OPERATORS[OPERATOR_COUNT] = {
-    "->",
-    ".",
-    "&&",
-    "||",
-    "??",
-    "=",
-    "==",
-    "+",
-    "-",
-    "!",
-    "throws",
-    "rethrows",
-    "default",
-    "where",
-    "else",
-    "catch",
-    "as",
-    "as?",
-    "as!",
-    "async"
-};
+const char *OPERATORS[OPERATOR_COUNT] = {
+    "->",     ".",        "&&",      "||",    "??",   "=",     "==", "+",   "-",   "!",
+    "throws", "rethrows", "default", "where", "else", "catch", "as", "as?", "as!", "async"};
 
-enum IllegalTerminatorGroup {
-    ALPHANUMERIC,
-    OPERATOR_SYMBOLS,
-    OPERATOR_OR_DOT,
-    NON_WHITESPACE
-};
+enum IllegalTerminatorGroup { ALPHANUMERIC, OPERATOR_SYMBOLS, OPERATOR_OR_DOT, NON_WHITESPACE };
 
 const enum IllegalTerminatorGroup OP_ILLEGAL_TERMINATORS[OPERATOR_COUNT] = {
     OPERATOR_SYMBOLS, // ->
@@ -95,90 +71,59 @@ const enum IllegalTerminatorGroup OP_ILLEGAL_TERMINATORS[OPERATOR_COUNT] = {
     ALPHANUMERIC      // async
 };
 
-const enum TokenType OP_SYMBOLS[OPERATOR_COUNT] = {
-    ARROW_OPERATOR,
-    DOT_OPERATOR,
-    CONJUNCTION_OPERATOR,
-    DISJUNCTION_OPERATOR,
-    NIL_COALESCING_OPERATOR,
-    EQUAL_SIGN,
-    EQ_EQ,
-    PLUS_THEN_WS,
-    MINUS_THEN_WS,
-    BANG,
-    THROWS_KEYWORD,
-    RETHROWS_KEYWORD,
-    DEFAULT_KEYWORD,
-    WHERE_KEYWORD,
-    ELSE_KEYWORD,
-    CATCH_KEYWORD,
-    AS_KEYWORD,
-    AS_QUEST,
-    AS_BANG,
-    ASYNC_KEYWORD
-};
+const enum TokenType OP_SYMBOLS[OPERATOR_COUNT] = {ARROW_OPERATOR,
+                                                   DOT_OPERATOR,
+                                                   CONJUNCTION_OPERATOR,
+                                                   DISJUNCTION_OPERATOR,
+                                                   NIL_COALESCING_OPERATOR,
+                                                   EQUAL_SIGN,
+                                                   EQ_EQ,
+                                                   PLUS_THEN_WS,
+                                                   MINUS_THEN_WS,
+                                                   BANG,
+                                                   THROWS_KEYWORD,
+                                                   RETHROWS_KEYWORD,
+                                                   DEFAULT_KEYWORD,
+                                                   WHERE_KEYWORD,
+                                                   ELSE_KEYWORD,
+                                                   CATCH_KEYWORD,
+                                                   AS_KEYWORD,
+                                                   AS_QUEST,
+                                                   AS_BANG,
+                                                   ASYNC_KEYWORD};
 
 const uint64_t OP_SYMBOL_SUPPRESSOR[OPERATOR_COUNT] = {
-    0, // ARROW_OPERATOR,
-    0, // DOT_OPERATOR,
-    0, // CONJUNCTION_OPERATOR,
-    0, // DISJUNCTION_OPERATOR,
-    0, // NIL_COALESCING_OPERATOR,
-    0, // EQUAL_SIGN,
-    0, // EQ_EQ,
-    0, // PLUS_THEN_WS,
-    0, // MINUS_THEN_WS,
-    1UL << FAKE_TRY_BANG, // BANG,
-        0, // THROWS_KEYWORD,
-        0, // RETHROWS_KEYWORD,
-        0, // DEFAULT_KEYWORD,
-        0, // WHERE_KEYWORD,
-        0, // ELSE_KEYWORD,
-        0, // CATCH_KEYWORD,
-        0, // AS_KEYWORD,
-        0, // AS_QUEST,
-        0, // AS_BANG,
-        0, // ASYNC_KEYWORD
+    0,                     // ARROW_OPERATOR,
+    0,                     // DOT_OPERATOR,
+    0,                     // CONJUNCTION_OPERATOR,
+    0,                     // DISJUNCTION_OPERATOR,
+    0,                     // NIL_COALESCING_OPERATOR,
+    0,                     // EQUAL_SIGN,
+    0,                     // EQ_EQ,
+    0,                     // PLUS_THEN_WS,
+    0,                     // MINUS_THEN_WS,
+    1ULL << FAKE_TRY_BANG, // BANG,
+    0,                     // THROWS_KEYWORD,
+    0,                     // RETHROWS_KEYWORD,
+    0,                     // DEFAULT_KEYWORD,
+    0,                     // WHERE_KEYWORD,
+    0,                     // ELSE_KEYWORD,
+    0,                     // CATCH_KEYWORD,
+    0,                     // AS_KEYWORD,
+    0,                     // AS_QUEST,
+    0,                     // AS_BANG,
+    0,                     // ASYNC_KEYWORD
 };
 
 #define RESERVED_OP_COUNT 31
 
-const char* RESERVED_OPS[RESERVED_OP_COUNT] = {
-    "/",
-    "=",
-    "-",
-    "+",
-    "!",
-    "*",
-    "%",
-    "<",
-    ">",
-    "&",
-    "|",
-    "^",
-    "?",
-    "~",
-    ".",
-    "..",
-    "->",
-    "/*",
-    "*/",
-    "+=",
-    "-=",
-    "*=",
-    "/=",
-    "%=",
-    ">>",
-    "<<",
-    "++",
-    "--",
-    "===",
-    "...",
-    "..<"
-};
+const char *RESERVED_OPS[RESERVED_OP_COUNT] = {"/",  "=",  "-",  "+",  "!",   "*",   "%",  "<",
+                                               ">",  "&",  "|",  "^",  "?",   "~",   ".",  "..",
+                                               "->", "/*", "*/", "+=", "-=",  "*=",  "/=", "%=",
+                                               ">>", "<<", "++", "--", "===", "...", "..<"};
 
 static bool is_cross_semi_token(enum TokenType op) {
-    switch(op) {
+    switch (op) {
     case ARROW_OPERATOR:
     case DOT_OPERATOR:
     case CONJUNCTION_OPERATOR:
@@ -207,7 +152,8 @@ static bool is_cross_semi_token(enum TokenType op) {
 }
 
 #define NON_CONSUMING_CROSS_SEMI_CHAR_COUNT 3
-const uint32_t NON_CONSUMING_CROSS_SEMI_CHARS[NON_CONSUMING_CROSS_SEMI_CHAR_COUNT] = { '?', ':', '{' };
+const uint32_t NON_CONSUMING_CROSS_SEMI_CHARS[NON_CONSUMING_CROSS_SEMI_CHAR_COUNT] = {'?', ':',
+                                                                                      '{'};
 
 /**
  * All possible results of having performed some sort of parsing.
@@ -216,9 +162,9 @@ const uint32_t NON_CONSUMING_CROSS_SEMI_CHARS[NON_CONSUMING_CROSS_SEMI_CHAR_COUN
  * 1. Should the scanner continue trying to find another result?
  * 2. Was some result produced by this parsing attempt?
  *
- * These are flattened into a single enum together. When the function returns one of the `TOKEN_FOUND` cases, it
- * will always populate its `symbol_result` field. When it returns one of the `STOP_PARSING` cases, callers should
- * immediately return (with the value, if there is one).
+ * These are flattened into a single enum together. When the function returns one of the
+ * `TOKEN_FOUND` cases, it will always populate its `symbol_result` field. When it returns one of
+ * the `STOP_PARSING` cases, callers should immediately return (with the value, if there is one).
  */
 enum ParseDirective {
     CONTINUE_PARSING_NOTHING_FOUND,
@@ -256,21 +202,14 @@ unsigned tree_sitter_swift_external_scanner_serialize(void *payload, char *buffe
     return 4;
 }
 
-void tree_sitter_swift_external_scanner_deserialize(
-    void *payload,
-    const char *buffer,
-    unsigned length
-) {
+void tree_sitter_swift_external_scanner_deserialize(void *payload, const char *buffer,
+                                                    unsigned length) {
     if (length < 4) {
         return;
     }
 
-    uint32_t hash_count = (
-                              (((uint32_t) buffer[0]) << 24) |
-                              (((uint32_t) buffer[1]) << 16) |
-                              (((uint32_t) buffer[2]) << 8) |
-                              (((uint32_t) buffer[3]))
-                          );
+    uint32_t hash_count = ((((uint32_t)buffer[0]) << 24) | (((uint32_t)buffer[1]) << 16) |
+                           (((uint32_t)buffer[2]) << 8) | (((uint32_t)buffer[3])));
     struct ScannerState *state = (struct ScannerState *)payload;
     state->ongoing_raw_str_hash_count = hash_count;
 }
@@ -280,7 +219,7 @@ static void advance(TSLexer *lexer) {
 }
 
 static bool should_treat_as_wspace(int32_t character) {
-    return iswspace(character) || (((int32_t) ';') == character);
+    return iswspace(character) || (((int32_t)';') == character);
 }
 
 static int32_t encountered_op_count(bool *encountered_operator) {
@@ -304,11 +243,7 @@ static bool any_reserved_ops(uint8_t *encountered_reserved_ops) {
     return false;
 }
 
-static bool is_legal_custom_operator(
-    int32_t char_idx,
-    int32_t first_char,
-    int32_t cur_char
-) {
+static bool is_legal_custom_operator(int32_t char_idx, int32_t first_char, int32_t cur_char) {
     bool is_first_char = !char_idx;
     switch (cur_char) {
     case '=':
@@ -329,22 +264,15 @@ static bool is_legal_custom_operator(
         return is_first_char || first_char == '.';
     case '*':
     case '/':
-        // Not listed in the grammar, but `/*` and `//` can't be the start of an operator since they start comments
+        // Not listed in the grammar, but `/*` and `//` can't be the start of an operator since they
+        // start comments
         return char_idx != 1 || first_char != '/';
     default:
-        if (
-            (cur_char >= 0x00A1 && cur_char <= 0x00A7) ||
-            (cur_char == 0x00A9) ||
-            (cur_char == 0x00AB) ||
-            (cur_char == 0x00AC) ||
-            (cur_char == 0x00AE) ||
-            (cur_char >= 0x00B0 && cur_char <= 0x00B1) ||
-            (cur_char == 0x00B6) ||
-            (cur_char == 0x00BB) ||
-            (cur_char == 0x00BF) ||
-            (cur_char == 0x00D7) ||
-            (cur_char == 0x00F7) ||
-            (cur_char >= 0x2016 && cur_char <= 0x2017) ||
+        if ((cur_char >= 0x00A1 && cur_char <= 0x00A7) || (cur_char == 0x00A9) ||
+            (cur_char == 0x00AB) || (cur_char == 0x00AC) || (cur_char == 0x00AE) ||
+            (cur_char >= 0x00B0 && cur_char <= 0x00B1) || (cur_char == 0x00B6) ||
+            (cur_char == 0x00BB) || (cur_char == 0x00BF) || (cur_char == 0x00D7) ||
+            (cur_char == 0x00F7) || (cur_char >= 0x2016 && cur_char <= 0x2017) ||
             (cur_char >= 0x2020 && cur_char <= 0x2027) ||
             (cur_char >= 0x2030 && cur_char <= 0x203E) ||
             (cur_char >= 0x2041 && cur_char <= 0x2053) ||
@@ -354,18 +282,14 @@ static bool is_legal_custom_operator(
             (cur_char >= 0x2794 && cur_char <= 0x2BFF) ||
             (cur_char >= 0x2E00 && cur_char <= 0x2E7F) ||
             (cur_char >= 0x3001 && cur_char <= 0x3003) ||
-            (cur_char >= 0x3008 && cur_char <= 0x3020) ||
-            (cur_char == 0x3030)
-        ) {
+            (cur_char >= 0x3008 && cur_char <= 0x3020) || (cur_char == 0x3030)) {
             return true;
-        } else if (
-            (cur_char >= 0x0300 && cur_char <= 0x036f) ||
-            (cur_char >= 0x1DC0 && cur_char <= 0x1DFF) ||
-            (cur_char >= 0x20D0 && cur_char <= 0x20FF) ||
-            (cur_char >= 0xFE00 && cur_char <= 0xFE0F) ||
-            (cur_char >= 0xFE20 && cur_char <= 0xFE2F) ||
-            (cur_char >= 0xE0100 && cur_char <= 0xE01EF)
-        ) {
+        } else if ((cur_char >= 0x0300 && cur_char <= 0x036f) ||
+                   (cur_char >= 0x1DC0 && cur_char <= 0x1DFF) ||
+                   (cur_char >= 0x20D0 && cur_char <= 0x20FF) ||
+                   (cur_char >= 0xFE00 && cur_char <= 0xFE0F) ||
+                   (cur_char >= 0xFE20 && cur_char <= 0xFE2F) ||
+                   (cur_char >= 0xE0100 && cur_char <= 0xE01EF)) {
             return !is_first_char;
         } else {
             return false;
@@ -373,17 +297,13 @@ static bool is_legal_custom_operator(
     }
 }
 
-static bool eat_operators(
-    TSLexer *lexer,
-    const bool *valid_symbols,
-    bool mark_end,
-    const int32_t prior_char,
-    enum TokenType *symbol_result
-) {
+static bool eat_operators(TSLexer *lexer, const bool *valid_symbols, bool mark_end,
+                          const int32_t prior_char, enum TokenType *symbol_result) {
     bool possible_operators[OPERATOR_COUNT];
     uint8_t reserved_operators[RESERVED_OP_COUNT];
     for (int op_idx = 0; op_idx < OPERATOR_COUNT; op_idx++) {
-        possible_operators[op_idx] = valid_symbols[OP_SYMBOLS[op_idx]] && (!prior_char || OPERATORS[op_idx][0] == prior_char);
+        possible_operators[op_idx] = valid_symbols[OP_SYMBOLS[op_idx]] &&
+                                     (!prior_char || OPERATORS[op_idx][0] == prior_char);
     }
     for (int op_idx = 0; op_idx < RESERVED_OP_COUNT; op_idx++) {
         reserved_operators[op_idx] = !prior_char || RESERVED_OPS[op_idx][0] == prior_char;
@@ -395,14 +315,15 @@ static bool eat_operators(
 
     int32_t str_idx = prior_char ? 1 : 0;
     int32_t full_match = -1;
-    while(true) {
+    while (true) {
         for (int op_idx = 0; op_idx < OPERATOR_COUNT; op_idx++) {
             if (!possible_operators[op_idx]) {
                 continue;
             }
 
             if (OPERATORS[op_idx][str_idx] == '\0') {
-                // Make sure that the operator is allowed to have the next character as its lookahead.
+                // Make sure that the operator is allowed to have the next character as its
+                // lookahead.
                 enum IllegalTerminatorGroup illegal_terminators = OP_ILLEGAL_TERMINATORS[op_idx];
                 switch (lexer->lookahead) {
                 // See "Operators":
@@ -476,11 +397,8 @@ static bool eat_operators(
             }
         }
 
-        possible_custom_operator = possible_custom_operator && is_legal_custom_operator(
-                                       str_idx,
-                                       first_char,
-                                       lexer->lookahead
-                                   );
+        possible_custom_operator = possible_custom_operator &&
+                                   is_legal_custom_operator(str_idx, first_char, lexer->lookahead);
 
         uint32_t encountered_ops = encountered_op_count(possible_operators);
         if (encountered_ops == 0) {
@@ -495,23 +413,20 @@ static bool eat_operators(
         lexer->advance(lexer, false);
         str_idx += 1;
 
-        if (encountered_ops == 0 && !is_legal_custom_operator(
-                    str_idx,
-                    first_char,
-                    lexer->lookahead
-                )) {
+        if (encountered_ops == 0 &&
+            !is_legal_custom_operator(str_idx, first_char, lexer->lookahead)) {
             break;
         }
     }
 
     if (full_match != -1) {
-        // We have a match -- first see if that match has a symbol that suppresses it. For example, in `try!`, we do not
-        // want to emit the `!` as a symbol in our scanner, because we want the parser to have the chance to parse it as
-        // an immediate token.
+        // We have a match -- first see if that match has a symbol that suppresses it. For example,
+        // in `try!`, we do not want to emit the `!` as a symbol in our scanner, because we want the
+        // parser to have the chance to parse it as an immediate token.
         uint64_t suppressing_symbols = OP_SYMBOL_SUPPRESSOR[full_match];
         if (suppressing_symbols) {
             for (uint64_t suppressor = 0; suppressor < TOKEN_COUNT; suppressor++) {
-                if (!(suppressing_symbols & 1 << suppressor)) {
+                if (!(suppressing_symbols & 1ULL << suppressor)) {
                     continue;
                 }
 
@@ -536,12 +451,8 @@ static bool eat_operators(
     return false;
 }
 
-static enum ParseDirective eat_comment(
-    TSLexer *lexer,
-    const bool *valid_symbols,
-    bool mark_end,
-    enum TokenType *symbol_result
-) {
+static enum ParseDirective eat_comment(TSLexer *lexer, const bool *valid_symbols, bool mark_end,
+                                       enum TokenType *symbol_result) {
     if (lexer->lookahead != '/') {
         return CONTINUE_PARSING_NOTHING_FOUND;
     }
@@ -593,11 +504,8 @@ static enum ParseDirective eat_comment(
     }
 }
 
-static enum ParseDirective eat_whitespace(
-    TSLexer *lexer,
-    const bool *valid_symbols,
-    enum TokenType *symbol_result
-) {
+static enum ParseDirective eat_whitespace(TSLexer *lexer, const bool *valid_symbols,
+                                          enum TokenType *symbol_result) {
     enum ParseDirective ws_directive = CONTINUE_PARSING_NOTHING_FOUND;
     bool semi_is_valid = valid_symbols[IMPLICIT_SEMI] && valid_symbols[EXPLICIT_SEMI];
     uint32_t lookahead;
@@ -615,7 +523,8 @@ static enum ParseDirective eat_whitespace(
 
         lexer->mark_end(lexer);
 
-        if (ws_directive == CONTINUE_PARSING_NOTHING_FOUND && (lookahead == '\n' || lookahead == '\r')) {
+        if (ws_directive == CONTINUE_PARSING_NOTHING_FOUND &&
+            (lookahead == '\n' || lookahead == '\r')) {
             ws_directive = CONTINUE_PARSING_TOKEN_FOUND;
         }
     }
@@ -624,15 +533,18 @@ static enum ParseDirective eat_whitespace(
     if (ws_directive == CONTINUE_PARSING_TOKEN_FOUND && lookahead == '/') {
         bool has_seen_single_comment = false;
         while (lexer->lookahead == '/') {
-            // It's possible that this is a comment - start an exploratory mission to find out, and if it is, look for what
-            // comes after it. We care about what comes after it for the purpose of suppressing the newline.
+            // It's possible that this is a comment - start an exploratory mission to find out, and
+            // if it is, look for what comes after it. We care about what comes after it for the
+            // purpose of suppressing the newline.
 
             enum TokenType multiline_comment_result;
-            any_comment = eat_comment(lexer, valid_symbols, /* mark_end */ false, &multiline_comment_result);
+            any_comment =
+                eat_comment(lexer, valid_symbols, /* mark_end */ false, &multiline_comment_result);
             if (any_comment == STOP_PARSING_TOKEN_FOUND) {
-                // This is a multiline comment. This scanner should be parsing those, so we might want to bail out and
-                // emit it instead. However, we only want to do that if we haven't advanced through a _single_ line
-                // comment on the way - otherwise that will get lumped into this.
+                // This is a multiline comment. This scanner should be parsing those, so we might
+                // want to bail out and emit it instead. However, we only want to do that if we
+                // haven't advanced through a _single_ line comment on the way - otherwise that will
+                // get lumped into this.
                 if (!has_seen_single_comment) {
                     lexer->mark_end(lexer);
                     *symbol_result = multiline_comment_result;
@@ -641,51 +553,50 @@ static enum ParseDirective eat_whitespace(
             } else if (any_comment == STOP_PARSING_END_OF_FILE) {
                 return STOP_PARSING_END_OF_FILE;
             } else if (any_comment == CONTINUE_PARSING_SLASH_CONSUMED) {
-                // We accidentally ate a slash -- we should actually bail out, say we saw nothing, and let the next pass
-                // take it from after the newline.
+                // We accidentally ate a slash -- we should actually bail out, say we saw nothing,
+                // and let the next pass take it from after the newline.
                 return CONTINUE_PARSING_SLASH_CONSUMED;
             } else if (lexer->lookahead == '/') {
-                // There wasn't a multiline comment, which we know means that the comment parser ate its `/` and then
-                // bailed out. If it had seen anything comment-like after that first `/` it would have continued going
-                // and eventually had a well-formed comment or an EOF. Thus, if we're currently looking at a `/`, it's
-                // the second one of those and it means we have a single-line comment.
+                // There wasn't a multiline comment, which we know means that the comment parser ate
+                // its `/` and then bailed out. If it had seen anything comment-like after that
+                // first `/` it would have continued going and eventually had a well-formed comment
+                // or an EOF. Thus, if we're currently looking at a `/`, it's the second one of
+                // those and it means we have a single-line comment.
                 has_seen_single_comment = true;
                 while (lexer->lookahead != '\n' && lexer->lookahead != '\0') {
                     lexer->advance(lexer, true);
                 }
             } else if (iswspace(lexer->lookahead)) {
-                // We didn't see any type of comment - in fact, we saw an operator that we don't normally treat as an
-                // operator. Still, this is a reason to stop parsing.
+                // We didn't see any type of comment - in fact, we saw an operator that we don't
+                // normally treat as an operator. Still, this is a reason to stop parsing.
                 return STOP_PARSING_NOTHING_FOUND;
             }
 
             // If we skipped through some comment, we're at whitespace now, so advance.
-            while(iswspace(lexer->lookahead)) {
-                any_comment = CONTINUE_PARSING_NOTHING_FOUND; // We're advancing, so clear out the comment
+            while (iswspace(lexer->lookahead)) {
+                any_comment =
+                    CONTINUE_PARSING_NOTHING_FOUND; // We're advancing, so clear out the comment
                 lexer->advance(lexer, true);
             }
         }
 
         enum TokenType operator_result;
-        bool saw_operator = eat_operators(
-                                lexer,
-                                valid_symbols,
-                                /* mark_end */ false,
-                                '\0',
-                                &operator_result
-                            );
+        bool saw_operator = eat_operators(lexer, valid_symbols,
+                                          /* mark_end */ false, '\0', &operator_result);
         if (saw_operator) {
             // The operator we saw should suppress the newline, so bail out.
             return STOP_PARSING_NOTHING_FOUND;
         } else {
-            // Promote the implicit newline to an explicit one so we don't check for operators again.
+            // Promote the implicit newline to an explicit one so we don't check for operators
+            // again.
             *symbol_result = IMPLICIT_SEMI;
             ws_directive = STOP_PARSING_TOKEN_FOUND;
         }
     }
 
-    // Let's consume operators that can live after a "semicolon" style newline. Before we do that, though, we want to
-    // check for a set of characters that we do not consume, but that still suppress the semi.
+    // Let's consume operators that can live after a "semicolon" style newline. Before we do that,
+    // though, we want to check for a set of characters that we do not consume, but that still
+    // suppress the semi.
     if (ws_directive == CONTINUE_PARSING_TOKEN_FOUND) {
         for (int i = 0; i < NON_CONSUMING_CROSS_SEMI_CHAR_COUNT; i++) {
             if (NON_CONSUMING_CROSS_SEMI_CHARS[i] == lookahead) {
@@ -703,19 +614,10 @@ static enum ParseDirective eat_whitespace(
 }
 
 #define DIRECTIVE_COUNT 4
-const char* DIRECTIVES[OPERATOR_COUNT] = {
-    "if",
-    "elseif",
-    "else",
-    "endif"
-};
+const char *DIRECTIVES[OPERATOR_COUNT] = {"if", "elseif", "else", "endif"};
 
-const enum TokenType DIRECTIVE_SYMBOLS[DIRECTIVE_COUNT] = {
-    DIRECTIVE_IF,
-    DIRECTIVE_ELSEIF,
-    DIRECTIVE_ELSE,
-    DIRECTIVE_ENDIF
-};
+const enum TokenType DIRECTIVE_SYMBOLS[DIRECTIVE_COUNT] = {DIRECTIVE_IF, DIRECTIVE_ELSEIF,
+                                                           DIRECTIVE_ELSE, DIRECTIVE_ENDIF};
 
 static enum TokenType find_possible_compiler_directive(TSLexer *lexer) {
     bool possible_directives[DIRECTIVE_COUNT];
@@ -725,7 +627,7 @@ static enum TokenType find_possible_compiler_directive(TSLexer *lexer) {
 
     int32_t str_idx = 0;
     int32_t full_match = -1;
-    while(true) {
+    while (true) {
         for (int dir_idx = 0; dir_idx < DIRECTIVE_COUNT; dir_idx++) {
             if (!possible_directives[dir_idx]) {
                 continue;
@@ -766,12 +668,8 @@ static enum TokenType find_possible_compiler_directive(TSLexer *lexer) {
     return DIRECTIVE_SYMBOLS[full_match];
 }
 
-static bool eat_raw_str_part(
-    struct ScannerState *state,
-    TSLexer *lexer,
-    const bool *valid_symbols,
-    enum TokenType *symbol_result
-) {
+static bool eat_raw_str_part(struct ScannerState *state, TSLexer *lexer, const bool *valid_symbols,
+                             enum TokenType *symbol_result) {
     uint32_t hash_count = state->ongoing_raw_str_hash_count;
     if (!valid_symbols[RAW_STR_PART]) {
         return false;
@@ -859,11 +757,8 @@ static bool eat_raw_str_part(
     return false;
 }
 
-bool tree_sitter_swift_external_scanner_scan(
-    void *payload,
-    TSLexer *lexer,
-    const bool *valid_symbols
-) {
+bool tree_sitter_swift_external_scanner_scan(void *payload, TSLexer *lexer,
+                                             const bool *valid_symbols) {
     // Figure out our scanner state
     struct ScannerState *state = (struct ScannerState *)payload;
 
@@ -883,7 +778,10 @@ bool tree_sitter_swift_external_scanner_scan(
 
     // Now consume comments (before custom operators so that those aren't treated as comments)
     enum TokenType comment_result;
-    enum ParseDirective comment = ws_directive == CONTINUE_PARSING_SLASH_CONSUMED ? ws_directive : eat_comment(lexer, valid_symbols, /* mark_end */ true, &comment_result);
+    enum ParseDirective comment =
+        ws_directive == CONTINUE_PARSING_SLASH_CONSUMED
+            ? ws_directive
+            : eat_comment(lexer, valid_symbols, /* mark_end */ true, &comment_result);
     if (comment == STOP_PARSING_TOKEN_FOUND) {
         lexer->mark_end(lexer);
         lexer->result_symbol = comment_result;
@@ -895,17 +793,15 @@ bool tree_sitter_swift_external_scanner_scan(
     }
     // Now consume any operators that might cause our whitespace to be suppressed.
     enum TokenType operator_result;
-    bool saw_operator = eat_operators(
-                            lexer,
-                            valid_symbols,
-                            /* mark_end */ !has_ws_result,
-                            comment == CONTINUE_PARSING_SLASH_CONSUMED ? '/' : '\0',
-                            &operator_result
-                        );
+    bool saw_operator =
+        eat_operators(lexer, valid_symbols,
+                      /* mark_end */ !has_ws_result,
+                      comment == CONTINUE_PARSING_SLASH_CONSUMED ? '/' : '\0', &operator_result);
 
     if (saw_operator && (!has_ws_result || is_cross_semi_token(operator_result))) {
         lexer->result_symbol = operator_result;
-        if (has_ws_result) lexer->mark_end(lexer);
+        if (has_ws_result)
+            lexer->mark_end(lexer);
         return true;
     }
 
@@ -926,4 +822,3 @@ bool tree_sitter_swift_external_scanner_scan(
 
     return false;
 }
-

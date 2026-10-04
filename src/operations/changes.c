@@ -8,6 +8,7 @@
 #include "foundation/str_util.h"
 #include "operations/command_runner.h"
 #include "operations/compact_out.h"
+#include "operations/store_host.h"
 #include "pipeline/pipeline.h"
 #include "store/store.h"
 #include "yyjson/yyjson.h"
@@ -141,7 +142,11 @@ static cbm_operation_result_t changes_error(const char *message) {
     return cbm_operation_result_copy(message ? message : "detect_changes failed", true);
 }
 
-static cbm_operation_result_t changes_project_error(const char *project) {
+static cbm_operation_result_t changes_project_error(const char *project,
+                                                    cbm_store_open_status_t open_status) {
+    if (open_status == CBM_STORE_OPEN_CORRUPT) {
+        return changes_error(CBM_STORE_CORRUPT_ERROR);
+    }
     if (!project) {
         return changes_error(
             "{\"error\":\"missing required argument: project\",\"hint\":\"Pass the project as the "
@@ -151,11 +156,13 @@ static cbm_operation_result_t changes_project_error(const char *project) {
                          "to see indexed projects.\"}");
 }
 
-static cbm_store_t *changes_open_store_and_root(const char *project, char **root_path_out) {
+static cbm_store_t *changes_open_store_and_root(const char *project, char **root_path_out,
+                                                cbm_store_open_status_t *open_status) {
     *root_path_out = NULL;
+    *open_status = CBM_STORE_OPEN_NOT_FOUND;
     if (!project || !project[0])
         return NULL;
-    cbm_store_t *store = cbm_store_open(project);
+    cbm_store_t *store = cbm_store_host_open_query(project, open_status);
     if (!store)
         return NULL;
     cbm_project_t info = {0};
@@ -398,9 +405,10 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
     }
 
     char *root_path = NULL;
-    cbm_store_t *store = changes_open_store_and_root(project, &root_path);
+    cbm_store_open_status_t open_status = CBM_STORE_OPEN_NOT_FOUND;
+    cbm_store_t *store = changes_open_store_and_root(project, &root_path, &open_status);
     if (!store) {
-        cbm_operation_result_t error = changes_project_error(project);
+        cbm_operation_result_t error = changes_project_error(project, open_status);
         free(project);
         free(base_branch);
         free(scope);

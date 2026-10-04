@@ -1806,7 +1806,15 @@ static int parse_return_or_with(parser_t *p, cbm_return_clause_t **out, bool is_
     /* Projection is materialized per row into fixed-width stack arrays sized at
      * CBM_SZ_32 columns (execute_return_simple and its siblings). Bound the
      * parsed item count to that width so an over-wide RETURN is rejected here
-     * instead of writing past those arrays downstream. */
+     * instead of writing past those arrays downstream.
+     *
+     * WITH is bounded tighter, by CYP_MAX_VARS. Every item a WITH projects
+     * becomes one variable of the binding that carries the rest of the query,
+     * and binding_t holds exactly CYP_MAX_VARS variables. A wider WITH used to
+     * parse, then lose every alias past the 16th in with_add_vbinding_var and
+     * answer with silently blank columns. Refuse it here, the same way an
+     * over-wide RETURN is refused, so the caller sees an error instead of a
+     * short or empty result. */
     if (r->count > (is_with ? CYP_MAX_VARS : CBM_SZ_32)) {
         free_return_clause(r);
         return CBM_NOT_FOUND;
@@ -4321,7 +4329,8 @@ static void execute_with_clause(cbm_query_t *q, binding_t **bindings_ptr, int *b
 
 /* Project RETURN * — all bound variable properties */
 /* Collect all variable names from query patterns */
-/* A variable may be named in multiple patterns, but RETURN * projects it once. */
+/* Has this variable already been collected? A query may name the same variable
+ * in more than one pattern, and RETURN * must give it one set of columns. */
 static bool star_var_seen(const char **vars, int vc, const char *name) {
     for (int i = 0; i < vc; i++) {
         if (strcmp(vars[i], name) == 0) {
@@ -4331,6 +4340,10 @@ static bool star_var_seen(const char **vars, int vc, const char *name) {
     return false;
 }
 
+/* Collect the variables a RETURN * projects, in the order the query names them
+ * and with no repeats. Without the repeat check, `MATCH (f) OPTIONAL MATCH
+ * (f)-[:CALLS]->(g)` names f in two patterns and f gets its four columns
+ * twice. */
 static int collect_pattern_vars(cbm_query_t *q, const char **vars, int max_vars) {
     int vc = 0;
     for (int pi = 0; pi < q->pattern_count; pi++) {
@@ -4395,11 +4408,22 @@ static void project_star_row(binding_t *b, const char **vars, int vc, const char
     }
 }
 
+/* RETURN * after a WITH.
+ *
+ * The pattern's variables are out of scope by this point — the WITH replaced
+ * them with the names it made. Each of those names holds one value, not a
+ * node, so each is ONE column rather than the four a node variable gets.
+ *
+ * Reading the pattern here instead is the fault this function exists to avoid:
+ * it named variables the bindings no longer hold, found nothing for every one
+ * of them, and answered a full result of empty strings with no error. */
 static void execute_return_star_after_with(cbm_query_t *q, binding_t *bindings, int bind_count,
                                            int max_rows, result_builder_t *rb) {
     cbm_return_clause_t *wc = q->with_clause;
     char name_bufs[CYP_MAX_VARS][CBM_SZ_128];
     const char *cols[CYP_MAX_VARS];
+    /* parse_return_or_with refuses a WITH wider than CYP_MAX_VARS, so this
+     * clamp cannot fire. It stays as the bound this function relies on. */
     int col_n = wc->count < CYP_MAX_VARS ? wc->count : CYP_MAX_VARS;
     for (int i = 0; i < col_n; i++) {
         cols[i] = resolve_item_alias(&wc->items[i], name_bufs[i], sizeof(name_bufs[i]));

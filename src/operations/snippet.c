@@ -1,4 +1,5 @@
 #include "operations/operation.h"
+#include "operations/store_host.h"
 
 #include "foundation/compat_fs.h"
 #include "foundation/workspace.h"
@@ -306,10 +307,13 @@ cbm_operation_result_t cbm_snippet_operation_execute(const char *args) {
         free(qualified_name);
         return error_result("qualified_name is required", "Use search first to discover a symbol.");
     }
-    cbm_store_t *store = cbm_store_open(project);
+    cbm_store_open_status_t open_status = CBM_STORE_OPEN_OK;
+    cbm_store_t *store = cbm_store_host_open_query(project, &open_status);
     if (!store) {
         free(project);
         free(qualified_name);
+        if (open_status == CBM_STORE_OPEN_CORRUPT)
+            return error_result(CBM_STORE_CORRUPT_MESSAGE, CBM_STORE_CORRUPT_HINT);
         return error_result("project not indexed", "Run 'codebase-memory-cli index .' first.");
     }
 

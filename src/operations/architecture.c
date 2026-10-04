@@ -1,4 +1,5 @@
 #include "operations/architecture.h"
+#include "operations/store_host.h"
 
 #include "foundation/constants.h"
 #include "operations/compact_out.h"
@@ -517,10 +518,13 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
         free(project);
         return architecture_error("project is required");
     }
-    cbm_store_t *store = cbm_store_open(project);
+    cbm_store_open_status_t open_status = CBM_STORE_OPEN_OK;
+    cbm_store_t *store = cbm_store_host_open_query(project, &open_status);
     if (!store) {
         free(project);
-        return architecture_error("project not found or not indexed");
+        return architecture_error(open_status == CBM_STORE_OPEN_CORRUPT
+                                      ? CBM_STORE_CORRUPT_ERROR
+                                      : "project not found or not indexed");
     }
     char *scope_path = architecture_string_arg(args, "path");
 

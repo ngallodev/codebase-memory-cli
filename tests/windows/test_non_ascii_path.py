@@ -373,7 +373,7 @@ def parse_query_count(text):
 
 
 def index_and_count(binary, repo, cache):
-    """Index `repo` into an isolated cache and return label-resolved counts."""
+    """Start in and index `repo`, then return label-resolved counts."""
     os.makedirs(cache, exist_ok=True)
     indexed = run_cli(binary, cache, ["index", repo, "--json"], timeout=180)
     index_txt = (indexed.stdout or b"").decode("utf-8", "replace")

@@ -1,4 +1,5 @@
 #include "operations/trace.h"
+#include "operations/store_host.h"
 
 #include "foundation/limits.h"
 #include "store/store.h"
@@ -448,8 +449,14 @@ static bool edge_evidence(const cbm_traverse_result_t *result, int64_t node_id,
         *confidence = -1.0;
         const char *conf = strstr(properties, "\"confidence\"");
         const char *colon = conf ? strchr(conf, ':') : NULL;
-        if (colon)
-            *confidence = strtod(colon + 1, NULL);
+        if (colon) {
+            /* strtod answers 0.0 for text it cannot read, and callers publish any value >= 0
+             * as a recorded confidence. Keep the -1 when nothing was parsed. */
+            char *end = NULL;
+            double parsed = strtod(colon + 1, &end);
+            if (end != colon + 1)
+                *confidence = parsed;
+        }
         return true;
     }
     return false;
@@ -562,6 +569,7 @@ cbm_operation_result_t cbm_trace_operation_execute(const char *args) {
 
     cbm_operation_result_t result = {0};
     cbm_store_t *store = NULL;
+    cbm_store_open_status_t open_status = CBM_STORE_OPEN_OK;
     cbm_node_t *nodes = NULL;
     int node_count = 0;
     yyjson_doc *edge_doc = NULL;
@@ -582,9 +590,12 @@ cbm_operation_result_t cbm_trace_operation_execute(const char *args) {
         result = error_result("invalid direction", "Use inbound, outbound, or both.");
         goto done;
     }
-    store = cbm_store_open(project);
+    store = cbm_store_host_open_query(project, &open_status);
     if (!store) {
-        result = error_result("project not indexed", "Run 'codebase-memory-cli index .' first.");
+        result =
+            open_status == CBM_STORE_OPEN_CORRUPT
+                ? error_result(CBM_STORE_CORRUPT_MESSAGE, CBM_STORE_CORRUPT_HINT)
+                : error_result("project not indexed", "Run 'codebase-memory-cli index .' first.");
         goto done;
     }
 

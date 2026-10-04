@@ -421,6 +421,52 @@ void cbm_store_host_invalidate(cbm_store_host_t *host) {
     host->current_project = NULL;
 }
 
+cbm_store_t *cbm_store_host_open_query_path(const char *db_path, cbm_store_open_status_t *status) {
+    if (status)
+        *status = CBM_STORE_OPEN_NOT_FOUND;
+    if (!db_path || !db_path[0])
+        return NULL;
+    cbm_store_t *store = cbm_store_open_path_query(db_path);
+    if (!store)
+        return NULL;
+    if (cbm_store_check_integrity(store)) {
+        if (status)
+            *status = CBM_STORE_OPEN_OK;
+        return store;
+    }
+    /* The shallow check treats any prepare failure as corrupt, including a lost
+     * lock race. Re-open and classify before reporting, without mutating. */
+    cbm_store_close(store);
+    store = cbm_store_open_path_query(db_path);
+    cbm_integrity_verdict_t verdict =
+        store ? cbm_store_check_integrity_verdict(store) : CBM_INTEGRITY_TRANSIENT;
+    if (verdict == CBM_INTEGRITY_OK) {
+        if (status)
+            *status = CBM_STORE_OPEN_OK;
+        return store;
+    }
+    if (store)
+        cbm_store_close(store);
+    if (verdict == CBM_INTEGRITY_CORRUPT) {
+        cbm_log_warn("store.corrupt_readonly", "path", db_path, "action",
+                     "left in place for a write-side rebuild");
+        if (status)
+            *status = CBM_STORE_OPEN_CORRUPT;
+    } else if (status) {
+        *status = CBM_STORE_OPEN_BUSY;
+    }
+    return NULL;
+}
+
+cbm_store_t *cbm_store_host_open_query(const char *project, cbm_store_open_status_t *status) {
+    char path[CBM_SZ_1K];
+    if (!project)
+        path[0] = '\0';
+    else
+        project_db_path(project, path, sizeof(path));
+    return cbm_store_host_open_query_path(path, status);
+}
+
 cbm_store_t *cbm_store_host_resolve(cbm_store_host_t *host, const char *project,
                                     bool mutation_already_held, bool nonblocking_recovery,
                                     cbm_operation_store_recovery_status_t *recovery_status) {

@@ -247,6 +247,18 @@ The upstream indexing engine is intentionally preserved through the CLI-first mi
 
 The first vertical slice does **not** rewrite the graph schema, parser pipeline, store format, or existing indexes.
 
+### Shared graph artifact
+
+`.codebase-memory/graph.db.zst` is an optional zstd-compressed snapshot of the graph that sits next to the source. `codebase-memory-cli index` writes or refreshes it (the watcher refreshes it with a faster, lower-compression tier), and a first `index` on a clone with no local database imports it before running incremental indexing. A `.codebase-memory/.gitattributes` line with `merge=ours` is created on first export so concurrent edits do not conflict on the binary file.
+
+- **Commit it deliberately.** The artifact is rewritten on every index, including the watcher's fast tier, and git stores each rewrite as a full new blob. Committing every refresh turns a 20 MB file into gigabytes of history. Pick a cadence (a release, a milestone, a nightly job) rather than committing every save.
+- **Git LFS, if it must move on every commit.** Track it from the repo-root `.gitattributes` and leave the auto-created `.codebase-memory/.gitattributes` in place; the nearer file keeps supplying `merge=ours`, and only `filter` comes from the root:
+  ```gitattributes
+  .codebase-memory/graph.db.zst filter=lfs diff=lfs merge=lfs -text
+  ```
+  Track only the `.zst`; `artifact.json` is small and carries the schema version. The attribute applies to future commits only, so a repo that already has the blobs in history needs `git-filter-repo` first. GitHub meters LFS storage and bandwidth, and every teammate needs `git lfs install`; without it the checkout leaves a pointer file, the integrity-checked import refuses it, and they fall back to a full reindex.
+- **Optional.** Add `.codebase-memory/` to `.gitignore` if everyone should reindex from scratch.
+
 ## Configuration
 
 Common commands:

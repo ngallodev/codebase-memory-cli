@@ -1,4 +1,5 @@
 #include "operations/operation.h"
+#include "operations/store_host.h"
 
 #include "foundation/platform.h"
 #include "foundation/workspace.h"
@@ -274,10 +275,13 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
         free(project);
         return op_error("project is required", "Run the command from an indexed repository.");
     }
-    cbm_store_t *store = cbm_store_open(project);
+    cbm_store_open_status_t open_status = CBM_STORE_OPEN_OK;
+    cbm_store_t *store = cbm_store_host_open_query(project, &open_status);
     if (!store) {
         cbm_operation_result_t result =
-            op_error("project not indexed", "Run 'codebase-memory-cli index .' first.");
+            open_status == CBM_STORE_OPEN_CORRUPT
+                ? op_error(CBM_STORE_CORRUPT_MESSAGE, CBM_STORE_CORRUPT_HINT)
+                : op_error("project not indexed", "Run 'codebase-memory-cli index .' first.");
         free(project);
         return result;
     }
