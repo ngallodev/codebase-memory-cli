@@ -1,4 +1,5 @@
 #include "operations/result_wire.h"
+#include "operations/json_args.h"
 #include "operations/compare.h"
 
 #include "foundation/compat_fs.h"
@@ -42,16 +43,6 @@ typedef struct {
 
 static bool compare_cancelled(const cbm_operation_runtime_t *runtime) {
     return runtime && runtime->cancelled && runtime->cancelled(runtime->cancelled_context);
-}
-
-static char *compare_strdup(const char *text) {
-    if (!text)
-        return NULL;
-    size_t len = strlen(text);
-    char *copy = malloc(len + 1U);
-    if (copy)
-        memcpy(copy, text, len + 1U);
-    return copy;
 }
 
 static bool compare_project_db_file(const char *name) {
@@ -224,12 +215,12 @@ static bool compare_parse_arguments(const char *args, char **base_project, char 
         yyjson_doc_free(doc);
         return false;
     }
-    *base_project = compare_strdup(yyjson_get_str(base));
-    *target_project = compare_strdup(yyjson_get_str(target));
+    *base_project = cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, yyjson_get_str(base));
+    *target_project = cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, yyjson_get_str(target));
     yyjson_doc_free(doc);
     if (!*base_project || !*target_project) {
-        free(*base_project);
-        free(*target_project);
+        cbm_operation_arg_free(*base_project);
+        cbm_operation_arg_free(*target_project);
         *base_project = NULL;
         *target_project = NULL;
         *error_message = "out of memory while validating arguments";
@@ -430,21 +421,21 @@ cbm_operation_result_t cbm_compare_operation_execute(const char *args_json,
         return compare_error("invalid_arguments", argument_error);
     }
     if (compare_cancelled(runtime)) {
-        free(base_project);
-        free(target_project);
+        cbm_operation_arg_free(base_project);
+        cbm_operation_arg_free(target_project);
         return compare_error("cancelled", "compare_graphs cancelled for this request");
     }
     cbm_store_t *base_store = compare_open_project_store(base_project);
     if (!base_store) {
-        free(base_project);
-        free(target_project);
+        cbm_operation_arg_free(base_project);
+        cbm_operation_arg_free(target_project);
         return compare_error("project_not_indexed", "base project is not indexed");
     }
     cbm_store_t *target_store = compare_open_project_store(target_project);
     if (!target_store) {
         cbm_store_close(base_store);
-        free(base_project);
-        free(target_project);
+        cbm_operation_arg_free(base_project);
+        cbm_operation_arg_free(target_project);
         return compare_error("project_not_indexed", "target project is not indexed");
     }
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -463,8 +454,8 @@ cbm_operation_result_t cbm_compare_operation_execute(const char *args_json,
         cbm_store_close(target_store);
         cbm_store_close(base_store);
         yyjson_mut_doc_free(doc);
-        free(base_project);
-        free(target_project);
+        cbm_operation_arg_free(base_project);
+        cbm_operation_arg_free(target_project);
         return compare_error("allocation_failed", "could not allocate comparison result");
     }
     yyjson_mut_doc_set_root(doc, root);
@@ -476,8 +467,8 @@ cbm_operation_result_t cbm_compare_operation_execute(const char *args_json,
     cbm_store_close(base_store);
     if (rc != CBM_STORE_OK) {
         yyjson_mut_doc_free(doc);
-        free(base_project);
-        free(target_project);
+        cbm_operation_arg_free(base_project);
+        cbm_operation_arg_free(target_project);
         if (rc == CBM_STORE_CANCELLED)
             return compare_error("cancelled", "compare_graphs cancelled for this request");
         if (rc == CBM_STORE_NOT_FOUND)
@@ -516,8 +507,8 @@ cbm_operation_result_t cbm_compare_operation_execute(const char *args_json,
         yyjson_mut_obj_add_uint(doc, limits, "scan_limit", scan_limit) &&
         yyjson_mut_obj_add_uint(doc, limits, "encoded_byte_budget", COMPARE_SET_BYTE_BUDGET) &&
         yyjson_mut_obj_add_val(doc, root, "limits", limits);
-    free(base_project);
-    free(target_project);
+    cbm_operation_arg_free(base_project);
+    cbm_operation_arg_free(target_project);
     if (!built) {
         yyjson_mut_doc_free(doc);
         return compare_error("allocation_failed", "could not allocate comparison result");

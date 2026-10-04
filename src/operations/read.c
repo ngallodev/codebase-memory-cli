@@ -13,6 +13,7 @@
 #include "operations/file_outline.h"
 #include "operations/compare.h"
 #include "operations/store_host.h"
+#include "operations/json_args.h"
 
 #include "foundation/platform.h"
 #include "foundation/compat_fs.h"
@@ -60,7 +61,7 @@ static char *json_string_arg(const char *args_json, const char *name) {
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
     const char *text = value && yyjson_is_str(value) ? yyjson_get_str(value) : NULL;
-    char *copy = copy_string(text);
+    char *copy = text ? cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, text) : NULL;
     if (doc) {
         yyjson_doc_free(doc);
     }
@@ -219,7 +220,7 @@ static cbm_operation_result_t execute_projects(const char *args_json) {
     char *detail = json_string_arg(args_json, "detail");
     bool include_details = json_bool_arg(args_json, "include_details", false) ||
                            (detail && strcmp(detail, "stats") == 0);
-    free(detail);
+    cbm_operation_arg_free(detail);
     bool metadata_only = json_bool_arg(args_json, "metadata_only", false);
     if (metadata_only) {
         include_details = false;
@@ -490,7 +491,7 @@ static void add_status_coverage(yyjson_mut_doc *doc, yyjson_mut_val *root, cbm_s
 static cbm_operation_result_t execute_status(const char *args_json) {
     char *project = json_string_arg(args_json, "project");
     if (!project || !project[0]) {
-        free(project);
+        cbm_operation_arg_free(project);
         yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
         yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
         if (!doc || !root) {
@@ -512,7 +513,7 @@ static cbm_operation_result_t execute_status(const char *args_json) {
                 : json_error("project not indexed",
                              "Run 'codebase-memory-cli index .' in the repository or specify an "
                              "indexed --project.");
-        free(project);
+        cbm_operation_arg_free(project);
         return error;
     }
     int nodes = cbm_store_count_nodes(store, project);
@@ -526,7 +527,7 @@ static cbm_operation_result_t execute_status(const char *args_json) {
         coverage_samples = OP_COVERAGE_SUMMARY_SAMPLES;
     else if (diagnostics && strcmp(diagnostics, "full") == 0)
         coverage_samples = OP_COVERAGE_FILE_CAP;
-    free(diagnostics);
+    cbm_operation_arg_free(diagnostics);
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
@@ -534,7 +535,7 @@ static cbm_operation_result_t execute_status(const char *args_json) {
         if (doc)
             yyjson_mut_doc_free(doc);
         cbm_store_close(store);
-        free(project);
+        cbm_operation_arg_free(project);
         return json_error("result allocation failed", NULL);
     }
     yyjson_mut_doc_set_root(doc, root);
@@ -594,7 +595,7 @@ static cbm_operation_result_t execute_status(const char *args_json) {
             "Project is empty. Re-run 'codebase-memory-cli index .' to populate.");
     }
     cbm_store_close(store);
-    free(project);
+    cbm_operation_arg_free(project);
     return json_doc_result(doc, false);
 }
 

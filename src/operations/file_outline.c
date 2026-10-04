@@ -1,6 +1,7 @@
 #include "operations/result_wire.h"
 #include "operations/file_outline.h"
 #include "operations/store_host.h"
+#include "operations/json_args.h"
 
 #include "foundation/constants.h"
 #include "operations/compact_out.h"
@@ -27,22 +28,12 @@ static cbm_operation_result_t outline_error(const char *message) {
     return cbm_operation_result_copy(message ? message : "get_file_outline failed", true);
 }
 
-static char *outline_strdup(const char *text) {
-    if (!text)
-        return NULL;
-    size_t len = strlen(text);
-    char *copy = malloc(len + 1U);
-    if (copy)
-        memcpy(copy, text, len + 1U);
-    return copy;
-}
-
 static char *outline_project_arg(yyjson_val *root) {
     static const char *const names[] = {"project", "project_name", "project_id", "projectName"};
     for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); ++i) {
         yyjson_val *value = yyjson_obj_get(root, names[i]);
         if (value && yyjson_is_str(value))
-            return outline_strdup(yyjson_get_str(value));
+            return cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, yyjson_get_str(value));
     }
     return NULL;
 }
@@ -185,13 +176,13 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
         return outline_error("project is required");
     }
     if (!file_path || !file_path[0]) {
-        free(project);
+        cbm_operation_arg_free(project);
         yyjson_doc_free(doc);
         return outline_error("file_path is required");
     }
     char normalized[CBM_SZ_4K];
     if (outline_normalize_rel(file_path, normalized, sizeof(normalized)) != OUTLINE_PATH_OK) {
-        free(project);
+        cbm_operation_arg_free(project);
         yyjson_doc_free(doc);
         return outline_error("file_path must be a repository-relative path without '..'");
     }
@@ -199,13 +190,13 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
     yyjson_val *limit_value = yyjson_obj_get(root, "limit");
     if (limit_value) {
         if (!yyjson_is_int(limit_value)) {
-            free(project);
+            cbm_operation_arg_free(project);
             yyjson_doc_free(doc);
             return outline_error("limit must be an integer");
         }
         int64_t parsed = yyjson_get_sint(limit_value);
         if (parsed < 1 || parsed > CBM_STORE_FILE_OUTLINE_MAX_LIMIT) {
-            free(project);
+            cbm_operation_arg_free(project);
             yyjson_doc_free(doc);
             return outline_error("limit must be between 1 and 200");
         }
@@ -215,13 +206,13 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
     yyjson_val *offset_value = yyjson_obj_get(root, "offset");
     if (offset_value) {
         if (!yyjson_is_int(offset_value)) {
-            free(project);
+            cbm_operation_arg_free(project);
             yyjson_doc_free(doc);
             return outline_error("offset must be a non-negative integer");
         }
         int64_t parsed = yyjson_get_sint(offset_value);
         if (parsed < 0 || parsed > INT_MAX) {
-            free(project);
+            cbm_operation_arg_free(project);
             yyjson_doc_free(doc);
             return outline_error("offset must be a non-negative integer");
         }
@@ -232,7 +223,7 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
     if (format_value) {
         const char *format = yyjson_is_str(format_value) ? yyjson_get_str(format_value) : NULL;
         if (!format || (strcmp(format, "tree") != 0 && strcmp(format, "json") != 0)) {
-            free(project);
+            cbm_operation_arg_free(project);
             yyjson_doc_free(doc);
             return outline_error("format must be either 'tree' or 'json'");
         }
@@ -244,7 +235,7 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
     if (labels_value) {
         if (!yyjson_is_arr(labels_value) ||
             yyjson_arr_size(labels_value) > CBM_STORE_FILE_OUTLINE_MAX_LABELS) {
-            free(project);
+            cbm_operation_arg_free(project);
             yyjson_doc_free(doc);
             return outline_error("labels must be an array of at most 16 strings");
         }
@@ -253,7 +244,7 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
         yyjson_arr_foreach(labels_value, index, max, item) {
             const char *label = yyjson_is_str(item) ? yyjson_get_str(item) : NULL;
             if (!label || !label[0] || strlen(label) >= CBM_SZ_128) {
-                free(project);
+                cbm_operation_arg_free(project);
                 yyjson_doc_free(doc);
                 return outline_error("labels must contain only non-empty bounded strings");
             }
@@ -263,7 +254,7 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
     cbm_store_open_status_t open_status = CBM_STORE_OPEN_OK;
     cbm_store_t *store = cbm_store_host_open_query(project, &open_status);
     if (!store) {
-        free(project);
+        cbm_operation_arg_free(project);
         yyjson_doc_free(doc);
         return outline_error(open_status == CBM_STORE_OPEN_CORRUPT
                                  ? CBM_STORE_CORRUPT_ERROR
@@ -272,7 +263,7 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
     cbm_project_t info = {0};
     if (cbm_store_get_project(store, project, &info) != CBM_STORE_OK) {
         cbm_store_close(store);
-        free(project);
+        cbm_operation_arg_free(project);
         yyjson_doc_free(doc);
         return outline_error("project not found or not indexed");
     }
@@ -284,7 +275,7 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
                                    outline_cancelled, (void *)runtime, &rows, &row_count, &total);
     cbm_store_close(store);
     if (rc != CBM_STORE_OK) {
-        free(project);
+        cbm_operation_arg_free(project);
         yyjson_doc_free(doc);
         if (rc == CBM_STORE_CANCELLED)
             return outline_error("get_file_outline cancelled for this request");
@@ -296,7 +287,7 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
                         ? outline_json_payload(normalized, rows, row_count, total, offset, limit)
                         : outline_tree_payload(normalized, rows, row_count, total, offset, limit);
     cbm_store_free_file_outline(rows, row_count);
-    free(project);
+    cbm_operation_arg_free(project);
     yyjson_doc_free(doc);
     if (!payload)
         return outline_error("get_file_outline output allocation failed");

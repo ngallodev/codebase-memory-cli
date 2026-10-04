@@ -2,6 +2,7 @@
 
 #include "foundation/compat_fs.h"
 #include "foundation/constants.h"
+#include "foundation/mem_core.h"
 #include "foundation/platform.h"
 #include "foundation/str_util.h"
 #include "pipeline/pipeline.h"
@@ -13,11 +14,7 @@
 static char *project_arg_strdup(const char *text) {
     if (!text)
         return NULL;
-    size_t len = strlen(text);
-    char *copy = malloc(len + 1U);
-    if (copy)
-        memcpy(copy, text, len + 1U);
-    return copy;
+    return cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, text);
 }
 
 static bool project_arg_is_db_file(const char *name, size_t len) {
@@ -34,8 +31,14 @@ static char *project_arg_normalize(char *project) {
             non_ascii |= *p >= 0x80;
         char *encoded = non_ascii ? cbm_project_name_sanitize(project) : NULL;
         bool usable = encoded && strcmp(encoded, "root") != 0 && cbm_validate_project_name(encoded);
-        free(usable ? project : encoded);
-        return usable ? encoded : project;
+        if (usable) {
+            char *copy = project_arg_strdup(encoded);
+            cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+            free(encoded);
+            return copy;
+        }
+        free(encoded);
+        return project;
     }
 
     char real[CBM_SZ_4K];
@@ -43,14 +46,16 @@ static char *project_arg_normalize(char *project) {
         cbm_normalize_path_sep(real);
         char *canonical = project_arg_strdup(real);
         if (canonical) {
-            free(project);
+            cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
             project = canonical;
         }
     }
     char *normalized = cbm_project_name_from_path(project);
     if (normalized) {
-        free(project);
-        return normalized;
+        char *copy = project_arg_strdup(normalized);
+        free(normalized);
+        cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+        return copy;
     }
     return project;
 }
@@ -96,7 +101,7 @@ static char *project_arg_resolve_tail(char *project) {
     }
     cbm_closedir(dir);
     if (matches == 1) {
-        free(project);
+        cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
         return project_arg_strdup(match);
     }
     return project;

@@ -1,5 +1,6 @@
 #include "operations/output_budget.h"
 #include "operations/result_wire.h"
+#include "operations/json_args.h"
 #include "operations/operation.h"
 #include "operations/store_host.h"
 
@@ -30,11 +31,7 @@ enum {
 static char *dup_text(const char *text) {
     if (!text)
         return NULL;
-    size_t len = strlen(text);
-    char *copy = malloc(len + 1U);
-    if (copy)
-        memcpy(copy, text, len + 1U);
-    return copy;
+    return cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, text);
 }
 
 static char *string_arg(const char *args, const char *name) {
@@ -317,7 +314,7 @@ static cbm_operation_result_t node_result(cbm_store_t *store, const char *projec
     char *source_mode = string_arg(args, "source_mode");
     bool explicit_full = source_mode && strcmp(source_mode, "full") == 0;
     bool explicit_outline = source_mode && strcmp(source_mode, "outline") == 0;
-    free(source_mode);
+    cbm_operation_arg_free(source_mode);
     /* A large container (file/module/class) answers with its member outline by
      * default; the whole source stays one source_mode=full call away. */
     bool container =
@@ -574,20 +571,20 @@ cbm_operation_result_t cbm_snippet_operation_execute(const char *args) {
     char *qualified_name = string_arg(args, "qualified_name");
     bool include_neighbors = bool_arg(args, "include_neighbors");
     if (!project || !project[0]) {
-        free(project);
-        free(qualified_name);
+        cbm_operation_arg_free(project);
+        cbm_operation_arg_free(qualified_name);
         return error_result("project is required", "Run the command from an indexed repository.");
     }
     if (!qualified_name || !qualified_name[0]) {
-        free(project);
-        free(qualified_name);
+        cbm_operation_arg_free(project);
+        cbm_operation_arg_free(qualified_name);
         return error_result("qualified_name is required", "Use search first to discover a symbol.");
     }
     cbm_store_open_status_t open_status = CBM_STORE_OPEN_OK;
     cbm_store_t *store = cbm_store_host_open_query(project, &open_status);
     if (!store) {
-        free(project);
-        free(qualified_name);
+        cbm_operation_arg_free(project);
+        cbm_operation_arg_free(qualified_name);
         if (open_status == CBM_STORE_OPEN_CORRUPT)
             return error_result(CBM_STORE_CORRUPT_MESSAGE, CBM_STORE_CORRUPT_HINT);
         return error_result("project not indexed", "Run 'codebase-memory-cli index .' first.");
@@ -599,8 +596,8 @@ cbm_operation_result_t cbm_snippet_operation_execute(const char *args) {
             node_result(store, project, &exact, NULL, include_neighbors, args);
         cbm_node_free_fields(&exact);
         cbm_store_close(store);
-        free(project);
-        free(qualified_name);
+        cbm_operation_arg_free(project);
+        cbm_operation_arg_free(qualified_name);
         return result;
     }
 
@@ -615,14 +612,14 @@ cbm_operation_result_t cbm_snippet_operation_execute(const char *args) {
                                                                 "suffix", include_neighbors, args);
         cbm_store_free_nodes(matches, count);
         cbm_store_close(store);
-        free(project);
-        free(qualified_name);
+        cbm_operation_arg_free(project);
+        cbm_operation_arg_free(qualified_name);
         return result;
     }
     cbm_store_free_nodes(matches, count);
     cbm_store_close(store);
-    free(project);
-    free(qualified_name);
+    cbm_operation_arg_free(project);
+    cbm_operation_arg_free(qualified_name);
     return error_result(
         "symbol not found",
         "Use 'codebase-memory-cli search <term>' first, then pass an exact qualified_name.");
