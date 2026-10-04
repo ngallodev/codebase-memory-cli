@@ -13,7 +13,10 @@ FORMATTER="${CLANG_FORMAT:-clang-format-20}"
 FORMAT_FILES=()
 while IFS= read -r file; do
     [ -n "$file" ] && FORMAT_FILES+=("$file")
-done < <(git diff --cached --name-only --diff-filter=ACMR -- '*.c' '*.h')
+# Vendored sources are pinned by scripts/vendored-checksums.txt and must stay
+# byte-identical to upstream, so they are never reformatted.
+done < <(git diff --cached --name-only --diff-filter=ACMR -- '*.c' '*.h' \
+    ':(exclude)internal/cbm/vendored/**' ':(exclude)vendored/**')
 if [ "${#FORMAT_FILES[@]}" -gt 0 ]; then
     command -v "$FORMATTER" >/dev/null 2>&1 || {
         echo "pre-commit: required formatter not found: $FORMATTER" >&2
