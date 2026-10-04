@@ -2146,7 +2146,7 @@ static bool cli_scope_kept_notice_names_host(const char *output, pid_t host) {
     snprintf(pid_text, sizeof(pid_text), "(pid %ld, version %s)", (long)host, CBM_VERSION);
     return strstr(output, "Leaving the running CBM daemon untouched") != NULL &&
            strstr(output, pid_text) != NULL &&
-           strstr(output, "codebase-memory-mcp daemon stop") != NULL &&
+           strstr(output, "codebase-memory-cli daemon stop") != NULL &&
            strstr(output, "Stopping active CBM sessions") == NULL;
 }
 
@@ -13140,8 +13140,8 @@ TEST(cli_print_tool_help_issue680) {
 TEST(cli_usage_points_to_tool_format_json_issue2102) {
     ASSERT_NOT_NULL(strstr(CBM_CLI_USAGE, "--format tree|json"));
     ASSERT_NOT_NULL(strstr(CBM_CLI_USAGE, "payload JSON"));
-    ASSERT_NOT_NULL(strstr(CBM_CLI_USAGE, "full MCP envelope"));
-    ASSERT_NOT_NULL(strstr(CBM_CLI_USAGE, "--json      Print the raw MCP result envelope"));
+    ASSERT_NOT_NULL(strstr(CBM_CLI_USAGE, "--json      Print machine-readable output"));
+    ASSERT_NULL(strstr(CBM_CLI_USAGE, "MCP"));
     ASSERT_NOT_NULL(strstr(CBM_CLI_USAGE, "cli [--quiet] [--progress] [--verbose] [--json] "
                                           "<tool_name>"));
     ASSERT_NULL(strstr(CBM_CLI_USAGE, "[--format"));

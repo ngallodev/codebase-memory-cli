@@ -4974,14 +4974,12 @@ TEST(daemon_application_over_budget_response_passes_through_without_recovery) {
         setup
             ? app_test_request(&callbacks, session, tool, tool_length, &response, &response_length)
             : CBM_DAEMON_RUNTIME_APPLICATION_HANDLER_ERROR;
-    /* Binary-safe over the whole frame: the error flag precedes a length-delimited
-     * payload, and the result wire spells the flag is_error (operation layer) or
-     * isError (passthrough body). */
+    /* The frame is one error-flag byte followed by the length-delimited payload.
+     * The worker's over-budget answer must arrive as an error carrying its named
+     * cause, not be retried or rewritten by recovery. */
     bool passed_through =
-        response && response_length > 0 &&
-        app_test_response_contains(response, response_length, "over_memory_budget") &&
-        (app_test_response_contains(response, response_length, "\"is_error\":true") ||
-         app_test_response_contains(response, response_length, "\"isError\":true"));
+        response && response_length > 1U && response[0] == 1U &&
+        app_test_response_contains(response + 1U, response_length - 1U, "over_memory_budget");
     free(response);
     free(context);
     free(tool);
@@ -5184,10 +5182,6 @@ static bool app_async_call_start(app_async_fixture_t *fixture, app_async_call_t 
     return call->started;
 }
 
-static const char *app_async_call_response(app_async_call_t *call) {
-    return call->request.response ? (const char *)call->request.response : "";
-}
-
 static void app_async_call_join(app_async_call_t *call) {
     if (call->started) {
         (void)cbm_thread_join(&call->thread);
@@ -5203,6 +5197,24 @@ static void app_async_call_free(app_async_call_t *call) {
 }
 
 /* A request that must return promptly (status, validation, async start). */
+/* The application answers with a binary frame: one error-flag byte followed by
+ * the length-delimited payload (no NUL). Re-encode it as an operation result
+ * wire so the assertions below can decode payload and error flag together. */
+static char *app_async_frame_to_wire(const uint8_t *frame, uint32_t frame_length) {
+    if (!frame || frame_length < 1U)
+        return NULL;
+    char *payload = malloc((size_t)frame_length);
+    if (!payload)
+        return NULL;
+    memcpy(payload, frame + 1, (size_t)frame_length - 1U);
+    payload[frame_length - 1U] = '\0';
+    cbm_operation_result_t result = cbm_operation_result_copy(payload, frame[0] != 0U);
+    free(payload);
+    char *wire = result.payload ? cbm_operation_result_wire_encode(&result) : NULL;
+    cbm_operation_result_dispose(&result);
+    return wire;
+}
+
 static char *app_async_call_now(app_async_fixture_t *fixture,
                                 cbm_daemon_runtime_application_session_t *session,
                                 const char *extra_args) {
@@ -5212,7 +5224,7 @@ static char *app_async_call_now(app_async_fixture_t *fixture,
     if (app_async_call_start(fixture, &call, session, CBM_DAEMON_RUNTIME_APPLICATION_TOKEN_INVALID,
                              extra_args) &&
         app_wait_for_atomic_bool(&call.request.done, true)) {
-        response = strdup(app_async_call_response(&call));
+        response = app_async_frame_to_wire(call.request.response, call.request.response_length);
     }
     /* Never strand a request thread that blocked on the held worker. */
     if (call.started && !atomic_load(&call.request.done)) {
@@ -5441,7 +5453,9 @@ TEST(daemon_application_cancelled_sync_index_reply_offers_async) {
         app_async_call_join(&call);
     }
     cbm_daemon_runtime_application_status_t status = call.request.status;
-    char *reply = call_started ? strdup(app_async_call_response(&call)) : NULL;
+    char *reply = call_started
+                      ? app_async_frame_to_wire(call.request.response, call.request.response_length)
+                      : NULL;
     if (call_started) {
         app_async_call_free(&call);
     }
@@ -5456,7 +5470,7 @@ TEST(daemon_application_cancelled_sync_index_reply_offers_async) {
     ASSERT_EQ(status, CBM_DAEMON_RUNTIME_APPLICATION_OK);
     ASSERT_TRUE(app_async_contains(reply, "cancelled"));
     ASSERT_TRUE(app_async_contains(reply, "--async"));
-    ASSERT_TRUE(app_async_contains(reply, "status: true"));
+    ASSERT_TRUE(app_async_contains(reply, "--status"));
     free(reply);
     PASS();
 }

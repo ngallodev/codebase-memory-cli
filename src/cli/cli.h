@@ -33,7 +33,9 @@ const char *cbm_cli_get_version(void);
     "  --quiet     Show errors only; cannot combine with --progress or outer --verbose\n"     \
     "  --progress  Show lifecycle progress even when stderr is redirected\n"                  \
     "  --verbose   Include informational logs (preserves CBM_LOG_LEVEL=debug)\n"              \
-    "  --json      Print machine-readable output\n"
+    "  --json      Print machine-readable output\n"                                           \
+    "  Tools that accept format support --format tree|json (default: tree).\n"                \
+    "  --format json prints the tool payload JSON instead of the tree view.\n"
 
 /* Convert `--flag value` / `--flag=value` / bare-boolean `--flag` arguments for
  * a tool into a JSON arguments object string, using the tool's input_schema to
