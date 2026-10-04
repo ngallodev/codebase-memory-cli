@@ -1017,9 +1017,25 @@ static bool index_validate_metrics_out(const char *json, const cbm_operation_run
 }
 
 /* Unnamed starts and polls must use the same existing owner (#2134). */
+static bool index_root_owner_append(char **list, size_t *len, size_t *cap, const char *name) {
+    size_t need = *len + strlen(name) + 3U;
+    if (need > *cap) {
+        size_t grown_cap = need * 2U;
+        char *grown = cbm_realloc(CBM_MEM_CLASS_OTHER, *list, grown_cap);
+        if (!grown)
+            return false;
+        *list = grown;
+        *cap = grown_cap;
+    }
+    *len += (size_t)snprintf(*list + *len, *cap - *len, "%s%s", *len ? ", " : "", name);
+    return true;
+}
+
 static char *index_root_project(const char *path, char *error, size_t error_size) {
     char *derived = cbm_project_name_from_path(path);
     char *owner = NULL;
+    char *owners = NULL;
+    size_t owners_len = 0, owners_cap = 0;
     bool ambiguous = false;
     for (int offset = 0; derived;) {
         char args[CBM_SZ_256];
@@ -1037,6 +1053,7 @@ static char *index_root_project(const char *path, char *error, size_t error_size
             cbm_operation_result_dispose(&listing);
             free(owner);
             free(derived);
+            cbm_free(CBM_MEM_CLASS_OTHER, owners);
             return NULL;
         }
         size_t i, max;
@@ -1050,10 +1067,20 @@ static char *index_root_project(const char *path, char *error, size_t error_size
                 yyjson_doc_free(doc);
                 cbm_operation_result_dispose(&listing);
                 free(owner);
+                cbm_free(CBM_MEM_CLASS_OTHER, owners);
                 return derived;
             }
             if (owner && strcmp(owner, name))
                 ambiguous = true;
+            if (!index_root_owner_append(&owners, &owners_len, &owners_cap, name)) {
+                snprintf(error, error_size, "out of memory while resolving index root owner");
+                yyjson_doc_free(doc);
+                cbm_operation_result_dispose(&listing);
+                free(owner);
+                free(derived);
+                cbm_free(CBM_MEM_CLASS_OTHER, owners);
+                return NULL;
+            }
             if (!owner) {
                 owner = index_strdup(name);
                 if (!owner) {
@@ -1061,6 +1088,7 @@ static char *index_root_project(const char *path, char *error, size_t error_size
                     yyjson_doc_free(doc);
                     cbm_operation_result_dispose(&listing);
                     free(derived);
+                    cbm_free(CBM_MEM_CLASS_OTHER, owners);
                     return NULL;
                 }
             }
@@ -1075,21 +1103,26 @@ static char *index_root_project(const char *path, char *error, size_t error_size
             snprintf(error, error_size, "invalid project listing continuation");
             free(owner);
             free(derived);
+            cbm_free(CBM_MEM_CLASS_OTHER, owners);
             return NULL;
         }
         offset = next;
     }
     if (ambiguous) {
         snprintf(error, error_size,
-                 "several indexed projects share root_path %s; pass --name to choose", path);
+                 "several indexed projects share root_path %s: %s. Pass --name to choose", path,
+                 owners);
         free(owner);
         free(derived);
+        cbm_free(CBM_MEM_CLASS_OTHER, owners);
         return NULL;
     }
     if (owner) {
         free(derived);
+        cbm_free(CBM_MEM_CLASS_OTHER, owners);
         return owner;
     }
+    cbm_free(CBM_MEM_CLASS_OTHER, owners);
     return derived;
 }
 
