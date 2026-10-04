@@ -12,6 +12,8 @@
 #include "test_helpers.h"
 #include "test_operation_host.h"
 #include "operations/output_budget.h"
+#include "operations/result_wire.h"
+#include "cbm.h"
 #include <yyjson/yyjson.h>
 #include <store/store.h>
 #include <pipeline/pipeline.h>
@@ -104,6 +106,14 @@ static int create_test_project(void) {
     fprintf(f, "\nfunction manyMatches() {\n");
     for (int i = 1; i <= 12; i++) {
         fprintf(f, "    budgetMarker%d();\n", i);
+    }
+    fprintf(f, "}\n");
+    fprintf(f, "\nfunction budgetSnippet() {\n");
+    for (int i = 0; i < 40; i++) {
+        fprintf(f,
+                "    // line %02d: a long source line to exercise whole-line output budgeting "
+                "abcdefghijklmnopqrstuvwxyz\n",
+                i);
     }
     fprintf(f, "}\n");
     fclose(f);
@@ -540,6 +550,137 @@ TEST(integ_mcp_search_code_match_limit_and_budget) {
     ASSERT_TRUE(strlen(small) <= (size_t)CBM_OUTPUT_TOKENS_MIN * CBM_OUTPUT_BYTES_PER_TOKEN);
     ASSERT_NOT_NULL(strstr(small, "output_budget"));
     free(small);
+    free(base);
+    PASS();
+}
+
+TEST(integ_js_path_module_default_client) {
+    char tmp[] = "/tmp/cbm_js_module_XXXXXX";
+    ASSERT_NOT_NULL(cbm_mkdtemp(tmp));
+    const char *paths[] = {".eslintrc.js", ".storybook/main.ts", "(group)/page.tsx"};
+    const CBMLanguage langs[] = {CBM_LANG_JAVASCRIPT, CBM_LANG_TYPESCRIPT, CBM_LANG_TSX};
+    const char *text = "import axios from 'axios';\n"
+                       "function helper() { return 1; }\n"
+                       "export default axios.create({baseURL: 'https://example.test/api'});\n";
+    bool ok = true;
+    cbm_init();
+    for (size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); i++) {
+        const char *path = TH_PATH(tmp, paths[i]);
+        if (th_write_file(path, text) != 0) {
+            ok = false;
+            break;
+        }
+        char source[512];
+        FILE *f = fopen(path, "rb");
+        if (!f) {
+            ok = false;
+            break;
+        }
+        size_t len = fread(source, 1, sizeof(source) - 1, f);
+        fclose(f);
+        source[len] = '\0';
+        CBMFileResult *r =
+            cbm_extract_file(source, (int)len, langs[i], "path-module", paths[i], 0, NULL, NULL);
+        if (!r || r->defs.count < 2) {
+            ok = false;
+        } else {
+            CBMDefinition *module = &r->defs.items[0];
+            ok = ok && strcmp(module->label, "Module") == 0 &&
+                 strcmp(module->name, paths[i]) == 0 && module->http_client &&
+                 strcmp(module->http_client, "axios") == 0 && module->http_base_url &&
+                 strcmp(module->http_base_url, "https://example.test/api") == 0;
+            for (int j = 1; j < r->defs.count; j++) {
+                ok = ok && !r->defs.items[j].http_client && !r->defs.items[j].http_base_url;
+            }
+        }
+        cbm_free_result(r);
+    }
+    th_rmtree(tmp);
+    ASSERT_TRUE(ok);
+    PASS();
+}
+
+TEST(integ_mcp_snippet_line_and_output_budget) {
+    char args[1024];
+    snprintf(args, sizeof(args),
+             "{\"project\":\"%s\",\"qualified_name\":\"%s.app.budgetSnippet\","
+             "\"max_lines\":24}",
+             g_project, g_project);
+    char *base = cbm_test_operation_execute(g_srv, "get_code_snippet", args);
+    ASSERT_NOT_NULL(base);
+    yyjson_doc *base_doc = yyjson_read(base, strlen(base), 0);
+    ASSERT_NOT_NULL(base_doc);
+    yyjson_val *base_root = yyjson_doc_get_root(base_doc);
+    const char *source = yyjson_get_str(yyjson_obj_get(base_root, "source"));
+    ASSERT_NOT_NULL(source);
+    int start = (int)yyjson_get_int(yyjson_obj_get(base_root, "start_line"));
+    int original_end = (int)yyjson_get_int(yyjson_obj_get(base_root, "original_end_line"));
+    ASSERT_TRUE(original_end > start + 23);
+    /* Sweep boundaries: both successful and failed final binary-search probes,
+     * including metadata growth, must keep the largest complete prefix. */
+    for (int tokens = 200; tokens <= 600; tokens += 7) {
+        snprintf(args, sizeof(args),
+                 "{\"project\":\"%s\",\"qualified_name\":\"%s.app.budgetSnippet\","
+                 "\"max_lines\":24,\"max_output_tokens\":%d}",
+                 g_project, g_project, tokens);
+        char *reply = cbm_test_operation_execute(g_srv, "get_code_snippet", args);
+        ASSERT_NOT_NULL(reply);
+        ASSERT_TRUE(strlen(reply) <= (size_t)tokens * CBM_OUTPUT_BYTES_PER_TOKEN);
+        yyjson_doc *doc = yyjson_read(reply, strlen(reply), 0);
+        ASSERT_NOT_NULL(doc);
+        yyjson_val *root = yyjson_doc_get_root(doc);
+        const char *prefix = yyjson_get_str(yyjson_obj_get(root, "source"));
+        ASSERT_NOT_NULL(prefix);
+        ASSERT_TRUE(strncmp(source, prefix, strlen(prefix)) == 0);
+        int lines = 0;
+        for (const char *q = prefix; *q; q++) {
+            if (*q == '\n')
+                lines++;
+        }
+        ASSERT_TRUE(lines > 0 && lines < 24);
+        ASSERT_EQ((int)yyjson_get_int(yyjson_obj_get(root, "end_line")), start + lines - 1);
+        ASSERT_EQ((int)yyjson_get_int(yyjson_obj_get(root, "next_start_line")), start + lines);
+        ASSERT_EQ((int)yyjson_get_int(yyjson_obj_get(root, "original_end_line")), original_end);
+        ASSERT_TRUE(yyjson_get_bool(yyjson_obj_get(root, "source_truncated")));
+        /* Parseable JSON alone permits duplicate keys. Check every root key. */
+        size_t idx, max;
+        yyjson_val *key, *val;
+        const char *keys[] = {"source",          "source_truncated",  "source_clipped",
+                              "next_start_line", "original_end_line", "end_line"};
+        for (size_t k = 0; k < sizeof(keys) / sizeof(keys[0]); k++) {
+            int occurrences = 0;
+            yyjson_obj_foreach(root, idx, max, key, val) {
+                (void)val;
+                if (strcmp(yyjson_get_str(key), keys[k]) == 0)
+                    occurrences++;
+            }
+            ASSERT_EQ(occurrences, 1);
+        }
+        /* One more whole line with its final metadata must exceed the ceiling. */
+        size_t keep = strlen(prefix);
+        const char *next_end = strchr(source + keep, '\n');
+        ASSERT_NOT_NULL(next_end);
+        yyjson_mut_doc *probe = yyjson_mut_doc_new(NULL);
+        ASSERT_NOT_NULL(probe);
+        yyjson_mut_val *candidate = yyjson_val_mut_copy(probe, root);
+        ASSERT_NOT_NULL(candidate);
+        yyjson_mut_doc_set_root(probe, candidate);
+        (void)yyjson_mut_obj_remove_key(candidate, "source");
+        yyjson_mut_obj_add_val(probe, candidate, "source",
+                               yyjson_mut_strncpy(probe, source, (size_t)(next_end - source + 1)));
+        (void)yyjson_mut_obj_remove_key(candidate, "end_line");
+        yyjson_mut_obj_add_int(probe, candidate, "end_line", start + lines);
+        (void)yyjson_mut_obj_remove_key(candidate, "next_start_line");
+        yyjson_mut_obj_add_int(probe, candidate, "next_start_line", start + lines + 1);
+        char *larger = cbm_operation_json_write(probe);
+        ASSERT_NOT_NULL(larger);
+        ASSERT_TRUE(strlen(larger) > (size_t)tokens * CBM_OUTPUT_BYTES_PER_TOKEN);
+        free(larger);
+        yyjson_mut_doc_free(probe);
+        yyjson_doc_free(doc);
+        free(reply);
+    }
+    yyjson_doc_free(base_doc);
     free(base);
     PASS();
 }
@@ -1203,6 +1344,8 @@ SUITE(integration) {
     RUN_TEST(integ_mcp_trace_path_cross_service);
     RUN_TEST(integ_mcp_search_code_match_limit_and_budget);
     RUN_TEST(integ_mcp_trace_path_output_budget);
+    RUN_TEST(integ_mcp_snippet_line_and_output_budget);
+    RUN_TEST(integ_js_path_module_default_client);
     RUN_TEST(integ_mcp_index_status);
     RUN_TEST(integ_mcp_adr_outline_fence_status);
 

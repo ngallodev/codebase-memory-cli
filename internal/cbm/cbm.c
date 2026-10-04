@@ -196,7 +196,8 @@ static bool cbm_js_name_is_junk(const char *name) {
 void cbm_defs_push(CBMDefArray *arr, CBMArena *a, CBMDefinition def) {
     def.name = cbm_first_line(a, def.name);
     def.qualified_name = cbm_first_line(a, def.qualified_name);
-    if (cbm_js_family_path(def.file_path) && cbm_js_name_is_junk(def.name)) {
+    if (cbm_js_family_path(def.file_path) && !(def.label && strcmp(def.label, "Module") == 0) &&
+        cbm_js_name_is_junk(def.name)) {
         return;
     }
     GROW_ARRAY(arr, a);

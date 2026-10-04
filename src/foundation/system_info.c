@@ -316,6 +316,12 @@ cbm_system_info_t cbm_system_info(void) {
 }
 
 int cbm_default_worker_count(bool initial) {
+    /* Recovery must override even an explicit CBM_WORKERS setting in every
+     * parallel helper, including auto-sized cbm_parallel_for dispatch. */
+    const char *single = getenv("CBM_INDEX_SINGLE_THREAD");
+    if (single && single[0] == '1') {
+        return 1;
+    }
     /* CBM_WORKERS env override (clamped to [1, CBM_WORKERS_MAX]).
      * Useful inside containers where sysconf(_SC_NPROCESSORS_ONLN)
      * reports host CPUs rather than the cgroup's effective CPU quota.

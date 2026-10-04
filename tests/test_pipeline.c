@@ -14158,6 +14158,64 @@ TEST(incremental_fast_preserves_mode_skipped_tools_dir) {
     PASS();
 }
 
+TEST(pipeline_recovery_single_thread_helpers) {
+    char tmp[] = "/tmp/cbm_recovery_helpers_XXXXXX";
+    ASSERT_NOT_NULL(cbm_mkdtemp(tmp));
+    for (int i = 0; i < 8; i++) {
+        char path[512], source[512];
+        snprintf(path, sizeof(path), "%s/deploy%d.yaml", tmp, i);
+        snprintf(source, sizeof(source),
+                 "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: app%d\n", i);
+        ASSERT_EQ(th_write_file(path, source), 0);
+    }
+    ASSERT_EQ(th_write_file(TH_PATH(tmp, "config.env"), "API_URL=https://example.test\n"), 0);
+    ASSERT_EQ(
+        th_write_file(TH_PATH(tmp, "app.py"),
+                      "API_URL = 'https://example.test'\ndef api_url():\n    return API_URL\n"),
+        0);
+    const char *old_workers = getenv("CBM_WORKERS");
+    char *saved_workers = old_workers ? strdup(old_workers) : NULL;
+    const char *old_single = getenv("CBM_INDEX_SINGLE_THREAD");
+    char *saved_single = old_single ? strdup(old_single) : NULL;
+    cbm_setenv("CBM_WORKERS", "4", 1);
+    cbm_setenv("CBM_INDEX_SINGLE_THREAD", "1", 1);
+    /* These are the actual dispatch policies used by k8s/configlink (false)
+     * and by the surface builder's auto-sized parallel_for (true). */
+    int incremental_workers = cbm_default_worker_count(false);
+    int initial_workers = cbm_default_worker_count(true);
+    char db[512];
+    snprintf(db, sizeof(db), "%s/test.db", tmp);
+    cbm_pipeline_t *p = cbm_pipeline_new(tmp, db, CBM_MODE_FULL);
+    int rc = p ? cbm_pipeline_run(p) : -1;
+    cbm_store_t *store = rc == 0 ? cbm_store_open_path_existing(db) : NULL;
+    cbm_node_t *nodes = NULL;
+    int count = 0;
+    if (store)
+        cbm_store_find_nodes_by_label(store, cbm_pipeline_project_name(p), "Resource", &nodes,
+                                      &count);
+    cbm_store_free_nodes(nodes, count);
+    cbm_store_close(store);
+    cbm_pipeline_free(p);
+    if (saved_workers) {
+        cbm_setenv("CBM_WORKERS", saved_workers, 1);
+        free(saved_workers);
+    } else {
+        cbm_unsetenv("CBM_WORKERS");
+    }
+    if (saved_single) {
+        cbm_setenv("CBM_INDEX_SINGLE_THREAD", saved_single, 1);
+        free(saved_single);
+    } else {
+        cbm_unsetenv("CBM_INDEX_SINGLE_THREAD");
+    }
+    th_rmtree(tmp);
+    ASSERT_EQ(rc, 0);
+    ASSERT_EQ(count, 8);
+    ASSERT_EQ(incremental_workers, 1);
+    ASSERT_EQ(initial_workers, 1);
+    PASS();
+}
+
 TEST(incremental_k8s_manifest_indexed) {
     /* Full index with a k8s manifest, then add a new manifest via incremental.
      * Verifies that cbm_pipeline_pass_k8s() runs during incremental re-index. */
@@ -16614,6 +16672,7 @@ SUITE(pipeline) {
     RUN_TEST(full_reindex_preserves_exact_long_db_path);
 #endif
     RUN_TEST(incremental_fast_preserves_mode_skipped_tools_dir);
+    RUN_TEST(pipeline_recovery_single_thread_helpers);
     RUN_TEST(incremental_k8s_manifest_indexed);
     RUN_TEST(incremental_kustomize_module_indexed);
     /* Resource management & internal helper tests */

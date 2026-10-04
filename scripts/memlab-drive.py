@@ -69,7 +69,6 @@ def main():
             if indexed.returncode != 0:
                 print(f"index failed: {indexed.stderr.strip()}", file=sys.stderr)
                 return 3
-            project = (indexed.get("result", {}).get("structuredContent") or {}).get("project")
 
         halfway = args.requests // 2
         argv = operation_args(args.tool)

@@ -867,7 +867,7 @@ PP_OBJ_TSAN = $(BUILD_DIR)/tsan_preprocessor.o
 
 # ── Targets ──────────────────────────────────────────────────────
 
-.PHONY: test test-par test-repro test-foundation test-tsan test-daemon-smoke cbm cbm-with-ui frontend embed clean-c lint lint-tidy lint-tidy-diff lint-cppcheck lint-format security fuzz
+.PHONY: test test-par test-repro test-foundation test-tsan test-daemon-smoke test-memlab-drive cbm cbm-with-ui frontend embed clean-c lint lint-tidy lint-tidy-diff lint-cppcheck lint-format security fuzz
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -1140,6 +1140,11 @@ test-tsan: $(BUILD_DIR)/test-runner-tsan
 # silently skipping an occupied one. Deterministic C tests cover Windows IPC.
 test-daemon-smoke: $(BUILD_DIR)/codebase-memory-cli
 	cd $(CURDIR) && CBM_DAEMON_SMOKE_REQUIRE_RUN=1 python3 tests/test_daemon_smoke.py $(BUILD_DIR)/codebase-memory-cli
+
+# Real-binary memlab driver check: indexes a temporary corpus through the CLI and
+# an isolated daemon (private cache and runtime dirs), then serves two operations.
+test-memlab-drive: $(BUILD_DIR)/codebase-memory-cli
+	cd $(CURDIR) && python3 tests/integration/test_memlab_drive.py $(BUILD_DIR)/codebase-memory-cli
 
 # ── Production binary ────────────────────────────────────────────
 

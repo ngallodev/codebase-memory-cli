@@ -127,6 +127,7 @@ size_t cbm_system_available_ram(void);
 size_t cbm_fs_free_bytes(const char *path);
 
 /* Recommended worker count for parallel indexing.
+ * CBM_INDEX_SINGLE_THREAD=1 overrides CBM_WORKERS and detection for recovery.
  * initial=true:  all cores (user is waiting for initial index)
  * initial=false: max(1, perf_cores-1) (leave headroom for user apps) */
 int cbm_default_worker_count(bool initial);
