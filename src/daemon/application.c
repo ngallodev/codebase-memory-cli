@@ -923,6 +923,10 @@ static int application_max_restarts(void) {
     return (int)v;
 }
 
+int cbm_index_restart_cap_for_testing(void) {
+    return application_max_restarts();
+}
+
 static void application_attempt_init(application_attempt_t *attempt) {
     memset(attempt, 0, sizeof(*attempt));
     attempt->result.outcome = CBM_PROC_SPAWN_FAILED;
