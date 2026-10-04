@@ -1,3 +1,4 @@
+#include "operations/result_wire.h"
 #include "operations/compare.h"
 
 #include "foundation/compat_fs.h"
@@ -143,7 +144,7 @@ static cbm_operation_result_t compare_error(const char *code, const char *messag
         yyjson_mut_doc_free(doc);
         return cbm_operation_result_copy("compare_graphs failed: out of memory", true);
     }
-    char *json = yyjson_mut_write(doc, 0, NULL);
+    char *json = cbm_operation_json_write(doc);
     yyjson_mut_doc_free(doc);
     if (!json)
         return cbm_operation_result_copy("compare_graphs failed: out of memory", true);
@@ -323,7 +324,7 @@ static bool compare_append_item(compare_response_t *response, compare_result_set
         yyjson_mut_doc_free(item_doc);
         return false;
     }
-    char *encoded = yyjson_mut_write(item_doc, 0, NULL);
+    char *encoded = cbm_operation_json_write(item_doc);
     if (!encoded) {
         yyjson_mut_doc_free(item_doc);
         return false;
@@ -525,7 +526,7 @@ cbm_operation_result_t cbm_compare_operation_execute(const char *args_json,
         yyjson_mut_doc_free(doc);
         return compare_error("cancelled", "compare_graphs cancelled for this request");
     }
-    char *json = yyjson_mut_write(doc, 0, NULL);
+    char *json = cbm_operation_json_write(doc);
     yyjson_mut_doc_free(doc);
     if (!json)
         return compare_error("allocation_failed", "could not serialize comparison result");

@@ -17,9 +17,13 @@ typedef struct {
     uint64_t bitlen;
     uint8_t buf[64];
     size_t buflen;
-    /* Message-schedule scratch for one compression round. Keeping it in the
-     * context avoids ASan's use-after-return fake-stack allocation for a
-     * 256-byte transform-frame local on every input block. */
+    /* Message-schedule scratch for one compression round. It lives in the
+     * context rather than in sha256_transform's own frame because a 256-byte
+     * local there is large enough for ASan's use-after-return fake stack,
+     * which then heap-allocates it on EVERY 64-byte block — millions of
+     * __asan_stack_malloc calls to fingerprint one large file, turning
+     * sanitized binary fingerprinting into minutes. Here it is allocated once
+     * per hash instead of once per block. */
     uint32_t sched[64];
 } cbm_sha256_ctx;
 

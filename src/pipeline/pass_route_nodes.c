@@ -480,7 +480,14 @@ static int ensure_one_decorator_route(cbm_gbuf_t *gb, const cbm_gbuf_node_t *fun
 
 /* Phase 2a: Ensure all functions with route_path properties have Route+HANDLES edges. */
 static void ensure_decorator_routes(cbm_gbuf_t *gb) {
-    /* Razor components/pages carry their route on the implicit Module. */
+    /* "Module" is here for Blazor: a .razor component's class is implicit, so
+     * its @page route is carried by the file's Module def. Extraction's own
+     * insert_def_into_gbuf is label-agnostic and creates the Route either way —
+     * this backstop is what runs on an INCREMENTAL re-index, so leaving Module
+     * out would make a component's Route appear on a full index and vanish the
+     * next time that one file changed.
+     * Bound comes from the array, not the unrelated RN_STRIP_PASSES it used to
+     * borrow, so adding a label cannot silently skip it. */
     const char *labels[] = {"Function", "Method", "Module"};
     const int label_count = (int)(sizeof(labels) / sizeof(labels[0]));
     int created = 0;

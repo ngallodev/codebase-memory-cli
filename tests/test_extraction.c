@@ -11,9 +11,12 @@
 #include "../internal/cbm/lang_specs.h"
 #include "../internal/cbm/vendored/ts_runtime/include/tree_sitter/api.h"
 #include "../src/foundation/compat.h" /* cbm_clock_gettime, cbm_setenv */
+#include "foundation/constants.h"     /* CBM_SZ_* */
 #include "../src/foundation/compat_fs.h"
 #include <time.h>
 #include "macro_table.h"
+#include "result_spill.h"
+#include "pipeline/pass_lsp_cross.h"
 #include "iris_export_xml.h"
 
 /* ── Helpers ───────────────────────────────────────────────────── */
@@ -165,6 +168,57 @@ TEST(extract_ts_factory_object_methods_issue341) {
     ASSERT(has_def_any(r, "addItem"));
     ASSERT(has_def_any(r, "moveItem"));
     ASSERT(has_def_any(r, "deleteItem"));
+    cbm_free_result(r);
+    PASS();
+}
+
+/* #2010, split out of #1997: AST traversal stacks were allocated from
+ * result->arena, which the parallel pass holds for every file until the whole
+ * result cache is freed, so a one-file scratch structure was retained for the
+ * length of the index. cbm_extract_channels runs for every file and dispatches
+ * TypeScript to extract_channels_js, whose two walks take a 4096-entry TSNode
+ * stack each, and the ES import walk takes a 512-entry one:
+ * 2 * 4096 * 32 + 512 * 32 = 278528 bytes charged to the arena of a one-line
+ * file.
+ *
+ * The bound is derived, not tuned. Measured on this source, total_alloc was
+ * 365984 before the scratch arena and is 87456 after, exactly that difference.
+ * Of the 87456 that remain, 7680 is the defs item array at GROW_ARRAY's
+ * starting capacity of 32 times sizeof(CBMDefinition) 240, and the other 79776
+ * is everything else this file's extraction interns; none of it is traversal
+ * scratch. So the bound sits above 87456 with room and a factor of four below
+ * 365984.
+ *
+ * It is a byte budget, not a proof of lifetime; that is
+ * extract_traversal_stacks_come_from_ctx_scratch_issue2010 in test_mem.c. */
+TEST(traversal_stack_not_in_result_arena_issue2010) {
+    CBMFileResult *r = extract("export const x = 1;\n", CBM_LANG_TYPESCRIPT, "t", "a.ts");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    ASSERT_TRUE(has_def_any(r, "x"));
+    /* Read the field rather than cbm_arena_total(): this file sees
+     * internal/cbm/arena.h, which declares a subset of the API. test_mem.c
+     * includes foundation/arena.h ahead of cbm.h and can call the accessor. */
+    ASSERT_LT(r->arena.total_alloc, (size_t)CBM_SZ_128 * CBM_SZ_1K);
+    cbm_free_result(r);
+    PASS();
+}
+
+/* Not a scratch test. The C and C++ preprocessed second pass builds its own
+ * extraction context (pp_ctx in cbm_extract_file_ex), and that context carries
+ * ctx->scratch so every context in the file is uniform, but nothing reads it
+ * there: pp_ctx reaches only cbm_extract_unified and cbm_run_c_lsp, and neither
+ * extract_unified.c nor anything under internal/cbm/lsp/ includes
+ * extract_node_stack.h, so no traversal stack is built on that path today.
+ * This guards the macro-expansion path itself, which had no assertion on a call
+ * that exists only after expansion. */
+TEST(extract_c_macro_hidden_call_survives_preprocessed_pass_issue2010) {
+    CBMFileResult *r = extract("void target(void) {}\n"
+                               "#define INVOKE() target()\n"
+                               "void caller(void) { INVOKE(); }\n",
+                               CBM_LANG_C, "t", "macro_call.c");
+    ASSERT_NOT_NULL(r);
+    ASSERT_TRUE(has_call(r, "target"));
     cbm_free_result(r);
     PASS();
 }
@@ -1144,6 +1198,33 @@ TEST(elixir_function) {
     PASS();
 }
 
+/* tree-sitter-elixir gives a call's arguments node no field name, so the
+ * generic `arguments` field lookup returns null and first_string_arg was never
+ * populated for any Elixir call — Phoenix route paths, service URLs and config
+ * keys all key off it. */
+TEST(elixir_call_string_argument) {
+    CBMFileResult *r = extract("defmodule Sample do\n"
+                               "  def run do\n"
+                               "    get(\"/wallets\", WalletController)\n"
+                               "  end\n"
+                               "end\n",
+                               CBM_LANG_ELIXIR, "t", "sample.ex");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    int seen = 0;
+    for (int i = 0; i < r->calls.count; i++) {
+        if (strcmp(r->calls.items[i].callee_name, "get") != 0) {
+            continue;
+        }
+        seen = 1;
+        ASSERT_NOT_NULL(r->calls.items[i].first_string_arg);
+        ASSERT_STR_EQ("/wallets", r->calls.items[i].first_string_arg);
+    }
+    ASSERT_EQ(1, seen);
+    cbm_free_result(r);
+    PASS();
+}
+
 /* --- Haskell --- */
 TEST(haskell_function) {
     CBMFileResult *r = extract("add :: Int -> Int -> Int\nadd x y = x + y\n\nmultiply :: Int -> "
@@ -1853,6 +1934,24 @@ TEST(swift_chained_call) {
     ASSERT_NOT_NULL(r);
     ASSERT_FALSE(r->has_error);
     ASSERT(r->calls.count > 0);
+    cbm_free_result(r);
+    PASS();
+}
+
+/* A Swift force-unwrap is the one thing that reaches the scanner's suppressor
+ * path -- the rule that stops `try!` emitting its `!` as a token of its own.
+ * That path shifted an int by up to TOKEN_COUNT bits, which runs past the
+ * width of the type once the index reaches 31.
+ *
+ * This test cannot go red here. The normal test build prints the UBSan
+ * message and carries on, which is why the bug survived. The Windows
+ * CLANGARM64 leg runs UBSan in trap mode, where the same shift is an
+ * illegal-instruction crash, so parsing this file at all is the check. */
+TEST(swift_force_unwrap_scanner_shift) {
+    CBMFileResult *r =
+        extract("func load() { let u = cached! }\n", CBM_LANG_SWIFT, "t", "Load.swift");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
     cbm_free_result(r);
     PASS();
 }
@@ -3323,7 +3422,10 @@ TEST(vue_embedded_structure_negative_controls_issue1410) {
     PASS();
 }
 
-TEST(vue_embedded_structure_host_controls_issue1410) {
+/* The sibling hosts ride Vue's embedded seam: the function and call a .ts file
+ * yields come out of a plain <script> (or Astro's frontmatter fence) the same
+ * way, alongside the import those blocks always produced. */
+TEST(embedded_structure_sibling_hosts_issue1807) {
     CBMFileResult *plain =
         extract("function plainTs(): void { target(); }\n", CBM_LANG_TYPESCRIPT, "t", "plain.ts");
     ASSERT_NOT_NULL(plain);
@@ -3337,37 +3439,10 @@ TEST(vue_embedded_structure_host_controls_issue1410) {
         const char *path;
         const char *source;
     } hosts[] = {
-        {CBM_LANG_SVELTE, "Control.svelte",
-         "<script>import value from './svelte.js'; function hidden() { target(); }</script>\n"},
-        {CBM_LANG_HTML, "control.html",
-         "<script>import value from './html.js'; function hidden() { target(); }</script>\n"},
-        {CBM_LANG_ASTRO, "Control.astro",
-         "---\nimport value from './astro.js'; function hidden() { target(); }\n---\n"},
-    };
-    for (int i = 0; i < 3; i++) {
-        CBMFileResult *r = extract(hosts[i].source, hosts[i].language, "t", hosts[i].path);
-        ASSERT_NOT_NULL(r);
-        ASSERT_FALSE(r->has_error);
-        ASSERT_EQ(count_defs_with_label(r, "Module"), 1);
-        ASSERT_EQ(count_defs_with_label(r, "Function"), 1);
-        ASSERT_EQ(r->calls.count, 1);
-        ASSERT_EQ(r->imports.count, 1);
-        cbm_free_result(r);
-    }
-    PASS();
-}
-
-TEST(embedded_structure_sibling_hosts_issue1807) {
-    static const struct {
-        CBMLanguage language;
-        const char *path;
-        const char *source;
-    } hosts[] = {
         {CBM_LANG_SVELTE, "Sibling.svelte",
          "<script>import value from './svelte.js'; function visible() { target(); }</script>\n"},
         {CBM_LANG_HTML, "sibling.html",
-         "<script type=\"module\">import value from './html.js'; function visible() { target(); "
-         "}</script>\n"},
+         "<script>import value from './html.js'; function visible() { target(); }</script>\n"},
         {CBM_LANG_ASTRO, "Sibling.astro",
          "---\nimport value from './astro.js'; function visible() { target(); }\n---\n"},
     };
@@ -3375,6 +3450,7 @@ TEST(embedded_structure_sibling_hosts_issue1807) {
         CBMFileResult *r = extract(hosts[i].source, hosts[i].language, "t", hosts[i].path);
         ASSERT_NOT_NULL(r);
         ASSERT_FALSE(r->has_error);
+        ASSERT_EQ(count_defs_with_label(r, "Module"), 1);
         ASSERT_EQ(count_defs_named(r, "Function", "visible"), 1);
         ASSERT_EQ(count_calls_named(r, "target"), 1);
         ASSERT_EQ(r->imports.count, 1);
@@ -3383,27 +3459,170 @@ TEST(embedded_structure_sibling_hosts_issue1807) {
     PASS();
 }
 
+/* Blocks that must never yield inline symbols, whatever the host: an external
+ * program (src=) and a non-JavaScript MIME type. The bodies are deliberately
+ * code, so a leak would surface as a definition and a call. HTML's own tag
+ * walker still records the src= reference as an import; that edge names the
+ * external file and is not the inline body leaking through. */
 TEST(embedded_structure_inert_blocks_issue1807) {
     static const struct {
         CBMLanguage language;
         const char *path;
         const char *source;
+        int imports;
     } blocks[] = {
+        {CBM_LANG_VUE, "Inert.vue",
+         "<script type=\"application/json\">function hidden() { target(); }</script>\n", 0},
+        {CBM_LANG_VUE, "Inert.vue",
+         "<script src=\"./x.js\">function hidden() { target(); }</script>\n", 0},
         {CBM_LANG_SVELTE, "Inert.svelte",
-         "<script type=\"application/json\">function hidden() { target(); }</script>\n"},
+         "<script type=\"application/json\">function hidden() { target(); }</script>\n", 0},
+        {CBM_LANG_SVELTE, "Inert.svelte",
+         "<script src=\"./x.js\">function hidden() { target(); }</script>\n", 0},
         {CBM_LANG_HTML, "inert.html",
-         "<script src=\"./x.js\">function hidden() { target(); }</script>\n"},
+         "<script type=\"application/json\">function hidden() { target(); }</script>\n", 0},
+        {CBM_LANG_HTML, "inert.html",
+         "<script type=\"importmap\">function hidden() { target(); }</script>\n", 0},
+        {CBM_LANG_HTML, "inert.html",
+         "<script type=\"text/x-template\">function hidden() { target(); }</script>\n", 0},
+        {CBM_LANG_HTML, "inert.html",
+         "<script src=\"./x.js\">function hidden() { target(); }</script>\n", 1},
         {CBM_LANG_ASTRO, "Inert.astro",
-         "<script type=\"application/json\">function hidden() { target(); }</script>\n"},
+         "<script type=\"application/json\">function hidden() { target(); }</script>\n", 0},
+        {CBM_LANG_ASTRO, "Inert.astro",
+         "<script src=\"./x.js\">function hidden() { target(); }</script>\n", 0},
     };
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 10; i++) {
         CBMFileResult *r = extract(blocks[i].source, blocks[i].language, "t", blocks[i].path);
         ASSERT_NOT_NULL(r);
         ASSERT_FALSE(r->has_error);
+        ASSERT_EQ(count_defs_with_label(r, "Module"), 1);
         ASSERT_EQ(count_defs_with_label(r, "Function"), 0);
         ASSERT_EQ(r->calls.count, 0);
+        ASSERT_EQ(r->imports.count, blocks[i].imports);
         cbm_free_result(r);
     }
+    PASS();
+}
+
+/* Svelte's module-level block (<script context="module">, or <script module>
+ * since Svelte 5) is a second block in the same file: both contribute, each
+ * honouring its own lang=, in host-file coordinates. */
+TEST(svelte_embedded_structure_both_blocks_issue1807) {
+    static const char *sources[] = {
+        "<script context=\"module\" lang=\"ts\">\n"
+        "export function fromModule(): number { return shared(); }\n"
+        "</script>\n"
+        "<script lang=\"ts\">\n"
+        "import { shared } from './shared';\n"
+        "function fromInstance(): number { return shared() + fromModule(); }\n"
+        "</script>\n"
+        "<button on:click={fromInstance}>{fromModule()}</button>\n",
+        "<script module lang=\"ts\">\n"
+        "export function fromModule(): number { return shared(); }\n"
+        "</script>\n"
+        "<script lang=\"ts\">\n"
+        "import { shared } from './shared';\n"
+        "function fromInstance(): number { return shared() + fromModule(); }\n"
+        "</script>\n"
+        "<button onclick={fromInstance}>{fromModule()}</button>\n",
+    };
+    for (int i = 0; i < 2; i++) {
+        CBMFileResult *r = extract(sources[i], CBM_LANG_SVELTE, "t", "Widget.svelte");
+        ASSERT_NOT_NULL(r);
+        ASSERT_FALSE(r->has_error);
+        ASSERT_EQ(count_defs_with_label(r, "Function"), 2);
+        ASSERT_EQ(count_defs_named(r, "Function", "fromModule"), 1);
+        ASSERT_EQ(count_defs_named(r, "Function", "fromInstance"), 1);
+        ASSERT_EQ(count_calls_named(r, "shared"), 2);
+        ASSERT_EQ(count_calls_named(r, "fromModule"), 1);
+        ASSERT_EQ(r->imports.count, 1);
+        ASSERT(has_import(r, "shared"));
+        for (int d = 0; d < r->defs.count; d++) {
+            const CBMDefinition *def = &r->defs.items[d];
+            if (strcmp(def->name, "fromModule") == 0) {
+                ASSERT_EQ(def->start_line, 2);
+            } else if (strcmp(def->name, "fromInstance") == 0) {
+                ASSERT_EQ(def->start_line, 6);
+            }
+        }
+        cbm_free_result(r);
+    }
+    PASS();
+}
+
+/* Every type= form HTML itself runs as JavaScript contributes, in host-file
+ * coordinates; a data block on the same page does not. */
+TEST(html_embedded_structure_issue1807) {
+    CBMFileResult *r =
+        extract("<!DOCTYPE html><html><head>\n"
+                "<script type=\"module\">\n"
+                "import { renderApp } from './app.js';\n"
+                "function boot() { renderApp(); }\n"
+                "</script>\n"
+                "<script type=\"text/javascript\">\n"
+                "function legacy() { boot(); }\n"
+                "</script>\n"
+                "<script type=\"application/javascript\">\n"
+                "function fallback() { legacy(); }\n"
+                "</script>\n"
+                "<script type=\"application/ld+json\">{\"@type\": \"Thing\"}</script>\n"
+                "</head><body></body></html>\n",
+                CBM_LANG_HTML, "t", "index.html");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    ASSERT_EQ(count_defs_with_label(r, "Function"), 3);
+    ASSERT_EQ(count_calls_named(r, "renderApp"), 1);
+    ASSERT_EQ(count_calls_named(r, "boot"), 1);
+    ASSERT_EQ(count_calls_named(r, "legacy"), 1);
+    ASSERT_EQ(r->imports.count, 1);
+    for (int i = 0; i < r->defs.count; i++) {
+        const CBMDefinition *d = &r->defs.items[i];
+        if (strcmp(d->name, "boot") == 0) {
+            ASSERT_EQ(d->start_line, 4);
+        } else if (strcmp(d->name, "legacy") == 0) {
+            ASSERT_EQ(d->start_line, 7);
+        } else if (strcmp(d->name, "fallback") == 0) {
+            ASSERT_EQ(d->start_line, 10);
+        }
+    }
+    cbm_free_result(r);
+    PASS();
+}
+
+/* Astro's frontmatter fence and <script> bodies are TypeScript by default: an
+ * interface and typed signatures parse, and both blocks contribute in
+ * host-file coordinates. */
+TEST(astro_embedded_structure_issue1807) {
+    CBMFileResult *r = extract("---\n"
+                               "import Header from './Header.astro';\n"
+                               "interface Props { title: string }\n"
+                               "const { title }: Props = Astro.props;\n"
+                               "function heading(): string { return format(title); }\n"
+                               "---\n"
+                               "<Header />\n"
+                               "<script>\n"
+                               "function hydrate(): void { heading(); }\n"
+                               "</script>\n",
+                               CBM_LANG_ASTRO, "t", "Page.astro");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    ASSERT(has_def_any(r, "Props"));
+    ASSERT_EQ(count_defs_named(r, "Function", "heading"), 1);
+    ASSERT_EQ(count_defs_named(r, "Function", "hydrate"), 1);
+    ASSERT_EQ(count_calls_named(r, "format"), 1);
+    ASSERT_EQ(count_calls_named(r, "heading"), 1);
+    ASSERT_EQ(r->imports.count, 1);
+    ASSERT(has_import(r, "Header.astro"));
+    for (int i = 0; i < r->defs.count; i++) {
+        const CBMDefinition *d = &r->defs.items[i];
+        if (strcmp(d->name, "heading") == 0) {
+            ASSERT_EQ(d->start_line, 5);
+        } else if (strcmp(d->name, "hydrate") == 0) {
+            ASSERT_EQ(d->start_line, 9);
+        }
+    }
+    cbm_free_result(r);
     PASS();
 }
 
@@ -4004,22 +4223,121 @@ TEST(extract_java_jaxrs_path_composition_issue1005) {
     PASS();
 }
 
-static const CBMDefinition *find_module_def(CBMFileResult *r);
+/* Return the file's Module definition (extraction pushes it first), or NULL. */
+static const CBMDefinition *find_module_def(CBMFileResult *r) {
+    for (int i = 0; i < r->defs.count; i++) {
+        if (r->defs.items[i].label && strcmp(r->defs.items[i].label, "Module") == 0) {
+            return &r->defs.items[i];
+        }
+    }
+    return NULL;
+}
 
-TEST(extract_razor_page_route_cshtml) {
-    CBMFileResult *r = extract("@page \"/orders\"\n"
-                               "@model OrderIndexModel\n"
-                               "<h1>Orders</h1>\n",
-                               CBM_LANG_CSHARP, "t", "Pages/Orders/Index.cshtml");
+/* Blazor: a routable component declares its route with a `@page` directive in
+ * MARKUP, above the `@code` block. The C# grammar recovers `@code` (that is why
+ * .razor already yields methods via extra_extensions) but never sees the
+ * directive, so a routable page contributes no Route node and
+ * get_architecture(routes) is empty for a whole Blazor app.
+ *
+ * The route hangs off the file's Module definition, not off a class: a .razor
+ * component's class is implicit — it is never written in the source — so there
+ * is no class node to carry it. The Module's qualified name already IS the
+ * component's identity (t.Pages.Counter), and insert_def_into_gbuf creates
+ * Route+HANDLES for any definition carrying route_path, whatever its label. */
+TEST(extract_blazor_page_directive_routes_component) {
+    CBMFileResult *r = extract("@page \"/counter\"\n"
+                               "@inject NavigationManager Nav\n"
+                               "\n"
+                               "<h1>Counter</h1>\n"
+                               "<button @onclick=\"Increment\">Click</button>\n"
+                               "\n"
+                               "@code {\n"
+                               "    private int count;\n"
+                               "    private void Increment() { count++; }\n"
+                               "}\n",
+                               CBM_LANG_CSHARP, "t", "Pages/Counter.razor");
     ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    /* The markup must not cost us the @code block we already extract today. */
+    ASSERT_NOT_NULL(find_def_by_name(r, "Increment"));
     const CBMDefinition *mod = find_module_def(r);
     ASSERT_NOT_NULL(mod);
-    ASSERT_STR_EQ(mod->route_path, "/orders");
+    ASSERT_NOT_NULL(mod->route_path);
+    ASSERT_STR_EQ(mod->route_path, "/counter");
+    /* A routable Blazor page is reached by navigation, i.e. GET. */
+    ASSERT_NOT_NULL(mod->route_method);
     ASSERT_STR_EQ(mod->route_method, "GET");
     cbm_free_result(r);
     PASS();
 }
 
+/* The directive scan must not fire on every .razor file. A non-routable
+ * component (no @page) has to stay route-free, or every shared component in the
+ * tree becomes a bogus Route node. */
+TEST(extract_blazor_component_without_page_has_no_route) {
+    CBMFileResult *r = extract("@inject IJSRuntime JS\n"
+                               "\n"
+                               "<div class=\"card\">@Title</div>\n"
+                               "\n"
+                               "@code {\n"
+                               "    private void Refresh() { }\n"
+                               "}\n",
+                               CBM_LANG_CSHARP, "t", "Shared/Card.razor");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    const CBMDefinition *mod = find_module_def(r);
+    ASSERT_NOT_NULL(mod);
+    ASSERT_NULL(mod->route_path);
+    cbm_free_result(r);
+    PASS();
+}
+
+/* Razor Pages: `@page` is what turns a .cshtml view INTO a page — it is the
+ * defining directive of the model, not an optional annotation as it is on a
+ * Blazor component. So an ASP.NET Core app's routable surface lives entirely
+ * in file types that were unmapped until now, and every one of those routes
+ * was invisible.
+ *
+ * Same mechanism as the .razor case: the directive sits in markup above any
+ * code block, where the C# grammar never reaches, so it is read from raw
+ * source and hangs off the file's Module definition. */
+TEST(extract_razor_page_directive_routes_cshtml_view) {
+    CBMFileResult *r = extract("@page \"/orders\"\n"
+                               "@model OrderIndexModel\n"
+                               "\n"
+                               "<h1>Orders</h1>\n"
+                               "<table><tr><td>@Model.Count</td></tr></table>\n",
+                               CBM_LANG_CSHARP, "t", "Pages/Orders/Index.cshtml");
+    ASSERT_NOT_NULL(r);
+    const CBMDefinition *mod = find_module_def(r);
+    ASSERT_NOT_NULL(mod);
+    ASSERT_NOT_NULL(mod->route_path);
+    ASSERT_STR_EQ(mod->route_path, "/orders");
+    /* A Razor Page is reached by navigation, i.e. GET — same as a component. */
+    ASSERT_NOT_NULL(mod->route_method);
+    ASSERT_STR_EQ(mod->route_method, "GET");
+    cbm_free_result(r);
+    PASS();
+}
+
+/* The overwhelming majority of .cshtml files are layouts, partials and views
+ * with no `@page` at all. If the scan fired on those, an ASP.NET app would
+ * gain a bogus Route node per view — worse than the missing routes it set out
+ * to fix, because a wrong route looks authoritative. */
+TEST(extract_razor_layout_without_page_has_no_route) {
+    CBMFileResult *r = extract("@model LayoutModel\n"
+                               "<!DOCTYPE html>\n"
+                               "<html><body>@RenderBody()</body></html>\n",
+                               CBM_LANG_CSHARP, "t", "Pages/Shared/_Layout.cshtml");
+    ASSERT_NOT_NULL(r);
+    const CBMDefinition *mod = find_module_def(r);
+    ASSERT_NOT_NULL(mod);
+    ASSERT_NULL(mod->route_path);
+    cbm_free_result(r);
+    PASS();
+}
+
+/* An indented `@page` directive still routes the component. */
 TEST(extract_razor_component_page_route) {
     CBMFileResult *r = extract("  @page \"/counter\"\n@code { void Refresh() {} }\n",
                                CBM_LANG_CSHARP, "t", "Pages/Counter.razor");
@@ -4028,15 +4346,6 @@ TEST(extract_razor_component_page_route) {
     ASSERT_NOT_NULL(mod);
     ASSERT_STR_EQ(mod->route_path, "/counter");
     ASSERT_STR_EQ(mod->route_method, "GET");
-    cbm_free_result(r);
-    PASS();
-}
-
-TEST(extract_razor_view_without_page_has_no_route) {
-    CBMFileResult *r = extract("@model LayoutModel\n<html>@RenderBody()</html>\n", CBM_LANG_CSHARP,
-                               "t", "Pages/Shared/_Layout.cshtml");
-    ASSERT_NOT_NULL(r);
-    ASSERT_NULL(find_module_def(r)->route_path);
     cbm_free_result(r);
     PASS();
 }
@@ -4073,6 +4382,41 @@ static const CBMCall *find_call_by_callee(CBMFileResult *r, const char *callee) 
         }
     }
     return NULL;
+}
+
+/* #1892: the Swift grammar declares no "arguments" field, so the generic field
+ * lookup read nothing and every Swift call lost its arguments. Without the URL
+ * the service-pattern table cannot raise an HTTP_CALLS edge or a Route node,
+ * even though Alamofire/Moya/URLSession are already listed in it. */
+TEST(swift_call_string_arg_issue1892) {
+    CBMFileResult *r =
+        extract("func listWidgets() { AF.request(\"https://example.com/api/v1/widgets\") }\n",
+                CBM_LANG_SWIFT, "t", "Client.swift");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    const CBMCall *c = find_call_by_callee(r, "AF.request");
+    ASSERT_NOT_NULL(c);
+    ASSERT_NOT_NULL(c->first_string_arg);
+    ASSERT_STR_EQ(c->first_string_arg, "https://example.com/api/v1/widgets");
+    cbm_free_result(r);
+    PASS();
+}
+
+/* Swift labels its arguments, and each one sits in a value_argument node that
+ * leads with the label. Reading the first child alone would return `with`
+ * rather than the path. */
+TEST(swift_labeled_call_string_arg_issue1892) {
+    CBMFileResult *r =
+        extract("func fetch() { URLSession.shared.dataTask(with: \"/api/v1/widgets/1\") }\n",
+                CBM_LANG_SWIFT, "t", "Fetch.swift");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    const CBMCall *c = find_call_by_callee(r, "URLSession.shared.dataTask");
+    ASSERT_NOT_NULL(c);
+    ASSERT_NOT_NULL(c->first_string_arg);
+    ASSERT_STR_EQ(c->first_string_arg, "/api/v1/widgets/1");
+    cbm_free_result(r);
+    PASS();
 }
 
 /* Issue #1009: URL-builder helper pattern — a function returning a URL-shaped
@@ -4118,6 +4462,27 @@ TEST(extract_ts_await_generic_call_issue2210) {
     PASS();
 }
 
+/* A route registration names its middleware before its handler, and every
+ * framework here puts the handler last. The handler scan took the FIRST
+ * argument that looked like a function reference, so a named middleware won
+ * and the HANDLES edge pointed at the middleware instead of the handler. */
+TEST(extract_ts_route_handler_after_named_middleware) {
+    CBMFileResult *r = extract("function requireAuth(req: any, res: any, next: any) { next(); }\n"
+                               "function rateLimit(req: any, res: any, next: any) { next(); }\n"
+                               "function listUsers(req: any, res: any) { res.json([]); }\n"
+                               "routerGet(\"/users\", requireAuth, rateLimit, listUsers);\n",
+                               CBM_LANG_TYPESCRIPT, "t", "routes.ts");
+    ASSERT_NOT_NULL(r);
+    const CBMCall *c = find_call_by_callee(r, "routerGet");
+    ASSERT_NOT_NULL(c);
+    ASSERT_NOT_NULL(c->first_string_arg);
+    ASSERT_STR_EQ(c->first_string_arg, "/users");
+    ASSERT_NOT_NULL(c->second_arg_name);
+    ASSERT_STR_EQ(c->second_arg_name, "listUsers");
+    cbm_free_result(r);
+    PASS();
+}
+
 TEST(extract_ts_await_generic_member_call_issue2210) {
     CBMFileResult *r =
         extract("class Api { run<T>(): void {} }\n"
@@ -4126,6 +4491,28 @@ TEST(extract_ts_await_generic_member_call_issue2210) {
     ASSERT_NOT_NULL(r);
     ASSERT_FALSE(r->has_error);
     ASSERT_EQ(count_calls_named(r, "obj.run"), 1);
+    cbm_free_result(r);
+    PASS();
+}
+
+/* The same route with its middleware written inline. An arrow function is not
+ * one of the kinds the handler scan accepts, so three of them pushed the real
+ * handler past the scan bound and no handler came back at all. */
+TEST(extract_ts_route_handler_after_inline_middleware) {
+    CBMFileResult *r = extract("function listOrders(req: any, res: any) { res.json([]); }\n"
+                               "routerGet(\"/orders\",\n"
+                               "  (req: any, res: any, next: any) => { next(); },\n"
+                               "  (req: any, res: any, next: any) => { next(); },\n"
+                               "  (req: any, res: any, next: any) => { next(); },\n"
+                               "  listOrders);\n",
+                               CBM_LANG_TYPESCRIPT, "t", "orders.ts");
+    ASSERT_NOT_NULL(r);
+    const CBMCall *c = find_call_by_callee(r, "routerGet");
+    ASSERT_NOT_NULL(c);
+    ASSERT_NOT_NULL(c->first_string_arg);
+    ASSERT_STR_EQ(c->first_string_arg, "/orders");
+    ASSERT_NOT_NULL(c->second_arg_name);
+    ASSERT_STR_EQ(c->second_arg_name, "listOrders");
     cbm_free_result(r);
     PASS();
 }
@@ -5089,6 +5476,190 @@ TEST(extract_python_member_call_flags_is_method) {
     ASSERT_EQ(imported_alias, 1);
     ASSERT_EQ(bare, 1);
     cbm_free_result(r);
+    PASS();
+}
+
+/* Python bare-call local-binding flag (the bare-call counterpart of the
+ * receiver flag above). Pins BOTH directions: a callee shadowed by a parameter
+ * of an enclosing scope IS flagged so the resolver can suppress a weak
+ * short-name match, while an unshadowed callee — a genuine module-level
+ * function, an imported name, or a nested `def` — is NOT, so its true edge
+ * survives. Every parameter binding form the grammar produces is covered, since
+ * a form the extractor silently missed would leave that shape unguarded. */
+TEST(extract_python_bare_call_flags_locally_bound_callee) {
+    CBMFileResult *r = extract("from pkg import helper\n"
+                               "\n"
+                               "def outer(run, *rest, timeout=5, label: str = 'x', **opts):\n"
+                               "    def inner():\n"
+                               "        return run()\n"
+                               "    rest()\n"
+                               "    timeout()\n"
+                               "    label()\n"
+                               "    opts()\n"
+                               "    module_level()\n"
+                               "    helper()\n"
+                               "    return inner()\n"
+                               "\n"
+                               "def typed(cb: Callable):\n"
+                               "    return cb()\n"
+                               "\n"
+                               "apply_it = lambda fn: fn()\n",
+                               CBM_LANG_PYTHON, "t", "x.py");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+
+    /* callee name -> (expected flag, seen count) */
+    struct {
+        const char *callee;
+        bool expect_bound;
+        int seen;
+    } cases[] = {
+        {"run", true, 0},           /* closure over an ENCLOSING function's parameter */
+        {"rest", true, 0},          /* *args   -> list_splat_pattern                  */
+        {"timeout", true, 0},       /* default_parameter                              */
+        {"label", true, 0},         /* typed_default_parameter (keyword-only)         */
+        {"opts", true, 0},          /* **kwargs -> dictionary_splat_pattern           */
+        {"cb", true, 0},            /* typed_parameter, no default                    */
+        {"fn", true, 0},            /* lambda parameter                               */
+        {"module_level", false, 0}, /* unbound: the true cross-file edge         */
+        {"helper", false, 0},       /* imported name, not a parameter            */
+        {"inner", false, 0},        /* nested def: a real target, keep the edge  */
+    };
+    const int case_count = (int)(sizeof(cases) / sizeof(cases[0]));
+
+    for (int i = 0; i < r->calls.count; i++) {
+        const char *cn = r->calls.items[i].callee_name;
+        if (!cn) {
+            continue;
+        }
+        for (int c = 0; c < case_count; c++) {
+            if (strcmp(cn, cases[c].callee) != 0) {
+                continue;
+            }
+            cases[c].seen++;
+            if (r->calls.items[i].callee_is_locally_bound != cases[c].expect_bound) {
+                printf("  bare-call flag mismatch for %s(): got %d, expected %d\n", cases[c].callee,
+                       r->calls.items[i].callee_is_locally_bound ? 1 : 0,
+                       cases[c].expect_bound ? 1 : 0);
+            }
+            ASSERT_EQ(r->calls.items[i].callee_is_locally_bound, cases[c].expect_bound);
+        }
+    }
+    /* Each shape must appear exactly once, so a missed extraction cannot let the
+     * loop above pass vacuously. */
+    for (int c = 0; c < case_count; c++) {
+        if (cases[c].seen != 1) {
+            printf("  bare call %s() extracted %d times, expected 1\n", cases[c].callee,
+                   cases[c].seen);
+        }
+        ASSERT_EQ(cases[c].seen, 1);
+    }
+    cbm_free_result(r);
+    PASS();
+}
+
+/* The bare-call flag is DEPTH-INDEPENDENT, and the binding is UNWOUND when its
+ * scope closes.
+ *
+ * Both properties come from the same design decision. The answer is carried by
+ * the unified walk -- parameters are bound when a def or lambda scope opens and
+ * unwound when it closes -- rather than recomputed per call by ascending the
+ * tree. An ascending walk is O(depth) per call, and every level of f(f(f(...)))
+ * is itself a bare call, so it is quadratic in a file's nesting depth; that hung
+ * stack_overflow_b's 30,000-deep fixture rather than merely slowing it. An
+ * earlier cut capped the ascent at 64 ancestors and FAILED OPEN past it, which
+ * silently stopped suppressing on deep-but-ordinary code.
+ *
+ * Pinned deterministically rather than by wall clock -- a timing assertion would
+ * be a lottery, not a gate. The depth case fails if a cap is reintroduced; the
+ * unwind case fails if a frame's bindings outlive its scope. */
+TEST(extract_python_bare_call_flag_is_depth_independent) {
+    /* Shallow: return_statement / block / function_definition — 3 ancestors. */
+    CBMFileResult *shallow = extract("def shallow(handler):\n"
+                                     "    return handler()\n",
+                                     CBM_LANG_PYTHON, "t", "s.py");
+    ASSERT_NOT_NULL(shallow);
+    ASSERT_FALSE(shallow->has_error);
+    int shallow_seen = 0;
+    for (int i = 0; i < shallow->calls.count; i++) {
+        const char *cn = shallow->calls.items[i].callee_name;
+        if (cn && strcmp(cn, "handler") == 0) {
+            shallow_seen++;
+            ASSERT_TRUE(shallow->calls.items[i].callee_is_locally_bound);
+        }
+    }
+    ASSERT_EQ(shallow_seen, 1);
+    cbm_free_result(shallow);
+
+    /* Deep: 200 parenthesized_expression ancestors separate the SAME call from
+     * its enclosing def. The parameter still shadows it, so it stays flagged --
+     * depth changes nothing. This is the case a 64-ancestor cap got wrong. */
+    const int PARENS = 200;
+    size_t sz = (size_t)PARENS * 2 + 128;
+    char *src = malloc(sz);
+    ASSERT_NOT_NULL(src);
+    char *w = src;
+    w += snprintf(w, sz, "def deep(handler):\n    return ");
+    memset(w, '(', (size_t)PARENS);
+    w += PARENS;
+    w += snprintf(w, sz - (size_t)(w - src), "handler()");
+    memset(w, ')', (size_t)PARENS);
+    w += PARENS;
+    snprintf(w, sz - (size_t)(w - src), "\n");
+
+    CBMFileResult *deep = extract(src, CBM_LANG_PYTHON, "t", "d.py");
+    ASSERT_NOT_NULL(deep);
+    ASSERT_FALSE(deep->has_error);
+    int deep_seen = 0;
+    for (int i = 0; i < deep->calls.count; i++) {
+        const char *cn = deep->calls.items[i].callee_name;
+        if (cn && strcmp(cn, "handler") == 0) {
+            deep_seen++;
+            ASSERT_TRUE(deep->calls.items[i].callee_is_locally_bound);
+        }
+    }
+    ASSERT_EQ(deep_seen, 1);
+    cbm_free_result(deep);
+    free(src);
+
+    /* Unwind: `handler` is a parameter of shadowed() and a module-level function
+     * of the same name. The call INSIDE shadowed() is flagged; the call in
+     * sibling(), after that scope closed, must NOT be — it really does resolve
+     * to the module-level def. A binding that outlived its frame would flag it
+     * and destroy a true edge, which is the one direction this guard must never
+     * fail in. Nested same-name defs also pin the count: leaving the inner scope
+     * must not unbind the outer one. */
+    CBMFileResult *unwound = extract("def handler():\n"
+                                     "    return 1\n"
+                                     "\n"
+                                     "def shadowed(handler):\n"
+                                     "    def inner(handler):\n"
+                                     "        return handler()\n"
+                                     "    return inner(handler) or handler()\n"
+                                     "\n"
+                                     "def sibling():\n"
+                                     "    return handler()\n",
+                                     CBM_LANG_PYTHON, "t", "u.py");
+    ASSERT_NOT_NULL(unwound);
+    ASSERT_FALSE(unwound->has_error);
+    int flagged = 0;
+    int unflagged = 0;
+    for (int i = 0; i < unwound->calls.count; i++) {
+        const char *cn = unwound->calls.items[i].callee_name;
+        if (!cn || strcmp(cn, "handler") != 0) {
+            continue;
+        }
+        if (unwound->calls.items[i].callee_is_locally_bound) {
+            flagged++;
+        } else {
+            unflagged++;
+        }
+    }
+    /* Two shadowed calls (inner body, and shadowed()'s own tail) and exactly one
+     * unshadowed call in sibling(). */
+    ASSERT_EQ(flagged, 2);
+    ASSERT_EQ(unflagged, 1);
+    cbm_free_result(unwound);
     PASS();
 }
 
@@ -6626,16 +7197,6 @@ TEST(iris_export_xml_multi_class) {
  * question asked in words could not reach either. Both now carry the prose in
  * `docstring`, which is what nodes_fts indexes into its `body` column. */
 
-/* First Module-labelled definition, or NULL. */
-static const CBMDefinition *find_module_def(CBMFileResult *r) {
-    for (int i = 0; i < r->defs.count; i++) {
-        if (strcmp(r->defs.items[i].label, "Module") == 0) {
-            return &r->defs.items[i];
-        }
-    }
-    return NULL;
-}
-
 TEST(markdown_section_body_becomes_docstring_issue518) {
     CBMFileResult *r = extract("# Installation\n"
                                "Run the bootstrap script to provision a workstation.\n"
@@ -6822,7 +7383,375 @@ TEST(non_config_language_module_has_no_promoted_description_issue519) {
     PASS();
 }
 
+/* ── Result compaction (cbm_result_compact) ────────────────────────────── */
+
+static const char *COMPACT_PY_SRC = "import os\n"
+                                    "from typing import List\n"
+                                    "\n"
+                                    "@app.route(\"/items\")\n"
+                                    "def list_items(limit: int, offset: int = 0) -> List[str]:\n"
+                                    "    \"\"\"Return items.\"\"\"\n"
+                                    "    rows = fetch(limit, offset=offset)\n"
+                                    "    total = len(rows)\n"
+                                    "    for r in rows:\n"
+                                    "        print(r, total)\n"
+                                    "    return rows\n"
+                                    "\n"
+                                    "class Store(Base):\n"
+                                    "    def get(self, key):\n"
+                                    "        return self.data.get(key, None)\n"
+                                    "\n"
+                                    "    def put(self, key, value):\n"
+                                    "        self.data[key] = value\n"
+                                    "        return fetch(key, value)\n";
+
+static bool cmp_str_eq(const char *a, const char *b) {
+    if (!a || !b) {
+        return a == b;
+    }
+    return strcmp(a, b) == 0;
+}
+
+static bool cmp_list_eq(const char **a, const char **b) {
+    if (!a || !b) {
+        return a == b;
+    }
+    int i = 0;
+    for (; a[i] && b[i]; i++) {
+        if (strcmp(a[i], b[i]) != 0) {
+            return false;
+        }
+    }
+    return a[i] == NULL && b[i] == NULL;
+}
+
+static size_t arena_capacity(const CBMArena *a) {
+    size_t total = 0;
+    for (int i = 0; i < a->nblocks; i++) {
+        total += a->block_sizes[i];
+    }
+    return total;
+}
+
+TEST(extract_compact_keeps_every_field_and_shrinks_the_arena) {
+    CBMFileResult *r = extract(COMPACT_PY_SRC, CBM_LANG_PYTHON, "t", "svc.py");
+    CBMFileResult *ref = extract(COMPACT_PY_SRC, CBM_LANG_PYTHON, "t", "svc.py");
+    ASSERT_NOT_NULL(r);
+    ASSERT_NOT_NULL(ref);
+    ASSERT_FALSE(r->has_error);
+    ASSERT(r->defs.count >= 4);  /* list_items, Store, get, put (+ module) */
+    ASSERT(r->calls.count >= 4); /* fetch x2, len, print, get */
+    ASSERT(r->usages.count >= 1);
+    ASSERT(r->imports.count >= 2);
+    bool saw_args = false;
+    for (int i = 0; i < ref->calls.count; i++) {
+        saw_args = saw_args || ref->calls.items[i].arg_count > 0;
+    }
+    ASSERT(saw_args);
+
+    size_t used_before = cbm_arena_total(&r->arena);
+    size_t cap_before = arena_capacity(&r->arena);
+    cbm_result_compact(r);
+
+    /* One exact block: capacity == bytes used, no dead headroom. */
+    ASSERT_EQ(r->arena.nblocks, 1);
+    ASSERT_EQ(arena_capacity(&r->arena), cbm_arena_total(&r->arena));
+    ASSERT(cbm_arena_total(&r->arena) < used_before);
+    ASSERT(arena_capacity(&r->arena) < cap_before);
+    ASSERT_EQ(r->defs.cap, r->defs.count);
+    ASSERT_EQ(r->calls.cap, r->calls.count);
+    ASSERT_EQ(r->usages.cap, r->usages.count);
+
+    /* Every field survives, by value. */
+    ASSERT_EQ(r->defs.count, ref->defs.count);
+    for (int i = 0; i < r->defs.count; i++) {
+        const CBMDefinition *a = &r->defs.items[i];
+        const CBMDefinition *b = &ref->defs.items[i];
+        ASSERT(cmp_str_eq(a->name, b->name));
+        ASSERT(cmp_str_eq(a->qualified_name, b->qualified_name));
+        ASSERT(cmp_str_eq(a->label, b->label));
+        ASSERT(cmp_str_eq(a->file_path, b->file_path));
+        ASSERT(cmp_str_eq(a->signature, b->signature));
+        ASSERT(cmp_str_eq(a->return_type, b->return_type));
+        ASSERT(cmp_str_eq(a->docstring, b->docstring));
+        ASSERT(cmp_str_eq(a->parent_class, b->parent_class));
+        ASSERT(cmp_str_eq(a->route_path, b->route_path));
+        ASSERT(cmp_str_eq(a->body_tokens, b->body_tokens));
+        ASSERT(cmp_str_eq(a->structural_profile, b->structural_profile));
+        ASSERT(cmp_list_eq(a->decorators, b->decorators));
+        ASSERT(cmp_list_eq(a->base_classes, b->base_classes));
+        ASSERT(cmp_list_eq(a->param_names, b->param_names));
+        ASSERT(cmp_list_eq(a->param_types, b->param_types));
+        ASSERT(cmp_list_eq(a->return_types, b->return_types));
+        ASSERT_EQ(a->signature_param_count, b->signature_param_count);
+        for (int k = 0; k < a->signature_param_count; k++) {
+            ASSERT(cmp_str_eq(a->signature_param_types[k], b->signature_param_types[k]));
+        }
+        ASSERT_EQ(a->start_line, b->start_line);
+        ASSERT_EQ(a->end_line, b->end_line);
+        ASSERT_EQ(a->complexity, b->complexity);
+        ASSERT_EQ(a->lines, b->lines);
+        ASSERT_EQ(a->is_exported, b->is_exported);
+        ASSERT_EQ(a->fingerprint_k, b->fingerprint_k);
+        if (a->fingerprint_k > 0) {
+            ASSERT_NOT_NULL(a->fingerprint);
+            ASSERT(memcmp(a->fingerprint, b->fingerprint,
+                          (size_t)a->fingerprint_k * sizeof(uint32_t)) == 0);
+        }
+    }
+    ASSERT_EQ(r->calls.count, ref->calls.count);
+    for (int i = 0; i < r->calls.count; i++) {
+        const CBMCall *a = &r->calls.items[i];
+        const CBMCall *b = &ref->calls.items[i];
+        ASSERT(cmp_str_eq(a->callee_name, b->callee_name));
+        ASSERT(cmp_str_eq(a->enclosing_func_qn, b->enclosing_func_qn));
+        ASSERT(cmp_str_eq(a->first_string_arg, b->first_string_arg));
+        ASSERT_EQ(a->arg_count, b->arg_count);
+        ASSERT_EQ(a->start_line, b->start_line);
+        ASSERT_EQ(a->site_start_byte, b->site_start_byte);
+        ASSERT_EQ(a->site_end_byte, b->site_end_byte);
+        ASSERT_EQ(a->is_method, b->is_method);
+        for (int k = 0; k < a->arg_count; k++) {
+            ASSERT(cmp_str_eq(a->args[k].expr, b->args[k].expr));
+            ASSERT(cmp_str_eq(a->args[k].value, b->args[k].value));
+            ASSERT(cmp_str_eq(a->args[k].keyword, b->args[k].keyword));
+            ASSERT_EQ(a->args[k].index, b->args[k].index);
+        }
+    }
+    ASSERT_EQ(r->usages.count, ref->usages.count);
+    for (int i = 0; i < r->usages.count; i++) {
+        ASSERT(cmp_str_eq(r->usages.items[i].ref_name, ref->usages.items[i].ref_name));
+        ASSERT(cmp_str_eq(r->usages.items[i].enclosing_func_qn,
+                          ref->usages.items[i].enclosing_func_qn));
+        ASSERT_EQ(r->usages.items[i].kind, ref->usages.items[i].kind);
+        ASSERT_EQ(r->usages.items[i].site_start_byte, ref->usages.items[i].site_start_byte);
+        ASSERT_EQ(r->usages.items[i].is_member_access, ref->usages.items[i].is_member_access);
+    }
+    ASSERT_EQ(r->imports.count, ref->imports.count);
+    for (int i = 0; i < r->imports.count; i++) {
+        ASSERT(cmp_str_eq(r->imports.items[i].local_name, ref->imports.items[i].local_name));
+        ASSERT(cmp_str_eq(r->imports.items[i].module_path, ref->imports.items[i].module_path));
+    }
+    ASSERT_EQ(r->rw.count, ref->rw.count);
+    ASSERT_EQ(r->type_refs.count, ref->type_refs.count);
+    ASSERT(cmp_str_eq(r->module_qn, ref->module_qn));
+    ASSERT(cmp_list_eq(r->exports, ref->exports));
+
+    /* Interned by content: two records with the same enclosing QN share one
+     * copy after compaction. */
+    bool shared = false;
+    for (int i = 0; i < r->calls.count && !shared; i++) {
+        for (int j = i + 1; j < r->calls.count && !shared; j++) {
+            if (r->calls.items[i].enclosing_func_qn && r->calls.items[j].enclosing_func_qn &&
+                strcmp(r->calls.items[i].enclosing_func_qn, r->calls.items[j].enclosing_func_qn) ==
+                    0) {
+                shared = r->calls.items[i].enclosing_func_qn == r->calls.items[j].enclosing_func_qn;
+            }
+        }
+    }
+    ASSERT(shared);
+
+    /* The arena stays usable for the cross-file pass: growth restarts at the
+     * default block, never at twice the compact block. */
+    char *later = cbm_arena_strdup(&r->arena, "appended after compaction");
+    ASSERT_NOT_NULL(later);
+    ASSERT_EQ(r->arena.nblocks, 2);
+    ASSERT_EQ(r->arena.block_sizes[1], CBM_ARENA_DEFAULT_BLOCK_SIZE);
+
+    cbm_free_result(r);
+    cbm_free_result(ref);
+    PASS();
+}
+
+TEST(extract_compact_is_idempotent_and_survives_empty_results) {
+    CBMFileResult *r = extract(COMPACT_PY_SRC, CBM_LANG_PYTHON, "t", "svc.py");
+    ASSERT_NOT_NULL(r);
+    cbm_result_compact(r);
+    size_t once = cbm_arena_total(&r->arena);
+    int defs = r->defs.count;
+    cbm_result_compact(r);
+    ASSERT_EQ(cbm_arena_total(&r->arena), once);
+    ASSERT_EQ(r->defs.count, defs);
+    ASSERT_EQ(r->arena.nblocks, 1);
+    cbm_free_result(r);
+
+    CBMFileResult *empty = extract("", CBM_LANG_PYTHON, "t", "empty.py");
+    ASSERT_NOT_NULL(empty);
+    cbm_result_compact(empty);
+    ASSERT_EQ(empty->defs.count + empty->calls.count, empty->defs.count + empty->calls.count);
+    ASSERT(empty->arena.nblocks >= 1);
+    cbm_free_result(empty);
+
+    cbm_result_compact(NULL); /* no-op */
+    PASS();
+}
+
+/* ── Result spill (result_spill.c): park -> load is a faithful round trip ── */
+
+TEST(extract_spill_round_trip_keeps_every_field) {
+    CBMFileResult *r = extract(COMPACT_PY_SRC, CBM_LANG_PYTHON, "t", "svc.py");
+    CBMFileResult *ref = extract(COMPACT_PY_SRC, CBM_LANG_PYTHON, "t", "svc.py");
+    ASSERT_NOT_NULL(r);
+    ASSERT_NOT_NULL(ref);
+    cbm_result_compact(r);
+    cbm_result_compact(ref);
+
+    char dir[512];
+    snprintf(dir, sizeof(dir), "%s/cbm_spill_XXXXXX", cbm_tmpdir());
+    ASSERT_NOT_NULL(cbm_mkdtemp(dir));
+    cbm_result_spill_t *sp = cbm_result_spill_open(dir, 2, 3);
+    ASSERT_NOT_NULL(sp);
+    ASSERT_FALSE(cbm_result_spill_has(sp, 1));
+
+    /* A result that is not compacted (two blocks) is refused, untouched. */
+    CBMFileResult *raw = extract(COMPACT_PY_SRC, CBM_LANG_PYTHON, "t", "raw.py");
+    ASSERT_NOT_NULL(raw);
+    if (raw->arena.nblocks > 1) {
+        ASSERT_FALSE(cbm_result_spill_park(sp, 0, 2, raw));
+        ASSERT_FALSE(cbm_result_spill_has(sp, 2));
+    }
+    cbm_free_result(raw);
+
+    /* Park frees the in-memory result; the slot is then on disk. Each
+     * precondition is named so a refusal says which one it was. */
+    int defs_before = r->defs.count;
+    int calls_before = r->calls.count;
+    ASSERT_EQ(r->arena.nblocks, 1);
+    ASSERT_EQ(r->owned_result_count, 0);
+    ASSERT_NOT_NULL(r->cached_tree); /* the extraction helper keeps the tree: park drops it */
+    ASSERT_TRUE(cbm_result_spill_park(sp, 1, 1, r));
+    r = NULL;
+    ASSERT_TRUE(cbm_result_spill_has(sp, 1));
+    int peek_defs = -1;
+    int peek_impls = -1;
+    cbm_result_spill_peek_counts(sp, 1, &peek_defs, &peek_impls);
+    ASSERT_EQ(peek_defs, defs_before);
+    ASSERT_EQ(peek_impls, 0);
+
+    CBMFileResult *back = cbm_result_spill_load(sp, 1);
+    ASSERT_NOT_NULL(back);
+    ASSERT_NULL(back->cached_tree);
+    ASSERT_EQ(back->arena.nblocks, 1);
+    ASSERT_EQ(back->defs.count, defs_before);
+    ASSERT_EQ(back->calls.count, calls_before);
+    for (int i = 0; i < back->defs.count; i++) {
+        const CBMDefinition *a = &back->defs.items[i];
+        const CBMDefinition *b = &ref->defs.items[i];
+        ASSERT(cmp_str_eq(a->name, b->name));
+        ASSERT(cmp_str_eq(a->qualified_name, b->qualified_name));
+        ASSERT(cmp_str_eq(a->label, b->label));
+        ASSERT(cmp_str_eq(a->file_path, b->file_path));
+        ASSERT(cmp_str_eq(a->signature, b->signature));
+        ASSERT(cmp_str_eq(a->docstring, b->docstring));
+        ASSERT(cmp_list_eq(a->decorators, b->decorators));
+        ASSERT(cmp_list_eq(a->param_names, b->param_names));
+        ASSERT_EQ(a->start_line, b->start_line);
+        ASSERT_EQ(a->fingerprint_k, b->fingerprint_k);
+        if (a->fingerprint_k > 0) {
+            ASSERT(memcmp(a->fingerprint, b->fingerprint,
+                          (size_t)a->fingerprint_k * sizeof(uint32_t)) == 0);
+        }
+        /* Every pointer now lives in the loaded block, none in the old one. */
+        const char *lo = back->arena.blocks[0];
+        const char *hi = lo + back->arena.used;
+        ASSERT(a->name >= lo && a->name < hi);
+        ASSERT(a->qualified_name >= lo && a->qualified_name < hi);
+    }
+    for (int i = 0; i < back->calls.count; i++) {
+        const CBMCall *a = &back->calls.items[i];
+        const CBMCall *b = &ref->calls.items[i];
+        ASSERT(cmp_str_eq(a->callee_name, b->callee_name));
+        ASSERT(cmp_str_eq(a->enclosing_func_qn, b->enclosing_func_qn));
+        ASSERT_EQ(a->arg_count, b->arg_count);
+        for (int k = 0; k < a->arg_count; k++) {
+            ASSERT(cmp_str_eq(a->args[k].expr, b->args[k].expr));
+        }
+    }
+    ASSERT_EQ(back->usages.count, ref->usages.count);
+    for (int i = 0; i < back->usages.count; i++) {
+        ASSERT(cmp_str_eq(back->usages.items[i].ref_name, ref->usages.items[i].ref_name));
+    }
+    ASSERT(cmp_str_eq(back->module_qn, ref->module_qn));
+    ASSERT(cmp_list_eq(back->exports, ref->exports));
+
+    /* Loading twice yields two independent copies. */
+    CBMFileResult *again = cbm_result_spill_load(sp, 1);
+    ASSERT_NOT_NULL(again);
+    ASSERT(again->arena.blocks[0] != back->arena.blocks[0]);
+    ASSERT_EQ(again->defs.count, defs_before);
+    int64_t parked = 0;
+    int64_t bytes = 0;
+    int64_t loads = 0;
+    cbm_result_spill_stats(sp, &parked, &bytes, &loads);
+    ASSERT_EQ(parked, 1);
+    ASSERT(bytes > 0);
+    ASSERT_EQ(loads, 2);
+
+    cbm_free_result(again);
+    cbm_free_result(back);
+    cbm_free_result(ref);
+    cbm_result_spill_close(sp);
+    cbm_rmdir(dir);
+    PASS();
+}
+
+/* ── LSP budget share: an oversized parse disqualifies the file from the walks ── */
+
+/* CBM_TEST_LSP_SKIP_ON names the file (no real timing): the result carries
+ * lsp_skipped, the per-file LSP walk did not run (no LSP-resolved calls),
+ * and the shared cross-file dispatcher returns without touching it. The
+ * unified extractor definitions are still there. */
+TEST(extract_lsp_skipped_when_parse_used_its_budget_share) {
+    cbm_setenv("CBM_TEST_LSP_SKIP_ON", "budget_share.py", 1);
+    CBMFileResult *skipped = extract(COMPACT_PY_SRC, CBM_LANG_PYTHON, "t", "budget_share.py");
+    cbm_unsetenv("CBM_TEST_LSP_SKIP_ON");
+    CBMFileResult *walked = extract(COMPACT_PY_SRC, CBM_LANG_PYTHON, "t", "walked.py");
+    ASSERT_NOT_NULL(skipped);
+    ASSERT_NOT_NULL(walked);
+    ASSERT_TRUE(skipped->lsp_skipped);
+    ASSERT_FALSE(walked->lsp_skipped);
+    ASSERT_GT(skipped->defs.count, 0);                      /* the unified extractor still ran */
+    ASSERT_TRUE(skipped->defs.count <= walked->defs.count); /* the LSP walk adds its own defs */
+    ASSERT_EQ(skipped->resolved_calls.count, 0);
+
+    /* The dispatcher is the one gate for every language and both drivers. */
+    int calls_before = skipped->calls.count;
+    cbm_pxc_dispatch_file(CBM_LANG_PYTHON, skipped, COMPACT_PY_SRC, (int)strlen(COMPACT_PY_SRC),
+                          "budget_share.py", "t", NULL, NULL, NULL, 0, NULL, NULL, 0, NULL, NULL);
+    ASSERT_EQ(skipped->calls.count, calls_before);
+    ASSERT_EQ(skipped->resolved_calls.count, 0);
+
+    cbm_free_result(skipped);
+    cbm_free_result(walked);
+    PASS();
+}
+
+/* CBM_TEST_WALK_BUDGET_NODES stops the unified walk after that many nodes
+ * (no real timing): the result is walk_truncated, therefore lsp_skipped, and
+ * the definitions the walk had not reached are the only loss. */
+TEST(extract_walk_truncated_at_its_cpu_budget) {
+    cbm_setenv("CBM_TEST_WALK_BUDGET_NODES", "8", 1);
+    CBMFileResult *cut = extract(COMPACT_PY_SRC, CBM_LANG_PYTHON, "t", "walk_budget.py");
+    cbm_unsetenv("CBM_TEST_WALK_BUDGET_NODES");
+    CBMFileResult *full = extract(COMPACT_PY_SRC, CBM_LANG_PYTHON, "t", "walk_full.py");
+    ASSERT_NOT_NULL(cut);
+    ASSERT_NOT_NULL(full);
+    ASSERT_TRUE(cut->walk_truncated);
+    ASSERT_TRUE(cut->lsp_skipped);
+    ASSERT_FALSE(full->walk_truncated);
+    ASSERT_TRUE(cut->usages.count <= full->usages.count);
+    ASSERT_TRUE(cut->calls.count <= full->calls.count);
+    cbm_free_result(cut);
+    cbm_free_result(full);
+    PASS();
+}
+
 SUITE(extraction) {
+    RUN_TEST(extract_compact_keeps_every_field_and_shrinks_the_arena);
+    RUN_TEST(extract_compact_is_idempotent_and_survives_empty_results);
+    RUN_TEST(extract_spill_round_trip_keeps_every_field);
+    RUN_TEST(extract_lsp_skipped_when_parse_used_its_budget_share);
+    RUN_TEST(extract_walk_truncated_at_its_cpu_budget);
     /* Initialize extraction library */
     cbm_init();
 
@@ -6840,6 +7769,8 @@ SUITE(extraction) {
     RUN_TEST(extract_perl_method_call_flags_is_method);
     RUN_TEST(extract_flag_exempt_method_call_not_flagged_is_method);
     RUN_TEST(extract_python_member_call_flags_is_method);
+    RUN_TEST(extract_python_bare_call_flags_locally_bound_callee);
+    RUN_TEST(extract_python_bare_call_flag_is_depth_independent);
     RUN_TEST(extract_ts_member_call_flags_is_method);
     RUN_TEST(extract_ts_this_super_receiver_not_flagged);
     RUN_TEST(extract_js_member_call_flags_is_method);
@@ -6882,6 +7813,8 @@ SUITE(extraction) {
     RUN_TEST(extract_r_box_use_imports_issue218);
     RUN_TEST(extract_r_dollar_call_issue219);
     RUN_TEST(extract_ts_factory_object_methods_issue341);
+    RUN_TEST(traversal_stack_not_in_result_arena_issue2010);
+    RUN_TEST(extract_c_macro_hidden_call_survives_preprocessed_pass_issue2010);
     RUN_TEST(extract_c_macros_issue375);
     RUN_TEST(extract_cpp_macros_issue375);
     RUN_TEST(extract_cpp_functionlike_macro_type_arg_no_false_parse_partial_issue1071);
@@ -6947,6 +7880,7 @@ SUITE(extraction) {
 
     /* Functional */
     RUN_TEST(elixir_function);
+    RUN_TEST(elixir_call_string_argument);
     RUN_TEST(haskell_function);
     RUN_TEST(ocaml_function);
     RUN_TEST(erlang_function);
@@ -7000,6 +7934,9 @@ SUITE(extraction) {
     RUN_TEST(swift_method_call);
     RUN_TEST(swift_constructor_call);
     RUN_TEST(swift_chained_call);
+    RUN_TEST(swift_force_unwrap_scanner_shift);
+    RUN_TEST(swift_call_string_arg_issue1892);
+    RUN_TEST(swift_labeled_call_string_arg_issue1892);
     RUN_TEST(objc_interface);
     RUN_TEST(objc_implementation);
     RUN_TEST(dart_top_level_function);
@@ -7103,9 +8040,11 @@ SUITE(extraction) {
     RUN_TEST(vue_imports_basic);
     RUN_TEST(vue_embedded_structure_issue1410);
     RUN_TEST(vue_embedded_structure_negative_controls_issue1410);
-    RUN_TEST(vue_embedded_structure_host_controls_issue1410);
     RUN_TEST(embedded_structure_sibling_hosts_issue1807);
     RUN_TEST(embedded_structure_inert_blocks_issue1807);
+    RUN_TEST(svelte_embedded_structure_both_blocks_issue1807);
+    RUN_TEST(html_embedded_structure_issue1807);
+    RUN_TEST(astro_embedded_structure_issue1807);
     RUN_TEST(html_imports_basic);
 
     /* config_extraction_test.go ports */
@@ -7149,13 +8088,17 @@ SUITE(extraction) {
     RUN_TEST(arkts_lazy_import);
     RUN_TEST(arkts_ts_compat);
     RUN_TEST(extract_java_jaxrs_path_composition_issue1005);
-    RUN_TEST(extract_razor_page_route_cshtml);
+    RUN_TEST(extract_blazor_page_directive_routes_component);
+    RUN_TEST(extract_blazor_component_without_page_has_no_route);
+    RUN_TEST(extract_razor_page_directive_routes_cshtml_view);
+    RUN_TEST(extract_razor_layout_without_page_has_no_route);
     RUN_TEST(extract_razor_component_page_route);
-    RUN_TEST(extract_razor_view_without_page_has_no_route);
     RUN_TEST(extract_ts_template_string_url_issue1006);
     RUN_TEST(extract_go_binary_concat_url_issue1249);
     RUN_TEST(extract_go_binary_concat_url_no_literal_suffix_issue1249);
     RUN_TEST(extract_ts_url_builder_issue1009);
+    RUN_TEST(extract_ts_route_handler_after_named_middleware);
+    RUN_TEST(extract_ts_route_handler_after_inline_middleware);
     RUN_TEST(extract_ts_await_generic_call_issue2210);
     RUN_TEST(extract_ts_await_generic_member_call_issue2210);
     RUN_TEST(extract_ts_url_builder_composed_issue1009);

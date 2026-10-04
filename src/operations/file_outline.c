@@ -1,4 +1,6 @@
+#include "operations/result_wire.h"
 #include "operations/file_outline.h"
+#include "operations/store_host.h"
 
 #include "foundation/constants.h"
 #include "operations/compact_out.h"
@@ -129,7 +131,7 @@ static char *outline_json_payload(const char *file_path, cbm_file_outline_row_t 
     yyjson_mut_obj_add_int(doc, object, "limit", limit);
     yyjson_mut_obj_add_int(doc, object, "returned", row_count);
     yyjson_mut_obj_add_bool(doc, object, "has_more", (int64_t)offset + row_count < total);
-    char *payload = yyjson_mut_write(doc, 0, NULL);
+    char *payload = cbm_operation_json_write(doc);
     yyjson_mut_doc_free(doc);
     return payload;
 }
@@ -258,11 +260,14 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
             labels[label_count++] = label;
         }
     }
-    cbm_store_t *store = cbm_store_open(project);
+    cbm_store_open_status_t open_status = CBM_STORE_OPEN_OK;
+    cbm_store_t *store = cbm_store_host_open_query(project, &open_status);
     if (!store) {
         free(project);
         yyjson_doc_free(doc);
-        return outline_error("project not found or not indexed");
+        return outline_error(open_status == CBM_STORE_OPEN_CORRUPT
+                                 ? CBM_STORE_CORRUPT_ERROR
+                                 : "project not found or not indexed");
     }
     cbm_project_t info = {0};
     if (cbm_store_get_project(store, project, &info) != CBM_STORE_OK) {

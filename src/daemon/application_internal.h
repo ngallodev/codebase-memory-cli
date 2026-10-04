@@ -35,6 +35,11 @@ int cbm_daemon_application_background_initializes_for_test(void);
  * the physical job limit). Waiting for a delta here is the positive signal
  * that a request QUEUED rather than erroring or starting. */
 int cbm_daemon_application_busy_queue_waits_for_test(void);
+
+/* The job registry's index-argument equality: the running job's args against
+ * a request's. Exposed because the two repo_path spellings it folds - the
+ * session policy's native root and a handler's forward-slash one - only differ
+ * on Windows, while the fold itself runs on every platform. */
 bool cbm_daemon_application_index_args_equal_for_test(const char *left, const char *right);
 
 #endif /* CBM_DAEMON_APPLICATION_INTERNAL_H */

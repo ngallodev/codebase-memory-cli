@@ -177,7 +177,7 @@ static bool reliability_process_log_init(void) {
     const char *cache_dir = cbm_resolve_cache_dir();
     char directory[RELIABILITY_PATH_CAP];
     if (!reliability_dir_path(cache_dir, directory, sizeof(directory)) ||
-        !cbm_mkdir_p(directory, RELIABILITY_DIR_MODE)) {
+        !cbm_mkdir_p_ex(directory, RELIABILITY_DIR_MODE, CBM_MKDIR_FOLLOW_OWNED)) {
         g_process_log_disabled = true;
         return false;
     }

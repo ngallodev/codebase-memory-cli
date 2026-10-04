@@ -905,15 +905,26 @@ static bool application_append_quarantine(const char *path, const char *relative
 }
 
 static int application_max_restarts(void) {
-    char value[32] = {0};
-    if (!cbm_safe_getenv("CBM_INDEX_MAX_RESTARTS", value, sizeof(value), NULL) || !value[0]) {
+    long v = 0;
+    if (!cbm_env_long("CBM_INDEX_MAX_RESTARTS", &v)) {
+        /* Unset is the ordinary case and says nothing. A value that is set but
+         * unreadable is a person's intent being dropped, so name it. */
+        char raw[64] = {0};
+        if (cbm_safe_getenv("CBM_INDEX_MAX_RESTARTS", raw, sizeof(raw), NULL) && raw[0]) {
+            cbm_log_warn("index.restart_cap.ignored", "value", raw, "action", "using_default");
+        }
         return APPLICATION_DEFAULT_MAX_RESTARTS;
     }
-    char *end = NULL;
-    long parsed = strtol(value, &end, 10);
-    return end && *end == '\0' && parsed > 0 && parsed <= INT_MAX
-               ? (int)parsed
-               : APPLICATION_DEFAULT_MAX_RESTARTS;
+    /* Zero is a real answer meaning no recovery rounds. */
+    if (v < 0 || v > INT_MAX) {
+        cbm_log_warn("index.restart_cap.out_of_range", "action", "using_default");
+        return APPLICATION_DEFAULT_MAX_RESTARTS;
+    }
+    return (int)v;
+}
+
+int cbm_index_restart_cap_for_testing(void) {
+    return application_max_restarts();
 }
 
 static void application_attempt_init(application_attempt_t *attempt) {
@@ -1191,13 +1202,19 @@ static application_attempt_status_t application_job_run_attempt(cbm_daemon_appli
         return APPLICATION_ATTEMPT_CANCELLED;
     }
 
+    /* Decision 2 (#1997 #832): the slice is decided at spawn time from the jobs
+     * active right now (this job included), so a lone worker may use the whole
+     * aggregate and concurrent jobs split it. The divisor is logged so a
+     * fail-whole verdict can be read against the budget the worker really had. */
     size_t active_jobs = 0;
     cbm_mutex_lock(&application->mutex);
     size_t memory_budget_bytes = application_worker_memory_slice_locked(application, &active_jobs);
     size_t aggregate_memory_budget_bytes = application->aggregate_memory_budget_bytes;
     cbm_mutex_unlock(&application->mutex);
     if (memory_budget_bytes > 0) {
-        char active_text[32], aggregate_text[32], slice_text[32];
+        char active_text[32];
+        char aggregate_text[32];
+        char slice_text[32];
         (void)snprintf(active_text, sizeof(active_text), "%zu", active_jobs);
         (void)snprintf(aggregate_text, sizeof(aggregate_text), "%zu",
                        aggregate_memory_budget_bytes / (1024U * 1024U));
@@ -1706,14 +1723,20 @@ static size_t application_active_job_count_locked(cbm_daemon_application_t *appl
     return count;
 }
 
+/* Decision 2 (#1997 #832): a worker's memory slice is the aggregate budget
+ * divided by the jobs active at spawn time. The job being spawned is already
+ * in the table, so the divisor never drops below one; a zero aggregate means
+ * "no cap" and the worker falls back to its own RAM-fraction budget. */
 static size_t application_worker_memory_slice_locked(cbm_daemon_application_t *application,
                                                      size_t *active_jobs_out) {
     size_t active = application_active_job_count_locked(application);
-    if (active == 0)
+    if (active == 0) {
         active = 1;
-    if (active_jobs_out)
+    }
+    if (active_jobs_out) {
         *active_jobs_out = active;
-    return application->aggregate_memory_budget_bytes / application->physical_job_limit;
+    }
+    return application->aggregate_memory_budget_bytes / active;
 }
 
 /* Compare the effective index request, not its JSON spelling. yyjson's deep
@@ -1740,14 +1763,26 @@ static bool application_index_args_normalize_defaults(yyjson_mut_val *root) {
     return true;
 }
 
+/* One directory is one root. The auto-index job spells repo_path the way the
+ * session policy holds it - the platform's native form, backslashes on
+ * Windows - while an explicit index_repository request arrives in the
+ * handler's forward-slash spelling. Compared byte-exact the two never matched
+ * on Windows, and the request was refused as an options conflict instead of
+ * joining the job already running for its root. The policy keeps its
+ * spelling: the sensitive-root and allowed-root containment checks match it
+ * byte-exact against HOME and the granted roots, and respelling it there
+ * admitted $HOME. So the fold happens here, on this comparison's private copy,
+ * and nothing the daemon stores changes. */
 static bool application_index_args_fold_repo_path(yyjson_mut_doc *document) {
     yyjson_mut_val *root = yyjson_mut_doc_get_root(document);
     yyjson_mut_val *repo_path = yyjson_mut_obj_get(root, "repo_path");
-    if (!repo_path || !yyjson_mut_is_str(repo_path))
+    if (!repo_path || !yyjson_mut_is_str(repo_path)) {
         return true;
+    }
     char *folded = strdup(yyjson_mut_get_str(repo_path));
-    if (!folded)
+    if (!folded) {
         return false;
+    }
     cbm_normalize_path_sep(folded);
     yyjson_mut_val *key = yyjson_mut_str(document, "repo_path");
     yyjson_mut_val *value = yyjson_mut_strcpy(document, folded);
@@ -1973,9 +2008,12 @@ static void application_background_initialize_impl(cbm_daemon_application_sessio
         char limit[32];
         (void)snprintf(files, sizeof(files), "%d", tracked_files);
         (void)snprintf(limit, sizeof(limit), "%d", auto_index_limit);
+        char root_display[CBM_SZ_1K];
+        (void)snprintf(root_display, sizeof(root_display), "%s", root_path);
+        cbm_normalize_path_sep(root_display);
         cbm_log_warn("daemon.autoindex.skipped", "project", project, "reason",
                      tracked_files >= 0 ? "too_many_files" : "unsafe_or_unavailable_path", "files",
-                     files, "limit", limit);
+                     files, "limit", limit, "root", root_display);
     }
     bool args_required = auto_index_candidate && within_auto_index_limit;
     char *args = args_required ? application_auto_index_args(root_path) : NULL;
@@ -2737,10 +2775,14 @@ cbm_daemon_application_t *cbm_daemon_application_new(
             application->ui_readiness_secret_set = true;
         }
     }
-    /* Equal fixed slices keep admission deterministic: starting fewer jobs does
-     * not let an early worker claim memory reserved for later concurrent jobs.
-     * The absurd sub-byte-per-slot case is made safe by reducing effective
-     * capacity before division; normal daemon budgets are many orders larger. */
+    /* The per-worker slice is decided at spawn time (see
+     * application_worker_memory_slice_locked): the aggregate divided by the
+     * jobs active then, so a lone worker may use the whole aggregate and
+     * concurrent jobs split it (decision 2, #1997 #832) — the former fixed
+     * aggregate/limit slice starved a lone job on hosts like #1864. The absurd
+     * sub-byte-per-slot case is still made safe by reducing effective capacity
+     * so every admitted job can receive at least one byte; normal daemon
+     * budgets are many orders larger. */
     if (aggregate_memory_budget_bytes > 0 &&
         application->physical_job_limit > aggregate_memory_budget_bytes) {
         application->physical_job_limit = aggregate_memory_budget_bytes;

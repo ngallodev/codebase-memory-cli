@@ -1,3 +1,4 @@
+#include "operations/result_wire.h"
 #include "operations/cross_repo.h"
 
 #include "foundation/constants.h"
@@ -257,7 +258,7 @@ cbm_operation_result_t cbm_cross_repo_operation_execute(const char *repo_path,
     yyjson_mut_obj_add_int(doc, root, "cross_trpc_calls", result.trpc_edges);
     yyjson_mut_obj_add_int(doc, root, "total_cross_edges", total);
     yyjson_mut_obj_add_real(doc, root, "elapsed_ms", result.elapsed_ms);
-    char *payload = yyjson_mut_write(doc, 0, NULL);
+    char *payload = cbm_operation_json_write(doc);
     yyjson_mut_doc_free(doc);
     free(project);
     if (!payload)

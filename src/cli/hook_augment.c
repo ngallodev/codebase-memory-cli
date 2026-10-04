@@ -27,6 +27,7 @@
 
 #include <ctype.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,6 +46,7 @@
 #define HA_MIN_TOKEN 4            /* skip short/noisy patterns before any work */
 #define HA_MAX_TOKEN 96
 #define HA_RESULT_LIMIT 5
+#define HA_LIST_PAGE_LIMIT 500
 #define HA_METADATA_CAP 192
 #define HA_MAX_WALKUP 8    /* cwd may be a subdir of the indexed root  */
 #define HA_DEADLINE_MS 300 /* hard in-process budget (see also: the    */
@@ -71,18 +73,21 @@
  * hook "timeout" remains the outer backstop (and alone governs Windows,
  * where this whole in-process deadline block is compiled out). */
 static int ha_deadline_ms(void) {
-    const char *env = getenv("CBM_HOOK_DEADLINE_MS");
-    if (!env || !env[0]) {
+    /* A value this reader cannot read gets the DEFAULT, never the floor. atoi
+     * used to answer 0 for a typo, 0 is below the minimum, and the clamp then
+     * handed back the shortest deadline the setting allows — the opposite of
+     * what somebody raising CBM_HOOK_DEADLINE_MS is asking for. */
+    long v = 0;
+    if (!cbm_env_long("CBM_HOOK_DEADLINE_MS", &v)) {
         return HA_DEADLINE_DEFAULT_MS;
     }
-    int v = atoi(env);
     if (v < HA_DEADLINE_MIN_MS) {
         return HA_DEADLINE_MIN_MS;
     }
     if (v > HA_DEADLINE_MAX_MS) {
         return HA_DEADLINE_MAX_MS;
     }
-    return v;
+    return (int)v;
 }
 
 static int g_ha_crumb_fd = -1;
@@ -122,6 +127,10 @@ static void ha_open_crumb_log(int deadline_ms) {
                      "CBM_HOOK_DEADLINE_MS)\n",
                      deadline_ms, (long)getpid());
     g_ha_crumb_len = (n > 0 && n < (int)sizeof(g_ha_crumb_msg)) ? (size_t)n : 0;
+}
+
+int cbm_hook_augment_deadline_ms_for_testing(void) {
+    return ha_deadline_ms();
 }
 
 void cbm_hook_augment_arm_deadline(void) {
@@ -512,11 +521,45 @@ static char *ha_coverage_context(const char *payload, const char *rel, bool *is_
         strcmp(status, "invalid_path") != 0) {
         const char *kind = NULL;
         const char *detail = NULL;
+        char *range_detail = NULL;
         yyjson_val *coverage = yyjson_obj_get(item, "coverage");
         yyjson_val *row = coverage && yyjson_is_arr(coverage) ? yyjson_arr_get(coverage, 0) : NULL;
         if (row) {
             kind = ha_obj_str(row, "kind");
             detail = ha_obj_str(row, "detail");
+            yyjson_val *ranges = yyjson_obj_get(row, "ranges");
+            size_t range_count = ranges && yyjson_is_arr(ranges) ? yyjson_arr_size(ranges) : 0;
+            if ((!detail || !detail[0]) && range_count > 0 && range_count <= SIZE_MAX / 48U) {
+                range_detail = calloc(range_count * 48U + 1U, 1U);
+                if (range_detail) {
+                    size_t used = 0;
+                    size_t index;
+                    size_t maximum;
+                    yyjson_val *range;
+                    yyjson_arr_foreach(ranges, index, maximum, range) {
+                        yyjson_val *start_value = yyjson_obj_get(range, "start");
+                        yyjson_val *end_value = yyjson_obj_get(range, "end");
+                        if (!yyjson_is_int(start_value) || !yyjson_is_int(end_value)) {
+                            continue;
+                        }
+                        long long start = (long long)yyjson_get_sint(start_value);
+                        long long end = (long long)yyjson_get_sint(end_value);
+                        int written =
+                            start == end
+                                ? snprintf(range_detail + used, range_count * 48U + 1U - used,
+                                           "%s%lld", used ? "," : "", start)
+                                : snprintf(range_detail + used, range_count * 48U + 1U - used,
+                                           "%s%lld-%lld", used ? "," : "", start, end);
+                        if (written < 0 || (size_t)written >= range_count * 48U + 1U - used) {
+                            free(range_detail);
+                            range_detail = NULL;
+                            break;
+                        }
+                        used += (size_t)written;
+                    }
+                    detail = range_detail;
+                }
+            }
         }
         text = malloc(1536);
         if (text) {
@@ -543,6 +586,7 @@ static char *ha_coverage_context(const char *payload, const char *rel, bool *is_
                          status, freshness ? freshness : "unavailable");
             }
         }
+        free(range_detail);
     }
     yyjson_doc_free(idoc);
     return text;
@@ -610,6 +654,7 @@ static char *ha_resolve_coverage(const char *file_path) {
     yyjson_mut_obj_add_str(adoc, aroot, "project", project);
     yyjson_mut_arr_add_strcpy(adoc, paths, rel);
     yyjson_mut_obj_add_val(adoc, aroot, "paths", paths);
+    yyjson_mut_obj_add_str(adoc, aroot, "format", "json");
     char *args = yyjson_mut_write(adoc, 0, NULL);
     yyjson_mut_doc_free(adoc);
     free(project);
@@ -799,54 +844,94 @@ static char *ha_registry_project_for_path(const char *cwd, char *root_out, size_
     if (!ha_canonical_path(cwd, canonical_cwd, sizeof(canonical_cwd))) {
         return NULL;
     }
-    cbm_operation_result_t operation =
-        ha_operation(CBM_OPERATION_PROJECTS, "{\"metadata_only\":true}");
-    yyjson_doc *doc = operation.payload && !operation.is_error
-                          ? yyjson_read(operation.payload, strlen(operation.payload), 0)
-                          : NULL;
-    cbm_operation_result_dispose(&operation);
-    if (!doc) {
-        return NULL;
-    }
-    yyjson_val *outer = yyjson_doc_get_root(doc);
-    yyjson_val *projects = yyjson_is_obj(outer) ? yyjson_obj_get(outer, "projects") : NULL;
-    if (!projects || !yyjson_is_arr(projects)) {
-        yyjson_doc_free(doc);
-        return NULL;
-    }
-
-    const char *best_name = NULL;
+    char *best_name = NULL;
     char best_root[4096] = {0};
     size_t best_length = 0U;
-    size_t index;
-    size_t maximum;
-    yyjson_val *project;
-    yyjson_arr_foreach(projects, index, maximum, project) {
-        const char *name = ha_obj_str(project, "name");
-        const char *root = ha_obj_str(project, "root_path");
-        char canonical_root[4096];
-        if (!name || !name[0] || !root || !root[0] ||
-            !ha_canonical_path(root, canonical_root, sizeof(canonical_root)) ||
-            !ha_path_contains(canonical_root, canonical_cwd)) {
-            continue;
+    int64_t offset = 0;
+    bool complete = false;
+
+    for (;;) {
+        char args[160];
+        int written = snprintf(args, sizeof(args),
+                               "{\"metadata_only\":true,\"format\":\"json\",\"limit\":%d,"
+                               "\"offset\":%lld}",
+                               HA_LIST_PAGE_LIMIT, (long long)offset);
+        if (written < 0 || (size_t)written >= sizeof(args)) {
+            break;
         }
-        size_t length = strlen(canonical_root);
-        if (length > best_length) {
-            best_name = name;
-            best_length = length;
-            snprintf(best_root, sizeof(best_root), "%s", canonical_root);
+        cbm_operation_result_t operation = ha_operation(CBM_OPERATION_PROJECTS, args);
+        yyjson_doc *idoc = operation.payload && !operation.is_error
+                               ? yyjson_read(operation.payload, strlen(operation.payload), 0)
+                               : NULL;
+        cbm_operation_result_dispose(&operation);
+        if (!idoc) {
+            break;
         }
+        yyjson_val *root = yyjson_doc_get_root(idoc);
+        yyjson_val *projects = yyjson_obj_get(root, "projects");
+        if (!projects || !yyjson_is_arr(projects)) {
+            yyjson_doc_free(idoc);
+            break;
+        }
+
+        size_t index;
+        size_t maximum;
+        yyjson_val *project;
+        yyjson_arr_foreach(projects, index, maximum, project) {
+            const char *name = ha_obj_str(project, "name");
+            const char *project_root = ha_obj_str(project, "root_path");
+            char canonical_root[4096];
+            if (!name || !name[0] || !project_root || !project_root[0] ||
+                !ha_canonical_path(project_root, canonical_root, sizeof(canonical_root)) ||
+                !ha_path_contains(canonical_root, canonical_cwd)) {
+                continue;
+            }
+            size_t length = strlen(canonical_root);
+            if (length > best_length) {
+                char *candidate = strdup(name);
+                if (!candidate) {
+                    continue;
+                }
+                free(best_name);
+                best_name = candidate;
+                best_length = length;
+                snprintf(best_root, sizeof(best_root), "%s", canonical_root);
+            }
+        }
+
+        yyjson_val *has_more = yyjson_obj_get(root, "has_more");
+        if (!has_more || !yyjson_is_bool(has_more)) {
+            yyjson_doc_free(idoc);
+            break;
+        }
+        bool more = yyjson_is_true(has_more);
+        if (!more) {
+            complete = true;
+            yyjson_doc_free(idoc);
+            break;
+        }
+        /* The projects operation clamps the page size itself and reports no
+         * next_offset, so advance by the rows actually returned. */
+        int64_t next_offset = offset + (int64_t)yyjson_arr_size(projects);
+        yyjson_doc_free(idoc);
+        if (next_offset <= offset) {
+            break;
+        }
+        offset = next_offset;
     }
-    char *result = best_name ? strdup(best_name) : NULL;
-    if (result && root_out && root_out_size > 0U) {
+
+    if (!complete) {
+        free(best_name);
+        return NULL;
+    }
+    if (best_name && root_out && root_out_size > 0U) {
         int written = snprintf(root_out, root_out_size, "%s", best_root);
         if (written < 0 || (size_t)written >= root_out_size) {
-            free(result);
-            result = NULL;
+            free(best_name);
+            best_name = NULL;
         }
     }
-    yyjson_doc_free(doc);
-    return result;
+    return best_name;
 }
 
 /* Return the nearest indexed graph project for cwd. Probe derived names first
@@ -880,6 +965,7 @@ static char *ha_resolve_indexed_project_with_root(const char *cwd, char *root_ou
             if (doc && root) {
                 yyjson_mut_doc_set_root(doc, root);
                 yyjson_mut_obj_add_str(doc, root, "project", project);
+                yyjson_mut_obj_add_str(doc, root, "format", "json");
                 char *args = yyjson_mut_write(doc, 0, NULL);
                 yyjson_mut_doc_free(doc);
                 if (args) {

@@ -11,19 +11,19 @@ int tf_skip_count = 0;
 #include "test_framework.h"
 #include "test_helpers.h"
 #include "test_daemon_runtime_contract.h"
-#include "foundation/compat.h"     /* cbm_setenv — #845 supervisor kill switch */
-#include "foundation/compat_fs.h"  /* cbm_fopen — worker response file */
-#include "foundation/constants.h"  /* CBM_SZ_4K — forced stderr buffer */
-#include "foundation/log.h"        /* crash-durable worker log probe */
-#include "foundation/mem.h"        /* cbm_mem_init — worker budget */
-#include "foundation/platform.h"   /* cbm_file_exists — blocking-git marker */
-#include "daemon/runtime.h"        /* bounded worker response probe */
-#include "daemon/ipc.h"            /* Windows private-lock re-exec probe */
-#include "daemon/version_cohort.h" /* Windows crash-turnover re-exec probe */
-#include "operations/index_supervisor.h"  /* cbm_index_set_worker_role */
+#include "foundation/compat.h"           /* cbm_setenv — #845 supervisor kill switch */
+#include "foundation/compat_fs.h"        /* cbm_fopen — worker response file */
+#include "foundation/constants.h"        /* CBM_SZ_4K — forced stderr buffer */
+#include "foundation/log.h"              /* crash-durable worker log probe */
+#include "foundation/mem.h"              /* cbm_mem_init — worker budget */
+#include "foundation/platform.h"         /* cbm_file_exists — blocking-git marker */
+#include "daemon/runtime.h"              /* bounded worker response probe */
+#include "daemon/ipc.h"                  /* Windows private-lock re-exec probe */
+#include "daemon/version_cohort.h"       /* Windows crash-turnover re-exec probe */
+#include "operations/index_supervisor.h" /* cbm_index_set_worker_role */
 #include "operations/json_args.h"
 #include "test_operation_host.h"
-#include "ui/http_server.h"       /* deleted-self executable probe */
+#include "ui/http_server.h" /* deleted-self executable probe */
 #include <sqlite3.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -34,6 +34,7 @@ int tf_skip_count = 0;
 #include <signal.h>
 #ifdef _WIN32
 #include <winsock2.h> /* #798 follow-up: socket-isolation re-exec probe */
+#include <windows.h>
 #else
 #include <unistd.h>
 #ifdef __APPLE__
@@ -50,6 +51,29 @@ int tf_skip_count = 0;
  * invocations see the marker and exit cleanly, allowing the parent shell to
  * unwind after either production containment or the test's verified backstop. */
 #define TF_BLOCKING_GIT_MARKER_ENV "CBM_TEST_RUNTIME_BLOCKING_GIT_PID_FILE"
+
+/* Native child for subprocess_windows_job_object_enforces_memory_limit. The
+ * fixed-size commit keeps the RED path bounded: without a Job memory limit it
+ * succeeds and exits 0; with the limit it is denied and exits with the sentinel
+ * code expected by the parent test. */
+static int tf_maybe_run_windows_memory_limit_probe(int argc, char **argv) {
+#ifdef _WIN32
+    if (argc == 2 && argv && strcmp(argv[1], "__cbm_windows_memory_limit_probe") == 0) {
+        const SIZE_T allocation_size = (SIZE_T)2U * 1024U * 1024U * 1024U;
+        void *allocation =
+            VirtualAlloc(NULL, allocation_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+        if (!allocation) {
+            return 73;
+        }
+        (void)VirtualFree(allocation, 0, MEM_RELEASE);
+        return 0;
+    }
+#else
+    (void)argc;
+    (void)argv;
+#endif
+    return -1;
+}
 
 #ifdef _WIN32
 static bool tf_invoked_as_windows_git_module(void) {
@@ -235,6 +259,17 @@ static void tf_index_worker_probe(const char *args_json, const char *response_ou
         fflush(NULL);
         _Exit(response ? 0 : 1);
     }
+    if (strstr(args_json, "\"heartbeat\"")) {
+        FILE *response = response_out ? cbm_fopen(response_out, "wb") : NULL;
+        if (response) {
+            (void)fputs("{\"probe\":\"heartbeat\"}", response);
+            (void)fclose(response);
+        }
+        cbm_log_info("pipeline.discover", "files", "1");
+        (void)fprintf(stderr, "async worker heartbeat probe ready\n");
+        fflush(NULL);
+        _Exit(response ? 0 : 1);
+    }
     if (strstr(args_json, "\"crash\"")) {
         (void)fprintf(stderr, "async worker crash probe\n");
         fflush(NULL);
@@ -347,6 +382,7 @@ static int tf_maybe_run_index_worker(int argc, char **argv) {
                                       invocation.marker_file, invocation.quarantine_file,
                                       invocation.memory_budget_bytes);
     cbm_mem_init_with_cap(0.5, invocation.memory_budget_bytes);
+    cbm_log_init_for_process(false, true);
     tf_index_worker_probe(invocation.args_json, invocation.response_out);
     cbm_test_operation_host_t *srv = cbm_test_operation_host_new(NULL);
     if (!srv) {
@@ -874,6 +910,10 @@ int main(int argc, char **argv) {
         (void)cbm_setenv("CBM_TEST_BUILD_FINGERPRINT",
                          "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", 1);
     }
+    int memory_limit_probe_rc = tf_maybe_run_windows_memory_limit_probe(argc, argv);
+    if (memory_limit_probe_rc >= 0) {
+        return memory_limit_probe_rc;
+    }
     int blocking_git_rc = tf_maybe_run_blocking_git_probe(argc, argv);
     if (blocking_git_rc >= 0) {
         return blocking_git_rc;
@@ -884,6 +924,26 @@ int main(int argc, char **argv) {
         (void)puts("codebase-memory-cli test-runner");
         return 0;
     }
+    /* #1830 userns smoke probe -- see the test that spawns it.
+     *
+     * The ancestor overflow uid is derived ONCE per process (pthread_once in
+     * src/daemon/ipc.c) from /proc/self/uid_map. That file is not immutable:
+     * unshare(CLONE_NEWUSER) is exactly what changes it, and pthread_once state
+     * survives fork(). A forked child therefore keeps the HOST answer and never
+     * re-derives inside its new namespace, so a fork-only smoke test refuses and
+     * cannot pass once anything earlier in the suite has primed the cache --
+     * seven call sites do. Re-exec into this probe so the decision is made by a
+     * process that STARTED inside the namespace, which is the production shape
+     * the test means to cover. */
+#if defined(__linux__) && defined(CBM_ENABLE_TEST_SEAMS)
+    if (argc == 3 && strcmp(argv[1], "--userns-secure-probe") == 0) {
+        /* _exit, not return: this process exists to answer ONE boolean. A
+         * return runs the atexit chain, and the runner is built with
+         * -fsanitize=address, so a future leak anywhere in the prologue would
+         * exit 23 and read as a security verdict on a test that has none. */
+        _exit(cbm_daemon_ipc_private_directory_secure(argv[2]) ? 0 : 1);
+    }
+#endif
     int runtime_image_rc = tf_maybe_run_runtime_image_holder(argc, argv);
     if (runtime_image_rc >= 0) {
         return runtime_image_rc;

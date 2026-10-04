@@ -425,9 +425,18 @@ static void activation_windows_security_destroy(activation_windows_security_t *s
     memset(security, 0, sizeof(*security));
 }
 
-/* #1705: trust only this machine's built-in Administrator (RID 500 under the
- * local account-domain SID), resolved through LSA. Fail closed if resolution
- * or SID synthesis fails. */
+/* #1705: THIS machine's built-in Administrator ACCOUNT (RID 500 under the local
+ * machine account-domain SID, S-1-5-21-<machine>-500) is a trusted owner/grantee,
+ * mirroring the daemon's win_sid_trusted (src/daemon/ipc.c). It is resolved via
+ * LSA (the local machine account-domain SID) plus CreateWellKnownSid and compared
+ * with EqualSid. It is deliberately NOT IsWellKnownSid(WinAccountAdministratorSid)
+ * and NOT a trailing-RID-500 test: both accept a FOREIGN S-1-5-21-*-500 (a domain
+ * admin, or another machine's built-in Administrator), opening a cross-machine
+ * bypass. Resolved once and cached for the process; any LSA or synthesis failure
+ * caches "none" and grants NO tolerance (fail closed). advapi32 is already loaded
+ * (this file calls GetSecurityInfo etc.), so the functions are resolved from its
+ * module handle with no new import. CLI activation is single-threaded by
+ * contract, so the cache needs no lock. */
 typedef NTSTATUS(NTAPI *activation_lsa_open_policy_fn)(PLSA_UNICODE_STRING, PLSA_OBJECT_ATTRIBUTES,
                                                        ACCESS_MASK, PLSA_HANDLE);
 typedef NTSTATUS(NTAPI *activation_lsa_query_information_policy_fn)(LSA_HANDLE,
@@ -466,6 +475,7 @@ static PSID activation_windows_local_admin_sid(void) {
     LSA_OBJECT_ATTRIBUTES attributes;
     memset(&attributes, 0, sizeof(attributes));
     LSA_HANDLE policy = NULL;
+    /* STATUS_SUCCESS is 0; any other status is treated as failure (fail closed). */
     if (lsa_open(NULL, &attributes, POLICY_VIEW_LOCAL_INFORMATION, &policy) != 0 || !policy) {
         return NULL;
     }
@@ -492,6 +502,10 @@ static PSID activation_windows_local_admin_sid(void) {
     return cached;
 }
 
+/* #2023/#1686: an owner refusal must name WHICH owner, not just "status -3, os 0".
+ * The path is already carried by g_activation_refusal_object; this appends the
+ * offending owner's SID string, mirroring the daemon's ACL/owner diagnostics, so
+ * the operator sees the exact identity to remove or the directory to move. */
 static void activation_windows_note_untrusted_owner(const char *predicate, PSID owner,
                                                     DWORD os_error) {
     char label[192];
@@ -686,6 +700,9 @@ static bool activation_windows_acl_check(HANDLE handle, DWORD tolerated_untruste
                        GetLengthSid(sid) == sid_length &&
                        (EqualSid(sid, user_sid) || IsWellKnownSid(sid, WinLocalSystemSid) ||
                         IsWellKnownSid(sid, WinBuiltinAdministratorsSid) ||
+                        /* #1705: THIS machine's built-in Administrator (RID-500),
+                         * resolved via LSA — never a foreign S-1-5-21-*-500; same
+                         * tolerance as the daemon's win_sid_trusted. */
                         (local_admin && EqualSid(sid, local_admin)) ||
                         /* OWNER RIGHTS modulates whoever owns the object; the
                          * owner is separately validated in every chain that
@@ -695,9 +712,17 @@ static bool activation_windows_acl_check(HANDLE handle, DWORD tolerated_untruste
         if (!trusted) {
             char label[128];
             LPSTR sid_text = NULL;
-            (void)snprintf(label, sizeof(label), "acl-grants-cross-account-mutation to %s",
+            /* #1856: say whether the grant is INHERITED. The remedy differs and
+             * the wrong one silently does nothing: `icacls <dir> /remove:g <sid>`
+             * cannot remove an inherited ACE -- that needs `/inheritance:r` --
+             * and the stock `C:\` ACE for Authenticated Users reaches every new
+             * child directory exactly this way. A reporter following the
+             * generic advice sees the command succeed and the refusal persist. */
+            bool inherited = (header->AceFlags & INHERITED_ACE) != 0;
+            (void)snprintf(label, sizeof(label), "acl-grants-cross-account-mutation to %s%s",
                            ConvertSidToStringSidA(sid, &sid_text) && sid_text ? sid_text
-                                                                              : "unparsable-sid");
+                                                                              : "unparsable-sid",
+                           inherited ? " (inherited from a parent directory)" : "");
             if (sid_text) {
                 (void)LocalFree(sid_text);
             }

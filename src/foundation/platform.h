@@ -116,6 +116,10 @@ typedef struct {
 /* Query system information. Results are cached after first call. */
 cbm_system_info_t cbm_system_info(void);
 
+/* Physical memory the system could hand out right now, or 0 when the platform
+ * cannot answer. NOT cached - it changes during a run, which is the point. */
+size_t cbm_system_available_ram(void);
+
 /* Recommended worker count for parallel indexing.
  * initial=true:  all cores (user is waiting for initial index)
  * initial=false: max(1, perf_cores-1) (leave headroom for user apps) */
@@ -127,6 +131,18 @@ int cbm_default_worker_count(bool initial);
  * Returns buf on success, or fallback if the variable is unset.
  * Returns NULL when the variable is unset and fallback is NULL. */
 const char *cbm_safe_getenv(const char *name, char *buf, size_t buf_sz, const char *fallback);
+
+/* Read an environment variable as a whole number.
+ *
+ * Answers true only when the variable is set, is not empty, and reads cleanly
+ * from its first character to its last. Anything else — a typo, a trailing
+ * unit such as "30s", a leading or trailing space, or a number too large for a
+ * long — answers false and leaves *out untouched, so the caller picks its own
+ * fallback and can say that it did.
+ *
+ * This exists because atoi and atol answer 0 for text they cannot read, and 0
+ * is a real setting at every call site in this project. */
+bool cbm_env_long(const char *name, long *out);
 
 /* ── Home directory ─────────────────────────────────────────────── */
 

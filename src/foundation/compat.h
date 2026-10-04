@@ -102,6 +102,16 @@ uint64_t cbm_thread_cpu_time_ns(void);
 /* Sleeps for the full requested duration even when POSIX signals interrupt it. */
 int cbm_nanosleep_full(const struct timespec *req);
 
+/* Per-CALLING-THREAD CPU time in nanoseconds. Unlike cbm_clock_gettime — which
+ * measures WALL time on every platform (QueryPerformanceCounter on Windows) —
+ * this advances only while the calling thread is actually scheduled on a CPU, so
+ * a descheduled/starved thread accrues (almost) none. Use it to budget work
+ * against real CPU consumed rather than wall-clock, which a contended host
+ * inflates without the thread doing any work. POSIX (incl. macOS 10.12+):
+ * CLOCK_THREAD_CPUTIME_ID. Windows: GetThreadTimes kernel+user. Returns 0 if the
+ * platform clock is unavailable. Implemented in compat.c. */
+uint64_t cbm_thread_cpu_time_ns(void);
+
 /* ── gmtime_r (Windows lacks it) ─────────────────────────────── */
 #ifdef _WIN32
 static inline struct tm *cbm_gmtime_r(const time_t *timep, struct tm *result) {

@@ -1,4 +1,6 @@
+#include "operations/result_wire.h"
 #include "operations/search.h"
+#include "operations/store_host.h"
 
 #include "foundation/constants.h"
 #include "foundation/platform.h"
@@ -26,6 +28,9 @@ enum {
     BM25_COL_RANK = 7,
     SEARCH_MAX_FIELDS = 12,
     SEARCH_MAX_SEMANTIC_KEYWORDS = 32,
+    SEARCH_SEMANTIC_MAX_LIMIT = 500,
+    /* Vector ranking is resource-bounded: no continuation past this offset. */
+    SEARCH_SEMANTIC_MAX_OFFSET = 99998,
 };
 
 #define BM25_WEIGHTS "bm25(nodes_fts, 1.0, 1.0, 1.0, 1.0, 0.3)"
@@ -81,10 +86,19 @@ static bool bool_arg(const char *args, const char *name) {
     return result;
 }
 
+static bool search_arg_present(const char *args, const char *name) {
+    yyjson_doc *doc = read_args(args);
+    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
+    bool present = yyjson_is_obj(root) && yyjson_obj_get(root, name) != NULL;
+    if (doc)
+        yyjson_doc_free(doc);
+    return present;
+}
+
 static cbm_operation_result_t json_result(yyjson_mut_doc *doc, bool error) {
     if (!doc)
         return cbm_operation_result_copy("{\"error\":\"result allocation failed\"}", true);
-    char *json = yyjson_mut_write(doc, 0, NULL);
+    char *json = cbm_operation_json_write(doc);
     yyjson_mut_doc_free(doc);
     return json ? cbm_operation_result_take(json, error)
                 : cbm_operation_result_copy("{\"error\":\"result encoding failed\"}", true);
@@ -163,7 +177,8 @@ static char *file_pattern_like(const char *pattern) {
     return contains;
 }
 
-static cbm_store_t *open_indexed_project(const char *project) {
+static cbm_store_t *open_indexed_project(const char *project,
+                                         cbm_store_open_status_t *open_status) {
     if (!project || !cbm_validate_project_name(project))
         return NULL;
     const char *cache_dir = cbm_resolve_cache_dir();
@@ -175,7 +190,7 @@ static cbm_store_t *open_indexed_project(const char *project) {
     if (n <= 0 || (size_t)n >= sizeof(db_path))
         return NULL;
 
-    cbm_store_t *store = cbm_store_open_path_query(db_path);
+    cbm_store_t *store = cbm_store_host_open_query_path(db_path, open_status);
     if (!store)
         return NULL;
     cbm_project_t indexed = {0};
@@ -201,7 +216,7 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
         "WHEN n.label='Route' THEN 8.0 WHEN n.label IN (" CBM_SQL_TYPE_LIKE_LABELS ") THEN 5.0 "
         "WHEN n.label IN (" CBM_SQL_RELATION_LABELS ") THEN 5.0 ELSE 0.0 END) AS rank "
         "FROM (SELECT rowid," BM25_WEIGHTS " AS base_rank FROM nodes_fts "
-        "WHERE nodes_fts MATCH ?1 ORDER BY base_rank LIMIT ?5) fts "
+        "WHERE nodes_fts MATCH ?1 ORDER BY base_rank, rowid LIMIT ?5) fts "
         "JOIN nodes n ON n.id=fts.rowid WHERE n.project=?2 "
         "AND n.label NOT IN ('File','Folder','Variable','Project') "
         "AND (?6 IS NULL OR n.file_path LIKE ?6) ORDER BY rank,n.id LIMIT ?3 OFFSET ?4";
@@ -243,6 +258,23 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
         sqlite3_finalize(counter);
     }
 
+    /* The top-candidate window is a performance ceiling, not an exact-total
+     * boundary. Probe one candidate beyond it so a broad query never presents a
+     * window-local count as the complete match count. The probe is global to
+     * the FTS table, so saturation is reported conservatively even when later
+     * project/path filters might discard the hidden candidates. */
+    bool candidate_window_saturated = true;
+    sqlite3_stmt *probe = NULL;
+    if (sqlite3_prepare_v2(db,
+                           "SELECT rowid FROM nodes_fts WHERE nodes_fts MATCH ?1 "
+                           "ORDER BY bm25(nodes_fts), rowid LIMIT 1 OFFSET ?2",
+                           -1, &probe, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(probe, 1, match, -1, destructor);
+        sqlite3_bind_int(probe, 2, BM25_INNER_LIMIT);
+        candidate_window_saturated = sqlite3_step(probe) != SQLITE_DONE;
+        sqlite3_finalize(probe);
+    }
+
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
     yyjson_mut_val *columns = doc ? yyjson_mut_arr(doc) : NULL;
@@ -256,6 +288,9 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
     }
     yyjson_mut_doc_set_root(doc, root);
     yyjson_mut_obj_add_int(doc, root, "total", total);
+    yyjson_mut_obj_add_str(doc, root, "total_relation", candidate_window_saturated ? "gte" : "eq");
+    if (candidate_window_saturated)
+        yyjson_mut_obj_add_bool(doc, root, "candidate_window_saturated", true);
     yyjson_mut_obj_add_str(doc, root, "search_mode", "bm25");
     static const char *const names[] = {"qn", "label", "file", "lines", "rank"};
     for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); ++i)
@@ -283,7 +318,16 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
     sqlite3_finalize(statement);
     free(file_like);
     yyjson_mut_obj_add_val(doc, root, "rows", rows);
-    yyjson_mut_obj_add_bool(doc, root, "has_more", total > offset + emitted);
+    bool has_more = total > offset + emitted;
+    yyjson_mut_obj_add_int(doc, root, "returned", emitted);
+    yyjson_mut_obj_add_bool(doc, root, "has_more", has_more);
+    if (has_more && emitted > 0)
+        yyjson_mut_obj_add_int(doc, root, "next_offset", offset + emitted);
+    bool truncated = has_more || candidate_window_saturated;
+    yyjson_mut_obj_add_bool(doc, root, "truncated", truncated);
+    if (truncated)
+        yyjson_mut_obj_add_str(doc, root, "truncation_reason",
+                               has_more ? "page_limit" : "candidate_window");
     return json_result(doc, false);
 }
 
@@ -431,8 +475,28 @@ static void emit_structural(yyjson_mut_doc *doc, yyjson_mut_val *root, cbm_searc
     yyjson_mut_obj_add_bool(doc, root, "has_more", output->total > offset + output->count);
 }
 
-static bool semantic_query(const char *args, cbm_store_t *store, const char *project, int limit,
-                           cbm_vector_result_t **results, int *count, bool *present) {
+typedef enum {
+    SEMANTIC_OK = 0,
+    SEMANTIC_TYPE_ERROR,  /* semantic_query is not an array of strings */
+    SEMANTIC_STORE_ERROR, /* the vector scan itself failed */
+} semantic_status_t;
+
+typedef struct {
+    cbm_vector_result_t *results;
+    int count; /* ranked rows materialized (offset + limit + 1 lookahead at most) */
+    int offset;
+    int limit;
+    bool total_exact;
+    bool present;
+} semantic_page_t;
+
+/* A mixed-type array is a caller error and is never silently narrowed to its
+ * string members. A store without a vector table (lean index) yields an empty
+ * page; a failed scan is SEMANTIC_STORE_ERROR and must never be rendered as
+ * zero matches. */
+static semantic_status_t semantic_query(const char *args, cbm_store_t *store, const char *project,
+                                        int materialize_limit, cbm_vector_result_t **results,
+                                        int *count, bool *present) {
     *results = NULL;
     *count = 0;
     *present = false;
@@ -442,30 +506,71 @@ static bool semantic_query(const char *args, cbm_store_t *store, const char *pro
     if (!array) {
         if (doc)
             yyjson_doc_free(doc);
-        return true;
+        return SEMANTIC_OK;
     }
     *present = true;
+    semantic_status_t status = SEMANTIC_OK;
     if (!yyjson_is_arr(array)) {
-        yyjson_doc_free(doc);
-        return false;
+        status = SEMANTIC_TYPE_ERROR;
+    } else if (yyjson_arr_size(array) > 0) {
+        const char *keywords[SEARCH_MAX_SEMANTIC_KEYWORDS];
+        int keyword_count = 0;
+        size_t index, max;
+        yyjson_val *value;
+        yyjson_arr_foreach(array, index, max, value) {
+            if (!yyjson_is_str(value)) {
+                status = SEMANTIC_TYPE_ERROR;
+                break;
+            }
+            if (keyword_count < SEARCH_MAX_SEMANTIC_KEYWORDS)
+                keywords[keyword_count++] = yyjson_get_str(value);
+        }
+        if (status == SEMANTIC_OK) {
+            cbm_vector_result_t *found = NULL;
+            int found_count = 0;
+            int rc = cbm_store_vector_search(store, project, keywords, keyword_count,
+                                             materialize_limit, &found, &found_count);
+            if (rc == CBM_STORE_ERR) {
+                status = SEMANTIC_STORE_ERROR;
+            } else if (rc == CBM_STORE_OK && found_count > 0) {
+                *results = found;
+                *count = found_count;
+            }
+        }
     }
-    const char *keywords[SEARCH_MAX_SEMANTIC_KEYWORDS];
-    int keyword_count = 0;
-    size_t index, max;
-    yyjson_val *value;
-    yyjson_arr_foreach(array, index, max, value) {
-        if (keyword_count < SEARCH_MAX_SEMANTIC_KEYWORDS && yyjson_is_str(value))
-            keywords[keyword_count++] = yyjson_get_str(value);
-    }
-    if (keyword_count > 0)
-        (void)cbm_store_vector_search(store, project, keywords, keyword_count, limit, results,
-                                      count);
     yyjson_doc_free(doc);
-    return true;
+    return status;
 }
 
-static void emit_semantic(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                          const cbm_vector_result_t *results, int count) {
+static bool semantic_engine_saturated(const semantic_page_t *page, int returned) {
+    bool remaining = page->offset + returned < page->count;
+    return remaining && returned > 0 &&
+           (long long)page->offset + returned > SEARCH_SEMANTIC_MAX_OFFSET;
+}
+
+static void emit_semantic(yyjson_mut_doc *doc, yyjson_mut_val *root, const semantic_page_t *page) {
+    int available = page->count > page->offset ? page->count - page->offset : 0;
+    int returned = available < page->limit ? available : page->limit;
+    const cbm_vector_result_t *results = returned > 0 ? page->results + page->offset : NULL;
+    bool remaining = page->offset + returned < page->count;
+    bool saturated = semantic_engine_saturated(page, returned);
+    bool has_more = remaining && !saturated;
+    yyjson_mut_obj_add_int(doc, root, "semantic_total", page->count);
+    yyjson_mut_obj_add_str(doc, root, "semantic_total_relation",
+                           page->total_exact && !saturated ? "eq" : "gte");
+    yyjson_mut_obj_add_int(doc, root, "semantic_returned", returned);
+    yyjson_mut_obj_add_bool(doc, root, "semantic_has_more", has_more);
+    if (has_more && returned > 0)
+        yyjson_mut_obj_add_int(doc, root, "semantic_next_offset", page->offset + returned);
+    else if (has_more)
+        yyjson_mut_obj_add_bool(doc, root,
+                                page->limit == 0 ? "semantic_continuation_requires_positive_limit"
+                                                 : "semantic_continuation_requires_higher_budget",
+                                true);
+    if (saturated) {
+        yyjson_mut_obj_add_bool(doc, root, "semantic_engine_saturated", true);
+        yyjson_mut_obj_add_bool(doc, root, "semantic_continuation_unavailable", true);
+    }
     yyjson_mut_val *semantic = yyjson_mut_obj(doc);
     yyjson_mut_val *columns = yyjson_mut_arr(doc);
     static const char *const names[] = {"qn", "label", "file", "score"};
@@ -473,7 +578,7 @@ static void emit_semantic(yyjson_mut_doc *doc, yyjson_mut_val *root,
         yyjson_mut_arr_add_str(doc, columns, names[i]);
     yyjson_mut_obj_add_val(doc, semantic, "cols", columns);
     yyjson_mut_val *rows = yyjson_mut_arr(doc);
-    for (int i = 0; i < count; ++i) {
+    for (int i = 0; i < returned; ++i) {
         yyjson_mut_val *row = yyjson_mut_arr(doc);
         yyjson_mut_arr_add_strcpy(doc, row,
                                   results[i].qualified_name ? results[i].qualified_name : "");
@@ -498,6 +603,8 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
     int offset = int_arg(args, "offset", 0);
     int min_degree = int_arg(args, "min_degree", -1);
     int max_degree = int_arg(args, "max_degree", -1);
+    int semantic_limit = int_arg(args, "semantic_limit", SEARCH_DEFAULT_LIMIT);
+    int semantic_offset = int_arg(args, "semantic_offset", 0);
     bool exclude_entry_points = bool_arg(args, "exclude_entry_points");
     bool include_connected = bool_arg(args, "include_connected");
     if (limit < 1)
@@ -506,9 +613,18 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
         limit = SEARCH_MAX_LIMIT;
     if (offset < 0)
         offset = 0;
+    if (semantic_limit < 0)
+        semantic_limit = 0;
+    else if (semantic_limit > SEARCH_SEMANTIC_MAX_LIMIT)
+        semantic_limit = SEARCH_SEMANTIC_MAX_LIMIT;
+    if (semantic_offset < 0)
+        semantic_offset = 0;
+    /* One ranked hit beyond the requested page makes has_more deterministic. */
+    int semantic_materialize_limit = semantic_offset + semantic_limit + 1;
 
     cbm_operation_result_t result = {0};
     cbm_store_t *store = NULL;
+    cbm_store_open_status_t open_status = CBM_STORE_OPEN_NOT_FOUND;
     cbm_search_output_t output = {0};
     cbm_vector_result_t *vectors = NULL;
     int vector_count = 0;
@@ -518,13 +634,28 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
         result = error_result("project is required", "Run the command from an indexed repository.");
         goto done;
     }
+    if (semantic_offset > SEARCH_SEMANTIC_MAX_OFFSET) {
+        result = error_result("semantic_offset maximum is 99998",
+                              "Semantic ranking is resource-bounded; continue only with a "
+                              "semantic_next_offset emitted by search.");
+        goto done;
+    }
     if (relationship && !valid_relationship(relationship)) {
         result = error_result("relationship must be uppercase letters and underscores", NULL);
         goto done;
     }
-    store = open_indexed_project(project);
+    if (query && search_arg_present(args, "semantic_query")) {
+        result = error_result("query and semantic_query are mutually exclusive",
+                              "Use query for BM25 full-text ranking or semantic_query for vector "
+                              "ranking, then issue a separate request for the other mode.");
+        goto done;
+    }
+    store = open_indexed_project(project, &open_status);
     if (!store) {
-        result = error_result("project not indexed", "Run 'codebase-memory-cli index .' first.");
+        result =
+            open_status == CBM_STORE_OPEN_CORRUPT
+                ? error_result(CBM_STORE_CORRUPT_MESSAGE, CBM_STORE_CORRUPT_HINT)
+                : error_result("project not indexed", "Run 'codebase-memory-cli index .' first.");
         goto done;
     }
 
@@ -536,11 +667,27 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
     }
 
     bool semantic_present = false;
-    if (!semantic_query(args, store, project, limit, &vectors, &vector_count, &semantic_present)) {
-        result = error_result("semantic_query must be an array of keyword strings",
+    semantic_status_t semantic_status =
+        semantic_query(args, store, project, semantic_materialize_limit, &vectors, &vector_count,
+                       &semantic_present);
+    if (semantic_status == SEMANTIC_STORE_ERROR) {
+        result = error_result("semantic search failed: the vector index could not be scanned",
+                              "See the daemon log for the SQLite error; re-index the project if "
+                              "it persists.");
+        goto done;
+    }
+    if (semantic_status != SEMANTIC_OK) {
+        result = error_result("semantic_query must be an array of keyword strings, and every "
+                              "element must be a string",
                               "Example: --semantic-query '[\"send\",\"publish\"]'.");
         goto done;
     }
+    semantic_page_t semantic_page = {.results = vectors,
+                                     .count = vector_count,
+                                     .offset = semantic_offset,
+                                     .limit = semantic_limit,
+                                     .total_exact = vector_count < semantic_materialize_limit,
+                                     .present = semantic_present};
     bool structural = label || name_pattern || qn_pattern || file_pattern || relationship ||
                       exclude_entry_points || min_degree != -1 || max_degree != -1;
     bool semantic_only = semantic_present && !structural;
@@ -593,7 +740,7 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
                                    "inspect available labels.");
     }
     if (semantic_present) {
-        emit_semantic(doc, root, vectors, vector_count);
+        emit_semantic(doc, root, &semantic_page);
         if (semantic_only && vector_count == 0)
             yyjson_mut_obj_add_str(doc, root, "hint",
                                    "No semantic matches. Re-index at moderate/full semantic depth "

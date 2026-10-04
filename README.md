@@ -221,6 +221,7 @@ Design rules:
 
 - stdout is reserved for command results;
 - progress and diagnostics belong on stderr;
+- `cli --progress` forces lifecycle progress when stderr is redirected, `cli --quiet` disables automatic terminal progress and ordinary diagnostics while keeping errors (it cannot be combined with `--progress` or `cli --verbose`), and `cli --verbose` includes routine informational logs;
 - errors produce non-zero exit codes;
 - canonical JSON hides the historical transport envelope;
 - result ordering/pagination remain explicit where the underlying operation supports them.
@@ -247,6 +248,18 @@ The upstream indexing engine is intentionally preserved through the CLI-first mi
 
 The first vertical slice does **not** rewrite the graph schema, parser pipeline, store format, or existing indexes.
 
+### Shared graph artifact
+
+`.codebase-memory/graph.db.zst` is an optional zstd-compressed snapshot of the graph that sits next to the source. `codebase-memory-cli index` writes or refreshes it (the watcher refreshes it with a faster, lower-compression tier), and a first `index` on a clone with no local database imports it before running incremental indexing. A `.codebase-memory/.gitattributes` line with `merge=ours` is created on first export so concurrent edits do not conflict on the binary file.
+
+- **Commit it deliberately.** The artifact is rewritten on every index, including the watcher's fast tier, and git stores each rewrite as a full new blob. Committing every refresh turns a 20 MB file into gigabytes of history. Pick a cadence (a release, a milestone, a nightly job) rather than committing every save.
+- **Git LFS, if it must move on every commit.** Track it from the repo-root `.gitattributes` and leave the auto-created `.codebase-memory/.gitattributes` in place; the nearer file keeps supplying `merge=ours`, and only `filter` comes from the root:
+  ```gitattributes
+  .codebase-memory/graph.db.zst filter=lfs diff=lfs merge=lfs -text
+  ```
+  Track only the `.zst`; `artifact.json` is small and carries the schema version. The attribute applies to future commits only, so a repo that already has the blobs in history needs `git-filter-repo` first. GitHub meters LFS storage and bandwidth, and every teammate needs `git lfs install`; without it the checkout leaves a pointer file, the integrity-checked import refuses it, and they fall back to a full reindex.
+- **Optional.** Add `.codebase-memory/` to `.gitignore` if everyone should reindex from scratch.
+
 ## Configuration
 
 Common commands:
@@ -267,7 +280,7 @@ Important environment variables include:
 | `CBM_ALLOWED_ROOT` | Constrain permissible indexing roots. |
 | `CBM_RUNTIME_DIR` | Override the secure local coordination rendezvous parent. |
 | `CBM_WORKERS` | Override indexing worker count. |
-| `CBM_LOG_LEVEL` | Control runtime logging. |
+| `CBM_LOG_LEVEL` | Control runtime logging. One-shot CLI and hook commands default to `warn`; the detached daemon and supervised index workers default to `info`. |
 
 See [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) for the full reference.
 

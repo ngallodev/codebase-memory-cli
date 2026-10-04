@@ -1,4 +1,5 @@
 #include "operations/index.h"
+#include "operations/result_wire.h"
 #include "operations/cross_repo.h"
 #include "operations/index_supervisor.h"
 #include "operations/project_arg.h"
@@ -288,6 +289,18 @@ static bool index_is_parse_partial(const cbm_file_error_t *entry) {
     return entry && entry->phase && strcmp(entry->phase, "parse_partial") == 0;
 }
 
+/* One range covers 80% or more of the file, so listing the lines is useless
+ * advice. Also indexed, also not a skip. */
+static bool index_is_parse_unusable(const cbm_file_error_t *entry) {
+    return entry && entry->phase && strcmp(entry->phase, "parse_unusable") == 0;
+}
+
+/* Either coverage phase. Both mean the file WAS indexed, so both stay out of
+ * skipped[]: a reader who sees a file there believes it is absent entirely. */
+static bool index_is_parse_coverage(const cbm_file_error_t *entry) {
+    return index_is_parse_partial(entry) || index_is_parse_unusable(entry);
+}
+
 static void index_add_excluded(yyjson_mut_doc *doc, yyjson_mut_val *root, char **dirs, int count) {
     if (!dirs || count <= 0)
         return;
@@ -335,7 +348,7 @@ static void index_add_skipped(yyjson_mut_doc *doc, yyjson_mut_val *root,
                               const cbm_file_error_t *errs, int count, const char *logfile) {
     int skips = 0;
     for (int i = 0; i < count; ++i)
-        if (!index_is_parse_partial(&errs[i]))
+        if (!index_is_parse_coverage(&errs[i]))
             ++skips;
     yyjson_mut_obj_add_int(doc, root, "skipped_count", skips);
     if (logfile && logfile[0])
@@ -346,7 +359,7 @@ static void index_add_skipped(yyjson_mut_doc *doc, yyjson_mut_val *root,
     yyjson_mut_val *files = yyjson_mut_arr(doc);
     int shown = 0;
     for (int i = 0; i < count && shown < INDEX_SKIPPED_FILE_CAP; ++i) {
-        if (index_is_parse_partial(&errs[i]))
+        if (index_is_parse_coverage(&errs[i]))
             continue;
         yyjson_mut_val *entry = yyjson_mut_obj(doc);
         yyjson_mut_obj_add_strcpy(doc, entry, "path", errs[i].path ? errs[i].path : "");
@@ -392,6 +405,42 @@ static void index_add_parse_partial(yyjson_mut_doc *doc, yyjson_mut_val *root,
     yyjson_mut_obj_add_val(doc, root, "parse_partial", obj);
 }
 
+/* Whole-file half of the coverage summary. Always emits "parse_unusable_count"
+ * (0 on clean runs) so a CI gate can read it without parsing anything else.
+ * "range_end" is the last line the range names, not the file length: a grammar
+ * can end an error node past the last line. */
+static void index_add_parse_unusable(yyjson_mut_doc *doc, yyjson_mut_val *root,
+                                     const cbm_file_error_t *errs, int count) {
+    int unusable = 0;
+    for (int i = 0; i < count; ++i)
+        if (index_is_parse_unusable(&errs[i]))
+            ++unusable;
+    yyjson_mut_obj_add_int(doc, root, "parse_unusable_count", unusable);
+    if (!errs || unusable <= 0)
+        return;
+    yyjson_mut_val *obj = yyjson_mut_obj(doc);
+    yyjson_mut_val *files = yyjson_mut_arr(doc);
+    int shown = 0;
+    for (int i = 0; i < count && shown < INDEX_SKIPPED_FILE_CAP; ++i) {
+        if (!index_is_parse_unusable(&errs[i]))
+            continue;
+        yyjson_mut_val *entry = yyjson_mut_obj(doc);
+        yyjson_mut_obj_add_strcpy(doc, entry, "path", errs[i].path ? errs[i].path : "");
+        yyjson_mut_obj_add_bool(doc, entry, "whole_file", true);
+        const char *dash = errs[i].reason ? strchr(errs[i].reason, '-') : NULL;
+        yyjson_mut_obj_add_int(doc, entry, "range_end", dash ? atoi(dash + 1) : 0);
+        yyjson_mut_arr_add_val(files, entry);
+        ++shown;
+    }
+    yyjson_mut_obj_add_val(doc, obj, "files", files);
+    yyjson_mut_obj_add_int(doc, obj, "count", unusable);
+    yyjson_mut_obj_add_bool(doc, obj, "truncated", unusable > INDEX_SKIPPED_FILE_CAP);
+    yyjson_mut_obj_add_str(doc, obj, "note",
+                           "Indexed, but the parse failed across nearly the whole file, so line "
+                           "ranges are not useful here - read the source directly.");
+    yyjson_mut_obj_add_val(doc, root, "parse_unusable", obj);
+}
+
 static bool index_add_persisted_failures(yyjson_mut_doc *doc, yyjson_mut_val *root,
                                          cbm_store_t *store, const char *project,
                                          const char *logfile) {
@@ -422,6 +471,7 @@ static bool index_add_persisted_failures(yyjson_mut_doc *doc, yyjson_mut_val *ro
     }
     index_add_skipped(doc, root, failures, count, logfile);
     index_add_parse_partial(doc, root, failures, count);
+    index_add_parse_unusable(doc, root, failures, count);
     free(failures);
     cbm_store_free_coverage(rows, row_count);
     return true;
@@ -441,7 +491,7 @@ static bool index_write_log(const char *project, const cbm_file_error_t *errs, i
             return false;
         char dir[CBM_SZ_1K];
         snprintf(dir, sizeof(dir), "%s/logs", cache);
-        cbm_mkdir_p(dir, 0755);
+        cbm_mkdir_p_ex(dir, 0755, CBM_MKDIR_FOLLOW_OWNED);
         snprintf(path, sizeof(path), "%s/%s-%lld.log", dir, project ? project : "index",
                  (long long)time(NULL));
     }
@@ -450,7 +500,7 @@ static bool index_write_log(const char *project, const cbm_file_error_t *errs, i
         return false;
     int partials = 0;
     for (int i = 0; i < count; ++i)
-        if (index_is_parse_partial(&errs[i]))
+        if (index_is_parse_coverage(&errs[i]))
             ++partials;
     fprintf(file,
             "# codebase-memory-cli index coverage report\n# project=%s skipped=%d "
@@ -480,6 +530,7 @@ static bool index_build_success(yyjson_mut_doc *doc, yyjson_mut_val *root, const
     if (!store || !index_add_persisted_failures(doc, root, store, project, logfile)) {
         index_add_skipped(doc, root, file_errors, file_error_count, logfile);
         index_add_parse_partial(doc, root, file_errors, file_error_count);
+        index_add_parse_unusable(doc, root, file_errors, file_error_count);
     }
     int nodes = 0, edges = 0;
     bool degraded = false;
@@ -559,6 +610,56 @@ static void index_fill_run_response(yyjson_mut_doc *doc, yyjson_mut_val *root, c
         if (cbm_pipeline_had_format_migration(pipeline)) {
             yyjson_mut_obj_add_bool(doc, root, "format_migration", true);
         }
+    } else if (rc == CBM_PIPELINE_ABORT_OVER_BUDGET) {
+        /* Resident memory stayed above the budget after back-pressure and one
+         * confirmation cycle, so the run stopped before publication. Name the
+         * cause, the numbers and the fact that the previous index still serves. */
+        int budget_mb = (int)(cbm_mem_budget() / (1024 * 1024));
+        int peak_rss_mb = (int)(cbm_mem_peak_rss() / (1024 * 1024));
+        char budget_text[CBM_SZ_32];
+        char peak_text[CBM_SZ_32];
+        (void)snprintf(budget_text, sizeof(budget_text), "%d", budget_mb);
+        (void)snprintf(peak_text, sizeof(peak_text), "%d", peak_rss_mb);
+        cbm_log_error("index.abort", "reason", "over_memory_budget", "project", project,
+                      "budget_mb", budget_text, "peak_rss_mb", peak_text);
+        yyjson_mut_obj_add_str(doc, root, "status", "error");
+        yyjson_mut_obj_add_str(doc, root, "reason", "over_memory_budget");
+        yyjson_mut_obj_add_str(doc, root, "previous_index", "preserved");
+        yyjson_mut_obj_add_int(doc, root, "budget_mb", budget_mb);
+        yyjson_mut_obj_add_int(doc, root, "peak_rss_mb", peak_rss_mb);
+        /* peak_rss_mb is where the run was STOPPED (pinned just above the
+         * budget), not what the repo needs, so retrying just above it fails
+         * again. Suggest 1.5x the budget; (3*b+1)/2 stays strictly larger than
+         * b for every positive budget, unlike b + b/2 at b == 1. */
+        int suggested_budget_mb = budget_mb > 0 ? (budget_mb * 3 + 1) / 2 : 0;
+        char hint_text[CBM_SZ_512];
+        (void)snprintf(hint_text, sizeof(hint_text),
+                       "Indexing stopped: resident memory stayed above the budget after "
+                       "backpressure; no partial graph was published and the previous index "
+                       "still serves. peak_rss_mb is where indexing was STOPPED, not what this "
+                       "repo needs - the real requirement is higher, so retrying just above the "
+                       "peak will fail again. Retry with CBM_MEM_BUDGET_MB=%d (1.5x the current "
+                       "budget) if the machine has the RAM, or lower CBM_WORKERS, or exclude "
+                       "large subtrees.",
+                       suggested_budget_mb);
+        if (suggested_budget_mb > 0) {
+            yyjson_mut_obj_add_int(doc, root, "suggested_budget_mb", suggested_budget_mb);
+        }
+        yyjson_mut_obj_add_strcpy(doc, root, "hint", hint_text);
+    } else if (rc == CBM_PIPELINE_ABORT_PRESERVE_DB) {
+        /* Aborted pre-publication; the previous index is intact. */
+        yyjson_mut_obj_add_str(doc, root, "status", "aborted_previous_preserved");
+        yyjson_mut_obj_add_str(doc, root, "hint",
+                               "Indexing aborted before publication; the previous index is "
+                               "intact and still serving. Causes: files changed while the run "
+                               "was in flight, or a discovery/manifest phase failed "
+                               "transiently. Retry; if it repeats, check the run log.");
+    } else if (rc == CBM_PIPELINE_PERSIST_FAILED) {
+        yyjson_mut_obj_add_str(doc, root, "status", "persist_failed");
+        yyjson_mut_obj_add_str(doc, root, "hint",
+                               "The validated staging database could not be published. Check "
+                               "free disk space and permissions on the cache directory; the "
+                               "previous index may have been rolled back.");
     } else {
         yyjson_mut_obj_add_str(doc, root, "status", "error");
         yyjson_mut_obj_add_str(doc, root, "hint",
@@ -582,7 +683,7 @@ static char *index_encode_run_response(const char *project, const char *repo_pat
     yyjson_mut_doc_set_root(doc, root);
     index_fill_run_response(doc, root, project, repo_path, persistence, pipeline, rc, excluded,
                             excluded_count, errors, error_count, metrics_failed);
-    char *payload = yyjson_mut_write(doc, 0, NULL);
+    char *payload = cbm_operation_json_write(doc);
     yyjson_mut_doc_free(doc);
     return payload;
 }

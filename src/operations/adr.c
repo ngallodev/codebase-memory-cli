@@ -1,3 +1,4 @@
+#include "operations/result_wire.h"
 #include "operations/adr.h"
 #include "operations/project_arg.h"
 
@@ -50,7 +51,7 @@ static char *adr_string_arg(const char *args, const char *key) {
 }
 
 static cbm_operation_result_t adr_take_doc(yyjson_mut_doc *doc, bool is_error) {
-    char *json = doc ? yyjson_mut_write(doc, 0, NULL) : NULL;
+    char *json = doc ? cbm_operation_json_write(doc) : NULL;
     if (doc)
         yyjson_mut_doc_free(doc);
     if (!json)
@@ -393,7 +394,23 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
     char *mode = adr_string_arg(args, "mode");
     char *content = adr_string_arg(args, "content");
     if (!mode)
-        mode = adr_strdup("get");
+        mode = adr_strdup("outline");
+
+    bool valid_mode = mode && (strcmp(mode, "outline") == 0 || strcmp(mode, "get") == 0 ||
+                               strcmp(mode, "sections") == 0 || strcmp(mode, "update") == 0 ||
+                               strcmp(mode, "set_sections") == 0 || strcmp(mode, "store") == 0);
+    if (!valid_mode) {
+        free(project);
+        free(mode);
+        free(content);
+        return adr_error("invalid_arguments",
+                         "invalid mode: use outline, get, sections, set_sections, or update");
+    }
+    if ((strcmp(mode, "update") == 0 || strcmp(mode, "store") == 0) && !content) {
+        free(project);
+        free(mode);
+        return adr_error("invalid_arguments", "content is required for update");
+    }
 
     if (adr_has_removed_sections_arg(args)) {
         free(project);
@@ -620,6 +637,8 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
     } else {
         if (adr_content) {
             yyjson_mut_obj_add_strcpy(doc, root, "content", adr_content);
+            yyjson_mut_obj_add_int(doc, root, "total_lines", adr_line_count(adr_content));
+            yyjson_mut_obj_add_bool(doc, root, "content_complete", true);
         } else {
             yyjson_mut_obj_add_str(doc, root, "content", "");
             yyjson_mut_obj_add_str(doc, root, "status", "no_adr");

@@ -6,6 +6,8 @@
  *   cli <tool> <json>  Run a single tool call and print result
  *   --version       Print version and exit
  *   --help          Print usage and exit
+ *   cli --quiet     Show errors only; disable automatic terminal progress
+ *   cli --verbose   Include informational logs for one-shot commands
  *   --ui=true/false Enable/disable HTTP UI server (persisted)
  *   --port=N        Set HTTP UI port (persisted, default 9749)
  *
@@ -570,7 +572,13 @@ static const cbm_cli_command_alias_t *cli_command_alias_find(const char *command
     return NULL;
 }
 
-#define CLI_USAGE "Usage: codebase-memory-cli cli [--progress] [--json] <tool_name> [json_args]\n"
+#define CLI_USAGE                                                                             \
+    "Usage: codebase-memory-cli cli [--quiet] [--progress] [--verbose] [--json] <tool_name> " \
+    "[json_args]\n"                                                                           \
+    "  --quiet     Show errors only; cannot combine with --progress or outer --verbose\n"     \
+    "  --progress  Show lifecycle progress even when stderr is redirected\n"                  \
+    "  --verbose   Include informational logs (preserves CBM_LOG_LEVEL=debug)\n"              \
+    "  --json      Print machine-readable output\n"
 
 /* Strip a flag from argv, returning true if found. */
 static bool cli_strip_flag(int *argc, char **argv, const char *flag) {
@@ -666,7 +674,7 @@ static bool cli_first_nonspace_is_brace(const char *s) {
 }
 
 static char *main_local_cli_daemon_execute(const char *tool_name, const char *args_json,
-                                           bool *is_error_out);
+                                           bool *is_error_out, bool quiet_requested);
 
 /* Slice 1 product boundary: canonical read-only CLI commands execute in the
  * already-coordinated one-shot process instead of opening another daemon-backed
@@ -752,8 +760,65 @@ static char *main_canonical_cli_args_with_project(const char *tool_name, const c
     return encoded;
 }
 
+/* A supervised worker runs in the DAEMON's environment, not the requesting
+ * client's. The daemon admitted this request under the client's session policy
+ * and re-executed us with the canonical repo_path in the args (both daemon
+ * spawn paths rewrite it), so the request itself is the worker's workspace
+ * scope: repository == session root == allowed root. Without this, a fresh
+ * worker fell back to the process-wide CBM_ALLOWED_ROOT inherited from whoever
+ * started the daemon and refused every admitted session outside it. Returns
+ * NULL once scoped, otherwise the reason to fail closed: a worker never indexes
+ * under an ambient policy.
+ *
+ * A repository that cannot be canonicalized (it does not exist) can only have
+ * been admitted by a session with no declared boundary, because containment
+ * needs a real path. The worker mirrors that with an explicit unrestricted
+ * policy - still never the environment fallback - so the pipeline reports the
+ * missing repository as the tool error it always was, instead of the
+ * supervisor misreading a refused worker as a crash. `scope` backs the runtime's
+ * borrowed session_root/allowed_root strings and must outlive the operation. */
+static const char *main_index_worker_scope_request(cbm_operation_runtime_t *runtime,
+                                                   const char *args_json, char *scope,
+                                                   size_t scope_size) {
+    yyjson_doc *doc = args_json ? yyjson_read(args_json, strlen(args_json), 0) : NULL;
+    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
+    yyjson_val *repo_val = yyjson_is_obj(root) ? yyjson_obj_get(root, "repo_path") : NULL;
+    const char *repo_path = yyjson_is_str(repo_val) ? yyjson_get_str(repo_val) : NULL;
+    if (!repo_path || !repo_path[0]) {
+        if (doc) {
+            yyjson_doc_free(doc);
+        }
+        return "request names no repo_path";
+    }
+    char canonical[MAIN_PATH_CAP];
+    bool exists = cbm_canonical_path(repo_path, canonical, sizeof(canonical)) != 0;
+    const char *chosen = exists ? canonical : repo_path;
+    bool fits = strlen(chosen) < scope_size;
+    if (fits) {
+        memcpy(scope, chosen, strlen(chosen) + 1U);
+    }
+    yyjson_doc_free(doc);
+    if (!fits) {
+        return "session context could not be installed";
+    }
+    runtime->session_root = scope;
+    runtime->allowed_root = exists ? scope : NULL;
+    runtime->allowed_root_policy_set = true;
+    return NULL;
+}
+
 static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_locks,
                    main_local_maintenance_context_t *maintenance_context, bool canonical_mode) {
+    cbm_cli_output_flags_t output_flags;
+    char output_error[CBM_SZ_512] = {0};
+    if (!cbm_cli_output_flags_parse(&argc, argv, &output_flags, output_error,
+                                    sizeof(output_error))) {
+        (void)fprintf(stderr, "error: %s\n",
+                      output_error[0] ? output_error : "invalid output mode");
+        (void)fprintf(stderr, CLI_USAGE);
+        return SKIP_ONE;
+    }
+    cbm_cli_diagnostics_configure(output_flags.quiet_requested, output_flags.verbose_requested);
     if (argc == 1 && argv && (strcmp(argv[0], "--help") == 0 || strcmp(argv[0], "-h") == 0)) {
         (void)fputs(CLI_USAGE, stdout);
         return 0;
@@ -763,7 +828,6 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
         return SKIP_ONE;
     }
 
-    bool progress_requested = cli_strip_flag(&argc, argv, "--progress");
     (void)cli_strip_flag(&argc, argv, "--json");
 
     /* Supervisor worker role: when this process was spawned as a supervised index
@@ -778,6 +842,11 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
     const char *worker_marker = cli_strip_flag_value(&argc, argv, CBM_INDEX_WORKER_MARKER_ARG);
     const char *worker_quarantine =
         cli_strip_flag_value(&argc, argv, CBM_INDEX_WORKER_QUARANTINE_ARG);
+    if (index_worker) {
+        /* The graph lives on this process's heaps: SQLite gets heaps of its
+         * own here, and only here (cbm_sqlite_dedicated_heap). */
+        cbm_sqlite_dedicated_heap(true);
+    }
     cbm_index_set_worker_role_options(index_worker, response_out, worker_single_thread,
                                       worker_marker, worker_quarantine,
                                       cbm_index_worker_memory_budget_bytes());
@@ -831,11 +900,13 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
     } else if (rem_argc >= SKIP_ONE && cli_first_nonspace_is_brace(rem_argv[0])) {
         /* raw-JSON back-compat: cli <tool> '{"k":"v"}' (deprecated path). Warn on
          * STDERR only — stdout must stay clean JSON for piping. */
-        (void)fprintf(stderr,
-                      "warning: passing raw JSON to 'cli %s' is deprecated and "
-                      "will be removed in a future release; use flags (run 'cli "
-                      "%s --help'), --args-file <path>, or piped stdin.\n",
-                      tool_name, tool_name);
+        if (!output_flags.quiet_requested) {
+            (void)fprintf(stderr,
+                          "warning: passing raw JSON to 'cli %s' is deprecated and "
+                          "will be removed in a future release; use flags (run 'cli "
+                          "%s --help'), --args-file <path>, or piped stdin.\n",
+                          tool_name, tool_name);
+        }
         args_json = rem_argv[0];
     } else if (rem_argc >= SKIP_ONE && strncmp(rem_argv[0], "--", 2) == 0) {
         /* flag form: cli <tool> --flag value --bare-bool ... */
@@ -864,7 +935,8 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
     }
 
     bool progress =
-        !index_worker && cbm_cli_progress_enabled(progress_requested, cli_isatty(2) != 0);
+        !index_worker && cbm_cli_progress_enabled(output_flags.progress_requested,
+                                                  output_flags.quiet_requested, cli_isatty(2) != 0);
     uint64_t progress_started_ms = cbm_now_ms();
     if (progress) {
         cbm_progress_sink_init(stderr);
@@ -885,6 +957,8 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
     };
     bool maintenance_binding_failed = false;
     bool maintenance_cancelled = false;
+    char worker_scope[MAIN_PATH_CAP];
+    const char *worker_scope_refused = NULL;
     bool local_canonical_read =
         !index_worker && canonical_mode && main_canonical_cli_tool_is_local_read(tool_name);
     if (local_canonical_read) {
@@ -911,8 +985,8 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
         maintenance_cancelled = main_local_maintenance_was_cancelled(maintenance_context);
     } else if (!index_worker) {
         bool daemon_operation_error = false;
-        operation_result.payload =
-            main_local_cli_daemon_execute(tool_name, args_json, &daemon_operation_error);
+        operation_result.payload = main_local_cli_daemon_execute(
+            tool_name, args_json, &daemon_operation_error, output_flags.quiet_requested);
         operation_result.is_error = daemon_operation_error;
         have_operation_result = operation_result.payload != NULL;
     } else {
@@ -924,8 +998,10 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
         runtime.mutation_context = &mutation;
         runtime.cancel_flag = &local_cancel_flag;
         cbm_operation_context_t operation_context = {.runtime = &runtime};
-        maintenance_binding_failed = maintenance_context == NULL;
-        if (operation && maintenance_context) {
+        worker_scope_refused = main_index_worker_scope_request(&runtime, args_json, worker_scope,
+                                                               sizeof(worker_scope));
+        maintenance_binding_failed = !worker_scope_refused && maintenance_context == NULL;
+        if (operation && !worker_scope_refused && maintenance_context) {
             main_local_maintenance_cancel_bind(maintenance_context, &local_cancel_flag);
             operation_result = cbm_operation_execute(&operation_context, operation->id, args_json);
             have_operation_result = true;
@@ -934,7 +1010,10 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
         }
     }
     if (!have_operation_result || !operation_result.payload) {
-        if (maintenance_binding_failed) {
+        if (worker_scope_refused) {
+            (void)fprintf(stderr, "error: request workspace scope invalid: %s\n",
+                          worker_scope_refused);
+        } else if (maintenance_binding_failed) {
             (void)fprintf(stderr,
                           "error: local %s maintenance cancellation could not bind safely\n",
                           index_worker ? "worker" : "CLI");
@@ -1693,15 +1772,23 @@ static int main_run_doctor(int argc, char **argv) {
     return stores.corrupt || !healthy ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
-static bool main_local_cli_feedback_enabled(int argc, char **argv) {
-    bool requested = false;
+static bool main_cli_flag_present(int argc, char **argv, const char *flag) {
+    if (!argv || !flag) {
+        return false;
+    }
     for (int index = 1; index < argc; index++) {
-        if (argv[index] && strcmp(argv[index], "--progress") == 0) {
-            requested = true;
-            break;
+        if (argv[index] && strcmp(argv[index], flag) == 0) {
+            return true;
         }
     }
-    return cbm_cli_progress_enabled(requested, cli_isatty(2) != 0);
+    return false;
+}
+
+static bool main_local_cli_feedback_enabled(int argc, char **argv) {
+    bool requested = false;
+    requested = main_cli_flag_present(argc, argv, "--progress");
+    bool quiet = main_cli_flag_present(argc, argv, "--quiet");
+    return cbm_cli_progress_enabled(requested, quiet, cli_isatty(2) != 0);
 }
 
 /* Acquire the exclusive startup transition, waiting out whatever currently holds it.
@@ -1934,7 +2021,8 @@ static cbm_version_cohort_quiesce_result_t main_upgrade_request_quiescence(void 
  * lifecycle used to, instead of deadlocking behind the pinned daemon. Same-
  * or newer-build daemons and dev builds are never auto-drained. */
 static cbm_daemon_bootstrap_status_t main_client_bootstrap_with_upgrade(
-    const cbm_daemon_bootstrap_config_t *config, cbm_daemon_bootstrap_result_t *result) {
+    const cbm_daemon_bootstrap_config_t *config, cbm_daemon_bootstrap_result_t *result,
+    bool report_lifecycle) {
     cbm_daemon_bootstrap_status_t status = cbm_daemon_bootstrap_execute(config, result);
     if (status != CBM_DAEMON_BOOTSTRAP_CONFLICT) {
         return status;
@@ -1985,11 +2073,13 @@ static cbm_daemon_bootstrap_status_t main_client_bootstrap_with_upgrade(
                       "and was left running\n");
         return status;
     }
-    (void)fprintf(stderr,
-                  "codebase-memory-cli: retired the active permanent daemon (%s, pid %lu) for "
-                  "this newer build (%s)\n",
-                  active.semantic_version, (unsigned long)active.daemon_pid,
-                  config->identity->semantic_version);
+    if (report_lifecycle) {
+        (void)fprintf(stderr,
+                      "codebase-memory-cli: retired the active permanent daemon (%s, pid %lu) "
+                      "for this newer build (%s)\n",
+                      active.semantic_version, (unsigned long)active.daemon_pid,
+                      config->identity->semantic_version);
+    }
     return cbm_daemon_bootstrap_execute(config, result);
 }
 
@@ -1998,11 +2088,11 @@ static cbm_daemon_bootstrap_status_t main_client_bootstrap_with_upgrade(
  * is recycled, an absent one is spawned for this command — with a hint that `daemon start` removes
  * that per-command cost. Only supervised index workers stay in-process. */
 static char *main_local_cli_daemon_execute(const char *tool_name, const char *args_json,
-                                           bool *is_error_out) {
+                                           bool *is_error_out, bool quiet_requested) {
     if (is_error_out) {
         *is_error_out = false;
     }
-    cbm_daemon_ipc_endpoint_t *endpoint = cbm_daemon_bootstrap_endpoint_new(NULL);
+    cbm_daemon_ipc_endpoint_t *endpoint = main_daemon_endpoint_new();
     char executable_path[MAIN_PATH_CAP] = {0};
     cbm_daemon_build_identity_t identity;
     bool prepared =
@@ -2023,7 +2113,8 @@ static char *main_local_cli_daemon_execute(const char *tool_name, const char *ar
         .startup_timeout_ms = MAIN_CLIENT_STARTUP_TIMEOUT_MS,
     };
     cbm_daemon_bootstrap_result_t bootstrap;
-    cbm_daemon_bootstrap_status_t status = main_client_bootstrap_with_upgrade(&config, &bootstrap);
+    cbm_daemon_bootstrap_status_t status =
+        main_client_bootstrap_with_upgrade(&config, &bootstrap, !quiet_requested);
     cbm_daemon_ipc_endpoint_free(endpoint);
     if (status != CBM_DAEMON_BOOTSTRAP_CONNECTED || !bootstrap.client) {
         (void)fprintf(stderr, "error: %s\n",
@@ -2032,6 +2123,11 @@ static char *main_local_cli_daemon_execute(const char *tool_name, const char *ar
         return NULL;
     }
     if (bootstrap.daemon_spawned && cbm_log_get_level() <= CBM_LOG_INFO) {
+        /* Routine cold-start advice is informational. Default one-shot CLI
+         * output stays pipe-clean; `cli --verbose ...` (or CBM_LOG_LEVEL=info)
+         * opts into this detail. It is advice for a person, so it is a plain
+         * stderr line rather than a structured record whose value escaping
+         * would turn `daemon start` into `daemon_start`. */
         (void)fprintf(stderr, "hint: this command started a temporary CBM daemon. "
                               "`codebase-memory-cli daemon start` keeps one warm and removes this "
                               "startup cost from every CLI command.\n");
@@ -2649,6 +2745,26 @@ static void main_daemon_ctl_open_browser(int port) {
     }
 }
 
+/* Ask the daemon to enable the UI on `port`; true when it accepted.
+ *
+ * The seam below forces the refusal that the caller must survive. Reproducing it
+ * for real needs a machine loaded enough to miss a bounded handshake, which is
+ * not a state a test can ask for; it is COMPILED OUT of ordinary builds (see
+ * TEST_SEAMS in Makefile.cbm). */
+static bool main_daemon_ctl_apply_ui_config(cbm_daemon_runtime_client_t *client,
+                                            uint8_t update_mask, int port) {
+#ifdef CBM_ENABLE_TEST_SEAMS
+    char forced[8];
+    if (cbm_safe_getenv("CBM_TEST_DAEMON_UI_CONFIG_REFUSED", forced, sizeof(forced), NULL) &&
+        forced[0] == '1') {
+        return false;
+    }
+#endif
+    return cbm_daemon_application_client_set_ui_config(client, update_mask, true, port,
+                                                       MAIN_CONNECT_TIMEOUT_MS) ==
+           CBM_DAEMON_RUNTIME_APPLICATION_OK;
+}
+
 static int main_daemon_ctl_finish_ui_open(cbm_daemon_runtime_client_t **client_io, int port,
                                           bool open_browser) {
     if (!open_browser) {
@@ -2690,20 +2806,6 @@ static int main_daemon_ctl_finish_ui_open(cbm_daemon_runtime_client_t **client_i
     printf("  ui: http://127.0.0.1:%d\n", port);
     main_daemon_ctl_open_browser(port);
     return EXIT_SUCCESS;
-}
-
-static bool main_daemon_ctl_apply_ui_config(cbm_daemon_runtime_client_t *client,
-                                            uint8_t update_mask, int port) {
-#ifdef CBM_ENABLE_TEST_SEAMS
-    char forced[8];
-    if (cbm_safe_getenv("CBM_TEST_DAEMON_UI_CONFIG_REFUSED", forced, sizeof(forced), NULL) &&
-        forced[0] == '1') {
-        return false;
-    }
-#endif
-    return cbm_daemon_application_client_set_ui_config(client, update_mask, true, port,
-                                                       MAIN_CONNECT_TIMEOUT_MS) ==
-           CBM_DAEMON_RUNTIME_APPLICATION_OK;
 }
 
 static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpoint_t *endpoint,
@@ -2883,7 +2985,7 @@ static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpo
     };
     cbm_daemon_bootstrap_result_t start_result;
     cbm_daemon_bootstrap_status_t start_status =
-        main_client_bootstrap_with_upgrade(&start_config, &start_result);
+        main_client_bootstrap_with_upgrade(&start_config, &start_result, true);
     if (start_status != CBM_DAEMON_BOOTSTRAP_CONNECTED || !start_result.client) {
         (void)fprintf(stderr, "error: %s\n",
                       start_result.message[0] ? start_result.message
@@ -2909,6 +3011,17 @@ static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpo
         ui_configured = context_set &&
                         main_daemon_ctl_apply_ui_config(start_result.client, update_mask, ui_port);
         if (!ui_configured) {
+            /* Reaching here means the daemon is up: the control connection above
+             * already satisfied its startup window. Only the UI handshake - two
+             * requests bounded by MAIN_CONNECT_TIMEOUT_MS - came back short.
+             *
+             * Whether that is fatal depends on what was asked for. `--port`/`--open`
+             * make the UI the point of the command, so failing to configure it is a
+             * failed command. A bare `daemon start` asks for a daemon, and it got
+             * one; reporting failure there sent operators hunting for a daemon that
+             * was in fact running and healthy. It also made a loaded machine look
+             * like a broken one, because a second of scheduling delay after an
+             * abrupt shutdown is enough to miss this handshake. */
             if (requested_port > 0 || open_browser) {
                 (void)fprintf(stderr,
                               "error: the daemon did not accept the UI configuration; browser was "
@@ -2935,6 +3048,8 @@ static int main_run_daemon_ctl(int argc, char **argv, const cbm_daemon_ipc_endpo
     }
     printf("It survives idle periods and session ends; `codebase-memory-cli daemon stop` "
            "retires it.\n");
+    /* Skipped when the handshake was refused: that path announces the port as
+     * warming, which would be a promise nothing is keeping. */
     int ui_result =
         (CBM_EMBEDDED_FILE_COUNT > 0 && ui_configured)
             ? main_daemon_ctl_finish_ui_open(&start_result.client, ui_port, open_browser)
@@ -2982,7 +3097,19 @@ int main(int argc, char **argv) {
 
     cbm_cli_set_version(CBM_VERSION);
     cbm_profile_init();
-    cbm_log_init_from_env();
+    /* The library default stays INFO (embedders and the test runner observe
+     * INFO records through the sink); the process policy is applied here, as
+     * early as argv can be classified: thin frontends go quiet, detached
+     * daemons retain INFO lifecycle records, and physical workers require
+     * INFO because those records are their supervisor's quiet-timeout
+     * heartbeat. */
+    bool quiet_log_default = role != CBM_DAEMON_PROCESS_DAEMON && role != CBM_DAEMON_PROCESS_WORKER;
+    cbm_log_init_for_process(quiet_log_default, role == CBM_DAEMON_PROCESS_WORKER);
+    if (role == CBM_DAEMON_PROCESS_LOCAL_CLI && main_cli_flag_present(argc, argv, "--quiet")) {
+        /* Apply quiet before local coordination begins, not only once tool
+         * dispatch is reached, so pre-dispatch WARN chatter is suppressed. */
+        cbm_cli_diagnostics_configure(true, false);
+    }
 
     const char *hook_event = NULL;
     const char *hook_dialect = NULL;
@@ -3032,7 +3159,7 @@ int main(int argc, char **argv) {
             (void)fputs("Preparing one-shot local CBM command...\n", feedback);
             (void)fflush(feedback);
         }
-        cbm_daemon_ipc_endpoint_t *local_endpoint = cbm_daemon_bootstrap_endpoint_new(NULL);
+        cbm_daemon_ipc_endpoint_t *local_endpoint = main_daemon_endpoint_new();
         char local_executable[MAIN_PATH_CAP];
         cbm_daemon_build_identity_t local_identity;
         cbm_project_lock_manager_t *project_locks =
@@ -3470,7 +3597,7 @@ int main(int argc, char **argv) {
     };
     cbm_daemon_bootstrap_result_t bootstrap_result;
     cbm_daemon_bootstrap_status_t bootstrap_status =
-        main_client_bootstrap_with_upgrade(&bootstrap_config, &bootstrap_result);
+        main_client_bootstrap_with_upgrade(&bootstrap_config, &bootstrap_result, true);
     cbm_daemon_ipc_endpoint_free(endpoint);
     if (bootstrap_status != CBM_DAEMON_BOOTSTRAP_CONNECTED || !bootstrap_result.client) {
         main_report_client_bootstrap_failure(&bootstrap_result);

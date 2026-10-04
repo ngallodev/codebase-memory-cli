@@ -169,12 +169,16 @@ static cbm_daemon_runtime_application_status_t app_test_request(
 
 static bool app_test_response_contains(const uint8_t *response, uint32_t response_length,
                                        const char *needle) {
-    if (!response || !needle) return false;
+    if (!response || !needle)
+        return false;
     size_t needle_length = strlen(needle);
-    if (needle_length == 0) return true;
-    if (needle_length > response_length) return false;
+    if (needle_length == 0)
+        return true;
+    if (needle_length > response_length)
+        return false;
     for (uint32_t i = 0; i <= response_length - needle_length; i++) {
-        if (memcmp(response + i, needle, needle_length) == 0) return true;
+        if (memcmp(response + i, needle, needle_length) == 0)
+            return true;
     }
     return false;
 }
@@ -682,8 +686,8 @@ TEST(daemon_application_requires_immutable_explicit_context) {
     uint8_t *response = NULL;
     uint32_t response_length = 0;
     bool operation_ok = app_test_tool_request("projects", "{}", &operation, &operation_length);
-    cbm_daemon_runtime_application_status_t before =
-        app_test_request(&callbacks, session, operation, operation_length, &response, &response_length);
+    cbm_daemon_runtime_application_status_t before = app_test_request(
+        &callbacks, session, operation, operation_length, &response, &response_length);
     free(response);
     response = NULL;
     bool context_ok = root_ok && app_test_context_request(root, root, &context, &context_length);
@@ -699,8 +703,8 @@ TEST(daemon_application_requires_immutable_explicit_context) {
                    : CBM_DAEMON_RUNTIME_APPLICATION_TRANSPORT_ERROR;
     free(response);
     response = NULL;
-    cbm_daemon_runtime_application_status_t after =
-        app_test_request(&callbacks, session, operation, operation_length, &response, &response_length);
+    cbm_daemon_runtime_application_status_t after = app_test_request(
+        &callbacks, session, operation, operation_length, &response, &response_length);
     bool operation_response = response && response_length > 1 && response[0] == 0;
 
     callbacks.session_close(callbacks.context, session);
@@ -719,6 +723,45 @@ TEST(daemon_application_requires_immutable_explicit_context) {
     ASSERT_EQ(repeated, CBM_DAEMON_RUNTIME_APPLICATION_REJECTED);
     ASSERT_EQ(after, CBM_DAEMON_RUNTIME_APPLICATION_OK);
     ASSERT_TRUE(operation_response);
+    PASS();
+}
+
+TEST(daemon_application_accepts_utf8_session_context_root) {
+    char root[APP_TEST_PATH_CAP];
+    snprintf(root, sizeof(root), "%s/cbm-app-context-caf\xC3\xA9-XXXXXX", cbm_tmpdir());
+    bool root_ok = cbm_mkdtemp(root) != NULL;
+    cbm_daemon_application_t *application = cbm_daemon_application_new(NULL);
+    cbm_daemon_runtime_application_callbacks_t callbacks =
+        cbm_daemon_application_runtime_callbacks(application);
+    cbm_daemon_runtime_application_session_t *session = app_test_open(&callbacks, 311);
+    uint8_t *context = NULL;
+    uint32_t context_length = 0;
+    uint8_t *response = NULL;
+    uint32_t response_length = 0;
+    bool context_ok = root_ok && app_test_context_request(root, root, &context, &context_length);
+    cbm_daemon_runtime_application_status_t status =
+        context_ok ? app_test_request(&callbacks, session, context, context_length, &response,
+                                      &response_length)
+                   : CBM_DAEMON_RUNTIME_APPLICATION_TRANSPORT_ERROR;
+
+    free(context);
+    free(response);
+    if (session) {
+        callbacks.session_close(callbacks.context, session);
+    }
+    bool stopped = application && cbm_daemon_application_shutdown(application, APP_TEST_TIMEOUT_MS);
+    cbm_daemon_application_free(application);
+    if (root_ok) {
+        (void)cbm_rmdir(root);
+    }
+
+    ASSERT_TRUE(root_ok);
+    ASSERT_NOT_NULL(application);
+    ASSERT_NOT_NULL(session);
+    ASSERT_TRUE(context_ok);
+    ASSERT_EQ(status, CBM_DAEMON_RUNTIME_APPLICATION_OK);
+    ASSERT_EQ(response_length, 0);
+    ASSERT_TRUE(stopped);
     PASS();
 }
 
@@ -773,11 +816,11 @@ TEST(daemon_application_hook_context_preserves_event_and_dialect) {
     (void)snprintf(input, sizeof(input), "{\"cwd\":\"%s\"}", root);
     uint8_t *hook = NULL;
     uint32_t hook_length = 0;
-    bool encoded =
-        root_ok && session &&
-        app_test_context_request_options(root, root, "SessionStart", "copilot", &context, &context_length) &&
-        app_test_text_request(CBM_DAEMON_APPLICATION_REQUEST_HOOK_AUGMENT, input, &hook,
-                              &hook_length);
+    bool encoded = root_ok && session &&
+                   app_test_context_request_options(root, root, "SessionStart", "copilot", &context,
+                                                    &context_length) &&
+                   app_test_text_request(CBM_DAEMON_APPLICATION_REQUEST_HOOK_AUGMENT, input, &hook,
+                                         &hook_length);
     uint8_t *response = NULL;
     uint32_t response_length = 0;
     cbm_daemon_runtime_application_status_t context_status =
@@ -1619,23 +1662,22 @@ static bool app_env_backup_restore(app_env_backup_t *backup) {
     return status == 0;
 }
 
-static bool app_test_initialize_session(
-    const cbm_daemon_runtime_application_callbacks_t *callbacks,
-    cbm_daemon_runtime_application_session_t *session, const char *root,
-    const char *hook_event, const char *hook_dialect) {
+static bool app_test_initialize_session(const cbm_daemon_runtime_application_callbacks_t *callbacks,
+                                        cbm_daemon_runtime_application_session_t *session,
+                                        const char *root, const char *hook_event,
+                                        const char *hook_dialect) {
     uint8_t *context = NULL;
     uint32_t context_length = 0;
-    bool encoded = session &&
-                   app_test_context_request_options(root, root, hook_event, hook_dialect,
-                                                    &context, &context_length);
+    bool encoded = session && app_test_context_request_options(root, root, hook_event, hook_dialect,
+                                                               &context, &context_length);
     uint8_t *response = NULL;
     uint32_t response_length = 0;
     cbm_daemon_runtime_application_status_t status =
         encoded ? app_test_request(callbacks, session, context, context_length, &response,
                                    &response_length)
                 : CBM_DAEMON_RUNTIME_APPLICATION_TRANSPORT_ERROR;
-    bool initialized = status == CBM_DAEMON_RUNTIME_APPLICATION_OK && response == NULL &&
-                       response_length == 0;
+    bool initialized =
+        status == CBM_DAEMON_RUNTIME_APPLICATION_OK && response == NULL && response_length == 0;
     free(response);
     free(context);
     return initialized;
@@ -1676,9 +1718,9 @@ static cbm_daemon_runtime_application_status_t app_test_list_projects(
     return status;
 }
 
-/* Regression contract: neutral context establishment is the ownership boundary for daemon background
- * indexing. Hook sessions do not participate; identical roots share
- * one physical worker but retain one subscription per live session. */
+/* Regression contract: neutral context establishment is the ownership boundary for daemon
+ * background indexing. Hook sessions do not participate; identical roots share one physical worker
+ * but retain one subscription per live session. */
 TEST(daemon_application_initialize_coalesces_auto_index_for_full_sessions) {
     app_env_backup_t cache_environment;
     bool cache_saved = app_env_backup_capture(&cache_environment, "CBM_CACHE_DIR");
@@ -1720,20 +1762,21 @@ TEST(daemon_application_initialize_coalesces_auto_index_for_full_sessions) {
     }
 
     int bg_baseline = cbm_daemon_application_background_initializes_for_test();
-    bool hook_only_initialized = app_test_initialize_session(&callbacks, sessions[2], root, "SessionStart", "copilot");
-    bool hook_initialized = app_test_initialize_session(
-        &callbacks, sessions[3], root, "SessionStart", "copilot");
+    bool hook_only_initialized =
+        app_test_initialize_session(&callbacks, sessions[2], root, "SessionStart", "copilot");
+    bool hook_initialized =
+        app_test_initialize_session(&callbacks, sessions[3], root, "SessionStart", "copilot");
     bool admissions_evaluated = app_wait_for_background_initializes(bg_baseline + 2);
     bool restricted_started_nothing =
         admissions_evaluated && atomic_load(&fake.starts) == 0 && application && project &&
-        cbm_daemon_application_job_subscribers(application, project) == 0 &&
-        true;
+        cbm_daemon_application_job_subscribers(application, project) == 0 && true;
 
     bool first_initialized = app_test_initialize_session(&callbacks, sessions[0], root, NULL, NULL);
     bool first_owned = first_initialized && project &&
                        app_wait_for_subscribers(application, project, 1) &&
                        app_wait_for_atomic_int(&fake.starts, 1);
-    bool second_initialized = app_test_initialize_session(&callbacks, sessions[1], root, NULL, NULL);
+    bool second_initialized =
+        app_test_initialize_session(&callbacks, sessions[1], root, NULL, NULL);
     bool coalesced = first_owned && second_initialized && project &&
                      app_wait_for_subscribers(application, project, 2) &&
                      cbm_daemon_application_active_jobs(application) == 1 &&
@@ -1866,14 +1909,15 @@ TEST(daemon_application_sensitive_root_blocks_auto_index_but_preserves_controls)
         application ? app_test_open(&callbacks, 4032) : NULL;
 
     int background_baseline = cbm_daemon_application_background_initializes_for_test();
-    bool sensitive_initialized = app_test_initialize_session(
-        &callbacks, sensitive_session, sensitive, NULL, NULL);
+    bool sensitive_initialized =
+        app_test_initialize_session(&callbacks, sensitive_session, sensitive, NULL, NULL);
     bool sensitive_evaluated = app_wait_for_background_initializes(background_baseline + 1);
     bool sensitive_blocked = sensitive_initialized && sensitive_evaluated &&
                              atomic_load(&fake.starts) == 0 &&
                              cbm_daemon_application_active_jobs(application) == 0;
 
-    bool ordinary_initialized = app_test_initialize_session(&callbacks, ordinary_session, ordinary, NULL, NULL);
+    bool ordinary_initialized =
+        app_test_initialize_session(&callbacks, ordinary_session, ordinary, NULL, NULL);
     bool ordinary_admitted = ordinary_initialized && app_wait_for_atomic_int(&fake.starts, 1) &&
                              cbm_daemon_application_active_jobs(application) == 1;
     if (ordinary_session) {
@@ -1889,7 +1933,8 @@ TEST(daemon_application_sensitive_root_blocks_auto_index_but_preserves_controls)
     bool approved = ordinary_reaped && cbm_workspace_grant_add(cache, sensitive, sensitive, true,
                                                                grant_error, sizeof(grant_error));
     bool approved_initialized =
-        approved && app_test_initialize_session(&callbacks, approved_session, sensitive, NULL, NULL);
+        approved &&
+        app_test_initialize_session(&callbacks, approved_session, sensitive, NULL, NULL);
     bool approved_admitted = approved_initialized && app_wait_for_atomic_int(&fake.starts, 2) &&
                              cbm_daemon_application_active_jobs(application) == 1;
 
@@ -1998,10 +2043,11 @@ TEST(daemon_application_sensitive_root_blocks_watch_but_preserves_controls) {
     cbm_daemon_runtime_application_session_t *approved_session =
         application ? app_test_open(&callbacks, 4035) : NULL;
 
-    bool sensitive_initialized = app_test_initialize_session(
-        &callbacks, sensitive_session, sensitive, NULL, NULL);
+    bool sensitive_initialized =
+        app_test_initialize_session(&callbacks, sensitive_session, sensitive, NULL, NULL);
     bool sensitive_blocked = sensitive_initialized && cbm_watcher_watch_count(watcher) == 0;
-    bool ordinary_initialized = app_test_initialize_session(&callbacks, ordinary_session, ordinary, NULL, NULL);
+    bool ordinary_initialized =
+        app_test_initialize_session(&callbacks, ordinary_session, ordinary, NULL, NULL);
     bool ordinary_watched = ordinary_initialized && cbm_watcher_watch_count(watcher) == 1;
     if (ordinary_session) {
         callbacks.session_close(callbacks.context, ordinary_session);
@@ -2013,7 +2059,8 @@ TEST(daemon_application_sensitive_root_blocks_watch_but_preserves_controls) {
     bool approved = ordinary_released && cbm_workspace_grant_add(cache, sensitive, sensitive, true,
                                                                  grant_error, sizeof(grant_error));
     bool approved_initialized =
-        approved && app_test_initialize_session(&callbacks, approved_session, sensitive, NULL, NULL);
+        approved &&
+        app_test_initialize_session(&callbacks, approved_session, sensitive, NULL, NULL);
     bool approved_watched = approved_initialized && cbm_watcher_watch_count(watcher) == 1;
 
     if (sensitive_session) {
@@ -2255,8 +2302,8 @@ TEST(daemon_application_auto_index_retries_transient_busy_admission) {
     cbm_daemon_runtime_application_session_t *session =
         application ? app_test_open(&callbacks, 4191) : NULL;
     int bg_baseline = cbm_daemon_application_background_initializes_for_test();
-    bool initialized =
-        occupied_admitted && app_test_initialize_session(&callbacks, session, auto_root, NULL, NULL);
+    bool initialized = occupied_admitted &&
+                       app_test_initialize_session(&callbacks, session, auto_root, NULL, NULL);
     bool admission_evaluated = app_wait_for_background_initializes(bg_baseline + 1);
     bool initially_deferred = initialized && admission_evaluated && atomic_load(&fake.starts) == 1;
 
@@ -2396,8 +2443,12 @@ TEST(daemon_application_coalesces_semantically_identical_index_requests) {
     ASSERT_EQ(atomic_load(&fake.destroys), 1);
     ASSERT_EQ(requests[0].status, CBM_DAEMON_RUNTIME_APPLICATION_OK);
     ASSERT_EQ(requests[1].status, CBM_DAEMON_RUNTIME_APPLICATION_OK);
-    ASSERT_TRUE(requests[0].response && app_test_response_contains(requests[0].response, requests[0].response_length, "indexed"));
-    ASSERT_TRUE(requests[1].response && app_test_response_contains(requests[1].response, requests[1].response_length, "indexed"));
+    ASSERT_TRUE(
+        requests[0].response &&
+        app_test_response_contains(requests[0].response, requests[0].response_length, "indexed"));
+    ASSERT_TRUE(
+        requests[1].response &&
+        app_test_response_contains(requests[1].response, requests[1].response_length, "indexed"));
 
     free(requests[0].response);
     free(requests[1].response);
@@ -2527,7 +2578,9 @@ TEST(daemon_application_fresh_request_does_not_reuse_terminal_subscribed_job) {
     ASSERT_TRUE(stopped);
     for (size_t i = 0; i < PRIOR_SUBSCRIBERS; i++) {
         ASSERT_EQ(prior[i].status, CBM_DAEMON_RUNTIME_APPLICATION_OK);
-        ASSERT_TRUE(prior[i].response && app_test_response_contains(prior[i].response, prior[i].response_length, "stale-generation"));
+        ASSERT_TRUE(prior[i].response &&
+                    app_test_response_contains(prior[i].response, prior[i].response_length,
+                                               "stale-generation"));
         free(prior[i].response);
     }
 
@@ -2627,7 +2680,8 @@ TEST(daemon_application_request_cancel_detaches_only_one_coalesced_subscriber) {
     bool stopped = application && cbm_daemon_application_shutdown(application, APP_TEST_TIMEOUT_MS);
     cbm_daemon_application_free(application);
     bool second_indexed =
-        requests[1].response && app_test_response_contains(requests[1].response, requests[1].response_length, "indexed");
+        requests[1].response &&
+        app_test_response_contains(requests[1].response, requests[1].response_length, "indexed");
     int final_cancels = atomic_load(&fake.cancels);
     int final_starts = atomic_load(&fake.starts);
     int final_destroys = atomic_load(&fake.destroys);
@@ -3552,7 +3606,8 @@ TEST(daemon_application_serializes_adr_mutation_with_index_job) {
     bool stopped = application && cbm_daemon_application_shutdown(application, APP_TEST_TIMEOUT_MS);
     cbm_daemon_application_free(application);
     bool adr_response_updated =
-        adr_request.response && app_test_response_contains(adr_request.response, adr_request.response_length, "updated");
+        adr_request.response &&
+        app_test_response_contains(adr_request.response, adr_request.response_length, "updated");
 
     free(index_request.response);
     free(adr_request.response);
@@ -4552,9 +4607,11 @@ TEST(daemon_application_queues_explicit_index_behind_physical_job_limit) {
      * admitted and complete on its own. */
     atomic_store(&fake.allow_completion, true);
     bool request_joined = request_started && cbm_thread_join(&request_thread) == 0;
-    bool queued_succeeded = request_joined && queued.status == CBM_DAEMON_RUNTIME_APPLICATION_OK &&
-                            queued.response && app_test_response_contains(queued.response, queued.response_length, "indexed") &&
-                            !app_test_response_contains(queued.response, queued.response_length, "physical index job limit");
+    bool queued_succeeded =
+        request_joined && queued.status == CBM_DAEMON_RUNTIME_APPLICATION_OK && queued.response &&
+        app_test_response_contains(queued.response, queued.response_length, "indexed") &&
+        !app_test_response_contains(queued.response, queued.response_length,
+                                    "physical index job limit");
 
     callbacks.session_close(callbacks.context, session);
     bool stopped = application && cbm_daemon_application_shutdown(application, APP_TEST_TIMEOUT_MS);
@@ -4652,12 +4709,157 @@ TEST(daemon_application_default_limit_admits_four_and_rejects_fifth) {
     ASSERT_EQ(atomic_load(&fake.starts), DEFAULT_CAP_RUNNING);
     ASSERT_EQ(atomic_load(&fake.cancels), DEFAULT_CAP_RUNNING);
     ASSERT_EQ(atomic_load(&fake.destroys), DEFAULT_CAP_RUNNING);
-    size_t assigned_budget = 0;
+    /* Decision 2 (#1997 #832): each worker's slice is the aggregate divided by
+     * the jobs active when IT was spawned. Four requests race through
+     * admission, so which divisor each saw is scheduling-dependent — but every
+     * slice is one of aggregate/1..4 and never exceeds the aggregate. */
     for (int i = 0; i < DEFAULT_CAP_RUNNING; i++) {
-        ASSERT_EQ(fake.memory_budgets[i], aggregate_budget / DEFAULT_CAP_RUNNING);
-        assigned_budget += fake.memory_budgets[i];
+        bool valid_slice = false;
+        for (size_t divisor = 1; divisor <= DEFAULT_CAP_RUNNING; divisor++) {
+            valid_slice = valid_slice || fake.memory_budgets[i] == aggregate_budget / divisor;
+        }
+        ASSERT_TRUE(valid_slice);
+        ASSERT_TRUE(fake.memory_budgets[i] <= aggregate_budget);
     }
-    ASSERT_TRUE(assigned_budget <= aggregate_budget);
+    PASS();
+}
+
+/* Decision 2 (#1997 #832): the worker slice is aggregate / jobs ACTIVE at
+ * spawn time. Sequenced admission makes the divisor deterministic: the first
+ * job spawns alone and receives the whole aggregate; the second spawns while
+ * the first still runs and receives half. */
+TEST(daemon_application_worker_slice_is_aggregate_over_active_jobs) {
+    const size_t aggregate_budget = 4099;
+    app_fake_worker_context_t fake;
+    app_fake_worker_context_init(&fake);
+    cbm_daemon_application_worker_ops_t worker_ops = {
+        .context = &fake,
+        .start = app_fake_worker_start,
+        .poll = app_fake_worker_poll,
+        .cancel = app_fake_worker_cancel,
+        .log_path = app_fake_worker_log_path,
+        .destroy = app_fake_worker_destroy,
+    };
+    cbm_daemon_application_config_t config = {
+        .worker_ops = &worker_ops,
+        .aggregate_memory_budget_bytes = aggregate_budget,
+    };
+    cbm_daemon_application_t *application = cbm_daemon_application_new(&config);
+    char roots[2][APP_TEST_PATH_CAP];
+    bool roots_ok = true;
+    for (int i = 0; i < 2; i++) {
+        (void)snprintf(roots[i], sizeof(roots[i]), "%s/cbm-app-slice-%d-XXXXXX", cbm_tmpdir(), i);
+        roots_ok = roots_ok && cbm_mkdtemp(roots[i]) != NULL;
+    }
+    app_index_thread_t requests[2] = {
+        {.application = application, .project = "slice-first", .root = roots[0], .result = -1},
+        {.application = application, .project = "slice-second", .root = roots[1], .result = -1},
+    };
+    cbm_thread_t threads[2];
+    bool first_started = application && roots_ok &&
+                         cbm_thread_create(&threads[0], 0, app_index_thread, &requests[0]) == 0;
+    bool first_spawned = first_started && app_wait_for_atomic_int(&fake.starts, 1);
+    bool second_started =
+        first_spawned && cbm_thread_create(&threads[1], 0, app_index_thread, &requests[1]) == 0;
+    bool second_spawned = second_started && app_wait_for_atomic_int(&fake.starts, 2);
+    atomic_store(&fake.allow_completion, true);
+    if (first_started) {
+        (void)cbm_thread_join(&threads[0]);
+    }
+    if (second_started) {
+        (void)cbm_thread_join(&threads[1]);
+    }
+    bool stopped = application && cbm_daemon_application_shutdown(application, APP_TEST_TIMEOUT_MS);
+    cbm_daemon_application_free(application);
+    for (int i = 0; i < 2; i++) {
+        (void)cbm_rmdir(roots[i]);
+    }
+
+    ASSERT_TRUE(roots_ok);
+    ASSERT_TRUE(first_spawned);
+    ASSERT_TRUE(second_spawned);
+    ASSERT_EQ(requests[0].result, 0);
+    ASSERT_EQ(requests[1].result, 0);
+    ASSERT_TRUE(stopped);
+    ASSERT_EQ(fake.memory_budgets[0], aggregate_budget);
+    ASSERT_EQ(fake.memory_budgets[1], aggregate_budget / 2);
+    PASS();
+}
+
+/* Decision A (#1997 #832): the over-budget verdict travels as a CLEAN worker
+ * exit carrying an error response. The daemon passes that response through
+ * verbatim on the first attempt — no crash/hang recovery loop, no quarantine
+ * of innocent files — because a healthy process reported an honest failure. */
+TEST(daemon_application_over_budget_response_passes_through_without_recovery) {
+    static const char over_budget_response[] =
+        "{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"project\\\":\\\"budget\\\","
+        "\\\"status\\\":\\\"error\\\",\\\"reason\\\":\\\"over_memory_budget\\\","
+        "\\\"previous_index\\\":\\\"preserved\\\"}\"}],\"isError\":true}";
+    app_fake_worker_context_t fake;
+    app_fake_worker_context_init(&fake);
+    atomic_store(&fake.scripted, true);
+    fake.outcomes[0] = CBM_PROC_CLEAN;
+    fake.responses[0] = over_budget_response;
+    fake.outcomes[1] = CBM_PROC_CLEAN; /* a second start would be the recovery loop */
+    cbm_daemon_application_worker_ops_t worker_ops = {
+        .context = &fake,
+        .start = app_fake_worker_start,
+        .poll = app_fake_worker_poll,
+        .cancel = app_fake_worker_cancel,
+        .log_path = app_fake_worker_log_path,
+        .destroy = app_fake_worker_destroy,
+    };
+    cbm_daemon_application_config_t config = {.worker_ops = &worker_ops};
+    cbm_daemon_application_t *application = cbm_daemon_application_new(&config);
+    cbm_daemon_runtime_application_callbacks_t callbacks =
+        cbm_daemon_application_runtime_callbacks(application);
+    cbm_daemon_runtime_application_session_t *session =
+        application ? app_test_open(&callbacks, 71) : NULL;
+    char root[APP_TEST_PATH_CAP];
+    snprintf(root, sizeof(root), "%s/cbm-app-over-budget-XXXXXX", cbm_tmpdir());
+    bool root_ok = cbm_mkdtemp(root) != NULL;
+    uint8_t *context = NULL;
+    uint32_t context_length = 0;
+    char args[APP_TEST_PATH_CAP + 32];
+    snprintf(args, sizeof(args), "{\"repo_path\":\"%s\"}", root);
+    uint8_t *tool = NULL;
+    uint32_t tool_length = 0;
+    bool setup = application && session && root_ok &&
+                 app_test_context_request(root, root, &context, &context_length) &&
+                 app_test_tool_request("index_repository", args, &tool, &tool_length);
+    uint8_t *response = NULL;
+    uint32_t response_length = 0;
+    if (setup) {
+        setup = app_test_request(&callbacks, session, context, context_length, &response,
+                                 &response_length) == CBM_DAEMON_RUNTIME_APPLICATION_OK;
+        free(response);
+        response = NULL;
+        response_length = 0;
+    }
+    cbm_daemon_runtime_application_status_t status =
+        setup
+            ? app_test_request(&callbacks, session, tool, tool_length, &response, &response_length)
+            : CBM_DAEMON_RUNTIME_APPLICATION_HANDLER_ERROR;
+    bool passed_through = response && response_length > 0 &&
+                          strstr((char *)response, "over_memory_budget") != NULL &&
+                          strstr((char *)response, "\"isError\":true") != NULL;
+    free(response);
+    free(context);
+    free(tool);
+    if (session) {
+        callbacks.session_cancel(callbacks.context, session);
+        callbacks.session_close(callbacks.context, session);
+    }
+    bool stopped = application && cbm_daemon_application_shutdown(application, APP_TEST_TIMEOUT_MS);
+    cbm_daemon_application_free(application);
+    (void)cbm_rmdir(root);
+
+    ASSERT_TRUE(setup);
+    ASSERT_EQ(status, CBM_DAEMON_RUNTIME_APPLICATION_OK);
+    ASSERT_TRUE(passed_through);
+    ASSERT_EQ(atomic_load(&fake.starts), 1);
+    ASSERT_EQ(atomic_load(&fake.destroys), 1);
+    ASSERT_TRUE(stopped);
     PASS();
 }
 
@@ -4717,20 +4919,24 @@ TEST(daemon_application_rejects_clean_exit_when_process_tree_is_not_contained) {
     PASS();
 }
 
-
+/* One directory is one root for the job registry. The auto-index job spells
+ * repo_path the way the session policy holds it - the platform's native form,
+ * backslashes on Windows - while an explicit index_repository request arrives
+ * in the handler's forward-slash spelling. Compared byte-exact the two never
+ * matched on Windows, and the request was refused as an options conflict
+ * instead of joining the job already running for its root. The fold runs on
+ * every platform, so this binds wherever the suite runs; every other option
+ * stays exact. */
 TEST(daemon_application_index_args_compare_repo_path_separator_equivalently) {
     ASSERT_TRUE(cbm_daemon_application_index_args_equal_for_test(
-        "{\"repo_path\":\"C:\\\\repos\\\\cbm\"}",
-        "{\"repo_path\":\"C:/repos/cbm\"}"));
+        "{\"repo_path\":\"C:\\\\repos\\\\cbm\"}", "{\"repo_path\":\"C:/repos/cbm\"}"));
     ASSERT_TRUE(cbm_daemon_application_index_args_equal_for_test(
         "{\"repo_path\":\"C:\\\\repos\\\\cbm\",\"mode\":\"full\"}",
         "{\"mode\":\"full\",\"repo_path\":\"C:/repos/cbm\"}"));
     ASSERT_FALSE(cbm_daemon_application_index_args_equal_for_test(
-        "{\"repo_path\":\"C:\\\\repos\\\\cbm\"}",
-        "{\"repo_path\":\"C:/repos/cbm2\"}"));
+        "{\"repo_path\":\"C:\\\\repos\\\\cbm\"}", "{\"repo_path\":\"C:/repos/cbm2\"}"));
     ASSERT_FALSE(cbm_daemon_application_index_args_equal_for_test(
-        "{\"repo_path\":\"C:\\\\repos\\\\cbm\"}",
-        "{\"repo_path\":\"C:/repos/cbm/sub\"}"));
+        "{\"repo_path\":\"C:\\\\repos\\\\cbm\"}", "{\"repo_path\":\"C:/repos/cbm/sub\"}"));
     ASSERT_FALSE(cbm_daemon_application_index_args_equal_for_test(
         "{\"repo_path\":\"C:\\\\repos\\\\cbm\",\"mode\":\"incremental\"}",
         "{\"repo_path\":\"C:/repos/cbm\"}"));
@@ -4741,6 +4947,7 @@ SUITE(daemon_application) {
     RUN_TEST(daemon_application_new_session_does_not_retain_initial_store);
     RUN_TEST(daemon_application_request_cancel_is_scoped_to_exact_token);
     RUN_TEST(daemon_application_requires_immutable_explicit_context);
+    RUN_TEST(daemon_application_accepts_utf8_session_context_root);
     RUN_TEST(daemon_application_ui_config_updates_are_masked_and_serialized);
     RUN_TEST(daemon_application_ui_config_rejects_noncanonical_frames);
     RUN_TEST(daemon_application_ui_readiness_proof_is_generation_bound_before_context);
@@ -4751,6 +4958,7 @@ SUITE(daemon_application) {
     RUN_TEST(daemon_application_initialize_coalesces_auto_index_for_full_sessions);
     RUN_TEST(daemon_application_sensitive_root_blocks_auto_index_but_preserves_controls);
     RUN_TEST(daemon_application_sensitive_root_blocks_watch_but_preserves_controls);
+    RUN_TEST(daemon_application_index_args_compare_repo_path_separator_equivalently);
     RUN_TEST(daemon_application_auto_index_honors_tracked_file_limit);
     RUN_TEST(daemon_application_auto_index_file_count_handles_literal_metacharacter_path);
     RUN_TEST(daemon_application_auto_index_file_count_supports_non_git_roots);
@@ -4779,8 +4987,9 @@ SUITE(daemon_application) {
     RUN_TEST(daemon_application_cancellation_between_recovery_attempts_stops_retry);
     RUN_TEST(daemon_application_thread_start_failure_rolls_back_job_reservation);
     RUN_TEST(daemon_application_queues_explicit_index_behind_physical_job_limit);
-    RUN_TEST(daemon_application_index_args_compare_repo_path_separator_equivalently);
     RUN_TEST(daemon_application_default_limit_admits_four_and_rejects_fifth);
+    RUN_TEST(daemon_application_worker_slice_is_aggregate_over_active_jobs);
+    RUN_TEST(daemon_application_over_budget_response_passes_through_without_recovery);
     RUN_TEST(daemon_application_free_reports_retained_live_ownership);
     RUN_TEST(daemon_application_rejects_clean_exit_when_process_tree_is_not_contained);
 }
