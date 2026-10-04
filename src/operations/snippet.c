@@ -522,8 +522,8 @@ static cbm_operation_result_t node_result(cbm_store_t *store, const char *projec
             while (low <= high) {
                 int middle = low + (high - low) / 2;
                 size_t keep = 0;
-                int line = 0;
                 if (middle > 0) {
+                    int line = 0;
                     for (const char *q = source; *q; q++) {
                         keep++;
                         if (*q == '\n' && ++line >= middle) {

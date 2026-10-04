@@ -16,7 +16,7 @@ internal/cbm/service_patterns.c	2
 internal/cbm/sqlite_writer.c	92
 src/cli/activation_transaction.c	80
 src/cli/agent_clients.c	73
-src/cli/cli.c	133
+src/cli/cli.c	134
 src/cli/config_edit_path.c	2
 src/cli/config_json_like.c	142
 src/cli/config_text_edit.c	72
@@ -52,7 +52,7 @@ src/git/git_context.c	18
 src/main.c	35
 src/operations/adr.c	50
 src/operations/architecture.c	88
-src/operations/changes.c	53
+src/operations/changes.c	55
 src/operations/command_runner.c	1
 src/operations/compact_out.c	39
 src/operations/compare.c	18
@@ -72,10 +72,10 @@ src/operations/result_wire.c	1
 src/operations/schema.c	10
 src/operations/search.c	13
 src/operations/session_state.c	12
-src/operations/snippet.c	24
-src/operations/source_search.c	87
+src/operations/snippet.c	26
+src/operations/source_search.c	96
 src/operations/store_host.c	11
-src/operations/trace.c	10
+src/operations/trace.c	12
 src/pipeline/artifact.c	38
 src/pipeline/fqn.c	23
 src/pipeline/lsp_resolve.h	4
