@@ -509,4 +509,5 @@ SUITE(mem_events) {
     RUN_TEST(memev_work_rows_sum_and_keep_the_peak);
     RUN_TEST(memev_repeats_require_unchanged_input);
     RUN_TEST(memev_thread_ops_count_this_threads_events);
+    cbm_memev_force_for_tests(false);
 }

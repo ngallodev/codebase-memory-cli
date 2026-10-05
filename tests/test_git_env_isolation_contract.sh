@@ -56,7 +56,7 @@ BASE_LOG="$WORK/baseline.log"
     exit 1
 }
 
-summary() { grep -E '^ *[0-9]+ passed' "$1" | tail -1; }
+summary() { grep -E '^ *[0-9]+ passed' "$1" | tail -1 || true; }
 BASE_SUMMARY="$(summary "$BASE_LOG")"
 FAILED=0
 

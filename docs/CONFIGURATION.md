@@ -193,7 +193,7 @@ permission metadata in `/etc/wsl.conf`, then run `wsl --shutdown` and reopen WSL
 options = "metadata,umask=22,fmask=11"
 ```
 
-or keep the cache on the Linux filesystem (the default `~/.cache/codebase-memory-mcp`),
+or keep the cache on the Linux filesystem (the default `~/.cache/codebase-memory-cli`),
 which is also much faster than a 9p-mounted Windows drive.
 
 Environment used by retained runtime-owned components—such as diagnostics, logging, and process-wide indexing resource limits—is captured when that runtime starts. Later participants cannot replace those values. `CBM_ALLOWED_ROOT` remains caller-specific, a conflicting `CBM_CACHE_DIR` is rejected, and one-shot CLI commands use their own current environment.

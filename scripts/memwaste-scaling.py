@@ -182,7 +182,7 @@ def main() -> int:
     corpus = os.path.abspath(os.path.expanduser(args.corpus))
     if not os.path.isdir(corpus):
         sys.exit(f"memwaste-scaling: {corpus} is not a directory")
-    binary = os.path.join(ROOT, BUILD_DIR, "codebase-memory-mcp")
+    binary = os.path.join(ROOT, BUILD_DIR, "codebase-memory-cli")
     if not args.no_build:
         cxx = "clang++" if args.cc == "clang" else args.cc.replace("clang", "clang++")
         subprocess.run([os.path.join(ROOT, "scripts", "build.sh"), f"BUILD_DIR={BUILD_DIR}",

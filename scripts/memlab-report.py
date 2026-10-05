@@ -152,17 +152,24 @@ def diff(path_a, path_b, top, binary=None):
     summaries_a, series_a = load_profile(path_a)
     _, series_b = load_profile(path_b)
     names = load_symbols(binary, summaries_a, set(series_a) | set(series_b))
-    rows = []
+    by_name_a = {}
+    by_name_b = {}
     for site, samples in series_a.items():
-        a_live = samples[-1]["live_bytes"]
-        b_live = series_b[site][-1]["live_bytes"] if site in series_b else 0
+        key = names.get(site, site)
+        by_name_a[key] = by_name_a.get(key, 0) + samples[-1]["live_bytes"]
+    for site, samples in series_b.items():
+        key = names.get(site, site)
+        by_name_b[key] = by_name_b.get(key, 0) + samples[-1]["live_bytes"]
+    rows = []
+    for site, a_live in by_name_a.items():
+        b_live = by_name_b.get(site, 0)
         if a_live - b_live > 0:
             rows.append((a_live - b_live, a_live, b_live, site))
     rows.sort(key=lambda row: row[0], reverse=True)
     print(f"=== {path_a} minus {path_b} (top {top}) ===")
     for delta, a_live, b_live, site in rows[:top]:
         print(f"  +{delta/1048576:7.2f} MB   A={a_live/1048576:.2f} MB  B={b_live/1048576:.2f} MB")
-        print(f"      {names.get(site, site)}")
+        print(f"      {site}")
 
 
 def main():

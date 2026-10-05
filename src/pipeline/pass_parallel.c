@@ -1121,8 +1121,8 @@ static void extract_worker(int worker_id, void *ctx_ptr) {
              * process's allocation spike must never fail this run.
              * The cheap charge comparison guards the syscall, so the pressure
              * query costs nothing until we are already in the danger zone. */
-            if (!pp_spill_active(ec) && cbm_mem_charged() > cbm_mem_budget() / 2 &&
-                cbm_mem_system_under_pressure()) {
+            if (!ec->spill_unavailable && !pp_spill_active(ec) &&
+                cbm_mem_charged() > cbm_mem_budget() / 2 && cbm_mem_system_under_pressure()) {
                 pp_spill_enter(ec, "system_pressure");
                 (void)pp_spill_sweep(ec, worker_id);
             }

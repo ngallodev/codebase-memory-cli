@@ -5205,7 +5205,8 @@ static int cypher_node_selectivity(const cbm_node_pattern_t *n, const cbm_where_
 }
 
 static void cypher_plan_seed_from_selective_end(cbm_query_t *q) {
-    if (!q || q->pattern_count != 1 || !q->ret || (q->pattern_optional && q->pattern_optional[0])) {
+    if (!q || q->pattern_count != 1 || !q->ret || q->ret->star ||
+        (q->pattern_optional && q->pattern_optional[0])) {
         return;
     }
     cbm_pattern_t *p = &q->patterns[0];

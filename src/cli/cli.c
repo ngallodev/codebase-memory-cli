@@ -629,8 +629,7 @@ static cli_activation_scope_t cli_activation_resolve_scope(
     case CBM_VERSION_COHORT_OK:
         return CLI_ACTIVATION_SCOPE_ACTIVE;
     case CBM_VERSION_COHORT_BUSY:
-        return cli_activation_scope_unconfirmed(
-            context, scope, "the session group was busy, so its cache identity could not be read");
+        return CLI_ACTIVATION_SCOPE_ACTIVE;
     case CBM_VERSION_COHORT_CONFLICT:
         break;
     default:

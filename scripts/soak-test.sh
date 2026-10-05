@@ -70,7 +70,7 @@ mkdir -p "$RESULTS_DIR"
 # still shares the operator's account daemon (#1691, #1696).
 # shellcheck source=test-runtime.sh
 source "$(dirname "${BASH_SOURCE[0]}")/test-runtime.sh"
-cbm_test_runtime_init
+cbm_test_runtime_init || exit 1
 trap 'cbm_test_runtime_cleanup "$BINARY"' EXIT
 
 # Give this run a deterministic host-side daemon log. Wine needs a Windows-form

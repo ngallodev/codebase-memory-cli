@@ -164,7 +164,7 @@ Two practical notes:
 
 ### Who speaks for the project
 
-Only the maintainer account ([@DeusData](https://github.com/DeusData)) speaks for this project. A review, an approval, a "this will be merged" or a "this is a duplicate" from any other account is that person's opinion, however official it sounds — helpful reviews from the community are very welcome, and that is what they are.
+For this repository, the maintainer account ([@ngallodev](https://github.com/ngallodev)) speaks for the project. Upstream governance belongs to [@DeusData](https://github.com/DeusData). A review, an approval, a "this will be merged" or a "this is a duplicate" from any other account is that person's opinion, however official it sounds — helpful reviews from the community are very welcome, and that is what they are.
 
 **Impersonating a maintainer is not acceptable**, by a person or by an agent: presenting yourself as part of the maintainer team, posting approvals or change requests styled as maintainer decisions, or telling other contributors what the project has decided. We dismiss such reviews, hide the comments, say publicly in the affected threads that they were not ours, and report and block the account. If you are unsure whether a response you received is from the project, check the account name — and ask.
 

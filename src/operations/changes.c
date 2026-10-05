@@ -1306,6 +1306,8 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
     }
     bool output_budget_hit = false;
     bool output_budget_floor_exceeded = false;
+    bool impact_budget_search = false;
+    int impact_budget_low = 0, impact_budget_high = 0, impact_budget_best = 0;
 
 render_detect_output:;
     bool changed_has_more = changed_start + changed_returned < file_count;
@@ -1348,7 +1350,11 @@ render_detect_output:;
                 cbm_tree_scalar_str(&sb, "changed_next_cursor", cursor);
             }
         } else if (changed_has_more) {
-            cbm_tree_scalar_bool(&sb, "changed_continuation_requires_positive_limit", true);
+            cbm_tree_scalar_bool(&sb,
+                                 output_budget_hit && changed_limit > 0
+                                     ? "changed_continuation_requires_higher_budget"
+                                     : "changed_continuation_requires_positive_limit",
+                                 true);
         }
         static const char *const changed_columns[] = {"path"};
         const char **changed_cells =
@@ -1391,7 +1397,18 @@ render_detect_output:;
                     cbm_tree_scalar_str(&sb, "module_next_cursor", cursor);
                 }
             } else if (module_has_more) {
-                cbm_tree_scalar_bool(&sb, "module_continuation_requires_positive_limit", true);
+                cbm_tree_scalar_bool(&sb,
+                                     output_budget_hit && module_limit > 0
+                                         ? "module_continuation_requires_higher_budget"
+                                         : "module_continuation_requires_positive_limit",
+                                     true);
+            }
+            if (impacted_has_more && imp_returned == 0) {
+                cbm_tree_scalar_bool(&sb,
+                                     output_budget_hit && imp_limit > 0
+                                         ? "impacted_continuation_requires_higher_budget"
+                                         : "impacted_continuation_requires_positive_limit",
+                                     true);
             }
             static const char *const columns[] = {"module", "count"};
             const char **cells =
@@ -1468,7 +1485,10 @@ render_detect_output:;
                 yyjson_mut_obj_add_strcpy(doc, root_obj, "changed_next_cursor", cursor);
             }
         } else if (changed_has_more) {
-            yyjson_mut_obj_add_bool(doc, root_obj, "changed_continuation_requires_positive_limit",
+            yyjson_mut_obj_add_bool(doc, root_obj,
+                                    output_budget_hit && changed_limit > 0
+                                        ? "changed_continuation_requires_higher_budget"
+                                        : "changed_continuation_requires_positive_limit",
                                     true);
         }
         yyjson_mut_val *cf = yyjson_mut_arr(doc);
@@ -1524,7 +1544,17 @@ render_detect_output:;
                 }
             } else if (module_has_more) {
                 yyjson_mut_obj_add_bool(doc, root_obj,
-                                        "module_continuation_requires_positive_limit", true);
+                                        output_budget_hit && module_limit > 0
+                                            ? "module_continuation_requires_higher_budget"
+                                            : "module_continuation_requires_positive_limit",
+                                        true);
+            }
+            if (impacted_has_more && imp_returned == 0) {
+                yyjson_mut_obj_add_bool(doc, root_obj,
+                                        output_budget_hit && imp_limit > 0
+                                            ? "impacted_continuation_requires_higher_budget"
+                                            : "impacted_continuation_requires_positive_limit",
+                                        true);
             }
             yyjson_mut_val *rollup = yyjson_mut_arr(doc);
             for (int j = module_start; j < module_start + module_returned; j++) {
@@ -1555,19 +1585,39 @@ render_detect_output:;
         } else if (changed_returned > 0) {
             changed_returned = 0;
         } else if (imp_returned > 0) {
-            /* Prefix-directory factoring can make N rows smaller than N-1, so
-             * probe every smaller whole-row prefix. */
-            imp_returned--;
+            if (!impact_budget_search) {
+                impact_budget_search = true;
+                impact_budget_low = 0;
+                impact_budget_high = imp_returned - 1;
+            } else {
+                impact_budget_high = imp_returned - 1;
+            }
+            if (impact_budget_low > impact_budget_high) {
+                imp_returned = impact_budget_best;
+                impact_budget_search = false;
+            } else {
+                imp_returned = impact_budget_low + (impact_budget_high - impact_budget_low + 1) / 2;
+            }
         } else if (!output_budget_floor_exceeded) {
             output_budget_floor_exceeded = true;
         } else {
-            free(out_str);
+            safe_free(out_str);
             out_str = detect_budget_floor(legacy_json, engine_saturated, output_budget_bytes);
             goto detect_output_done;
         }
         free(out_str);
         out_str = NULL;
         goto render_detect_output;
+    }
+    if (impact_budget_search) {
+        impact_budget_best = imp_returned;
+        impact_budget_low = imp_returned + 1;
+        if (impact_budget_low <= impact_budget_high) {
+            free(out_str);
+            out_str = NULL;
+            imp_returned = impact_budget_low + (impact_budget_high - impact_budget_low + 1) / 2;
+            goto render_detect_output;
+        }
     }
 
 detect_output_done:

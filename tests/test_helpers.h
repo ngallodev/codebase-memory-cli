@@ -14,6 +14,7 @@
 
 #include "../src/foundation/compat.h"
 #include "../src/foundation/compat_fs.h"
+#include "../src/foundation/git_env.h"
 #include "../src/foundation/platform.h"
 
 #include <stdio.h>
@@ -235,27 +236,9 @@ static inline void th_cleanup(const char *path) {
  * worktrees get created there and fixture assertions fail. This is the list
  * `git rev-parse --local-env-vars` prints; runners clear it once at startup so
  * every spawned git (and every re-exec'd child) scopes to its fixture. */
-static const char *const th_git_repo_env_vars[] = {
-    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
-    "GIT_CONFIG",
-    "GIT_CONFIG_PARAMETERS",
-    "GIT_CONFIG_COUNT",
-    "GIT_OBJECT_DIRECTORY",
-    "GIT_DIR",
-    "GIT_WORK_TREE",
-    "GIT_IMPLICIT_WORK_TREE",
-    "GIT_GRAFT_FILE",
-    "GIT_INDEX_FILE",
-    "GIT_NO_REPLACE_OBJECTS",
-    "GIT_REPLACE_REF_BASE",
-    "GIT_PREFIX",
-    "GIT_SHALLOW_FILE",
-    "GIT_COMMON_DIR",
-};
-
 static inline void th_clear_git_repo_env(void) {
-    for (size_t i = 0U; i < sizeof(th_git_repo_env_vars) / sizeof(th_git_repo_env_vars[0]); i++) {
-        (void)cbm_unsetenv(th_git_repo_env_vars[i]);
+    for (int i = 0; i < CBM_GIT_REPO_ENV_VAR_COUNT; i++) {
+        (void)cbm_unsetenv(cbm_git_repo_env_vars[i]);
     }
 }
 

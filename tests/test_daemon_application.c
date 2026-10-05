@@ -5542,7 +5542,8 @@ TEST(daemon_application_async_refused_for_lone_one_shot_client_of_temporary_daem
     char *status = refused ? app_async_call_now(&fixture, session, ",\"status\":true") : NULL;
 
     /* Another live CLI session keeps the temporary daemon alive. */
-    cbm_daemon_runtime_application_session_t *host = app_async_session(&fixture, 7702);
+    cbm_daemon_runtime_application_session_t *host =
+        session ? app_async_session(&fixture, 7702) : NULL;
     char *hosted = host ? app_async_call_now(&fixture, session, ",\"async\":true") : NULL;
     bool worker_started = hosted && app_wait_for_atomic_int(&fixture.fake.starts, 1);
     int cancels_while_hosted = atomic_load(&fixture.fake.cancels);
