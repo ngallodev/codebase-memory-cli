@@ -2154,13 +2154,19 @@ const cbm_gbuf_node_t *cbm_pipeline_resolve_import_node(const cbm_pipeline_ctx_t
     }
 
     /* PHP class imports covered by a composer psr-4 prefix name exactly one
-     * file; when it is absent the import stays unresolved (#1186). */
+     * file; when it is absent the import stays unresolved (#1186). Only PHP
+     * importers spell class paths with backslashes, so the unresolved
+     * short-circuit is scoped to them and every other importer keeps falling
+     * through to the strategies below. */
     const cbm_gbuf_node_t *psr4_target = NULL;
     switch (resolve_php_psr4_class(ctx, source_file_qn, imp, &psr4_target)) {
     case PSR4_RESOLVED:
         return psr4_target;
     case PSR4_UNRESOLVED:
-        return NULL;
+        if (cbm_language_for_filename(source_rel) == CBM_LANG_PHP) {
+            return NULL;
+        }
+        break;
     case PSR4_NOT_APPLICABLE:
         break;
     }
