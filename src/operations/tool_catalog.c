@@ -93,6 +93,7 @@ static const tool_def_t TOOLS[] = {
      "detect the limit and paginate.\"},\"offset\":{\"type\":\"integer\",\"default\":0,"
      "\"description\":\"Skip the first N matching nodes. Combine with 'limit' to page: "
      "increment offset by limit and re-call while has_more is true.\"},"
+     "\"max_output_tokens\":{\"type\":\"integer\",\"minimum\":128,\"maximum\":1000000},"
      "\"format\":{\"type\":\"string\",\"enum\":[\"tree\",\"json\"],\"default\":\"tree\","
      "\"description\":\"Response encoding. tree (default): prefix-grouped text rows. "
      "json: the SAME tree model as structured JSON (groups + column-ordered row arrays).\"},"
@@ -333,7 +334,8 @@ static const tool_def_t TOOLS[] = {
      "\"required\":[\"pattern\",\"project\"]}"},
 
     {"list_projects", "List projects", "List indexed projects with deterministic pagination",
-     "{\"type\":\"object\",\"properties\":{\"offset\":{\"type\":\"integer\","
+     "{\"type\":\"object\",\"properties\":{\"format\":{\"type\":\"string\",\"enum\":[\"tree\","
+     "\"json\"],\"default\":\"tree\"},\"offset\":{\"type\":\"integer\","
      "\"minimum\":0,\"default\":0},"
      "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":500,\"default\":50},"
      "\"detail\":{\"type\":\"string\",\"enum\":[\"stats\"],\"description\":\"stats includes "

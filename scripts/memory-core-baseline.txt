@@ -63,7 +63,7 @@ src/operations/index.c	56
 src/operations/index_supervisor.c	8
 src/operations/project_arg.c	3
 src/operations/query.c	4
-src/operations/read.c	7
+src/operations/read.c	6
 src/operations/reliability_events.c	4
 src/operations/result_wire.c	1
 src/operations/schema.c	3

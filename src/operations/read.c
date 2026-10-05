@@ -1,5 +1,7 @@
 #include "operations/result_wire.h"
 #include "operations/read.h"
+#include "operations/compact_out.h"
+#include "foundation/mem_core.h"
 #include "operations/coverage.h"
 #include "operations/snippet.h"
 #include "operations/search.h"
@@ -113,7 +115,7 @@ static char *copy_string(const char *text) {
         return NULL;
     }
     size_t len = strlen(text);
-    char *copy = malloc(len + 1U);
+    char *copy = cbm_alloc(CBM_MEM_CLASS_OTHER, len + 1U);
     if (copy) {
         memcpy(copy, text, len + 1U);
     }
@@ -126,8 +128,8 @@ typedef struct {
 } project_ref_t;
 
 static void project_ref_clear(project_ref_t *ref) {
-    free(ref->name);
-    free(ref->db_file);
+    cbm_free(CBM_MEM_CLASS_OTHER, ref->name);
+    cbm_free(CBM_MEM_CLASS_OTHER, ref->db_file);
     ref->name = NULL;
     ref->db_file = NULL;
 }
@@ -210,6 +212,58 @@ static void add_project_entry(yyjson_mut_doc *doc, yyjson_mut_val *array, const 
     }
     yyjson_mut_arr_add_val(array, item);
     cbm_store_close(store);
+}
+
+/* Stable union schema, even when some roots have no Git branch. */
+static char *projects_tree(yyjson_mut_doc *doc, yyjson_mut_val *projects, bool details,
+                           bool metadata_only) {
+    static const char *const cols[] = {"name",  "root_path", "branch",
+                                       "nodes", "edges",     "size_bytes"};
+    static const bool strings[] = {true, true, true, false, false, false};
+    static const bool prefixes[] = {false, true, false, false, false, false};
+    int ncols = metadata_only ? 2 : details ? 6 : 3;
+    int rows = (int)yyjson_mut_arr_size(projects);
+    size_t count = (size_t)rows * (size_t)ncols;
+    const char **cells = cbm_calloc(CBM_MEM_CLASS_OTHER, count * sizeof(*cells));
+    char (*numbers)[32] = cbm_calloc(CBM_MEM_CLASS_OTHER, count * sizeof(*numbers));
+    if (!cells || !numbers) {
+        cbm_free(CBM_MEM_CLASS_OTHER, cells);
+        cbm_free(CBM_MEM_CLASS_OTHER, numbers);
+        return NULL;
+    }
+    for (int row = 0; row < rows; ++row) {
+        yyjson_mut_val *item = yyjson_mut_arr_get(projects, (size_t)row);
+        for (int col = 0; col < ncols; ++col) {
+            size_t i = (size_t)row * (size_t)ncols + (size_t)col;
+            yyjson_mut_val *value = yyjson_mut_obj_get(item, cols[col]);
+            if (strings[col]) {
+                cells[i] = value ? yyjson_mut_get_str(value) : "";
+            } else {
+                snprintf(numbers[i], sizeof(numbers[i]), "%lld",
+                         (long long)yyjson_mut_get_sint(value));
+                cells[i] = numbers[i];
+            }
+        }
+    }
+    cbm_sb_t sb;
+    cbm_sb_init(&sb);
+    cbm_tree_table_rows_profiled(&sb, "projects", rows, cols, ncols, cells, strings, prefixes);
+    cbm_free(CBM_MEM_CLASS_OTHER, cells);
+    cbm_free(CBM_MEM_CLASS_OTHER, numbers);
+    yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+    yyjson_mut_obj_remove_key(root, "projects");
+    yyjson_mut_obj_remove_key(root, "offset");
+    yyjson_mut_obj_remove_key(root, "limit");
+    char *json = cbm_operation_json_write(doc);
+    char *metadata = json ? cbm_json_to_tree(json) : NULL;
+    free(json);
+    if (!metadata) {
+        cbm_sb_free(&sb);
+        return NULL;
+    }
+    cbm_sb_append(&sb, metadata);
+    free(metadata);
+    return cbm_sb_finish(&sb);
 }
 
 static cbm_operation_result_t execute_projects(const char *args_json) {
@@ -341,7 +395,15 @@ static cbm_operation_result_t execute_projects(const char *args_json) {
         yyjson_mut_obj_add_str(doc, root, "hint",
                                "No projects indexed. Run 'codebase-memory-cli index .' first.");
     }
-    return json_doc_result(doc, false);
+    char *format = json_string_arg(args_json, "format");
+    bool wants_json = format && strcmp(format, "json") == 0;
+    cbm_operation_arg_free(format);
+    if (wants_json)
+        return json_doc_result(doc, false);
+    char *tree = projects_tree(doc, projects, include_details, metadata_only);
+    yyjson_mut_doc_free(doc);
+    return tree ? cbm_operation_result_take(tree, false)
+                : json_error("result encoding failed", NULL);
 }
 
 static void add_status_coverage(yyjson_mut_doc *doc, yyjson_mut_val *root, cbm_store_t *store,

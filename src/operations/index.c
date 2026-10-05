@@ -1045,7 +1045,8 @@ static char *index_root_project(const char *path, char *error, size_t error_size
     bool ambiguous = false;
     for (int offset = 0; derived;) {
         char args[CBM_SZ_256];
-        snprintf(args, sizeof(args), "{\"metadata_only\":true,\"limit\":500,\"offset\":%d}",
+        snprintf(args, sizeof(args),
+                 "{\"metadata_only\":true,\"format\":\"json\",\"limit\":500,\"offset\":%d}",
                  offset);
         cbm_operation_result_t listing =
             cbm_read_operation_execute(CBM_OPERATION_PROJECTS, args, NULL);
