@@ -242,7 +242,13 @@ static void sig_entry_type(sig_ctx_t *c, TSNode type, const char *suffix) {
     sig_entry_close(c);
 }
 
+/* Field lookup that tolerates a null node: the vendored
+ * ts_node_child_by_field_name dereferences self.tree, so the all-zero node
+ * would crash instead of returning the null node. */
 static TSNode sig_field(TSNode n, const char *field) {
+    if (ts_node_is_null(n)) {
+        return n;
+    }
     return ts_node_child_by_field_name(n, field, (uint32_t)strlen(field));
 }
 
