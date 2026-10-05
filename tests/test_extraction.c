@@ -7358,6 +7358,25 @@ TEST(doc_python_comment_run_and_detached) {
     PASS();
 }
 
+TEST(doc_python_docstring_beats_comment_run) {
+    /* A `#` comment run above a def must not replace the def's own docstring
+     * (see extract_docstring): the in-body string is the documented API. */
+    CBMFileResult *r = extract("# TODO: handle the zero case.\n"
+                               "# noqa: E501\n"
+                               "def scale(x):\n"
+                               "    \"\"\"Multiply x by the knob factor.\"\"\"\n"
+                               "    return x\n",
+                               CBM_LANG_PYTHON, "t", "knob.py");
+    ASSERT_NOT_NULL(r);
+    const CBMDefinition *scale = doc_def(r, "Function", "scale");
+    ASSERT_NOT_NULL(scale);
+    ASSERT_NOT_NULL(scale->docstring);
+    ASSERT(strstr(scale->docstring, "Multiply x by the knob factor") != NULL);
+    ASSERT(strstr(scale->docstring, "TODO") == NULL);
+    cbm_free_result(r);
+    PASS();
+}
+
 TEST(doc_rust_attribute_impl_method_and_inner_doc) {
     CBMFileResult *r = extract("//! The knob crate.\n"
                                "\n"
@@ -9723,6 +9742,7 @@ SUITE(extraction) {
     RUN_TEST(doc_go_struct_field);
     RUN_TEST(doc_go_detached_comment_is_not_doc);
     RUN_TEST(doc_python_comment_run_and_detached);
+    RUN_TEST(doc_python_docstring_beats_comment_run);
     RUN_TEST(doc_rust_attribute_impl_method_and_inner_doc);
     RUN_TEST(doc_ts_export_and_arrow_wrapper);
     RUN_TEST(doc_csharp_xml_doc_run_and_top_level_function);
