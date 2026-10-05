@@ -3509,8 +3509,8 @@ TEST(cli_uninstall_delete_indexes_dry_run_keeps_files) {
     int rc = -1;
     int reservations = -1;
     if (saved >= 0) {
-        char *argv[] = {"--dry-run", "--delete-indexes", "--no"};
-        rc = cli_uninstall_index_fixture_run(argv, 3, &reservations);
+        char *argv[] = {"--dry-run", "--no"};
+        rc = cli_uninstall_index_fixture_run(argv, 2, &reservations);
     }
     bool restored = saved >= 0 && cli_uninstall_restore_stream(stdout, saved);
     char text[8192] = "";
@@ -3521,7 +3521,7 @@ TEST(cli_uninstall_delete_indexes_dry_run_keeps_files) {
     bool kept = cli_uninstall_index_fixture_intact(&fx) &&
                 cli_uninstall_test_file_is(fx.bin_target, "uninstall fixture binary") &&
                 cli_uninstall_test_file_is(fx.internal_store, "internal store sentinel");
-    bool named = strstr(text, "indexes would be deleted") != NULL;
+    bool named = strstr(text, "Indexes kept in") != NULL && !strstr(text, "Delete these indexes?");
     cli_uninstall_index_fixture_teardown(&fx);
     ASSERT_TRUE(restored && captured);
     ASSERT_EQ(rc, 0);
