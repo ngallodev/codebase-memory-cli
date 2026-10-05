@@ -241,6 +241,91 @@ def make_probe_repo(work):
     return repo
 
 
+def make_busy_repo(work):
+    """Many tiny source files keep a real foreground index client attached."""
+    repo = os.path.join(work, "busy-repo")
+    os.makedirs(repo, exist_ok=True)
+    # ponytail: bounded workload; use an admission barrier if indexing outruns CLI startup.
+    for index in range(20000):
+        with open(os.path.join(repo, "module_%04d.py" % index), "w",
+                  encoding="utf-8") as handle:
+            handle.write("def value_%d():\n    return %d\n" % (index, index))
+    return repo
+
+
+def section_stop_refuses_busy(binary, work):
+    cache = section_dirs(work, "busy-stop")
+    daemon_pid = 0
+    index = None
+    try:
+        start = run_cli(binary, cache, ["daemon", "start"], timeout=60)
+        daemon_pid = pid_from(out_text(start))
+        if start.returncode != 0 or not daemon_pid:
+            raise SetupFailure("permanent daemon did not start for the busy-stop check:\n%s"
+                               % out_text(start))
+
+        index = subprocess.Popen([binary, "index", make_busy_repo(work), "--mode", "fast", "--json"],
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 env=cli_env(cache))
+        deadline = time.monotonic() + 60
+        busy_status = None
+        while time.monotonic() < deadline:
+            status = run_cli(binary, cache, ["daemon", "status", "--json"], timeout=30)
+            if status.returncode == 0:
+                try:
+                    payload = json.loads((status.stdout or b"").decode("utf-8"))
+                except ValueError:
+                    payload = {}
+                if payload.get("committed_clients", 0) > 0:
+                    busy_status = payload
+                    break
+            if index.poll() is not None:
+                break
+            time.sleep(STATUS_POLL_S)
+        if not busy_status:
+            stdout, stderr = index.communicate(timeout=30)
+            print("RED: foreground index never held a committed daemon client (rc=%s):\n%s"
+                  % (index.returncode, excerpt(stdout + stderr)))
+            index = None
+            return False
+
+        stop = run_cli(binary, cache, ["daemon", "stop"])
+        stop_text = out_text(stop)
+        if stop.returncode == 0 or "daemon: NOT stopped" not in stop_text:
+            print("RED: daemon stop must refuse while index is attached:\n%s"
+                  % excerpt(stop_text))
+            return False
+        status = run_cli(binary, cache, ["daemon", "status", "--json"])
+        try:
+            after = json.loads((status.stdout or b"").decode("utf-8"))
+        except ValueError:
+            after = {}
+        if status.returncode != 0 or not after.get("active") or after.get("pid") != daemon_pid:
+            print("RED: daemon was not left active after refusing stop:\n%s"
+                  % excerpt(out_text(status)))
+            return False
+
+        stdout, stderr = index.communicate(timeout=180)
+        index_rc = index.returncode
+        index = None
+        if index_rc != 0:
+            print("RED: foreground index failed:\n%s" % excerpt(stdout + stderr))
+            return False
+        stop = run_cli(binary, cache, ["daemon", "stop"])
+        if stop.returncode != 0 or not wait_status_not_running(binary, cache, 45):
+            print("RED: daemon did not stop after the index client detached:\n%s"
+                  % excerpt(out_text(stop)))
+            return False
+        daemon_pid = 0
+        print("PASS: daemon stop refused with an attached index client and succeeded after it exited")
+        return True
+    finally:
+        if index is not None and index.poll() is None:
+            index.kill()
+            index.communicate()
+        kill_pid(daemon_pid)
+
+
 def section_crash_recovery(binary, work):
     cache = section_dirs(work, "crash")
     daemon_pid = 0
@@ -381,6 +466,7 @@ def main():
         section_hook_fail_open,
         section_start_status_port,
         section_crash_recovery,
+        section_stop_refuses_busy,
         section_churn_stability,
         section_cold_storm,
     ]

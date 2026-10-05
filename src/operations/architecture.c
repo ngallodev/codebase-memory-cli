@@ -1,4 +1,5 @@
 #include "operations/result_wire.h"
+#include "operations/json_args.h"
 #include "operations/architecture.h"
 #include "operations/store_host.h"
 
@@ -28,8 +29,9 @@ static char *architecture_string_arg(const char *args_json, const char *name) {
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
-    char *result =
-        value && yyjson_is_str(value) ? architecture_copy_string(yyjson_get_str(value)) : NULL;
+    char *result = value && yyjson_is_str(value)
+                       ? cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, yyjson_get_str(value))
+                       : NULL;
     if (doc)
         yyjson_doc_free(doc);
     return result;
@@ -522,13 +524,13 @@ static char *arch_node_qn(cbm_store_t *store, int64_t id) {
 cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
     char *project = architecture_project_arg(args);
     if (!project || !project[0]) {
-        free(project);
+        cbm_operation_arg_free(project);
         return architecture_error("project is required");
     }
     cbm_store_open_status_t open_status = CBM_STORE_OPEN_OK;
     cbm_store_t *store = cbm_store_host_open_query(project, &open_status);
     if (!store) {
-        free(project);
+        cbm_operation_arg_free(project);
         return architecture_error(open_status == CBM_STORE_OPEN_CORRUPT
                                       ? CBM_STORE_CORRUPT_ERROR
                                       : "project not found or not indexed");
@@ -537,8 +539,8 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
 
     if (cbm_store_count_nodes(store, project) <= 0) {
         cbm_store_close(store);
-        free(project);
-        free(scope_path);
+        cbm_operation_arg_free(project);
+        cbm_operation_arg_free(scope_path);
         return architecture_error("project not indexed or index is empty");
     }
 
@@ -594,8 +596,8 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
             snprintf(msg, sizeof(msg), "Unknown aspect '%s'. Valid: %s.", aspects_strs[i],
                      valid_list);
             cbm_operation_result_t err = architecture_error(msg);
-            free(project);
-            free(scope_path);
+            cbm_operation_arg_free(project);
+            cbm_operation_arg_free(scope_path);
             if (aspects_doc) {
                 yyjson_doc_free(aspects_doc);
             }
@@ -637,7 +639,7 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
      * same model as structured JSON ({cols, rows} per section). */
     char *arch_format = architecture_string_arg(args, "format");
     bool arch_legacy_json = arch_format && strcmp(arch_format, "json") == 0;
-    free(arch_format);
+    cbm_operation_arg_free(arch_format);
 
     if (!arch_legacy_json) {
         cbm_sb_t sb;
@@ -897,8 +899,8 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
         if (aspects_doc) {
             yyjson_doc_free(aspects_doc);
         }
-        free(project);
-        free(scope_path);
+        cbm_operation_arg_free(project);
+        cbm_operation_arg_free(scope_path);
         free(norm_path);
         char *text = cbm_sb_finish(&sb);
         if (!text) {
@@ -1157,8 +1159,8 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
     if (aspects_doc) {
         yyjson_doc_free(aspects_doc);
     }
-    free(project);
-    free(scope_path);
+    cbm_operation_arg_free(project);
+    cbm_operation_arg_free(scope_path);
     free(norm_path);
 
     cbm_store_close(store);

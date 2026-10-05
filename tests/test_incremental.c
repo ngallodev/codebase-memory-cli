@@ -1375,7 +1375,7 @@ TEST(tool_sg_offset) {
     double ms;
     char *r = call_tool_timed("search_graph", &ms,
                               "{\"project\":\"%s\",\"label\":\"Function\","
-                              "\"limit\":5,\"offset\":10}",
+                              "\"limit\":5,\"offset\":10,\"format\":\"json\"}",
                               g_project);
     TOOL_OK(r, ms);
     ASSERT(resp_has_key(r, "groups"));

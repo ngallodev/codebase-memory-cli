@@ -1,16 +1,9 @@
 #include "operations/json_args.h"
 #include "yyjson/yyjson.h"
-#include <stdlib.h>
 #include <string.h>
 
-static char *json_strdup(const char *s) {
-    if (!s)
-        return NULL;
-    size_t n = strlen(s) + 1U;
-    char *out = malloc(n);
-    if (out)
-        memcpy(out, s, n);
-    return out;
+void cbm_operation_arg_free(char *value) {
+    cbm_free(CBM_MEM_CLASS_OPERATION_ARG, value);
 }
 
 char *cbm_json_string_arg(const char *args_json, const char *key) {
@@ -20,7 +13,9 @@ char *cbm_json_string_arg(const char *args_json, const char *key) {
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, key) : NULL;
-    char *out = yyjson_is_str(value) ? json_strdup(yyjson_get_str(value)) : NULL;
+    char *out = yyjson_is_str(value)
+                    ? cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, yyjson_get_str(value))
+                    : NULL;
     if (doc)
         yyjson_doc_free(doc);
     return out;

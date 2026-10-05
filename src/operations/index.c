@@ -5,6 +5,7 @@
 #include "operations/cross_repo.h"
 #include "operations/index_supervisor.h"
 #include "operations/project_arg.h"
+#include "operations/json_args.h"
 #include "operations/read.h"
 
 #include "foundation/compat_fs.h"
@@ -45,7 +46,9 @@ static char *index_string_arg(const char *args_json, const char *key) {
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, key) : NULL;
-    char *out = yyjson_is_str(value) ? index_strdup(yyjson_get_str(value)) : NULL;
+    char *out = yyjson_is_str(value)
+                    ? cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, yyjson_get_str(value))
+                    : NULL;
     if (doc)
         yyjson_doc_free(doc);
     return out;
@@ -348,7 +351,7 @@ static char *index_repo_path_from_project(const char *args_json) {
             cbm_store_close(store);
         }
     }
-    free(project);
+    cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
     return root_path;
 }
 
@@ -838,16 +841,16 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
     char *metrics_out = index_string_arg(args_json, "metrics_out");
     char *mutation_project = cbm_project_name_from_path(name && name[0] ? name : repo_path);
     if (!mutation_project) {
-        free(mode_text);
-        free(name);
-        free(metrics_out);
+        cbm_operation_arg_free(mode_text);
+        cbm_operation_arg_free(name);
+        cbm_operation_arg_free(metrics_out);
         return index_text_error("could not resolve index project name");
     }
     if (!runtime || !runtime->mutation_begin || !runtime->mutation_end ||
         !runtime->mutation_begin(runtime->mutation_context, mutation_project)) {
-        free(mode_text);
-        free(name);
-        free(metrics_out);
+        cbm_operation_arg_free(mode_text);
+        cbm_operation_arg_free(name);
+        cbm_operation_arg_free(metrics_out);
         free(mutation_project);
         return index_text_error("index operation blocked by another mutation for this project");
     }
@@ -855,9 +858,9 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
         (void)index_write_metrics(metrics_out, index_mode_name(mode_text), mutation_project, NULL,
                                   CBM_PIPELINE_ABORT_PRESERVE_DB);
         runtime->mutation_end(runtime->mutation_context, mutation_project);
-        free(mode_text);
-        free(name);
-        free(metrics_out);
+        cbm_operation_arg_free(mode_text);
+        cbm_operation_arg_free(name);
+        cbm_operation_arg_free(metrics_out);
         free(mutation_project);
         return index_text_error("index operation cancelled for this request");
     }
@@ -867,26 +870,26 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
     else if (mode_text && !strcmp(mode_text, "moderate"))
         mode = CBM_MODE_MODERATE;
     const char *mode_name = index_mode_name(mode_text);
-    free(mode_text);
+    cbm_operation_arg_free(mode_text);
     bool persistence = index_bool_arg(args_json, "persistence");
     cbm_pipeline_t *pipeline = cbm_pipeline_new(repo_path, NULL, mode);
     if (!pipeline) {
         (void)index_write_metrics(metrics_out, mode_name, mutation_project, NULL, CBM_NOT_FOUND);
         runtime->mutation_end(runtime->mutation_context, mutation_project);
-        free(name);
-        free(metrics_out);
+        cbm_operation_arg_free(name);
+        cbm_operation_arg_free(metrics_out);
         free(mutation_project);
         return index_text_error("failed to create pipeline");
     }
     if (name && name[0] && !cbm_pipeline_set_project_name(pipeline, name)) {
         cbm_pipeline_free(pipeline);
         runtime->mutation_end(runtime->mutation_context, mutation_project);
-        free(name);
-        free(metrics_out);
+        cbm_operation_arg_free(name);
+        cbm_operation_arg_free(metrics_out);
         free(mutation_project);
         return index_text_error("invalid project name");
     }
-    free(name);
+    cbm_operation_arg_free(name);
     cbm_pipeline_set_persistence(pipeline, persistence);
     cbm_index_resource_policy_t resource_policy;
     char policy_error[CBM_SZ_256] = {0};
@@ -894,7 +897,7 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
                                        sizeof(policy_error))) {
         cbm_pipeline_free(pipeline);
         runtime->mutation_end(runtime->mutation_context, mutation_project);
-        free(metrics_out);
+        cbm_operation_arg_free(metrics_out);
         free(mutation_project);
         return index_text_error(policy_error);
     }
@@ -925,7 +928,7 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
     if (metrics_failed) {
         cbm_log_warn("index.metrics_write_failed", "path", metrics_out);
     }
-    free(metrics_out);
+    cbm_operation_arg_free(metrics_out);
     if (runtime->project_invalidate)
         runtime->project_invalidate(runtime->project_invalidate_context, project);
     char *payload = index_encode_run_response(
@@ -950,7 +953,9 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
 static bool index_validate_metrics_out(const char *json, const cbm_operation_runtime_t *runtime,
                                        const char *allowed_root, char **worker_args, char *err,
                                        size_t err_size) {
-    char *metrics = index_string_arg(json, "metrics_out");
+    char *metrics_arg = index_string_arg(json, "metrics_out");
+    char *metrics = index_strdup(metrics_arg);
+    cbm_operation_arg_free(metrics_arg);
     if (!metrics || !metrics[0]) {
         free(metrics);
         return true;
@@ -1040,7 +1045,8 @@ static char *index_root_project(const char *path, char *error, size_t error_size
     bool ambiguous = false;
     for (int offset = 0; derived;) {
         char args[CBM_SZ_256];
-        snprintf(args, sizeof(args), "{\"metadata_only\":true,\"limit\":500,\"offset\":%d}",
+        snprintf(args, sizeof(args),
+                 "{\"metadata_only\":true,\"format\":\"json\",\"limit\":500,\"offset\":%d}",
                  offset);
         cbm_operation_result_t listing =
             cbm_read_operation_execute(CBM_OPERATION_PROJECTS, args, NULL);
@@ -1152,14 +1158,16 @@ cbm_operation_result_t cbm_index_operation_execute(const char *args_json,
         return index_text_error("index job status needs the daemon-backed CLI");
     char *raw_name = index_string_arg(json, "name");
     char *name = raw_name && raw_name[0] ? cbm_project_name_sanitize(raw_name) : NULL;
-    free(raw_name);
+    cbm_operation_arg_free(raw_name);
     if (status_mode && name && cbm_validate_project_name(name)) {
         cbm_operation_result_t out = runtime->index_status(runtime->index_status_context, name);
         free(name);
         return out;
     }
     free(name);
-    char *repo_path = index_string_arg(json, "repo_path");
+    char *repo_arg = index_string_arg(json, "repo_path");
+    char *repo_path = index_strdup(repo_arg);
+    cbm_operation_arg_free(repo_arg);
     if (!repo_path)
         repo_path = index_repo_path_from_project(json);
     cbm_normalize_path_sep(repo_path);
@@ -1181,7 +1189,7 @@ cbm_operation_result_t cbm_index_operation_execute(const char *args_json,
     }
     char *mode = index_string_arg(json, "mode");
     if (mode && !strcmp(mode, "cross-repo-intelligence")) {
-        free(mode);
+        cbm_operation_arg_free(mode);
         if (async_mode || status_mode) {
             free(repo_path);
             return index_text_error(
@@ -1191,11 +1199,11 @@ cbm_operation_result_t cbm_index_operation_execute(const char *args_json,
         free(repo_path);
         return out;
     }
-    free(mode);
+    cbm_operation_arg_free(mode);
     char owner_error[CBM_SZ_4K] = {0};
     raw_name = index_string_arg(json, "name");
     char *project = raw_name && raw_name[0] ? cbm_project_name_sanitize(raw_name) : NULL;
-    free(raw_name);
+    cbm_operation_arg_free(raw_name);
     if (!project || !project[0]) {
         free(project);
         project = index_root_project(repo_path, owner_error, sizeof(owner_error));

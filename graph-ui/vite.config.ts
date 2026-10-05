@@ -50,7 +50,6 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      "/rpc": uiBackendProxy(),
       "/api": uiBackendProxy(),
     },
   },
