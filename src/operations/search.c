@@ -252,7 +252,9 @@ static char *ranked_tree(const char *json) {
     yyjson_mut_obj_remove_key(metadata_root, "rows");
     yyjson_mut_obj_remove_key(metadata_root, "cols");
     cbm_operation_result_t metadata_result = json_result(metadata_doc, false);
-    char *metadata = metadata_result.payload ? cbm_json_to_tree(metadata_result.payload) : NULL;
+    char *metadata = !metadata_result.is_error && metadata_result.payload
+                         ? cbm_json_to_tree(metadata_result.payload)
+                         : NULL;
     cbm_operation_result_dispose(&metadata_result);
     if (!metadata) {
         cbm_sb_free(&sb);
@@ -1097,8 +1099,9 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
                 }
             }
             cbm_operation_result_t metadata_result = json_result(doc, false);
-            char *metadata =
-                metadata_result.payload ? cbm_json_to_tree(metadata_result.payload) : NULL;
+            char *metadata = !metadata_result.is_error && metadata_result.payload
+                                 ? cbm_json_to_tree(metadata_result.payload)
+                                 : NULL;
             cbm_operation_result_dispose(&metadata_result);
             cbm_sb_t tree;
             cbm_sb_init(&tree);
