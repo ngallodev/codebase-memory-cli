@@ -55,8 +55,10 @@ Use `codebase-memory-cli install --plan` to inspect planned writes before applyi
 
 The source repository and full documentation are at https://github.com/ngallodev/codebase-memory-cli.
 
+## Uninstall
+
+Uninstall keeps project indexes by default, including with `--yes`, `--no`, or noninteractive input. Use `--delete-indexes` to remove them explicitly; `--dry-run` previews the changes.
+
 ## License
 
 MIT
-
-Uninstall keeps project indexes by default, including with `--yes`, `--no`, or noninteractive input. Use `--delete-indexes` to remove them explicitly; `--dry-run` previews the changes.

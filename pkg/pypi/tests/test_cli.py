@@ -885,6 +885,34 @@ def _release_entries(names):
 
 
 class ArchiveLimitTests(unittest.TestCase):
+    def test_archive_limit_errors_use_the_cli_prefix(self):
+        with tempfile.TemporaryDirectory() as root:
+            archive = Path(root) / "release.tar.gz"
+            archive.write_bytes(b"xx")
+            errors = (
+                lambda: _cli._validate_archive_limits(_limits_with(members=0)),
+                lambda: _cli._require_compressed_archive_within_limit(
+                    str(archive), _limits_with(compressed_bytes=1)
+                ),
+                lambda: _cli._require_member_count_within_limit(
+                    2, _limits_with(members=1)
+                ),
+                lambda: _cli._account_declared_archive_member(
+                    "member", -1, 0, _limits_with()
+                ),
+                lambda: _cli._copy_archive_member_within_limits(
+                    io.BytesIO(b"xx"), io.BytesIO(), "member", 2, 0,
+                    _limits_with(member_bytes=1),
+                ),
+            )
+            for operation in errors:
+                with self.subTest(operation=operation):
+                    with self.assertRaises(SystemExit) as raised:
+                        operation()
+                    self.assertTrue(
+                        str(raised.exception).startswith("codebase-memory-cli:")
+                    )
+
     URL = "https://example.invalid/release.tar.gz"
 
     def _download(self, response, destination, max_bytes):

@@ -706,8 +706,11 @@ static void worker_terminal_log(cbm_index_worker_handle_t *handle) {
                      cbm_proc_outcome_str(handle->result.outcome), "log", handle->log_path);
     } else if (handle->result.response_missing) {
         /* #1300: keep and name the log — it is the only record of the run. */
-        cbm_log_error("index.supervisor.no_response", "exit_code", exit_text, "last_phase",
-                      handle->result.last_phase, "log", handle->log_path);
+        cbm_log_error("index.supervisor.no_response", "reason",
+                      handle->result.response_unreadable ? "response_read_error"
+                                                         : "worker_did_not_write",
+                      "exit_code", exit_text, "last_phase", handle->result.last_phase, "log",
+                      handle->log_path);
     } else if (handle->result.outcome == CBM_PROC_CLEAN && !cbm_profile_active) {
         (void)cbm_unlink(handle->log_path);
     } else if (handle->result.outcome == CBM_PROC_CLEAN) {
@@ -908,6 +911,7 @@ cbm_index_worker_poll_t cbm_index_worker_poll(cbm_index_worker_handle_t *handle,
              * in-process fallback and no recovery re-run of a worker that did
              * not crash); the log and the last phase it reached are kept. */
             handle->result.response_missing = true;
+            handle->result.response_unreadable = response_status == WORKER_RESPONSE_READ_ERROR;
             worker_log_last_phase(handle->log_path, handle->result.last_phase,
                                   sizeof(handle->result.last_phase));
             (void)snprintf(handle->result.worker_log, sizeof(handle->result.worker_log), "%s",

@@ -1528,14 +1528,16 @@ static char *application_job_failure_response(const char *args_json,
                        "index worker containment failed (%s); inspect log: %s",
                        cbm_proc_outcome_str(result->outcome), log_path ? log_path : "unavailable");
     } else if (result && result->response_missing) {
-        /* #1300: name the silent clean exit, where it stopped, and the log. */
+        /* #1300: identify a silent worker separately from a supervisor read error. */
         const char *log = log_path                ? log_path
                           : result->worker_log[0] ? result->worker_log
                                                   : "unavailable";
+        const char *reason = result->response_unreadable
+                                 ? "supervisor could not read the worker response"
+                                 : "worker exited cleanly (exit 0) without writing a response";
         (void)snprintf(message, sizeof(message),
-                       "index worker exited cleanly (exit 0) without writing a response; the "
-                       "index was not published; last phase reached: %s; inspect log: %s",
-                       result->last_phase[0] ? result->last_phase : "unknown", log);
+                       "%s; the index was not published; last phase reached: %s; inspect log: %s",
+                       reason, result->last_phase[0] ? result->last_phase : "unknown", log);
         yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
         yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
         if (root) {

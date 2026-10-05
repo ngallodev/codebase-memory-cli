@@ -882,7 +882,7 @@ TEST(index_supervisor_clean_exit_without_response_is_named_failure_issue1300) {
     bool clean_exit = terminal && result && result->outcome == CBM_PROC_CLEAN &&
                       result->exit_code == 0 && result->tree_quiesced;
     bool no_response = terminal && result && result->response == NULL;
-    bool named = terminal && result && result->response_missing &&
+    bool named = terminal && result && result->response_missing && !result->response_unreadable &&
                  strcmp(result->last_phase, "incremental.edge_snapshot") == 0 &&
                  strcmp(result->worker_log, log_path) == 0;
     bool not_success =
@@ -898,9 +898,11 @@ TEST(index_supervisor_clean_exit_without_response_is_named_failure_issue1300) {
     cbm_log_set_sink(NULL);
     cbm_log_set_level(saved_level);
     cbm_log_set_format(saved_format);
-    bool event_named = strstr(g_index_supervisor_no_response_log,
-                              "last_phase=incremental.edge_snapshot") != NULL &&
-                       log_path[0] && strstr(g_index_supervisor_no_response_log, log_path) != NULL;
+    bool event_named =
+        strstr(g_index_supervisor_no_response_log, "reason=worker_did_not_write") != NULL &&
+        strstr(g_index_supervisor_no_response_log, "last_phase=incremental.edge_snapshot") !=
+            NULL &&
+        log_path[0] && strstr(g_index_supervisor_no_response_log, log_path) != NULL;
     (void)cbm_unlink(log_path);
     index_supervisor_test_restore_env("CBM_CACHE_DIR", saved_cache);
     (void)th_rmtree(cache);

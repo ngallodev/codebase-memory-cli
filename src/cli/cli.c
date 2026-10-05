@@ -11644,7 +11644,7 @@ static bool uninstall_decide_index_deletion(const char *home, bool requested, bo
     cbm_list_indexes(home);
     bool delete_indexes = requested;
     if (!requested) {
-        bool can_ask = g_auto_answer == 0;
+        bool can_ask = g_auto_answer == 0 && !dry_run;
 #ifdef _WIN32
         can_ask = can_ask && _isatty(_fileno(stdin));
 #else

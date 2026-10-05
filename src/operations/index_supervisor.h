@@ -154,12 +154,13 @@ typedef struct {
     bool forced;
     bool tree_quiesced;
     bool supervision_failed;
-    /* #1300: the worker exited CLEAN but wrote no response (an empty or
-     * unreadable response file). A contained failure, never a success: the
-     * response stays NULL, the worker log is retained and named, and
-     * last_phase is the last structured event that log recorded ("unknown"
-     * when it holds none), so the report says where the run stopped. */
+    /* #1300: CLEAN exit with no usable response. A contained failure, never a
+     * success: response stays NULL, the worker log is retained and named, and
+     * last_phase is the last structured event ("unknown" when absent).
+     * response_unreadable distinguishes supervisor read errors from an empty
+     * response file the worker never wrote. */
     bool response_missing;
+    bool response_unreadable; /* supervisor could not read a non-empty response */
     char last_phase[128];
     char worker_log[4096];
     bool response_rejected; /* clean worker exceeded the bounded response protocol */

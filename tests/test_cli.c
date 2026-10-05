@@ -3208,8 +3208,8 @@ TEST(cli_uninstall_leaves_foreign_cache_running_while_removing_cli_files) {
         fclose(capture);
     }
     struct stat removed_status;
-    bool binary_removed = lstat(binary, &removed_status) != 0 && errno == ENOENT;
-    bool index_removed = lstat(index, &removed_status) != 0 && errno == ENOENT;
+    bool binary_removed = stat(binary, &removed_status) != 0 && errno == ENOENT;
+    bool index_removed = stat(index, &removed_status) != 0 && errno == ENOENT;
     if (lease)
         (void)cbm_version_cohort_lease_release(&lease);
     if (owner)
