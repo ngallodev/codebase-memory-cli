@@ -128,10 +128,11 @@ PORTABLE=""
 [ "$OS" = "linux" ] && PORTABLE="-portable"
 ARCHIVE="codebase-memory-cli-${OS}-${ARCH}${PORTABLE}.tar.gz"
 
-for tool in python3 curl tar shasum; do
-    command -v "$tool" >/dev/null 2>&1 || command -v sha256sum >/dev/null 2>&1 ||
-        fail "functional leg needs $tool"
+for tool in python3 curl tar; do
+    command -v "$tool" >/dev/null 2>&1 || fail "functional leg needs $tool"
 done
+command -v sha256sum >/dev/null 2>&1 || command -v shasum >/dev/null 2>&1 ||
+    fail "functional leg needs sha256sum or shasum"
 
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/cbm-setup-contract-XXXXXX")
 chmod 700 "$WORK"

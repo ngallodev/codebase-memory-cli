@@ -709,7 +709,7 @@ const char *cbm_workspace_home_dir(void) {
         return NULL;
     }
     if (!cbm_canonical_path(home, resolved, sizeof(resolved))) {
-        memcpy(resolved, raw, strlen(raw) + 1);
+        (void)snprintf(resolved, sizeof(resolved), "%s", home);
     }
     cbm_normalize_path_sep(resolved);
     return resolved;

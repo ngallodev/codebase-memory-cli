@@ -243,16 +243,16 @@ def _validate_archive_limits(limits) -> None:
         or limits.member_bytes <= 0
         or limits.expanded_bytes <= 0
     ):
-        sys.exit("codebase-memory-mcp: invalid archive resource safety limits")
+        sys.exit("codebase-memory-cli: invalid archive resource safety limits")
 
 
 def _require_compressed_archive_within_limit(archive_path: str, limits) -> None:
     status = os.stat(archive_path)
     if not stat.S_ISREG(status.st_mode):
-        sys.exit("codebase-memory-mcp: release archive is not a regular file")
+        sys.exit("codebase-memory-cli: release archive is not a regular file")
     if status.st_size > limits.compressed_bytes:
         sys.exit(
-            f"codebase-memory-mcp: release archive exceeds the "
+            f"codebase-memory-cli: release archive exceeds the "
             f"{limits.compressed_bytes}-byte compressed safety limit"
         )
 
@@ -260,7 +260,7 @@ def _require_compressed_archive_within_limit(archive_path: str, limits) -> None:
 def _require_member_count_within_limit(count: int, limits) -> None:
     if count > limits.members:
         sys.exit(
-            f"codebase-memory-mcp: archive exceeds the {limits.members}-member "
+            f"codebase-memory-cli: archive exceeds the {limits.members}-member "
             f"safety limit"
         )
 
@@ -271,17 +271,17 @@ def _account_declared_archive_member(
     """Check one member's declared size; return the new declared total."""
     if size < 0:
         sys.exit(
-            f"codebase-memory-mcp: archive member has a negative declared "
+            f"codebase-memory-cli: archive member has a negative declared "
             f"size: {name!r}"
         )
     if size > limits.member_bytes:
         sys.exit(
-            f"codebase-memory-mcp: archive member {name!r} exceeds the "
+            f"codebase-memory-cli: archive member {name!r} exceeds the "
             f"{limits.member_bytes}-byte expanded safety limit"
         )
     if declared_expanded > limits.expanded_bytes - size:
         sys.exit(
-            f"codebase-memory-mcp: archive exceeds the {limits.expanded_bytes}-byte "
+            f"codebase-memory-cli: archive exceeds the {limits.expanded_bytes}-byte "
             f"aggregate expanded safety limit"
         )
     return declared_expanded + size
@@ -312,17 +312,17 @@ def _copy_archive_member_within_limits(
         output.write(chunk)
     if copied > limits.member_bytes:
         sys.exit(
-            f"codebase-memory-mcp: archive member {name!r} exceeds the "
+            f"codebase-memory-cli: archive member {name!r} exceeds the "
             f"{limits.member_bytes}-byte actual expanded safety limit"
         )
     if copied > remaining:
         sys.exit(
-            f"codebase-memory-mcp: archive exceeds the {limits.expanded_bytes}-byte "
+            f"codebase-memory-cli: archive exceeds the {limits.expanded_bytes}-byte "
             f"aggregate actual expanded safety limit"
         )
     if copied != declared_size:
         sys.exit(
-            f"codebase-memory-mcp: archive member {name!r} actual size {copied} "
+            f"codebase-memory-cli: archive member {name!r} actual size {copied} "
             f"does not match declared size {declared_size}"
         )
     return actual_expanded + copied

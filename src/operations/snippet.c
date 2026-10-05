@@ -613,6 +613,7 @@ cbm_operation_result_t cbm_snippet_operation_execute(const char *args) {
     if (count == 0) {
         cbm_store_free_nodes(matches, count);
         matches = NULL;
+        method = "base_suffix";
         cbm_store_find_nodes_by_qn_base(store, project, qualified_name, true, &matches, &count);
     }
     if (count > 0) {
