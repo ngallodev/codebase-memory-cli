@@ -1,4 +1,5 @@
 #include "operations/result_wire.h"
+#include "operations/json_args.h"
 #include "operations/source_search.h"
 
 #include "foundation/compat.h"
@@ -78,7 +79,9 @@ static char *source_string_arg(const char *args, const char *name) {
     yyjson_doc *doc = source_args_doc(args);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
-    char *result = value && yyjson_is_str(value) ? source_strdup(yyjson_get_str(value)) : NULL;
+    char *result = value && yyjson_is_str(value)
+                       ? cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, yyjson_get_str(value))
+                       : NULL;
     if (doc)
         yyjson_doc_free(doc);
     return result;
@@ -1824,9 +1827,9 @@ static cbm_operation_result_t search_code_scan_error(
     if (store)
         cbm_store_close(store);
     free(root_path);
-    free(pattern);
-    free(project);
-    free(file_pattern);
+    cbm_operation_arg_free(pattern);
+    cbm_operation_arg_free(project);
+    cbm_operation_arg_free(file_pattern);
     if (cause == CBM_OPERATION_COMMAND_DEADLINE) {
         char *payload = search_code_timeout_payload();
         return cbm_operation_result_take(payload, true);
@@ -2013,23 +2016,23 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
     bool pat_has_pipe = pattern && strchr(pattern, '|') != NULL;
 
     int mode = parse_search_mode(mode_str);
-    free(mode_str);
+    cbm_operation_arg_free(mode_str);
 
     cbm_regex_t path_regex;
     bool has_path_filter = compile_path_filter(path_filter, &path_regex);
-    free(path_filter);
+    cbm_operation_arg_free(path_filter);
     path_filter = NULL;
 
     if (!pattern) {
-        free(project);
-        free(file_pattern);
+        cbm_operation_arg_free(project);
+        cbm_operation_arg_free(file_pattern);
         return source_error("pattern is required");
     }
 
     /* Project is required */
     if (!project) {
-        free(pattern);
-        free(file_pattern);
+        cbm_operation_arg_free(pattern);
+        cbm_operation_arg_free(file_pattern);
         return source_project_error(NULL, CBM_STORE_OPEN_NOT_FOUND);
     }
 
@@ -2038,9 +2041,9 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
     cbm_store_t *store = source_open_store_and_root(project, &root_path, &open_status);
     if (!store) {
         cbm_operation_result_t error = source_project_error(project, open_status);
-        free(pattern);
-        free(project);
-        free(file_pattern);
+        cbm_operation_arg_free(pattern);
+        cbm_operation_arg_free(project);
+        cbm_operation_arg_free(file_pattern);
         return error;
     }
 
@@ -2050,9 +2053,9 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
         }
         cbm_store_close(store);
         free(root_path);
-        free(pattern);
-        free(project);
-        free(file_pattern);
+        cbm_operation_arg_free(pattern);
+        cbm_operation_arg_free(project);
+        cbm_operation_arg_free(file_pattern);
         return source_error("path or file_pattern contains invalid characters");
     }
 
@@ -2069,9 +2072,9 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
             }
             cbm_store_close(store);
             free(root_path);
-            free(pattern);
-            free(project);
-            free(file_pattern);
+            cbm_operation_arg_free(pattern);
+            cbm_operation_arg_free(project);
+            cbm_operation_arg_free(file_pattern);
             return source_error(
                 "invalid regex pattern (regex=true): check for unbalanced (), [], or {}");
         }
@@ -2108,7 +2111,7 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
                 src++;
             }
             *dst = '\0';
-            free(pattern);
+            cbm_operation_arg_free(pattern);
             pattern = regex_pat;
             use_regex = true;
         }
@@ -2132,9 +2135,9 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
                  strerror(errno));
         cbm_store_close(store);
         free(root_path);
-        free(pattern);
-        free(project);
-        free(file_pattern);
+        cbm_operation_arg_free(pattern);
+        cbm_operation_arg_free(project);
+        cbm_operation_arg_free(file_pattern);
         if (scan_cancelled) {
             return source_error("search_code cancelled for this request");
         }
@@ -2261,9 +2264,9 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
         free(sr);
         free(raw);
         free(root_path);
-        free(pattern);
-        free(project);
-        free(file_pattern);
+        cbm_operation_arg_free(pattern);
+        cbm_operation_arg_free(project);
+        cbm_operation_arg_free(file_pattern);
         if (has_path_filter) {
             cbm_regfree(&path_regex);
         }
@@ -2286,9 +2289,9 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
             free(sr);
             free(raw);
             free(root_path);
-            free(pattern);
-            free(project);
-            free(file_pattern);
+            cbm_operation_arg_free(pattern);
+            cbm_operation_arg_free(project);
+            cbm_operation_arg_free(file_pattern);
             if (has_path_filter) {
                 cbm_regfree(&path_regex);
             }
@@ -2329,7 +2332,7 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
      * source cell; files is a plain list). */
     char *sc_format = source_string_arg(args, "format");
     bool sc_legacy_json = sc_format && strcmp(sc_format, "json") == 0;
-    free(sc_format);
+    cbm_operation_arg_free(sc_format);
 
     char dir_names[CBM_SZ_64][CBM_SZ_128];
     int dir_counts[CBM_SZ_64];
@@ -2445,9 +2448,9 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
     free(sr);
     free(raw);
     free(root_path);
-    free(pattern);
-    free(project);
-    free(file_pattern);
+    cbm_operation_arg_free(pattern);
+    cbm_operation_arg_free(project);
+    cbm_operation_arg_free(file_pattern);
     if (has_path_filter) {
         cbm_regfree(&path_regex);
     }

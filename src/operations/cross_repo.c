@@ -1,4 +1,5 @@
 #include "operations/result_wire.h"
+#include "operations/json_args.h"
 #include "operations/cross_repo.h"
 
 #include "foundation/constants.h"
@@ -29,7 +30,7 @@ static char *cross_repo_string_arg(const char *args, const char *key) {
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, key) : NULL;
     const char *text = yyjson_is_str(value) ? yyjson_get_str(value) : NULL;
-    char *copy = text ? cross_repo_strdup(text) : NULL;
+    char *copy = text ? cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, text) : NULL;
     if (doc)
         yyjson_doc_free(doc);
     return copy;
@@ -94,12 +95,12 @@ cbm_operation_result_t cbm_cross_repo_operation_execute(const char *repo_path,
 
     char *name_override = cross_repo_string_arg(args_json, "name");
     if (name_override && name_override[0] && !cbm_validate_project_name(name_override)) {
-        free(name_override);
+        cbm_operation_arg_free(name_override);
         return cross_repo_error("invalid project name");
     }
     char *project = name_override && name_override[0] ? cross_repo_strdup(name_override)
                                                       : cbm_project_name_from_path(repo_path);
-    free(name_override);
+    cbm_operation_arg_free(name_override);
     if (!project)
         return cross_repo_error("cannot derive project name");
 

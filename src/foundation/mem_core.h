@@ -53,19 +53,20 @@
  * semantic plateau does not. Attribution that cannot separate those two cannot
  * choose between "park workers" and "stream the vectors". */
 typedef enum {
-    CBM_MEM_CLASS_OTHER = 0,   /* unclassified; the residual to drive down */
-    CBM_MEM_CLASS_GBUF_NODE,   /* node records (~64 B each) */
-    CBM_MEM_CLASS_GBUF_EDGE,   /* edge records (~48 B each) */
-    CBM_MEM_CLASS_GBUF_STRING, /* name / qualified_name / properties_json */
-    CBM_MEM_CLASS_GBUF_INDEX,  /* the 8 lookup indexes (383 MB peak on the Go corpus) */
-    CBM_MEM_CLASS_EXTRACT,     /* per-file working set: source text, extraction scratch */
-    CBM_MEM_CLASS_ARENA,       /* CBMArena blocks -- every arena, whoever owns it */
-    CBM_MEM_CLASS_TS_TREE,     /* tree-sitter: parse trees + parser state (bound allocator) */
-    CBM_MEM_CLASS_SEMANTIC,    /* semantic pass: vectors, token pools, LSH (87 MB on Go) */
-    CBM_MEM_CLASS_DUMP,        /* dump-time transients */
-    CBM_MEM_CLASS_STORE,       /* SQLite (bound mem methods) + store batches and row buffers */
-    CBM_MEM_CLASS_HASH_TABLE,  /* CBMHashTable buckets/entries not claimed by an owner class */
-    CBM_MEM_CLASS_DYN_ARRAY,   /* CBM_DYN_ARRAY item storage (every cbm_da_* user) */
+    CBM_MEM_CLASS_OTHER = 0,     /* unclassified; the residual to drive down */
+    CBM_MEM_CLASS_GBUF_NODE,     /* node records (~64 B each) */
+    CBM_MEM_CLASS_GBUF_EDGE,     /* edge records (~48 B each) */
+    CBM_MEM_CLASS_GBUF_STRING,   /* name / qualified_name / properties_json */
+    CBM_MEM_CLASS_GBUF_INDEX,    /* the 8 lookup indexes (383 MB peak on the Go corpus) */
+    CBM_MEM_CLASS_EXTRACT,       /* per-file working set: source text, extraction scratch */
+    CBM_MEM_CLASS_ARENA,         /* CBMArena blocks -- every arena, whoever owns it */
+    CBM_MEM_CLASS_TS_TREE,       /* tree-sitter: parse trees + parser state (bound allocator) */
+    CBM_MEM_CLASS_SEMANTIC,      /* semantic pass: vectors, token pools, LSH (87 MB on Go) */
+    CBM_MEM_CLASS_DUMP,          /* dump-time transients */
+    CBM_MEM_CLASS_STORE,         /* SQLite (bound mem methods) + store batches and row buffers */
+    CBM_MEM_CLASS_HASH_TABLE,    /* CBMHashTable buckets/entries not claimed by an owner class */
+    CBM_MEM_CLASS_DYN_ARRAY,     /* CBM_DYN_ARRAY item storage (every cbm_da_* user) */
+    CBM_MEM_CLASS_OPERATION_ARG, /* transient strings parsed from operation arguments */
     CBM_MEM_CLASS_COUNT
 } cbm_mem_class_t;
 

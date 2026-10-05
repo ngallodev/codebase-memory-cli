@@ -1,4 +1,5 @@
 #include "operations/result_wire.h"
+#include "operations/json_args.h"
 #include "operations/search.h"
 #include "operations/store_host.h"
 
@@ -45,11 +46,7 @@ static sqlite3_destructor_type transient_destructor(void) {
 static char *copy_text(const char *text) {
     if (!text)
         return NULL;
-    size_t length = strlen(text);
-    char *copy = malloc(length + 1U);
-    if (copy)
-        memcpy(copy, text, length + 1U);
-    return copy;
+    return cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, text);
 }
 
 static yyjson_doc *read_args(const char *args) {
@@ -777,12 +774,12 @@ done:
     cbm_store_search_free(&output);
     if (store)
         cbm_store_close(store);
-    free(project);
-    free(query);
-    free(label);
-    free(name_pattern);
-    free(qn_pattern);
-    free(file_pattern);
-    free(relationship);
+    cbm_operation_arg_free(project);
+    cbm_operation_arg_free(query);
+    cbm_operation_arg_free(label);
+    cbm_operation_arg_free(name_pattern);
+    cbm_operation_arg_free(qn_pattern);
+    cbm_operation_arg_free(file_pattern);
+    cbm_operation_arg_free(relationship);
     return result;
 }

@@ -1,6 +1,7 @@
 #include "operations/output_budget.h"
 #include "operations/result_wire.h"
 #include "operations/changes.h"
+#include "operations/json_args.h"
 
 #include "foundation/compat_fs.h"
 #include "foundation/constants.h"
@@ -67,7 +68,9 @@ static char *changes_string_arg(const char *args, const char *name) {
     yyjson_doc *doc = changes_args_doc(args);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
-    char *result = value && yyjson_is_str(value) ? changes_strdup(yyjson_get_str(value)) : NULL;
+    char *result = value && yyjson_is_str(value)
+                       ? cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, yyjson_get_str(value))
+                       : NULL;
     if (doc)
         yyjson_doc_free(doc);
     return result;
@@ -820,14 +823,14 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
      * existing `<base>...HEAD` (three-dot) diff apply unchanged — `since` thus
      * adopts the same merge-base semantics base_branch already uses. */
     if (since && since[0]) {
-        free(base_branch);
+        cbm_operation_arg_free(base_branch);
         base_branch = since; /* transfer ownership */
         since = NULL;
     }
-    free(since); /* no-op after the swap (since is NULL); frees it otherwise */
+    cbm_operation_arg_free(since); /* no-op after the swap (since is NULL); frees it otherwise */
 
     if (!base_branch) {
-        base_branch = changes_strdup("main");
+        base_branch = cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, "main");
     }
 
     cbm_operation_result_t result = {0};
@@ -890,7 +893,7 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
      * the changed code depends on; both = union. */
     direction = changes_string_arg(args, "direction");
     if (!direction) {
-        direction = changes_strdup("inbound");
+        direction = cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, "inbound");
     }
     /* Teaching error, same contract as trace_path: never silently correct an
      * unknown direction — the caller would misread the result's semantics. */
@@ -906,7 +909,7 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
     }
     char *fmt = changes_string_arg(args, "format");
     bool legacy_json = fmt && strcmp(fmt, "json") == 0;
-    free(fmt);
+    cbm_operation_arg_free(fmt);
 
     /* Freeze both endpoints before collecting paths. A failed or unknown base is
      * a request error, never an exact-looking empty diff, and a concurrent HEAD
@@ -1586,14 +1589,14 @@ done:
     free(files);
     free(seeds);
     free(hunks);
-    free(impact_cursor_arg);
-    free(changed_cursor_arg);
-    free(module_cursor_arg);
-    free(direction);
+    cbm_operation_arg_free(impact_cursor_arg);
+    cbm_operation_arg_free(changed_cursor_arg);
+    cbm_operation_arg_free(module_cursor_arg);
+    cbm_operation_arg_free(direction);
     free(root_path);
-    free(project);
-    free(base_branch);
-    free(scope);
+    cbm_operation_arg_free(project);
+    cbm_operation_arg_free(base_branch);
+    cbm_operation_arg_free(scope);
     if (store) {
         cbm_store_close(store);
     }
