@@ -3528,7 +3528,7 @@ TEST(cli_uninstall_absence_check_preserves_dangling_symlink_entries) {
 #endif
 }
 
-TEST(cli_uninstall_delete_indexes_dry_run_keeps_files) {
+static int cli_uninstall_dry_run_case(bool requested) {
     cli_uninstall_index_fixture_t fx;
     if (!cli_uninstall_index_fixture_setup(&fx, "dry")) {
         cli_uninstall_index_fixture_teardown(&fx);
@@ -3539,8 +3539,8 @@ TEST(cli_uninstall_delete_indexes_dry_run_keeps_files) {
     int rc = -1;
     int reservations = -1;
     if (saved >= 0) {
-        char *argv[] = {"--dry-run", "--no"};
-        rc = cli_uninstall_index_fixture_run(argv, 2, &reservations);
+        char *argv[] = {"--dry-run", "--no", "--delete-indexes"};
+        rc = cli_uninstall_index_fixture_run(argv, requested ? 3 : 2, &reservations);
     }
     bool restored = saved >= 0 && cli_uninstall_restore_stream(stdout, saved);
     char text[8192] = "";
@@ -3551,7 +3551,8 @@ TEST(cli_uninstall_delete_indexes_dry_run_keeps_files) {
     bool kept = cli_uninstall_index_fixture_intact(&fx) &&
                 cli_uninstall_test_file_is(fx.bin_target, "uninstall fixture binary") &&
                 cli_uninstall_test_file_is(fx.internal_store, "internal store sentinel");
-    bool named = strstr(text, "Indexes kept in") != NULL && !strstr(text, "Delete these indexes?");
+    bool named = strstr(text, requested ? "indexes would be deleted" : "Indexes kept in") != NULL &&
+                 !strstr(text, "Delete these indexes?");
     cli_uninstall_index_fixture_teardown(&fx);
     ASSERT_TRUE(restored && captured);
     ASSERT_EQ(rc, 0);
@@ -3559,6 +3560,14 @@ TEST(cli_uninstall_delete_indexes_dry_run_keeps_files) {
     ASSERT_TRUE(kept);
     ASSERT_TRUE(named);
     PASS();
+}
+
+TEST(cli_uninstall_delete_indexes_dry_run_keeps_files) {
+    return cli_uninstall_dry_run_case(true);
+}
+
+TEST(cli_uninstall_dry_run_without_delete_indexes_keeps_files) {
+    return cli_uninstall_dry_run_case(false);
 }
 
 TEST(cli_uninstall_non_tty_affirmative_input_keeps_indexes) {
@@ -14986,6 +14995,7 @@ SUITE(cli) {
     RUN_TEST(cli_uninstall_delete_indexes_is_explicit_and_overrides_no);
     RUN_TEST(cli_uninstall_absence_check_preserves_dangling_symlink_entries);
     RUN_TEST(cli_uninstall_delete_indexes_dry_run_keeps_files);
+    RUN_TEST(cli_uninstall_dry_run_without_delete_indexes_keeps_files);
     RUN_TEST(cli_uninstall_non_tty_affirmative_input_keeps_indexes);
     RUN_TEST(cli_uninstall_delete_indexes_help_and_invalid_options_preserve_files);
 #ifndef _WIN32
