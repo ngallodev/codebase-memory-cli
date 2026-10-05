@@ -267,6 +267,28 @@ static int snippet_source_line_count(const char *source) {
     return lines;
 }
 
+/* Replace the whole response shape before measuring a source-prefix candidate. */
+static void snippet_set_source_prefix(yyjson_mut_doc *doc, yyjson_mut_val *root, const char *source,
+                                      int lines, int start_line, int original_end) {
+    size_t keep = 0;
+    int line = 0;
+    for (const char *q = source; lines > 0 && *q; q++) {
+        keep++;
+        if (*q == '\n' && ++line >= lines)
+            break;
+    }
+    static const char *const keys[] = {"source",          "source_truncated",  "source_clipped",
+                                       "next_start_line", "original_end_line", "end_line"};
+    for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
+        (void)yyjson_mut_obj_remove_key(root, keys[i]);
+    yyjson_mut_obj_add_val(doc, root, "source", yyjson_mut_strncpy(doc, source, keep));
+    yyjson_mut_obj_add_int(doc, root, "end_line", lines > 0 ? start_line + lines - 1 : start_line);
+    yyjson_mut_obj_add_bool(doc, root, "source_truncated", true);
+    yyjson_mut_obj_add_bool(doc, root, "source_clipped", true);
+    yyjson_mut_obj_add_int(doc, root, "next_start_line", start_line + lines);
+    yyjson_mut_obj_add_int(doc, root, "original_end_line", original_end);
+}
+
 /* The floor is metadata only: no partial line or identifier is ever emitted. */
 static char *snippet_budget_floor(int max_output_tokens) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -521,21 +543,7 @@ static cbm_operation_result_t node_result(cbm_store_t *store, const char *projec
             int best_lines = -1;
             while (low <= high) {
                 int middle = low + (high - low) / 2;
-                size_t keep = 0;
-                int line = 0;
-                if (middle > 0) {
-                    for (const char *q = source; *q; q++) {
-                        keep++;
-                        if (*q == '\n' && ++line >= middle) {
-                            break;
-                        }
-                    }
-                }
-                yyjson_mut_val *value = yyjson_mut_strncpy(doc, source, keep);
-                if (value) {
-                    (void)yyjson_mut_obj_remove_key(root, "source");
-                    yyjson_mut_obj_add_val(doc, root, "source", value);
-                }
+                snippet_set_source_prefix(doc, root, source, middle, start_line, original_end);
                 if (snippet_probe_len(root) <= byte_budget) {
                     best_lines = middle;
                     low = middle + 1;
@@ -544,10 +552,7 @@ static cbm_operation_result_t node_result(cbm_store_t *store, const char *projec
                 }
             }
             if (best_lines >= 0) {
-                yyjson_mut_obj_add_bool(doc, root, "source_truncated", true);
-                yyjson_mut_obj_add_bool(doc, root, "source_clipped", true);
-                yyjson_mut_obj_add_int(doc, root, "next_start_line", start_line + best_lines);
-                yyjson_mut_obj_add_int(doc, root, "original_end_line", original_end);
+                snippet_set_source_prefix(doc, root, source, best_lines, start_line, original_end);
             }
         }
         if (snippet_probe_len(root) > byte_budget) {

@@ -224,7 +224,12 @@ cbm_operation_result_t cbm_cross_repo_operation_execute(const char *repo_path,
     if (result.failed) {
         free(project);
         return cross_repo_error(
-            "cross-repo source or target project is missing, invalid, or not indexed");
+            result.no_targets
+                ? "cross-repo-intelligence resolved zero target projects: no indexed project "
+                  "other than the source matched target_projects. Index the other service first "
+                  "(run projects to see what is indexed); existing cross-repo edges were left "
+                  "unchanged."
+                : "cross-repo source or target project is missing, invalid, or not indexed");
     }
 
     int total = result.http_edges + result.async_edges + result.channel_edges + result.grpc_edges +

@@ -13,6 +13,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "foundation/index_policy.h"
+
 /* ── Version ──────────────────────────────────────────────────── */
 
 /* Set the version string (called from main). */
@@ -22,6 +24,18 @@ void cbm_cli_set_version(const char *ver);
 const char *cbm_cli_get_version(void);
 
 /* ── CLI tool arguments (flags / --args-file / --help) ────────── */
+
+/* Top-level `cli --help` text printed by run_cli() in src/main.c (#2102 moved the
+ * wording here from main.c). */
+#define CBM_CLI_USAGE                                                                         \
+    "Usage: codebase-memory-cli cli [--quiet] [--progress] [--verbose] [--json] <tool_name> " \
+    "[json_args]\n"                                                                           \
+    "  --quiet     Show errors only; cannot combine with --progress or outer --verbose\n"     \
+    "  --progress  Show lifecycle progress even when stderr is redirected\n"                  \
+    "  --verbose   Include informational logs (preserves CBM_LOG_LEVEL=debug)\n"              \
+    "  --json      Print machine-readable output\n"                                           \
+    "  Tools that accept format support --format tree|json (default: tree).\n"                \
+    "  --format json prints the tool payload JSON instead of the tree view.\n"
 
 /* Convert `--flag value` / `--flag=value` / bare-boolean `--flag` arguments for
  * a tool into a JSON arguments object string, using the tool's input_schema to
@@ -351,8 +365,8 @@ unsigned char *cbm_extract_binary_from_zip(const unsigned char *data, int data_l
  * Prints each path to stdout. Returns the count found. */
 int cbm_list_indexes(const char *home_dir);
 
-/* Remove project index .db files and sidecars; internal stores are kept.
- * Returns count removed. */
+/* Remove every project index .db (and its sidecars) in the cache directory.
+ * Internal stores (_config.db, _cross_repo.db) are kept. Returns count removed. */
 int cbm_remove_indexes(const char *home_dir);
 
 /* ── Config store (persistent key-value, backed by _config.db) ── */
@@ -381,6 +395,11 @@ int cbm_config_set(cbm_config_t *cfg, const char *key, const char *value);
 
 /* Delete a config key. Returns 0 on success. */
 int cbm_config_delete(cbm_config_t *cfg, const char *key);
+
+/* Load and validate the operator-controlled discovery policy. Invalid stored
+ * values fail closed instead of silently disabling a guard. */
+bool cbm_config_load_index_policy(cbm_config_t *cfg, cbm_index_resource_policy_t *policy,
+                                  char *error, size_t error_size);
 
 /* Well-known config keys */
 #define CBM_CONFIG_AUTO_INDEX "auto_index"
@@ -446,6 +465,12 @@ void cbm_cli_set_activation_ops_for_test(const cbm_cli_activation_ops_t *ops);
  * command-line or environment override. */
 void cbm_cli_set_activation_runtime_parent_for_test(const char *runtime_parent);
 const char *cbm_cli_activation_runtime_parent_for_test(void);
+
+/* Internal integration-test seam: the activation scope read reports the active
+ * cohort's cache fingerprint as unreadable (blank), exactly what the scope
+ * decision sees when that field cannot be recovered. false restores the real
+ * read. Not a command-line or environment override. */
+void cbm_cli_set_activation_scope_cache_unreadable_for_test(bool unreadable);
 
 /* ── Subcommands (wired from main.c) ─────────────────────────── */
 

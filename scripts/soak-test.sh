@@ -65,9 +65,17 @@ CBM_SOAK_MODE="${CBM_SOAK_MODE:-default}"
 RESULTS_DIR="${RESULTS_DIR:-soak-results}"
 mkdir -p "$RESULTS_DIR"
 
-# Isolate daemon coordination from interactive CBM sessions and give this run
-# a deterministic host-side daemon log. Wine needs a Windows-form cache path
-# in the child environment while this Bash harness retains the host path.
+# Every product process below must reach a daemon rendezvous this run owns.
+# Only CBM_RUNTIME_DIR moves that rendezvous — a private CBM_CACHE_DIR alone
+# still shares the operator's account daemon (#1691, #1696).
+# shellcheck source=test-runtime.sh
+source "$(dirname "${BASH_SOURCE[0]}")/test-runtime.sh"
+cbm_test_runtime_init || exit 1
+trap 'cbm_test_runtime_cleanup "$BINARY"' EXIT
+
+# Give this run a deterministic host-side daemon log. Wine needs a Windows-form
+# cache path in the child environment while this Bash harness retains the host
+# path.
 #
 # On native Windows the cache CANNOT live under msys /tmp: the server's
 # cache-private executable-identity check walks the cache path's ancestors
@@ -145,7 +153,7 @@ if [[ "$BINARY" == *.exe ]] && command -v cygpath >/dev/null 2>&1 &&
         exit 1
     fi
 else
-    SOAK_CACHE_DIR_HOST=$(mktemp -d "${TMPDIR:-/tmp}/cbm-soak-cache.XXXXXX")
+    SOAK_CACHE_DIR_HOST="$CBM_TEST_CACHE_DIR_HOST"
 fi
 SOAK_CACHE_DIR_VALUE="$SOAK_CACHE_DIR_HOST"
 if [[ "$BINARY" == *.exe ]] && command -v winepath >/dev/null 2>&1; then
@@ -193,7 +201,12 @@ soak_cleanup() {
     if [ -f "$DAEMON_LOG" ]; then
         cp "$DAEMON_LOG" "$RESULTS_DIR/cbm-daemon.log" 2>/dev/null || true
     fi
-    rm -rf -- "$SOAK_PROJECT" "$SOAK_CACHE_DIR_HOST"
+    rm -rf -- "$SOAK_PROJECT"
+    # The helper stops this run's private daemon before removing its root and
+    # leaves the root behind for diagnosis when the daemon will not stop. The
+    # native-Windows cache sits under SOAK_WIN_ROOT, which goes only after the
+    # daemon check because the binary it probes with is the copy inside it.
+    cbm_test_runtime_cleanup "$BINARY"
     [ -z "${SOAK_WIN_ROOT:-}" ] || rm -rf -- "$SOAK_WIN_ROOT"
 }
 
@@ -219,6 +232,137 @@ start_soak_daemon() {
         DAEMON_PID=$(printf '%s\n' "$status" | sed -n 's/.*pid \([0-9][0-9]*\).*/\1/p' | tail -n 1)
     fi
     [ -n "$DAEMON_PID" ]
+}
+
+generate_project() {
+    local root="$1"
+    # Python package (80 files)
+    for i in $(seq 1 20); do
+        local pkg="$root/src/pkg_${i}"
+        mkdir -p "$pkg"
+        cat > "$pkg/__init__.py" << PYEOF
+from .handlers import handle_${i}
+from .models import Model${i}
+PYEOF
+        cat > "$pkg/handlers.py" << PYEOF
+from .models import Model${i}
+from .utils import validate_${i}, transform_${i}
+
+def handle_${i}(request):
+    data = Model${i}.from_request(request)
+    if not validate_${i}(data):
+        return {"error": "invalid"}
+    return transform_${i}(data)
+
+def process_batch_${i}(items):
+    return [handle_${i}(item) for item in items]
+PYEOF
+        cat > "$pkg/models.py" << PYEOF
+class Model${i}:
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    @classmethod
+    def from_request(cls, req):
+        return cls(req.get("name", ""), req.get("value", 0))
+
+    def to_dict(self):
+        return {"name": self.name, "value": self.value}
+PYEOF
+        cat > "$pkg/utils.py" << PYEOF
+def validate_${i}(data):
+    return data is not None and hasattr(data, 'name')
+
+def transform_${i}(data):
+    return {"result": data.name.upper(), "score": data.value * ${i}}
+PYEOF
+    done
+
+    # Go package (40 files)
+    mkdir -p "$root/internal/api" "$root/internal/store" "$root/cmd"
+    for i in $(seq 1 20); do
+        cat > "$root/internal/api/handler_${i}.go" << GOEOF
+package api
+
+import "fmt"
+
+func HandleRoute${i}(path string) (string, error) {
+    result := ProcessData${i}(path)
+    return fmt.Sprintf("route_%d: %s", ${i}, result), nil
+}
+
+func ProcessData${i}(input string) string {
+    return fmt.Sprintf("processed_%d_%s", ${i}, input)
+}
+GOEOF
+        cat > "$root/internal/store/repo_${i}.go" << GOEOF
+package store
+
+type Entity${i} struct {
+    ID   int
+    Name string
+    Data map[string]interface{}
+}
+
+func FindEntity${i}(id int) (*Entity${i}, error) {
+    return &Entity${i}{ID: id, Name: "entity"}, nil
+}
+
+func SaveEntity${i}(e *Entity${i}) error {
+    return nil
+}
+GOEOF
+    done
+
+    # TypeScript (40 files)
+    mkdir -p "$root/frontend/src/components" "$root/frontend/src/hooks"
+    for i in $(seq 1 20); do
+        cat > "$root/frontend/src/components/Component${i}.tsx" << TSEOF
+import React from 'react';
+import { useData${i} } from '../hooks/useData${i}';
+
+interface Props${i} { id: number; label: string; }
+
+export const Component${i}: React.FC<Props${i}> = ({ id, label }) => {
+    const { data, loading } = useData${i}(id);
+    if (loading) return <div>Loading...</div>;
+    return <div className="comp-${i}">{label}: {JSON.stringify(data)}</div>;
+};
+TSEOF
+        cat > "$root/frontend/src/hooks/useData${i}.ts" << TSEOF
+import { useState, useEffect } from 'react';
+
+export function useData${i}(id: number) {
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    useEffect(() => {
+        fetch('/api/data/${i}/' + id)
+            .then(r => r.json())
+            .then(d => { setData(d); setLoading(false); });
+    }, [id]);
+    return { data, loading };
+}
+TSEOF
+    done
+
+    # Config files
+    cat > "$root/config.yaml" << 'YAMLEOF'
+database:
+  host: localhost
+  port: 5432
+  pool_size: 10
+server:
+  workers: 4
+  timeout: 30
+YAMLEOF
+    cat > "$root/Dockerfile" << 'DEOF'
+FROM python:3.11-slim
+WORKDIR /app
+COPY . .
+RUN pip install -r requirements.txt
+CMD ["python", "-m", "src.main"]
+DEOF
 }
 
 echo "Generating test project (~200 files)..."

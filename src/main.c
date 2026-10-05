@@ -49,6 +49,10 @@ enum {
     MAIN_MAX_PORT = 65536,
     MAIN_PATH_CAP = 4096,
     MAIN_CONNECT_TIMEOUT_MS = 1000,
+    /* #2277: the conflict-remedy STATUS probe runs only after a refusal, so it
+     * gets the same budget as `daemon status`: the daemon hashes the peer's
+     * (~300 MB) image before answering, which can exceed a 1 s connect budget. */
+    MAIN_CONFLICT_STATUS_PROBE_TIMEOUT_MS = 3000,
     MAIN_STARTUP_TIMEOUT_MS = 10000,
     /* Backstop for waiting out a held startup transition — see
      * main_local_transition_acquire. Not a budget for healthy contention: a busy
@@ -64,7 +68,15 @@ enum {
     MAIN_HOOK_NOTICE_INTERVAL_SECONDS = 900,
     MAIN_CLOSE_TIMEOUT_MS = 5000,
     MAIN_COORDINATION_CLEANUP_MS = 500,
-    PARENT_WATCHDOG_STACK_SIZE = 64 * CBM_SZ_1K, /* watchdog only polls — tiny stack suffices */
+    /* The watchdog only polls, so the STACK it needs is tiny — but on glibc the
+     * thread's static TLS block is carved out of this same allocation, and this
+     * image's TLS is ~50 KB. At the old 64 KB the request was almost entirely
+     * TLS, and when TLS grew past it the thread stopped being creatable at all:
+     * the worker then refused to index without containment and SIGKILLed its own
+     * group, reported everywhere as a bare "killed (signal 9)" (PR #2233).
+     * Sized to hold the TLS block AND a real stack; tests/
+     * test_thread_stack_tls_contract.sh keeps the two from converging again. */
+    PARENT_WATCHDOG_STACK_SIZE = 256 * CBM_SZ_1K,
 };
 #define SLEN(s) (sizeof(s) - 1)
 #include "foundation/log.h"
@@ -76,6 +88,7 @@ enum {
 #include "foundation/compat_fs.h"
 #include "foundation/compat_thread.h"
 #include "foundation/mem.h"
+#include "foundation/mem_events.h"
 #include "foundation/profile.h"
 #include "foundation/sha256.h"
 #include "foundation/secure_random.h"
@@ -452,10 +465,22 @@ static bool worker_prepare_process_group(void) {
  * identically — write() and _exit() rather than fprintf/exit, because this runs
  * after fork-sensitive setup and must not touch stdio locks or atexit handlers.
  */
-static void worker_containment_unavailable(void) {
-    static const char message[] =
-        "CBM index worker could not start: process-tree containment unavailable\n";
-    (void)write(STDERR_FILENO, message, sizeof(message) - 1);
+static void worker_containment_unavailable(const char *why) {
+    /* WHICH of the containment conditions failed, and the pids behind it. The
+     * bare sentence cost a full CI cycle and two emulated builds to attribute
+     * (PR #2233): every venue reported the same line, and the supervisor only
+     * ever sees `killed (signal 9)` because the refusal SIGKILLs its own group.
+     * snprintf into a local buffer touches no stdio lock and no atexit handler,
+     * so the fork-sensitivity contract above still holds. */
+    char message[256];
+    int n = snprintf(message, sizeof(message),
+                     "CBM index worker could not start: process-tree containment unavailable "
+                     "(%s; pid=%ld pgrp=%ld ppid=%ld)\n",
+                     why ? why : "unspecified", (long)getpid(), (long)getpgrp(), (long)getppid());
+    if (n > 0) {
+        (void)write(STDERR_FILENO, message,
+                    (size_t)n < sizeof(message) ? (size_t)n : sizeof(message) - 1);
+    }
     (void)kill(-getpid(), SIGKILL);
     _exit(EXIT_FAILURE);
 }
@@ -572,13 +597,7 @@ static const cbm_cli_command_alias_t *cli_command_alias_find(const char *command
     return NULL;
 }
 
-#define CLI_USAGE                                                                             \
-    "Usage: codebase-memory-cli cli [--quiet] [--progress] [--verbose] [--json] <tool_name> " \
-    "[json_args]\n"                                                                           \
-    "  --quiet     Show errors only; cannot combine with --progress or outer --verbose\n"     \
-    "  --progress  Show lifecycle progress even when stderr is redirected\n"                  \
-    "  --verbose   Include informational logs (preserves CBM_LOG_LEVEL=debug)\n"              \
-    "  --json      Print machine-readable output\n"
+#define CLI_USAGE CBM_CLI_USAGE /* `cli --help`; wording lives in cli.h (#2102) */
 
 /* Strip a flag from argv, returning true if found. */
 static bool cli_strip_flag(int *argc, char **argv, const char *flag) {
@@ -846,6 +865,7 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
         /* The graph lives on this process's heaps: SQLite gets heaps of its
          * own here, and only here (cbm_sqlite_dedicated_heap). */
         cbm_sqlite_dedicated_heap(true);
+        cbm_memev_process_role("worker");
     }
     cbm_index_set_worker_role_options(index_worker, response_out, worker_single_thread,
                                       worker_marker, worker_quarantine,
@@ -1032,6 +1052,10 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
 
     if (cbm_index_worker_active()) {
         const char *ro = cbm_index_worker_response_out();
+        /* Waste dump + execution counts BEFORE the response: the parent may
+         * end the worker as soon as the response file is complete, and the
+         * fast exit below skips every at-exit writer anyway. */
+        cbm_memev_process_exit();
         char *wire = cbm_operation_result_wire_encode(&operation_result);
         bool worker_response_written = false;
         if (ro && wire) {
@@ -1980,6 +2004,10 @@ static bool main_semver_newer(const char *candidate, const char *active) {
     return false;
 }
 
+/* A conflict refusal plus its remedy (#2277), joined by one space. */
+#define MAIN_CLIENT_FAILURE_DETAIL_CAP \
+    (CBM_DAEMON_CONFLICT_MESSAGE_SIZE + CBM_DAEMON_CONFLICT_REMEDY_SIZE + 1U)
+
 /* Surface bootstrap/coordination failures through the invoking CLI process.
  * Protocol-specific stdout framing was retired with the MCP stdio frontend;
  * callers that need structured hook notices use the hook admission path. */
@@ -1988,10 +2016,35 @@ static void main_report_client_failure(const char *detail) {
 }
 
 static void main_report_client_bootstrap_failure(const cbm_daemon_bootstrap_result_t *result) {
-    main_report_client_failure((result && result->message[0])
-                                   ? result->message
-                                   : "CBM daemon connection failed before the session was "
-                                     "established");
+    const char *message = (result && result->message[0])
+                              ? result->message
+                              : "CBM daemon connection failed before the session was "
+                                "established";
+    char detail[MAIN_CLIENT_FAILURE_DETAIL_CAP];
+    (void)snprintf(detail, sizeof(detail), "%s%s%s", message,
+                   (result && result->remedy[0]) ? " " : "", result ? result->remedy : "");
+    main_report_client_failure(detail);
+}
+
+/* #2277: a conflict is a legitimate refusal (another build owns the account
+ * daemon), but it must name that daemon and the way out. known_active is a
+ * STATUS answer the caller already holds; without one this probes STATUS
+ * (cross-build by design) itself. When nothing answers, the remedy falls
+ * back to pointing at `daemon status`. */
+static void main_conflict_remedy_probe(const cbm_daemon_ipc_endpoint_t *endpoint,
+                                       const cbm_daemon_build_identity_t *identity,
+                                       const cbm_daemon_runtime_status_t *known_active, char *out,
+                                       size_t out_size) {
+    cbm_daemon_runtime_status_t probed;
+    const cbm_daemon_runtime_status_t *active = known_active;
+    if (!active && endpoint && identity &&
+        cbm_daemon_runtime_request_status(endpoint, identity, MAIN_CONFLICT_STATUS_PROBE_TIMEOUT_MS,
+                                          &probed)) {
+        active = &probed;
+    }
+    if (!cbm_daemon_conflict_remedy_format(active, out, out_size)) {
+        out[0] = '\0';
+    }
 }
 
 typedef struct {
@@ -2028,10 +2081,13 @@ static cbm_daemon_bootstrap_status_t main_client_bootstrap_with_upgrade(
         return status;
     }
     cbm_daemon_runtime_status_t active;
-    if (!cbm_daemon_runtime_request_status(config->endpoint, config->identity,
-                                           MAIN_CONNECT_TIMEOUT_MS, &active) ||
-        !active.permanent ||
+    bool active_known = cbm_daemon_runtime_request_status(config->endpoint, config->identity,
+                                                          MAIN_CONNECT_TIMEOUT_MS, &active);
+    if (!active_known || !active.permanent ||
         !main_semver_newer(config->identity->semantic_version, active.semantic_version)) {
+        main_conflict_remedy_probe(config->endpoint, config->identity,
+                                   active_known ? &active : NULL, result->remedy,
+                                   sizeof(result->remedy));
         return status;
     }
     cbm_version_cohort_manager_t *manager = cbm_version_cohort_manager_new(config->endpoint);
@@ -2080,7 +2136,12 @@ static cbm_daemon_bootstrap_status_t main_client_bootstrap_with_upgrade(
                       active.semantic_version, (unsigned long)active.daemon_pid,
                       config->identity->semantic_version);
     }
-    return cbm_daemon_bootstrap_execute(config, result);
+    status = cbm_daemon_bootstrap_execute(config, result);
+    if (status == CBM_DAEMON_BOOTSTRAP_CONFLICT) {
+        main_conflict_remedy_probe(config->endpoint, config->identity, NULL, result->remedy,
+                                   sizeof(result->remedy));
+    }
+    return status;
 }
 
 /* One-shot CLI commands execute through the shared daemon through the neutral
@@ -2120,6 +2181,9 @@ static char *main_local_cli_daemon_execute(const char *tool_name, const char *ar
         (void)fprintf(stderr, "error: %s\n",
                       bootstrap.message[0] ? bootstrap.message
                                            : "no CBM daemon connection for CLI execution");
+        if (bootstrap.remedy[0]) {
+            (void)fprintf(stderr, "hint: %s\n", bootstrap.remedy);
+        }
         return NULL;
     }
     if (bootstrap.daemon_spawned && cbm_log_get_level() <= CBM_LOG_INFO) {
@@ -3218,13 +3282,17 @@ int main(int argc, char **argv) {
             char message[CBM_DAEMON_CONFLICT_MESSAGE_SIZE];
             bool formatted = cohort_status == CBM_VERSION_COHORT_CONFLICT &&
                              cbm_daemon_conflict_format(&cohort_conflict, message, sizeof(message));
+            char remedy[CBM_DAEMON_CONFLICT_REMEDY_SIZE] = "";
             if (cohort_status == CBM_VERSION_COHORT_CONFLICT) {
                 (void)cbm_version_cohort_log_conflict(&cohort_conflict);
+                main_conflict_remedy_probe(local_endpoint, &local_identity, NULL, remedy,
+                                           sizeof(remedy));
             }
-            (void)fprintf(stderr, "codebase-memory-cli: %s\n",
+            (void)fprintf(stderr, "codebase-memory-cli: %s%s%s\n",
                           formatted ? message
                                     : "CLI exact-build admission could not be verified; retry "
-                                      "after active CBM operations exit");
+                                      "after active CBM operations exit",
+                          remedy[0] ? " " : "", remedy);
             goto local_cli_cleanup;
         }
         main_local_maintenance_context_init(&maintenance_context);
@@ -3443,17 +3511,22 @@ int main(int argc, char **argv) {
          * unconditional in the source, so with the seam compiled out cppcheck
          * correctly reported `!probe()` as always false. Guarding the STEP, not
          * stubbing the function, means release builds simply do not have it. */
-        if (!worker_prepare_process_group() || process_initial_ppid <= 1 ||
-            getppid() != process_initial_ppid) {
-            worker_containment_unavailable();
+        if (!worker_prepare_process_group()) {
+            worker_containment_unavailable("own process group not established");
+        }
+        if (process_initial_ppid <= 1) {
+            worker_containment_unavailable("no supervising parent at startup");
+        }
+        if (getppid() != process_initial_ppid) {
+            worker_containment_unavailable("parent changed since startup");
         }
 #ifdef CBM_ENABLE_TEST_SEAMS
         if (!worker_start_watchdog_test_descendant()) {
-            worker_containment_unavailable();
+            worker_containment_unavailable("watchdog test descendant refused");
         }
 #endif
         if (!worker_start_parent_watchdog(process_initial_ppid)) {
-            worker_containment_unavailable();
+            worker_containment_unavailable("parent-death watchdog would not start");
         }
 #endif
         cbm_index_supervisor_mark_host();
@@ -3539,11 +3612,17 @@ int main(int argc, char **argv) {
         bool formatted =
             client_cohort_status == CBM_VERSION_COHORT_CONFLICT &&
             cbm_daemon_conflict_format(&client_cohort_conflict, message, sizeof(message));
+        char remedy[CBM_DAEMON_CONFLICT_REMEDY_SIZE] = "";
         if (client_cohort_status == CBM_VERSION_COHORT_CONFLICT) {
             (void)cbm_version_cohort_log_conflict(&client_cohort_conflict);
+            /* Hooks fail open on a tight budget; they skip the extra probe. */
+            if (role != CBM_DAEMON_PROCESS_HOOK_CLIENT) {
+                main_conflict_remedy_probe(endpoint, &identity, NULL, remedy, sizeof(remedy));
+            }
         }
-        (void)fprintf(stderr, "codebase-memory-cli: %s\n",
-                      formatted ? message : "client exact-build admission failed");
+        (void)fprintf(stderr, "codebase-memory-cli: %s%s%s\n",
+                      formatted ? message : "client exact-build admission failed",
+                      remedy[0] ? " " : "", remedy);
         if (role == CBM_DAEMON_PROCESS_HOOK_CLIENT &&
             client_cohort_status == CBM_VERSION_COHORT_CONFLICT) {
             main_hook_report_conflicted_daemon(hook_dialect);

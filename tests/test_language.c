@@ -414,6 +414,9 @@ TEST(lang_ext_svg) {
     ASSERT_EQ(cbm_language_for_extension(".svg"), CBM_LANG_XML);
     PASS();
 }
+/* Issue #2229: the XML documents that make up a .NET repository's project
+ * system were unmapped, so a solution's package references, target frameworks,
+ * localized strings and app manifests were never indexed or searchable. */
 TEST(lang_ext_msbuild_projects) {
     ASSERT_EQ(cbm_language_for_extension(".csproj"), CBM_LANG_XML);
     ASSERT_EQ(cbm_language_for_extension(".vbproj"), CBM_LANG_XML);

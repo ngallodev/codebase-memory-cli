@@ -167,6 +167,7 @@ cbm_operation_command_cause_t cbm_operation_run_shell_command_bounded(
         .quiet_timeout_ms = 0,
         .cancel_grace_ms = CBM_SUBPROCESS_DEFAULT_CANCEL_GRACE_MS,
         .delete_log_on_exit = false,
+        .strip_git_repo_env = strncmp(command, "git ", 4U) == 0,
     };
 
     cause =

@@ -261,6 +261,10 @@ static int compute_search_score(const search_result_t *r) {
     return score;
 }
 
+static int nullable_strcmp(const char *a, const char *b) {
+    return strcmp(a ? a : "", b ? b : "");
+}
+
 static int search_result_cmp(const void *a, const void *b) {
     const search_result_t *ra = (const search_result_t *)a;
     const search_result_t *rb = (const search_result_t *)b;
@@ -270,11 +274,11 @@ static int search_result_cmp(const void *a, const void *b) {
     }
     /* Equal scores are common; order them by identity so result_offset pages
      * are stable across calls. */
-    int qn_order = strcmp(ra->qualified_name, rb->qualified_name);
+    int qn_order = nullable_strcmp(ra->qualified_name, rb->qualified_name);
     if (qn_order != 0) {
         return qn_order;
     }
-    int file_order = strcmp(ra->file, rb->file);
+    int file_order = nullable_strcmp(ra->file, rb->file);
     if (file_order != 0) {
         return file_order;
     }

@@ -709,8 +709,6 @@ static void handle_processes(cbm_http_conn_t *c) {
 
 /* ── Directory browser ────────────────────────────────────────── */
 
-#include <dirent.h>
-
 static void append_roots_json(char *buf, size_t bufsz, int *pos) {
     http_appendf(buf, bufsz, pos, ",\"roots\":[");
 #ifdef _WIN32
@@ -764,7 +762,7 @@ static void handle_browse(cbm_http_conn_t *c, const cbm_http_req_t *req) {
         return;
     }
 
-    DIR *dir = opendir(path);
+    cbm_dir_t *dir = cbm_opendir(path);
     if (!dir) {
         cbm_http_replyf(c, 403, g_cors_json, "{\"error\":\"cannot open directory\"}");
         return;
@@ -775,16 +773,16 @@ static void handle_browse(cbm_http_conn_t *c, const cbm_http_req_t *req) {
     int pos = 0;
     http_appendf(buf, sizeof(buf), &pos, "{\"path\":\"%s\",\"dirs\":[", path);
 
-    struct dirent *ent;
+    cbm_dirent_t *ent;
     int count = 0;
-    while ((ent = readdir(dir)) != NULL) {
+    while ((ent = cbm_readdir(dir)) != NULL) {
         /* Skip hidden dirs and . / .. */
-        if (ent->d_name[0] == '.')
+        if (ent->name[0] == '.')
             continue;
 
         /* Check if it's actually a directory */
         char full[2048];
-        snprintf(full, sizeof(full), "%s/%s", path, ent->d_name);
+        snprintf(full, sizeof(full), "%s/%s", path, ent->name);
         if (!cbm_is_dir(full))
             continue;
 
@@ -793,7 +791,7 @@ static void handle_browse(cbm_http_conn_t *c, const cbm_http_req_t *req) {
         /* Escape directory name to prevent XSS (e.g., names with quotes/angle brackets) */
         {
             char esc[512];
-            cbm_json_escape(esc, (int)sizeof(esc), ent->d_name);
+            cbm_json_escape(esc, (int)sizeof(esc), ent->name);
             http_appendf(buf, sizeof(buf), &pos, "\"%s\"", esc);
         }
         if (pos >= (int)sizeof(buf)) {
@@ -804,7 +802,7 @@ static void handle_browse(cbm_http_conn_t *c, const cbm_http_req_t *req) {
         if (count >= 200)
             break; /* safety limit */
     }
-    closedir(dir);
+    cbm_closedir(dir);
 
     /* Parent path — escape to prevent injection */
     char parent[1024];

@@ -89,6 +89,8 @@ Current keys:
 | `auto_index_limit` | `50000` | Maximum file count allowed for automatic indexing of a new project. |
 | `auto_watch` | `true` | Register an active project with the retained background watcher when a warm runtime/hook integration supplies project context. The ordinary one-shot CLI does not require this. |
 | `watcher_enabled` | `true` | Master switch for the retained background watcher subsystem. Set `false` to stop its poll thread/project registration. Reindex manually with `codebase-memory-cli index` when disabled. |
+| `index_max_files` | `off` | Optional maximum number of accepted source files in one discovery run. |
+| `index_max_source_mb` | `off` | Optional maximum accepted source size in MiB in one discovery run. |
 
 > **`watcher_enabled` vs `auto_watch`.** `watcher_enabled` controls whether the
 > retained watcher subsystem starts at all. `auto_watch` is narrower: it controls
@@ -99,6 +101,14 @@ Current keys:
 > while that runtime is active, retire it so the next runtime observes the new
 > value. Disabling the watcher does not disable explicit `index`, `search`,
 > `trace`, `snippet`, or `coverage` commands.
+
+The two `index_max_*` settings are independent and disabled by default. They
+apply to explicit indexing, automatic indexing, and watcher re-indexing, but not
+to `cross-repo-intelligence`, which does not scan repository source files.
+Equality is allowed; exceeding either setting fails the complete index request
+and preserves any previously serving database. See
+[Index resource limits](INDEX_RESOURCE_LIMITS.md) for counting, validation, and
+error-response details.
 
 ## 3. UI Settings
 
@@ -171,6 +181,20 @@ The check is not relaxed for the directory you name: it goes through exactly the
 same validation as the default, and a value that fails it is refused rather than
 silently ignored. Because the rendezvous is how sessions find each other, every
 process that should share one daemon must see the same value — set it consistently for any shells or agent processes that should share the same retained runtime coordination.
+
+**WSL2 and Windows drives (`/mnt/c`, `/mnt/e`, ...).** `CBM_CACHE_DIR` goes through
+the same private-directory check. With WSL's default automount options, DrvFs
+reports every directory as `0777` and ignores `chmod`, so a cache under
+`/mnt/<drive>` is refused, and the refusal names this remedy. Either turn on
+permission metadata in `/etc/wsl.conf`, then run `wsl --shutdown` and reopen WSL:
+
+```ini
+[automount]
+options = "metadata,umask=22,fmask=11"
+```
+
+or keep the cache on the Linux filesystem (the default `~/.cache/codebase-memory-cli`),
+which is also much faster than a 9p-mounted Windows drive.
 
 Environment used by retained runtime-owned components—such as diagnostics, logging, and process-wide indexing resource limits—is captured when that runtime starts. Later participants cannot replace those values. `CBM_ALLOWED_ROOT` remains caller-specific, a conflicting `CBM_CACHE_DIR` is rejected, and one-shot CLI commands use their own current environment.
 

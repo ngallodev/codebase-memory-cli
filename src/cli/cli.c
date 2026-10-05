@@ -214,6 +214,7 @@ typedef struct {
 static cbm_cli_activation_ops_t g_cli_activation_test_ops;
 static bool g_cli_activation_test_ops_set = false;
 static const char *g_cli_activation_runtime_parent_for_test = NULL;
+static bool g_cli_activation_scope_cache_unreadable_for_test = false;
 
 static void cli_activation_diagnostic(const cbm_cli_activation_ops_t *ops, const char *message) {
     const char *diagnostic = message ? message : CLI_ACTIVATION_REFUSED_MESSAGE;
@@ -321,6 +322,10 @@ void cbm_cli_set_activation_runtime_parent_for_test(const char *runtime_parent) 
 
 const char *cbm_cli_activation_runtime_parent_for_test(void) {
     return g_cli_activation_runtime_parent_for_test;
+}
+
+void cbm_cli_set_activation_scope_cache_unreadable_for_test(bool unreadable) {
+    g_cli_activation_scope_cache_unreadable_for_test = unreadable;
 }
 
 static const char *cli_activation_action_text(cbm_daemon_runtime_activation_action_t action) {
@@ -529,6 +534,7 @@ typedef enum {
     CLI_ACTIVATION_SCOPE_ACTIVE = 0,
     CLI_ACTIVATION_SCOPE_NOTHING_TO_REPLACE,
     CLI_ACTIVATION_SCOPE_FOREIGN_COHORT,
+    CLI_ACTIVATION_SCOPE_UNCONFIRMED,
     CLI_ACTIVATION_SCOPE_ERROR,
 } cli_activation_scope_t;
 
@@ -554,9 +560,43 @@ static void cli_activation_log_guard_decision(const cli_activation_production_co
  * anything at all (a --skip-binary install without an index reset publishes
  * nothing), and whose cohort is active. Admission with an immediate deadline
  * is the cheapest authoritative read of the active lifetime record: OK means
- * the cohort is ours or empty, CONFLICT names the active identity (its cache
- * fingerprint is filled for every conflict kind), BUSY means another
- * activation holds maintenance and the barrier waits for it as before. */
+ * the cohort shares this exact identity (cache included) or is empty,
+ * CONFLICT names the active identity (its cache fingerprint is filled for
+ * every conflict kind), BUSY means another activation or a session start held
+ * the group, so the active identity was never read.
+ *
+ * Only a POSITIVE match may drain (user decision 2026-09-28, "unknown =
+ * foreign, keep it"): the daemon's activation-shutdown handler verifies the
+ * requester's build, never its cache, so this decision is the only thing
+ * that keeps another HOME's install/update from stopping the account's live
+ * daemon. A busy group or an unreadable active cache used to fall through to
+ * "ours" and stop every session behind that daemon. */
+static cli_activation_scope_t cli_activation_scope_unconfirmed(
+    cli_activation_production_context_t *context, const char *scope, const char *reason) {
+    const char *action = cli_activation_action_text(context->action);
+    (void)snprintf(context->scope_detail, sizeof(context->scope_detail),
+                   "active cohort ownership unconfirmed (%s); scope=%s; nothing stopped", reason,
+                   scope);
+    cli_activation_log_guard_decision(context, "unconfirmed_cohort", NULL);
+    /* Name the daemon being left: a read-only status probe (no cohort, no
+     * HELLO, no admission) that works across build skew. */
+    cbm_daemon_runtime_status_t daemon;
+    if (cbm_daemon_runtime_request_status(context->endpoint, &context->identity,
+                                          CLI_ACTIVATION_CONTROL_TIMEOUT_MS, &daemon)) {
+        printf("Leaving the running CBM daemon untouched (pid %lu, version %s): this %s could "
+               "not confirm that it serves the cache this %s targets (%s).\n",
+               (unsigned long)daemon.daemon_pid, daemon.semantic_version, action, action, reason);
+    } else {
+        printf("Leaving active CBM sessions untouched: this %s could not confirm that they "
+               "serve the cache it targets (%s).\n",
+               action, reason);
+    }
+    printf("If it is yours, close its CBM sessions and run `codebase-memory-cli daemon stop` "
+           "to stop it yourself.\n");
+    (void)fflush(stdout);
+    return CLI_ACTIVATION_SCOPE_UNCONFIRMED;
+}
+
 static cli_activation_scope_t cli_activation_resolve_scope(
     cli_activation_production_context_t *context) {
     const char *runtime_dir = cbm_daemon_ipc_endpoint_runtime_dir(context->endpoint);
@@ -582,20 +622,30 @@ static cli_activation_scope_t cli_activation_resolve_scope(
     if (lease) {
         return CLI_ACTIVATION_SCOPE_ERROR;
     }
+    if (g_cli_activation_scope_cache_unreadable_for_test) {
+        conflict.active_cache_fingerprint[0] = '\0';
+    }
     switch (status) {
     case CBM_VERSION_COHORT_OK:
-    case CBM_VERSION_COHORT_BUSY:
         return CLI_ACTIVATION_SCOPE_ACTIVE;
+    case CBM_VERSION_COHORT_BUSY:
+        /* User decision 2026-09-28, "unknown = foreign, keep it": a busy
+         * maintenance gate means ownership is unconfirmed, so the running
+         * cohort is left serving and only this home/cache is mutated. */
+        return cli_activation_scope_unconfirmed(
+            context, scope, "the session group was busy, so its cache identity could not be read");
     case CBM_VERSION_COHORT_CONFLICT:
         break;
     default:
         return CLI_ACTIVATION_SCOPE_ERROR;
     }
-    if (!conflict.active_cache_fingerprint[0] ||
-        strcmp(conflict.active_cache_fingerprint, context->cache_fingerprint) == 0) {
-        /* Same cache namespace, another build or version: that IS the daemon
-         * this activation replaces. An unreadable active cache stays in scope
-         * rather than silently exempting a same-namespace daemon. */
+    if (!conflict.active_cache_fingerprint[0]) {
+        return cli_activation_scope_unconfirmed(context, scope,
+                                                "its cache identity could not be read");
+    }
+    if (strcmp(conflict.active_cache_fingerprint, context->cache_fingerprint) == 0) {
+        /* Positively confirmed: same cache namespace, another build or
+         * version. That IS the daemon this activation replaces. */
         return CLI_ACTIVATION_SCOPE_ACTIVE;
     }
     (void)snprintf(context->scope_detail, sizeof(context->scope_detail),
@@ -624,9 +674,10 @@ static int cli_activation_production_reserve(void *opaque, cbm_cli_activation_lo
     }
     if (scope != CLI_ACTIVATION_SCOPE_ACTIVE) {
         /* Nothing in the target namespace is being replaced, or the only
-         * active cohort serves another namespace: hold no maintenance,
-         * admission, lifetime or startup lock (each wakes or blocks the other
-         * namespace's sessions) and send no drain request. */
+         * active cohort serves another namespace, or its ownership could not
+         * be confirmed: hold no maintenance, admission, lifetime or startup
+         * lock (each wakes or blocks the other namespace's sessions) and
+         * send no drain request. */
         if (!cli_activation_log_event(context, "quiesce_skipped", context->scope_detail)) {
             return CLI_ERR;
         }
@@ -1502,6 +1553,12 @@ static const char skill_content[] =
     "- Use `snippet` after discovery so material claims are grounded in exact source, not only "
     "graph metadata.\n"
     "- Prefer qualified symbol names when discovery returns more than one candidate.\n"
+    "\n"
+    "## Edge Types\n"
+    "CALLS, HTTP_CALLS, ASYNC_CALLS, DATA_FLOWS, IMPORTS, DEFINES, DEFINES_METHOD,\n"
+    "HANDLES, IMPLEMENTS, OVERRIDE, USAGE, CALL_REFERENCE, CONFIGURES, REFERENCES_FILE,\n"
+    "FILE_CHANGES_WITH, SIMILAR_TO, SEMANTICALLY_RELATED, CONTAINS_FILE, CONTAINS_FOLDER,\n"
+    "CONTAINS_PACKAGE\n"
     "\n"
     "## Sessions and delegation\n"
     "\n"
@@ -6792,6 +6849,25 @@ bool cbm_config_watcher_enabled(cbm_config_t *cfg) {
     return cbm_config_get_bool(cfg, CBM_CONFIG_WATCHER_ENABLED, true);
 }
 
+bool cbm_config_load_index_policy(cbm_config_t *cfg, cbm_index_resource_policy_t *policy,
+                                  char *error, size_t error_size) {
+    if (!cfg || !policy) {
+        if (error && error_size > 0) {
+            (void)snprintf(error, error_size, "index resource configuration is unavailable");
+        }
+        return false;
+    }
+    cbm_index_policy_init(policy);
+    for (size_t index = 0; index < cbm_index_policy_key_count(); index++) {
+        const char *key = cbm_index_policy_key_at(index);
+        const char *value = cbm_config_get(cfg, key, cbm_index_policy_default_value(key));
+        if (!cbm_index_policy_set(policy, key, value, error, error_size)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /* ── Config CLI subcommand ────────────────────────────────────── */
 
 /* THE config-key table. list, get, help, and key validation all read this one
@@ -6817,6 +6893,8 @@ static const config_key_def_t CONFIG_KEYS[] = {
     {CBM_CONFIG_UI_LANG, "auto", "Pin graph UI language: en, zh, or auto"},
     {CBM_CONFIG_UI_ENABLED, "false", "Serve the graph UI on a loopback HTTP port"},
     {CBM_CONFIG_UI_PORT, "9749", "Port for the graph UI listener when enabled"},
+    {CBM_INDEX_CONFIG_MAX_FILES, "off", "Max accepted source files per index, or off"},
+    {CBM_INDEX_CONFIG_MAX_SOURCE_MB, "off", "Max accepted source MiB per index, or off"},
 };
 
 /* #1558: ui_enabled and ui_port were reachable ONLY by hand-editing
@@ -6840,6 +6918,31 @@ const char *cbm_cli_config_key_at_for_testing(size_t index) {
 
 static bool config_key_is_ui(const char *key) {
     return key && (strcmp(key, CBM_CONFIG_UI_ENABLED) == 0 || strcmp(key, CBM_CONFIG_UI_PORT) == 0);
+}
+
+static bool config_key_is_index_policy(const char *key) {
+    return key && (strcmp(key, CBM_INDEX_CONFIG_MAX_FILES) == 0 ||
+                   strcmp(key, CBM_INDEX_CONFIG_MAX_SOURCE_MB) == 0);
+}
+
+static int config_index_policy_write(cbm_config_t *config, const char *key, const char *value) {
+    cbm_index_resource_policy_t candidate;
+    cbm_index_policy_init(&candidate);
+    char error[CLI_BUF_256];
+    if (!cbm_index_policy_set(&candidate, key, value, error, sizeof(error))) {
+        (void)fprintf(stderr, "error: %s\n", error);
+        return CLI_ERR;
+    }
+    int rc = cbm_config_set(config, key, value);
+    if (rc != 0) {
+        /* The caller suppresses its own message for policy keys because this
+         * helper names the precise reason. That is only true if the helper
+         * speaks on every failure it can return: a validated value whose write
+         * then fails -- a locked or read-only _config.db -- used to exit
+         * non-zero having printed nothing at all. */
+        (void)fprintf(stderr, "error: failed to set %s\n", key);
+    }
+    return rc;
 }
 
 static void config_ui_read(const char *key, char *out, size_t out_sz) {
@@ -6979,10 +7082,16 @@ int cbm_cmd_config(int argc, char **argv) {
                 rc = CLI_TRUE;
             }
         } else {
-            if (cbm_config_set(cfg, argv[CLI_SKIP_ONE], argv[CLI_PAIR_LEN]) == 0) {
+            int set_rc =
+                config_key_is_index_policy(argv[CLI_SKIP_ONE])
+                    ? config_index_policy_write(cfg, argv[CLI_SKIP_ONE], argv[CLI_PAIR_LEN])
+                    : cbm_config_set(cfg, argv[CLI_SKIP_ONE], argv[CLI_PAIR_LEN]);
+            if (set_rc == 0) {
                 printf("%s = %s\n", argv[CLI_SKIP_ONE], argv[CLI_PAIR_LEN]);
             } else {
-                (void)fprintf(stderr, "error: failed to set %s\n", argv[CLI_SKIP_ONE]);
+                if (!config_key_is_index_policy(argv[CLI_SKIP_ONE])) {
+                    (void)fprintf(stderr, "error: failed to set %s\n", argv[CLI_SKIP_ONE]);
+                }
                 rc = CLI_TRUE;
             }
         }
@@ -9082,7 +9191,7 @@ static int cbm_install_agent_configs_with_previous(const char *home, const char 
     return result;
 }
 
-/* Count project index .db files in the cache directory. */
+/* Count project index .db files in the cache directory (internal stores excluded). */
 static int count_db_indexes(const char *home) {
     const char *cache_dir = get_cache_dir(home);
     if (!cache_dir) {
@@ -12373,6 +12482,32 @@ static void cli_add_typed(yyjson_mut_doc *out, yyjson_mut_val *obj, const char *
         if (!arr || !yyjson_mut_is_arr(arr)) {
             arr = yyjson_mut_arr(out);
             yyjson_mut_obj_add(obj, yyjson_mut_strcpy(out, key), arr);
+        }
+        /* The help prints `--paths <array>`, and a caller who writes the
+         * array literally — `--paths '["lib","t"]'` — used to get ONE element
+         * holding that literal text (2026-09-16 probe: check_index_coverage
+         * reported the fake path `["lib","t"]`). A value that parses as a JSON
+         * array contributes its elements; anything else is one element. */
+        if (have_value && value && value[0] == '[') {
+            yyjson_doc *lit = yyjson_read(value, strlen(value), 0);
+            yyjson_val *lit_root = lit ? yyjson_doc_get_root(lit) : NULL;
+            if (lit_root && yyjson_is_arr(lit_root)) {
+                size_t idx;
+                size_t max;
+                yyjson_val *elem;
+                yyjson_arr_foreach(lit_root, idx, max, elem) {
+                    if (yyjson_is_str(elem)) {
+                        yyjson_mut_arr_add_strcpy(out, arr, yyjson_get_str(elem));
+                    } else {
+                        yyjson_mut_arr_add_val(arr, yyjson_val_mut_copy(out, elem));
+                    }
+                }
+                yyjson_doc_free(lit);
+                return;
+            }
+            if (lit) {
+                yyjson_doc_free(lit);
+            }
         }
         yyjson_mut_arr_add_strcpy(out, arr, have_value ? value : "");
         return;

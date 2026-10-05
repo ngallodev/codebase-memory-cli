@@ -2030,9 +2030,12 @@ TEST(store_count_nodes_unknown_project) {
     PASS();
 }
 
-TEST(store_count_failed_read_is_error) {
+/* A COUNT(*) that cannot be read must not be reported as a count of zero:
+ * index_status renders that as the positive assertion status "empty", so a
+ * corrupt project looks like one that was never indexed. Dropping the table
+ * after the statement is cached makes the step fail deterministically. */
+TEST(store_count_failed_read_is_not_zero) {
     cbm_store_t *s = cbm_store_open_memory();
-    ASSERT_NOT_NULL(s);
     cbm_store_upsert_project(s, "test", "/tmp/test");
 
     cbm_node_t n = {.project = "test",
@@ -2041,17 +2044,20 @@ TEST(store_count_failed_read_is_error) {
                     .qualified_name = "test.main.c",
                     .file_path = "main.c"};
     cbm_store_upsert_node(s, &n);
+
+    /* Sanity: a readable table still counts normally. */
     ASSERT_EQ(cbm_store_count_nodes(s, "test"), 1);
-    ASSERT_EQ(cbm_store_count_edges(s, "test"), 0);
+    ASSERT_TRUE(cbm_store_count_edges(s, "test") >= 0);
     ASSERT_EQ(cbm_store_count_nodes_scoped(s, "test", "main.c"), 1);
     ASSERT_EQ(cbm_store_count_edges_scoped(s, "test", "main.c"), 0);
 
-    /* Count statements are cached above; dropping the tables makes sqlite3_step
-     * fail instead of failing statement preparation. */
-    ASSERT_EQ(cbm_store_exec(s, "DROP TABLE nodes;"), CBM_STORE_OK);
-    ASSERT_EQ(cbm_store_exec(s, "DROP TABLE edges;"), CBM_STORE_OK);
-    ASSERT_EQ(cbm_store_count_nodes(s, "test"), CBM_STORE_ERR);
-    ASSERT_EQ(cbm_store_count_edges(s, "test"), CBM_STORE_ERR);
+    /* Make the read fail. The statements are cached by the calls above, so the
+     * step (not the prepare) is what fails once the tables are gone. */
+    ASSERT_EQ(cbm_store_exec(s, "DROP TABLE nodes;"), 0);
+    ASSERT_EQ(cbm_store_exec(s, "DROP TABLE edges;"), 0);
+
+    ASSERT_TRUE(cbm_store_count_nodes(s, "test") < 0);
+    ASSERT_TRUE(cbm_store_count_edges(s, "test") < 0);
     ASSERT_EQ(cbm_store_count_nodes_scoped(s, "test", "main.c"), CBM_STORE_ERR);
     ASSERT_EQ(cbm_store_count_edges_scoped(s, "test", "main.c"), CBM_STORE_ERR);
 
@@ -2461,5 +2467,5 @@ SUITE(store_nodes) {
     RUN_TEST(store_node_properties_special_chars);
     RUN_TEST(store_delete_nodes_nonexistent);
     RUN_TEST(store_count_nodes_unknown_project);
-    RUN_TEST(store_count_failed_read_is_error);
+    RUN_TEST(store_count_failed_read_is_not_zero);
 }

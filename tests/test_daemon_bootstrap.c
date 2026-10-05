@@ -403,6 +403,11 @@ TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous) {
     char explicit_runtime[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char missing_parent[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char created_runtime[BOOTSTRAP_TEST_PATH_CAP] = {0};
+    /* The runner isolates the rendezvous for the whole run through this same
+     * variable, so the test must hand back exactly what it found. */
+    char previous_value[BOOTSTRAP_TEST_PATH_CAP] = {0};
+    const char *previous =
+        cbm_safe_getenv("CBM_RUNTIME_DIR", previous_value, sizeof(previous_value), NULL);
     int written = snprintf(override_parent, sizeof(override_parent),
                            "%s/cbm-bootstrap-runtime-env-XXXXXX", cbm_tmpdir());
     if (written <= 0 || written >= (int)sizeof(override_parent) || !cbm_mkdtemp(override_parent)) {
@@ -446,8 +451,10 @@ TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous) {
     }
 
     /* Restore before asserting: a failed assertion returns immediately, and a
-     * leaked CBM_RUNTIME_DIR would follow every later suite in this process. */
-    (void)cbm_unsetenv("CBM_RUNTIME_DIR");
+     * leaked override, or a dropped run value, would follow every later suite
+     * in this process. */
+    bool restored = previous ? cbm_setenv("CBM_RUNTIME_DIR", previous_value, 1) == 0
+                             : cbm_unsetenv("CBM_RUNTIME_DIR") == 0;
     cbm_daemon_ipc_endpoint_free(created);
     cbm_daemon_ipc_endpoint_free(relocated);
     if (relocated_runtime[0] != '\0') {
@@ -468,6 +475,7 @@ TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous) {
     }
     (void)cbm_rmdir(override_parent);
 
+    ASSERT_TRUE(restored);
     ASSERT_TRUE(prepared);
     ASSERT_TRUE(explicit_started);
     ASSERT_TRUE(explicit_canonical);
@@ -1002,12 +1010,20 @@ static bool bootstrap_enospc_host_spawn(void *opaque,
         int run_result = endpoint ? cbm_daemon_host_run(&config) : 0;
         _exit(run_result == -1 ? 0 : 50);
     }
-    /* SYNCHRONOUS on purpose (ported from upstream). The daemon host writes
-     * its start-failure record and only then releases its lifetime reservation
-     * and exits, so once it is reaped "record on disk, reservation released" is
-     * a stable state. Returning while the host was still running let the
-     * client fail fast on the record and the reaper SIGKILL a host that had not
-     * exited yet, counting it as a nonzero exit on slow runners. */
+    /* SYNCHRONOUS on purpose. The daemon host writes its start-failure record
+     * and only then lets go of its lifetime reservation and exits, so once it
+     * has been reaped "record on disk, reservation released" is a STABLE state
+     * pinned by construction. The client's first look after the spawn (the
+     * wait loop always runs once and its first failure check is unthrottled)
+     * therefore finds the record however long the host took to get there.
+     *
+     * Returning while the host was still running made the verdict ride on the
+     * client's 30 s startup deadline: before it listens the host SHA-256s its
+     * own image, which for the ~450 MB test runner is ~3 s natively and ~26 s
+     * under MSan (48 CI samples: 20-32 s). The deadline won that race on slow
+     * runs and the reaper then SIGKILLed a host that had not failed yet --
+     * `ASSERT(daemon_named_cause)` red on PRs that touch no C at all (#2245,
+     * #2158, #2140). A deadline must never decide a test (O9). */
     size_t slot = state->child_count++;
     state->children[slot] = child;
     int status = 0;

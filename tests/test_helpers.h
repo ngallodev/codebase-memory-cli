@@ -14,6 +14,7 @@
 
 #include "../src/foundation/compat.h"
 #include "../src/foundation/compat_fs.h"
+#include "../src/foundation/git_env.h"
 #include "../src/foundation/platform.h"
 
 #include <stdio.h>
@@ -180,15 +181,19 @@ static inline char *th_mktempdir(const char *prefix) {
  * leaf made by cbm_mkdtemp() has a private DACL. Keep these security-sensitive
  * fixtures under LocalAppData on Windows; preserve the ordinary temporary-root
  * behavior on POSIX. */
+static inline const char *th_secure_runtime_base(void) {
+#ifdef _WIN32
+    return cbm_app_local_dir();
+#else
+    return cbm_tmpdir();
+#endif
+}
+
 static inline bool th_secure_runtime_parent_new(char *out, size_t out_cap, const char *tag) {
     if (!out || out_cap == 0 || !tag || !tag[0]) {
         return false;
     }
-#ifdef _WIN32
-    const char *base = cbm_app_local_dir();
-#else
-    const char *base = cbm_tmpdir();
-#endif
+    const char *base = th_secure_runtime_base();
     if (!base || !base[0]) {
         out[0] = '\0';
         return false;
@@ -219,6 +224,21 @@ static inline void th_make_executable(const char *path) {
 static inline void th_cleanup(const char *path) {
     if (path && path[0]) {
         th_rmtree(path);
+    }
+}
+
+/* ── Inherited git repository environment (#2003) ─────────────── */
+
+/* Git exports repository-local variables into hooks (GIT_DIR, GIT_INDEX_FILE,
+ * ...), and they take precedence over `git -C <dir>`. A test runner started
+ * from a pre-commit hook (or any shell with GIT_DIR set) would otherwise point
+ * every fixture's git command at the caller's real repository: branches and
+ * worktrees get created there and fixture assertions fail. This is the list
+ * `git rev-parse --local-env-vars` prints; runners clear it once at startup so
+ * every spawned git (and every re-exec'd child) scopes to its fixture. */
+static inline void th_clear_git_repo_env(void) {
+    for (int i = 0; i < CBM_GIT_REPO_ENV_VAR_COUNT; i++) {
+        (void)cbm_unsetenv(cbm_git_repo_env_vars[i]);
     }
 }
 
