@@ -8136,6 +8136,61 @@ TEST(cli_install_warns_about_legacy_mcp_instruction_block) {
             NULL;
 #endif
 
+    /* Codex uninstall removes instructions through its own helper instead of
+     * uninstall_agent_mcp_instr, so it needs its own legacy-block warning: same
+     * text, in --dry-run and for real, and the legacy bytes must survive both. */
+#ifndef _WIN32
+    cli_fd_capture_t uninstall_dry_capture;
+    cli_fd_capture_begin(&uninstall_dry_capture, stderr, STDERR_FILENO);
+#endif
+    char *uninstall_dry_argv[] = {"--dry-run", "--yes"};
+    int uninstall_dry_rc = cbm_cmd_uninstall(2, uninstall_dry_argv);
+#ifndef _WIN32
+    char *uninstall_dry_err = cli_fd_capture_end(&uninstall_dry_capture);
+#else
+    char *uninstall_dry_err = NULL;
+#endif
+    cbm_set_auto_answer_for_test(0);
+    char *after_uninstall_dry = read_test_file_alloc(agents_path);
+    bool uninstall_dry_preserved =
+        after_uninstall_dry && after && strcmp(after_uninstall_dry, after) == 0;
+    bool uninstall_dry_warned = true;
+#ifndef _WIN32
+    uninstall_dry_warned =
+        uninstall_dry_err && strstr(uninstall_dry_err, agents_path) != NULL &&
+        strstr(uninstall_dry_err,
+               "still contains a legacy codebase-memory-mcp instruction block") != NULL;
+#endif
+    free(after_uninstall_dry);
+    free(uninstall_dry_err);
+
+#ifndef _WIN32
+    cli_fd_capture_t uninstall_capture;
+    cli_fd_capture_begin(&uninstall_capture, stderr, STDERR_FILENO);
+#endif
+    char *uninstall_argv[] = {"--yes"};
+    int uninstall_rc = cbm_cmd_uninstall(1, uninstall_argv);
+#ifndef _WIN32
+    char *uninstall_err = cli_fd_capture_end(&uninstall_capture);
+#else
+    char *uninstall_err = NULL;
+#endif
+    cbm_set_auto_answer_for_test(0);
+    char *after_uninstall = read_test_file_alloc(agents_path);
+    bool uninstall_legacy_preserved =
+        after_uninstall && strstr(after_uninstall, legacy_block) != NULL;
+    bool uninstall_user_preserved =
+        after_uninstall && strstr(after_uninstall, user_guidance) != NULL;
+    bool uninstall_warned = true;
+#ifndef _WIN32
+    uninstall_warned =
+        uninstall_err && strstr(uninstall_err, agents_path) != NULL &&
+        strstr(uninstall_err, "still contains a legacy codebase-memory-mcp instruction block") !=
+            NULL;
+#endif
+    free(after_uninstall);
+    free(uninstall_err);
+
     free(after);
     free(install_err);
     restore_test_env("HOME", saved_home);
@@ -8144,9 +8199,11 @@ TEST(cli_install_warns_about_legacy_mcp_instruction_block) {
     test_rmdir_r(tmpdir);
 
     if (dry_rc != 0 || install_rc != 0 || !dry_preserved || !dry_warned || !legacy_preserved ||
-        !user_preserved || !cli_block_added_once || !install_warned)
-        FAIL("Codex install must warn about a legacy codebase-memory-mcp block in --dry-run and "
-             "on install, keep its bytes and the user's, and add one CLI managed block");
+        !user_preserved || !cli_block_added_once || !install_warned || uninstall_dry_rc != 0 ||
+        uninstall_rc != 0 || !uninstall_dry_preserved || !uninstall_dry_warned ||
+        !uninstall_legacy_preserved || !uninstall_user_preserved || !uninstall_warned)
+        FAIL("Codex install and uninstall must warn about a legacy codebase-memory-mcp block "
+             "(--dry-run and real), keep its bytes and the user's, and add one CLI managed block");
     PASS();
 }
 

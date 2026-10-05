@@ -1189,14 +1189,29 @@ TEST(integ_search_graph_bm25_applies_label_filter) {
     (void)cbm_setenv("CBM_CACHE_DIR", cache, 1);
     bool fixture = integ_write_bm25_fixture(cache, "bm25-find");
     cbm_test_operation_host_t *host = fixture ? cbm_test_operation_host_new(NULL) : NULL;
-    char *resp = host ? cbm_test_operation_execute(host, "search_graph",
-                                                   "{\"project\":\"bm25-find\",\"query\":\"Table\","
-                                                   "\"label\":\"Class\",\"limit\":5}")
+    size_t args_before = cbm_mem_class_live_blocks(CBM_MEM_CLASS_OPERATION_ARG);
+    char *resp = host ? cbm_test_operation_execute(
+                            host, "search_graph",
+                            "{\"project\":\"bm25-find\",\"format\":\"json\",\"query\":\"Table\","
+                            "\"label\":\"Class\",\"limit\":5}")
                       : NULL;
     bool class_found = resp && strstr(resp, "\"bm25-find.core.Table.Table\",\"Class\"") != NULL;
     bool no_method = resp && strstr(resp, "\"Method\"") == NULL;
     /* The reported total describes the filtered rows, not the unfiltered window. */
     bool total_one = resp && strstr(resp, "\"total\":1") != NULL;
+    bool file_filters_same = true;
+    const char *patterns[] = {"*.kt", "Table.kt"};
+    for (size_t i = 0; i < sizeof(patterns) / sizeof(patterns[0]); ++i) {
+        char args[256];
+        snprintf(args, sizeof(args),
+                 "{\"project\":\"bm25-find\",\"format\":\"json\",\"query\":\"Table\","
+                 "\"label\":\"Class\",\"limit\":5,\"file_pattern\":\"%s\"}",
+                 patterns[i]);
+        char *filtered = host ? cbm_test_operation_execute(host, "search_graph", args) : NULL;
+        file_filters_same = file_filters_same && resp && filtered && strcmp(resp, filtered) == 0;
+        free(filtered);
+    }
+    bool args_released = cbm_mem_class_live_blocks(CBM_MEM_CLASS_OPERATION_ARG) == args_before;
     free(resp);
     cbm_test_operation_host_free(host);
     integ_restore_cache_dir(saved_copy);
@@ -1206,6 +1221,8 @@ TEST(integ_search_graph_bm25_applies_label_filter) {
     ASSERT_TRUE(class_found);
     ASSERT_TRUE(no_method);
     ASSERT_TRUE(total_one);
+    ASSERT_TRUE(file_filters_same);
+    ASSERT_TRUE(args_released);
     PASS();
 }
 
@@ -1221,20 +1238,23 @@ TEST(integ_search_graph_bm25_ranks_exact_name_first) {
     bool fixture = integ_write_bm25_fixture(cache, "bm25-find");
     cbm_test_operation_host_t *host = fixture ? cbm_test_operation_host_new(NULL) : NULL;
 
-    char *table = host ? cbm_test_operation_execute(
-                             host, "search_graph",
-                             "{\"project\":\"bm25-find\",\"query\":\"Table\",\"limit\":5}")
-                       : NULL;
+    char *table =
+        host
+            ? cbm_test_operation_execute(
+                  host, "search_graph",
+                  "{\"project\":\"bm25-find\",\"format\":\"json\",\"query\":\"Table\",\"limit\":5}")
+            : NULL;
     const char *table_rows = table ? strstr(table, "\"rows\":[[") : NULL;
     bool table_first =
         table_rows && strncmp(table_rows + 8, "[\"bm25-find.core.Table.Table\"", 29) == 0;
     free(table);
 
-    char *get404 = host ? cbm_test_operation_execute(
-                              host, "search_graph",
-                              "{\"project\":\"bm25-find\",\"query\":\"get_object_or_404\","
-                              "\"limit\":5}")
-                        : NULL;
+    char *get404 =
+        host ? cbm_test_operation_execute(
+                   host, "search_graph",
+                   "{\"project\":\"bm25-find\",\"format\":\"json\",\"query\":\"get_object_or_404\","
+                   "\"limit\":5}")
+             : NULL;
     const char *get404_rows = get404 ? strstr(get404, "\"rows\":[[") : NULL;
     bool function_first =
         get404_rows &&
@@ -1248,6 +1268,255 @@ TEST(integ_search_graph_bm25_ranks_exact_name_first) {
     ASSERT_TRUE(fixture);
     ASSERT_TRUE(table_first);
     ASSERT_TRUE(function_first);
+    PASS();
+}
+
+TEST(tool_list_projects_tree_uses_one_stable_header_and_keeps_json_direct) {
+    char cache[256];
+    snprintf(cache, sizeof(cache), "%s/cbm-list-lean-XXXXXX", cbm_tmpdir());
+    ASSERT_NOT_NULL(cbm_mkdtemp(cache));
+    const char *saved_cache = getenv("CBM_CACHE_DIR");
+    char *saved_cache_copy = saved_cache ? cbm_mem_strdup(CBM_MEM_CLASS_OTHER, saved_cache) : NULL;
+    cbm_setenv("CBM_CACHE_DIR", cache, 1);
+
+    enum { PROJECTS = 12 };
+    for (int i = 0; i < PROJECTS; i++) {
+        char project[32];
+        char db_path[512];
+        char root_path[512];
+        snprintf(project, sizeof(project), "lean-project-%02d", i);
+        snprintf(db_path, sizeof(db_path), "%s/%s.db", cache, project);
+        snprintf(root_path, sizeof(root_path),
+                 "/workspaces/organization/shared/services/lean-project-%02d", i);
+        cbm_store_t *store = cbm_store_open_path(db_path);
+        ASSERT_NOT_NULL(store);
+        ASSERT_EQ(cbm_store_upsert_project(store, project, root_path), CBM_STORE_OK);
+        cbm_node_t node = {.project = project,
+                           .label = "Function",
+                           .name = "entry",
+                           .qualified_name = "shared.module.entry",
+                           .file_path = "src/main.c",
+                           .start_line = 1,
+                           .end_line = 1};
+        ASSERT_GT(cbm_store_upsert_node(store, &node), 0);
+        cbm_store_close(store);
+    }
+
+    cbm_test_operation_host_t *srv = cbm_test_operation_host_new(NULL);
+    ASSERT_NOT_NULL(srv);
+    char *identity_response = cbm_test_operation_execute(srv, "list_projects", "{\"limit\":50}");
+    char *identity = identity_response;
+    char *tree_response =
+        cbm_test_operation_execute(srv, "list_projects", "{\"limit\":50,\"detail\":\"stats\"}");
+    char *tree = tree_response;
+    char *json_response = cbm_test_operation_execute(
+        srv, "list_projects", "{\"limit\":50,\"format\":\"json\",\"detail\":\"stats\"}");
+    char *json = json_response;
+    char *page_response = cbm_test_operation_execute(srv, "list_projects", "{\"limit\":5}");
+    char *page = page_response;
+
+    bool tree_shape =
+        tree && strstr(tree, "projects_refs:") &&
+        strstr(tree, "projects: 12  (cols: name root_path branch nodes edges size_bytes)") &&
+        strstr(tree, "lean-project-00") && strstr(tree, "lean-project-11") &&
+        strstr(tree, "total: 12") && strstr(tree, "returned: 12") &&
+        strstr(tree, "has_more: false") && !strstr(tree, "\"name\":");
+    bool identity_lean = identity && strstr(identity, "projects_refs:") &&
+                         strstr(identity, "projects: 12  (cols: name root_path branch)") &&
+                         !strstr(identity, "size_bytes") && !strstr(identity, " nodes edges");
+    bool tree_is_leaner = tree && json && strlen(tree) < strlen(json);
+    bool tree_not_duplicated = tree_response && !strstr(tree_response, "structuredContent");
+    bool page_truthful = page && strstr(page, "projects: 5") && strstr(page, "returned: 5") &&
+                         strstr(page, "has_more: true") && strstr(page, "next_offset: 5");
+    bool json_direct = false;
+
+    yyjson_doc *doc = json ? yyjson_read(json, strlen(json), 0) : NULL;
+    if (doc) {
+        yyjson_val *projects = yyjson_obj_get(yyjson_doc_get_root(doc), "projects");
+        yyjson_val *first = projects ? yyjson_arr_get_first(projects) : NULL;
+        json_direct = projects && yyjson_arr_size(projects) == PROJECTS && first &&
+                      yyjson_obj_get(first, "name") && yyjson_obj_get(first, "root_path") &&
+                      yyjson_obj_get(first, "nodes") && yyjson_obj_get(first, "edges") &&
+                      yyjson_obj_get(first, "size_bytes") && !strstr(json, "rows_refs");
+        yyjson_doc_free(doc);
+    }
+
+    char *metadata = cbm_test_operation_execute(
+        srv, "list_projects", "{\"limit\":1,\"metadata_only\":true,\"format\":\"json\"}");
+    ASSERT_STR_EQ(metadata, "{\"projects\":[{\"name\":\"lean-project-00\",\"root_path\":\"/"
+                            "workspaces/organization/shared/services/"
+                            "lean-project-00\"}],\"total\":12,\"offset\":0,\"limit\":1,"
+                            "\"returned\":1,\"has_more\":true,\"next_offset\":1}");
+    free(metadata);
+    free(identity_response);
+    free(tree_response);
+    free(json_response);
+    free(page_response);
+    cbm_test_operation_host_free(srv);
+    integ_restore_cache_dir(saved_cache_copy);
+    cbm_free(CBM_MEM_CLASS_OTHER, saved_cache_copy);
+    for (int i = 0; i < PROJECTS; i++) {
+        char project[32];
+        snprintf(project, sizeof(project), "lean-project-%02d", i);
+        char db_path[512];
+        snprintf(db_path, sizeof(db_path), "%s/%s.db", cache, project);
+        cbm_unlink(db_path);
+    }
+    cbm_rmdir(cache);
+
+    ASSERT_TRUE(tree_shape);
+    ASSERT_TRUE(identity_lean);
+    ASSERT_TRUE(tree_is_leaner);
+    ASSERT_TRUE(tree_not_duplicated);
+    ASSERT_TRUE(page_truthful);
+    ASSERT_TRUE(json_direct);
+
+    PASS();
+}
+
+TEST(integ_search_graph_tree_budget_continuation) {
+    char args[512];
+    snprintf(args, sizeof(args),
+             "{\"project\":\"%s\",\"name_pattern\":\"budgetMarker\",\"max_output_tokens\":128}",
+             g_project);
+    char *page = call_tool("search_graph", args);
+    ASSERT_NOT_NULL(page);
+    ASSERT_TRUE(strlen(page) <= cbm_output_budget_bytes(128));
+    ASSERT_NOT_NULL(strstr(page, "truncation_reason: output_budget"));
+    const char *next = strstr(page, "next_offset: ");
+    ASSERT_NOT_NULL(next);
+    int offset = atoi(next + strlen("next_offset: "));
+    ASSERT_GT(offset, 0);
+    ASSERT_TRUE(offset < 12);
+    snprintf(args, sizeof(args),
+             "{\"project\":\"%s\",\"name_pattern\":\"budgetMarker\",\"offset\":%d,\"max_output_"
+             "tokens\":128}",
+             g_project, offset);
+    char *continuation = call_tool("search_graph", args);
+    ASSERT_NOT_NULL(continuation);
+    ASSERT_TRUE(strlen(continuation) <= cbm_output_budget_bytes(128));
+    ASSERT_NOT_NULL(strstr(continuation, "results:"));
+    free(page);
+    free(continuation);
+    PASS();
+}
+
+/* Ported from upstream's dotless, internal-property and byte-budget guards.
+ * Real disk-backed store, reached through the neutral operation entry point. */
+TEST(integ_search_graph_toon_lossless_and_budgeted) {
+    char *cache = th_mktempdir("cbm_toon_search");
+    ASSERT_NOT_NULL(cache);
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? cbm_mem_strdup(CBM_MEM_CLASS_OTHER, saved) : NULL;
+    cbm_setenv("CBM_CACHE_DIR", cache, 1);
+    char db[512];
+    snprintf(db, sizeof(db), "%s/search-toon.db", cache);
+    cbm_store_t *store = cbm_store_open_path(db);
+    ASSERT_NOT_NULL(store);
+    ASSERT_EQ(cbm_store_upsert_project(store, "search-toon", "/tmp/search-toon"), CBM_STORE_OK);
+    cbm_node_t node = {.project = "search-toon",
+                       .label = "Route",
+                       .name = "dotless_route",
+                       .qualified_name = "__route__ANY__/api/adr",
+                       .file_path = "src/routes.c",
+                       .start_line = 7,
+                       .end_line = 7,
+                       .properties_json = "{\"fp\":\"FPSENTINEL00\",\"sp\":\"SPSENTINEL00\","
+                                          "\"bt\":\"BTSENTINEL00\",\"complexity\":7}"};
+    ASSERT_GT(cbm_store_upsert_node(store, &node), 0);
+    char long_prefix[3901], qn[4000], path[3901], property[5020];
+    memset(long_prefix, 'q', sizeof(long_prefix) - 1U);
+    long_prefix[3900] = '\0';
+    memset(path, 'p', sizeof(path) - 1U);
+    path[3900] = '\0';
+    strcpy(property, "{\"doc\":\"");
+    memset(property + 8, 'v', 5000);
+    strcpy(property + 5008, "\"}");
+    node.label = "Function";
+    node.name = "a_budget";
+    snprintf(qn, sizeof(qn), "%s.a_budget", long_prefix);
+    node.qualified_name = qn;
+    node.file_path = path;
+    node.properties_json = property;
+    ASSERT_GT(cbm_store_upsert_node(store, &node), 0);
+    char scatter_qn[256], scatter_file[256], scatter_name[32];
+    for (int i = 0; i < 24; ++i) {
+        snprintf(scatter_name, sizeof(scatter_name), "scatter%02d", i);
+        snprintf(scatter_qn, sizeof(scatter_qn),
+                 "organization.shared.services.module%02d.scatter%02d", i, i);
+        snprintf(scatter_file, sizeof(scatter_file),
+                 "organization/shared/services/module%02d/entry.c", i);
+        node.name = scatter_name;
+        node.qualified_name = scatter_qn;
+        node.file_path = scatter_file;
+        node.properties_json = NULL;
+        ASSERT_GT(cbm_store_upsert_node(store, &node), 0);
+    }
+    cbm_store_close(store);
+    cbm_test_operation_host_t *host = cbm_test_operation_host_new(NULL);
+    ASSERT_NOT_NULL(host);
+    const char *args = "{\"project\":\"search-toon\",\"name_pattern\":\"dotless_route\"}";
+    char *tree = cbm_test_operation_execute(host, "search_graph", args);
+    ASSERT_NOT_NULL(tree);
+    ASSERT_NOT_NULL(strstr(tree, "(cols: qn label file lines in out)"));
+    ASSERT_NOT_NULL(strstr(tree, "__route__ANY__/api/adr Route src/routes.c 7-7"));
+    ASSERT_NULL(strstr(tree, "group prefix"));
+    free(tree);
+    char *json = cbm_test_operation_execute(
+        host, "search_graph",
+        "{\"project\":\"search-toon\",\"name_pattern\":\"dotless_route\",\"format\":\"json\"}");
+    ASSERT_STR_EQ(json,
+                  "{\"total\":1,\"count\":1,\"cols\":[\"name\",\"label\",\"lines\",\"in\",\"out\"],"
+                  "\"groups\":[{\"qn_prefix\":\"\",\"file\":\"src/"
+                  "routes.c\",\"rows\":[[\"__route__ANY__/api/adr\","
+                  "\"Route\",\"7-7\",0,0]]}],\"has_more\":false}");
+    free(json);
+    tree = cbm_test_operation_execute(
+        host, "search_graph",
+        "{\"project\":\"search-toon\",\"name_pattern\":\"dotless_route\","
+        "\"fields\":[\"fp\",\"sp\",\"bt\",\"complexity\"]}");
+    ASSERT_NOT_NULL(strstr(tree, "complexity"));
+    ASSERT_NULL(strstr(tree, "FPSENTINEL00"));
+    ASSERT_NULL(strstr(tree, "SPSENTINEL00"));
+    ASSERT_NULL(strstr(tree, "BTSENTINEL00"));
+    free(tree);
+    tree = cbm_test_operation_execute(
+        host, "search_graph",
+        "{\"project\":\"search-toon\",\"name_pattern\":\"a_budget\",\"fields\":[\"doc\"],"
+        "\"max_output_tokens\":100000}");
+    ASSERT_NOT_NULL(tree);
+    ASSERT_NOT_NULL(strstr(tree, long_prefix));
+    ASSERT_NOT_NULL(strstr(tree, path));
+    ASSERT_NOT_NULL(strstr(tree, "a_budget"));
+    ASSERT_TRUE(strlen(tree) > 10000U);
+    free(tree);
+    for (int format = 0; format < 2; ++format) {
+        const char *budget_args =
+            format ? "{\"project\":\"search-toon\",\"name_pattern\":\"a_budget\",\"fields\":["
+                     "\"doc\"],\"max_output_tokens\":128,\"format\":\"json\"}"
+                   : "{\"project\":\"search-toon\",\"name_pattern\":\"a_budget\",\"fields\":["
+                     "\"doc\"],\"max_output_tokens\":128}";
+        char *page = cbm_test_operation_execute(host, "search_graph", budget_args);
+        ASSERT_NOT_NULL(page);
+        ASSERT_TRUE(strlen(page) <= cbm_output_budget_bytes(128));
+        ASSERT_NOT_NULL(strstr(page, "output_budget"));
+        ASSERT_NOT_NULL(strstr(page, "next_offset"));
+        ASSERT_NULL(strstr(page, "a_budget"));
+        free(page);
+    }
+    tree = cbm_test_operation_execute(
+        host, "search_graph",
+        "{\"project\":\"search-toon\",\"name_pattern\":\"scatter\",\"limit\":24}");
+    ASSERT_NOT_NULL(tree);
+    ASSERT_NOT_NULL(strstr(tree, "results_refs:"));
+    ASSERT_NOT_NULL(strstr(tree, "@N+suffix=prefix+suffix"));
+    ASSERT_NOT_NULL(strstr(tree, "scatter00"));
+    ASSERT_NOT_NULL(strstr(tree, "scatter23"));
+    free(tree);
+    cbm_test_operation_host_free(host);
+    integ_restore_cache_dir(saved_copy);
+    cbm_free(CBM_MEM_CLASS_OTHER, saved_copy);
+    th_cleanup(cache);
     PASS();
 }
 
@@ -1471,6 +1740,12 @@ TEST(integ_step5_callable_lookup_and_grouping) {
     ASSERT_NOT_NULL(response);
     ASSERT_NOT_NULL(strstr(response, "\"qn_prefix\":\"step5.module\""));
     free(response);
+    response = step5_execute("search_graph",
+                             ",\"name_pattern\":\"overloaded\",\"fields\":[\"docstring\"]");
+    ASSERT_NOT_NULL(response);
+    ASSERT_NOT_NULL(strstr(response, "step5.module (main.py):"));
+    ASSERT_NOT_NULL(strstr(response, "overloaded(pkg.Type)"));
+    free(response);
     PASS();
 }
 
@@ -1649,6 +1924,9 @@ SUITE(integration) {
 
     /* MCP tool handler validation */
     RUN_TEST(integ_mcp_list_projects);
+    RUN_TEST(tool_list_projects_tree_uses_one_stable_header_and_keeps_json_direct);
+    RUN_TEST(integ_search_graph_toon_lossless_and_budgeted);
+    RUN_TEST(integ_search_graph_tree_budget_continuation);
     RUN_TEST(integ_mcp_search_graph_by_label);
     RUN_TEST(integ_mcp_search_graph_by_name);
     RUN_TEST(integ_search_graph_bm25_applies_label_filter);

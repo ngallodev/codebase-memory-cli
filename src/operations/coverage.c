@@ -37,21 +37,13 @@ typedef enum op_coverage_path_result {
     OP_COVERAGE_PATH_INVALID,
 } op_coverage_path_result_t;
 
-static char *op_copy_string(const char *text) {
-    if (!text)
-        return NULL;
-    size_t len = strlen(text);
-    char *copy = malloc(len + 1U);
-    if (copy)
-        memcpy(copy, text, len + 1U);
-    return copy;
-}
-
 static char *op_string_arg(const char *args, const char *name) {
     yyjson_doc *doc = args ? yyjson_read(args, strlen(args), 0) : NULL;
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
-    char *copy = value && yyjson_is_str(value) ? op_copy_string(yyjson_get_str(value)) : NULL;
+    char *copy = value && yyjson_is_str(value)
+                     ? cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, yyjson_get_str(value))
+                     : NULL;
     if (doc)
         yyjson_doc_free(doc);
     return copy;
@@ -293,7 +285,7 @@ static const char *recommended_action(const char *status, const char *freshness)
 cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
     char *project = op_string_arg(args, "project");
     if (!project || !project[0]) {
-        free(project);
+        cbm_operation_arg_free(project);
         return op_error("project is required", "Run the command from an indexed repository.");
     }
     cbm_store_open_status_t open_status = CBM_STORE_OPEN_OK;
@@ -303,7 +295,7 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
             open_status == CBM_STORE_OPEN_CORRUPT
                 ? op_error(CBM_STORE_CORRUPT_MESSAGE, CBM_STORE_CORRUPT_HINT)
                 : op_error("project not indexed", "Run 'codebase-memory-cli index .' first.");
-        free(project);
+        cbm_operation_arg_free(project);
         return result;
     }
 
@@ -319,7 +311,7 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
         if (adoc)
             yyjson_doc_free(adoc);
         cbm_store_close(store);
-        free(project);
+        cbm_operation_arg_free(project);
         return op_error("paths or scopes is required (arrays; max 128 paths and 32 scopes)", NULL);
     }
 
@@ -333,7 +325,7 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
         path_offset = 0;
     char *diagnostics = op_string_arg(args, "diagnostics");
     bool diagnostics_full = diagnostics && strcmp(diagnostics, "full") == 0;
-    free(diagnostics);
+    cbm_operation_arg_free(diagnostics);
 
     cbm_project_t proj = {0};
     bool have_project = cbm_store_get_project(store, project, &proj) == CBM_STORE_OK;
@@ -355,7 +347,7 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
         if (have_project)
             cbm_project_free_fields(&proj);
         cbm_store_close(store);
-        free(project);
+        cbm_operation_arg_free(project);
         return op_error("result allocation failed", NULL);
     }
     yyjson_mut_doc_set_root(doc, root);
@@ -533,6 +525,6 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
     if (have_project)
         cbm_project_free_fields(&proj);
     cbm_store_close(store);
-    free(project);
+    cbm_operation_arg_free(project);
     return op_json_result(doc, false);
 }

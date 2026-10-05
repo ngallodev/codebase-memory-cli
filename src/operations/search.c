@@ -2,6 +2,9 @@
 #include "operations/json_args.h"
 #include "operations/result_wire.h"
 #include "operations/search.h"
+#include "operations/compact_out.h"
+#include "operations/output_budget.h"
+#include "foundation/mem_core.h"
 #include "operations/store_host.h"
 
 #include "foundation/constants.h"
@@ -47,11 +50,7 @@ static sqlite3_destructor_type transient_destructor(void) {
 static char *copy_text(const char *text) {
     if (!text)
         return NULL;
-    size_t length = strlen(text);
-    char *copy = malloc(length + 1U);
-    if (copy)
-        memcpy(copy, text, length + 1U);
-    return copy;
+    return cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, text);
 }
 
 static yyjson_doc *read_args(const char *args) {
@@ -158,18 +157,20 @@ static int build_match(const char *query, char *output, size_t output_size) {
 static char *file_pattern_like(const char *pattern) {
     if (!pattern)
         return NULL;
-    char *like = cbm_glob_to_like(pattern);
+    char *glob = cbm_glob_to_like(pattern);
+    char *like = glob ? cbm_mem_strdup(CBM_MEM_CLASS_OTHER, glob) : NULL;
+    free(glob);
     if (!like || strchr(pattern, '*') || strchr(pattern, '?'))
         return like;
     size_t length = strlen(like);
-    char *contains = malloc(length + 3U);
+    char *contains = cbm_alloc(CBM_MEM_CLASS_OTHER, length + 3U);
     if (!contains)
         return like;
     contains[0] = '%';
     memcpy(contains + 1U, like, length);
     contains[length + 1U] = '%';
     contains[length + 2U] = '\0';
-    free(like);
+    cbm_free(CBM_MEM_CLASS_OTHER, like);
     return contains;
 }
 
@@ -198,9 +199,71 @@ static cbm_store_t *open_indexed_project(const char *project,
     return store;
 }
 
+static char *ranked_tree(const char *json) {
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
+    yyjson_val *rows = yyjson_obj_get(root, "rows");
+    yyjson_val *columns = yyjson_obj_get(root, "cols");
+    int ncols = (int)yyjson_arr_size(columns);
+    int nrows = (int)yyjson_arr_size(rows);
+    const char *cols[5];
+    const bool strings[] = {true, true, true, true, false};
+    const bool prefixes[] = {true, false, true, false, false};
+    if (ncols != 5) {
+        if (doc)
+            yyjson_doc_free(doc);
+        return NULL;
+    }
+    size_t count = (size_t)nrows * 5U;
+    const char **cells = cbm_calloc(CBM_MEM_CLASS_OTHER, count * sizeof(*cells));
+    char (*numbers)[32] = cbm_calloc(CBM_MEM_CLASS_OTHER, (size_t)nrows * sizeof(*numbers));
+    if (!cells || !numbers) {
+        cbm_free(CBM_MEM_CLASS_OTHER, cells);
+        cbm_free(CBM_MEM_CLASS_OTHER, numbers);
+        yyjson_doc_free(doc);
+        return NULL;
+    }
+    for (int c = 0; c < 5; ++c)
+        cols[c] = yyjson_get_str(yyjson_arr_get(columns, (size_t)c));
+    for (int r = 0; r < nrows; ++r) {
+        yyjson_val *row = yyjson_arr_get(rows, (size_t)r);
+        for (int c = 0; c < 4; ++c)
+            cells[(size_t)r * 5U + (size_t)c] = yyjson_get_str(yyjson_arr_get(row, (size_t)c));
+        snprintf(numbers[r], sizeof(numbers[r]), "%.17g", yyjson_get_num(yyjson_arr_get(row, 4)));
+        cells[(size_t)r * 5U + 4U] = numbers[r];
+    }
+    cbm_sb_t sb;
+    cbm_sb_init(&sb);
+    cbm_tree_table_rows_profiled(&sb, "results", nrows, cols, 5, cells, strings, prefixes);
+    cbm_free(CBM_MEM_CLASS_OTHER, cells);
+    cbm_free(CBM_MEM_CLASS_OTHER, numbers);
+    yyjson_mut_doc *metadata_doc = yyjson_doc_mut_copy(doc, NULL);
+    yyjson_doc_free(doc);
+    if (!metadata_doc) {
+        cbm_sb_free(&sb);
+        return NULL;
+    }
+    yyjson_mut_val *metadata_root = yyjson_mut_doc_get_root(metadata_doc);
+    yyjson_mut_obj_remove_key(metadata_root, "rows");
+    yyjson_mut_obj_remove_key(metadata_root, "cols");
+    cbm_operation_result_t metadata_result = json_result(metadata_doc, false);
+    char *metadata = !metadata_result.is_error && metadata_result.payload
+                         ? cbm_json_to_tree(metadata_result.payload)
+                         : NULL;
+    cbm_operation_result_dispose(&metadata_result);
+    if (!metadata) {
+        cbm_sb_free(&sb);
+        return NULL;
+    }
+    cbm_sb_append(&sb, metadata);
+    free(metadata);
+    return cbm_sb_finish(&sb);
+}
+
 static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *project,
                                           const char *query, const char *file_pattern,
-                                          const char *label_filter, int limit, int offset) {
+                                          const char *label_filter, int limit, int offset,
+                                          const char *args) {
     sqlite3 *db = cbm_store_get_db(store);
     char match[BM25_QUERY_BUFFER];
     if (!db || build_match(query, match, sizeof(match)) == 0)
@@ -229,7 +292,7 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
         "AND (?7 IS NULL OR n.label=?7) ORDER BY rank,n.id LIMIT ?3 OFFSET ?4";
     sqlite3_stmt *statement = NULL;
     if (sqlite3_prepare_v2(db, sql, -1, &statement, NULL) != SQLITE_OK) {
-        free(file_like);
+        cbm_free(CBM_MEM_CLASS_OTHER, file_like);
         return error_result("full-text search unavailable",
                             "Re-index the project or use structural search flags.");
     }
@@ -300,7 +363,7 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
         if (doc)
             yyjson_mut_doc_free(doc);
         sqlite3_finalize(statement);
-        free(file_like);
+        cbm_free(CBM_MEM_CLASS_OTHER, file_like);
         return error_result("result allocation failed", NULL);
     }
     yyjson_mut_doc_set_root(doc, root);
@@ -333,7 +396,7 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
         ++emitted;
     }
     sqlite3_finalize(statement);
-    free(file_like);
+    cbm_free(CBM_MEM_CLASS_OTHER, file_like);
     yyjson_mut_obj_add_val(doc, root, "rows", rows);
     bool has_more = total > offset + emitted;
     yyjson_mut_obj_add_int(doc, root, "returned", emitted);
@@ -345,7 +408,45 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
     if (truncated)
         yyjson_mut_obj_add_str(doc, root, "truncation_reason",
                                has_more ? "page_limit" : "candidate_window");
-    return json_result(doc, false);
+    char *format = string_arg(args, "format");
+    bool json_format = format && strcmp(format, "json") == 0;
+    cbm_operation_arg_free(format);
+    size_t ceiling = cbm_output_budget_bytes(cbm_output_budget_tokens(args, 0));
+    char *payload = NULL;
+    for (;;) {
+        yyjson_mut_doc *encoding = yyjson_mut_doc_new(NULL);
+        if (encoding)
+            yyjson_mut_doc_set_root(encoding, yyjson_mut_val_mut_copy(encoding, root));
+        char *json = json_format ? encoding ? cbm_operation_json_write(encoding) : NULL
+                                 : yyjson_mut_write(doc, 0, NULL);
+        if (encoding)
+            yyjson_mut_doc_free(encoding);
+        payload = json_format ? json : json ? ranked_tree(json) : NULL;
+        if (!json_format)
+            free(json);
+        if (!payload || !ceiling || strlen(payload) <= ceiling)
+            break;
+        cbm_operation_result_t oversized = cbm_operation_result_take(payload, false);
+        cbm_operation_result_dispose(&oversized);
+        payload = NULL;
+        if (emitted == 0)
+            break;
+        yyjson_mut_arr_remove_last(rows);
+        --emitted;
+        yyjson_mut_obj_remove_key(root, "returned");
+        yyjson_mut_obj_remove_key(root, "has_more");
+        yyjson_mut_obj_remove_key(root, "next_offset");
+        yyjson_mut_obj_remove_key(root, "truncated");
+        yyjson_mut_obj_remove_key(root, "truncation_reason");
+        yyjson_mut_obj_add_int(doc, root, "returned", emitted);
+        yyjson_mut_obj_add_bool(doc, root, "has_more", true);
+        yyjson_mut_obj_add_int(doc, root, "next_offset", offset + emitted);
+        yyjson_mut_obj_add_bool(doc, root, "truncated", true);
+        yyjson_mut_obj_add_str(doc, root, "truncation_reason", "output_budget");
+    }
+    yyjson_mut_doc_free(doc);
+    return payload ? cbm_operation_result_take(payload, false)
+                   : error_result("max_output_tokens is too small for search metadata", NULL);
 }
 
 static bool blocked_field(const char *field) {
@@ -411,6 +512,199 @@ static size_t prefix_length(const char *qn, const char *name) {
             last = i;
     }
     return last;
+}
+
+static void sg_toon_property_cell(cbm_sb_t *sb, yyjson_val *v) {
+    if (v && yyjson_is_str(v)) {
+        cbm_tree_cell_str(sb, yyjson_get_str(v), false);
+    } else if (v && yyjson_is_bool(v)) {
+        cbm_tree_cell_bool(sb, yyjson_get_bool(v), false);
+    } else if (v && yyjson_is_int(v)) {
+        cbm_tree_cell_int(sb, yyjson_get_int(v), false);
+    } else if (v && yyjson_is_real(v)) {
+        cbm_tree_cell_real(sb, yyjson_get_real(v), false);
+    } else if (v && !yyjson_is_null(v)) {
+        char *json = yyjson_val_write(v, 0, NULL);
+        cbm_tree_cell_str(sb, json ? json : "", false);
+        free(json);
+    } else {
+        cbm_tree_cell_str(sb, "", false);
+    }
+}
+
+/* "start-end" line range, or empty when the node carries no line info. */
+static void sg_lines_str(char *out, size_t sz, int start, int end) {
+    if (start > 0) {
+        snprintf(out, sz, "%d-%d", start, end > start ? end : start);
+    } else {
+        out[0] = '\0';
+    }
+}
+
+static void emit_search_results_grouped_tree(cbm_sb_t *sb, const cbm_search_output_t *out,
+                                             const char *const *fields, int nfields,
+
+                                             bool include_connected, int returned) {
+    cbm_sb_append(sb, "results: ");
+    char count_buf[CBM_SZ_32];
+    snprintf(count_buf, sizeof(count_buf), "%d", returned);
+    cbm_sb_append(sb, count_buf);
+    cbm_sb_append(sb, "  (rows: name label lines in out");
+    for (int f = 0; f < nfields; f++) {
+        cbm_sb_append(sb, " ");
+        cbm_sb_append(sb, fields[f]);
+    }
+    if (include_connected) {
+        cbm_sb_append(sb, " connected");
+    }
+    cbm_sb_append(sb, "; group prefix \"-\" means empty; "
+                      "qn = prefix empty ? name : prefix + \".\" + name)\n");
+
+    char *previous_prefix = NULL;
+    char *previous_file = NULL;
+    for (int i = 0; i < returned; i++) {
+        const cbm_search_result_t *sr = &out->results[i];
+        const char *qn = sr->node.qualified_name ? sr->node.qualified_name : "";
+        const char *file = sr->node.file_path ? sr->node.file_path : "";
+        size_t plen = prefix_length(qn, sr->node.name);
+        bool same_group = previous_prefix && strlen(previous_prefix) == plen &&
+                          memcmp(previous_prefix, qn, plen) == 0 && previous_file &&
+                          strcmp(previous_file, file) == 0;
+        if (!same_group) {
+            cbm_free(CBM_MEM_CLASS_OTHER, previous_prefix);
+            cbm_free(CBM_MEM_CLASS_OTHER, previous_file);
+            previous_prefix = cbm_alloc(CBM_MEM_CLASS_OTHER, plen + 1U);
+            if (previous_prefix) {
+                memcpy(previous_prefix, qn, plen);
+                previous_prefix[plen] = '\0';
+            }
+            previous_file = cbm_mem_strdup(CBM_MEM_CLASS_OTHER, file);
+            if (!previous_prefix || !previous_file) {
+                sb->oom = true;
+                break;
+            }
+            cbm_tree_cell_str(sb, previous_prefix, true);
+            cbm_sb_append(sb, " (");
+            cbm_tree_cell_str(sb, previous_file, true);
+            cbm_sb_append(sb, "):\n");
+        }
+        const char *shortname = plen ? qn + plen + 1 : qn;
+        char lines[CBM_SZ_32];
+        sg_lines_str(lines, sizeof(lines), sr->node.start_line, sr->node.end_line);
+        cbm_sb_append(sb, "  ");
+        cbm_tree_cell_str(sb, shortname, true);
+        cbm_tree_cell_str(sb, sr->node.label ? sr->node.label : "", false);
+        cbm_tree_cell_str(sb, lines, false);
+        cbm_tree_cell_int(sb, sr->in_degree, false);
+        cbm_tree_cell_int(sb, sr->out_degree, false);
+        /* Extra property columns (fields param). Routed through the shared
+         * cell emitters so values with spaces (signatures, docstrings) are
+         * QUOTED — a raw append would shift every following column. Missing
+         * values emit as "-" (the emitter's empty-cell placeholder). */
+        if (nfields > 0) {
+            yyjson_doc *pd =
+                (sr->node.properties_json && sr->node.properties_json[0])
+                    ? yyjson_read(sr->node.properties_json, strlen(sr->node.properties_json), 0)
+                    : NULL;
+            yyjson_val *pr = pd ? yyjson_doc_get_root(pd) : NULL;
+            for (int f = 0; f < nfields; f++) {
+                yyjson_val *v = (pr && yyjson_is_obj(pr)) ? yyjson_obj_get(pr, fields[f]) : NULL;
+                sg_toon_property_cell(sb, v);
+            }
+            if (pd) {
+                yyjson_doc_free(pd);
+            }
+        }
+        if (include_connected && sr->node.id > 0) {
+            cbm_sb_t connected;
+            cbm_sb_init(&connected);
+            for (int c = 0; c < sr->connected_count; ++c) {
+                if (c)
+                    cbm_sb_append(&connected, ",");
+                cbm_sb_append(&connected, sr->connected_names[c]);
+            }
+            if (connected.oom)
+                sb->oom = true;
+            cbm_tree_cell_str(sb, connected.buf ? connected.buf : "", false);
+            cbm_sb_free(&connected);
+        }
+        cbm_sb_append(sb, "\n");
+    }
+    cbm_free(CBM_MEM_CLASS_OTHER, previous_prefix);
+    cbm_free(CBM_MEM_CLASS_OTHER, previous_file);
+}
+
+/* The grouped search shape is excellent when rows share a module/file, but its
+ * reconstruction rule and group headers are pure overhead for a singleton or
+ * a scatter of unrelated rows. The common, no-extra-fields path can be
+ * represented as a regular table, so render both byte-for-byte and keep the
+ * smaller lossless form. Extra property/connected columns retain the grouped
+ * emitter because their cells are dynamically typed. */
+static void render_search_results_flat_tree(cbm_sb_t *flat, const cbm_search_output_t *out,
+                                            int returned) {
+    static const char *const cols[] = {"qn", "label", "file", "lines", "in", "out"};
+    static const bool string_cols[] = {true, true, true, true, false, false};
+    static const bool prefix_cols[] = {true, false, true, false, false, false};
+    enum { COLS = 6, CELL_TEXTS = 3 };
+    if (returned == 0) {
+        cbm_tree_table_header(flat, "results", 0, cols, COLS);
+        return;
+    }
+    if (returned < 0 || (size_t)returned > (size_t)-1 / (COLS * sizeof(char *)) ||
+        (size_t)returned > (size_t)-1 / (CELL_TEXTS * CBM_SZ_32)) {
+        flat->oom = true;
+        return;
+    }
+    const char **cells = cbm_calloc(CBM_MEM_CLASS_OTHER, (size_t)returned * COLS * sizeof(*cells));
+    char *text = cbm_calloc(CBM_MEM_CLASS_OTHER, (size_t)returned * CELL_TEXTS * CBM_SZ_32);
+    if (!cells || !text) {
+        cbm_free(CBM_MEM_CLASS_OTHER, (void *)cells);
+        cbm_free(CBM_MEM_CLASS_OTHER, text);
+        flat->oom = true;
+        return;
+    }
+    for (int i = 0; i < returned; i++) {
+        const cbm_search_result_t *sr = &out->results[i];
+        char *lines = text + (size_t)(i * CELL_TEXTS) * CBM_SZ_32;
+        char *in_degree = lines + CBM_SZ_32;
+        char *out_degree = in_degree + CBM_SZ_32;
+        sg_lines_str(lines, CBM_SZ_32, sr->node.start_line, sr->node.end_line);
+        snprintf(in_degree, CBM_SZ_32, "%d", sr->in_degree);
+        snprintf(out_degree, CBM_SZ_32, "%d", sr->out_degree);
+        cells[(size_t)i * COLS] = sr->node.qualified_name ? sr->node.qualified_name : "";
+        cells[(size_t)i * COLS + 1U] = sr->node.label ? sr->node.label : "";
+        cells[(size_t)i * COLS + 2U] = sr->node.file_path ? sr->node.file_path : "";
+        cells[(size_t)i * COLS + 3U] = lines;
+        cells[(size_t)i * COLS + 4U] = in_degree;
+        cells[(size_t)i * COLS + 5U] = out_degree;
+    }
+    cbm_tree_table_rows_profiled(flat, "results", returned, cols, COLS, cells, string_cols,
+                                 prefix_cols);
+    cbm_free(CBM_MEM_CLASS_OTHER, (void *)cells);
+    cbm_free(CBM_MEM_CLASS_OTHER, text);
+}
+
+static void emit_search_results_tree(cbm_sb_t *sb, const cbm_search_output_t *out,
+                                     const char *const *fields, int nfields, bool include_connected,
+                                     int returned) {
+    cbm_sb_t grouped;
+    cbm_sb_init(&grouped);
+    emit_search_results_grouped_tree(&grouped, out, fields, nfields, include_connected, returned);
+    cbm_sb_t flat;
+    cbm_sb_init(&flat);
+    if (nfields == 0 && !include_connected)
+        render_search_results_flat_tree(&flat, out, returned);
+    const char *grouped_text = grouped.oom ? NULL : grouped.buf;
+    const char *flat_text = flat.oom ? NULL : flat.buf;
+    if (!flat_text && !grouped_text)
+        sb->oom = true;
+    if (flat_text && (!grouped_text || strlen(flat_text) < strlen(grouped_text))) {
+        cbm_sb_append(sb, flat_text);
+    } else if (grouped_text) {
+        cbm_sb_append(sb, grouped_text);
+    }
+    cbm_sb_free(&flat);
+    cbm_sb_free(&grouped);
 }
 
 static void add_property_value(yyjson_mut_doc *doc, yyjson_mut_val *row, yyjson_val *value) {
@@ -645,6 +939,7 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
     int semantic_materialize_limit = semantic_offset + semantic_limit + 1;
 
     cbm_operation_result_t result = {0};
+    int original_count = 0;
     cbm_store_t *store = NULL;
     cbm_store_open_status_t open_status = CBM_STORE_OPEN_NOT_FOUND;
     cbm_search_output_t output = {0};
@@ -681,7 +976,7 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
     }
 
     if (query && query[0]) {
-        result = bm25_search(store, project, query, file_pattern, label, limit, offset);
+        result = bm25_search(store, project, query, file_pattern, label, limit, offset, args);
         if (result.payload && result.payload[0])
             goto done;
         cbm_operation_result_dispose(&result);
@@ -732,49 +1027,119 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
     const char *fields[SEARCH_MAX_FIELDS];
     bool core_requested = false;
     int field_count = parse_fields(args, fields, &fields_owner, &core_requested);
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-    yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
-    if (!doc || !root) {
-        if (doc)
-            yyjson_mut_doc_free(doc);
-        result = error_result("result allocation failed", NULL);
-        goto done;
+    original_count = output.count;
+    int original_fields = field_count;
+    size_t ceiling = cbm_output_budget_bytes(cbm_output_budget_tokens(args, 0));
+    bool budget_hit = false;
+    for (;;) {
+        yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+        yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
+        if (!doc || !root) {
+            if (doc)
+                yyjson_mut_doc_free(doc);
+            result = error_result("result allocation failed", NULL);
+            goto done;
+        }
+        yyjson_mut_doc_set_root(doc, root);
+        if (!semantic_only)
+            emit_structural(doc, root, &output, offset, fields, field_count, include_connected);
+        if (core_requested)
+            yyjson_mut_obj_add_str(doc, root, "fields_hint",
+                                   "Core fields are already included and were not duplicated as "
+                                   "extra property columns.");
+        if (output.total == 0 && !semantic_only && structural) {
+            yyjson_mut_obj_add_str(
+                doc, root, "hint",
+                "No results match the current filters; broaden or remove filters and retry.");
+        }
+        if (semantic_present) {
+            emit_semantic(doc, root, &semantic_page);
+            if (semantic_only && vector_count == 0)
+                yyjson_mut_obj_add_str(
+                    doc, root, "hint",
+                    "No semantic matches. Re-index at moderate/full semantic depth "
+                    "or broaden the keywords.");
+        }
+        if (budget_hit) {
+            yyjson_mut_obj_add_bool(doc, root, "truncated", true);
+            yyjson_mut_obj_add_str(doc, root, "truncation_reason", "output_budget");
+            if (field_count < original_fields)
+                yyjson_mut_obj_add_int(doc, root, "fields_omitted", original_fields - field_count);
+            if (!semantic_only) {
+                yyjson_mut_obj_add_int(doc, root, "returned", output.count);
+                if (output.total > offset + output.count)
+                    yyjson_mut_obj_add_int(doc, root, "next_offset", offset + output.count);
+            }
+        }
+        char *format = string_arg(args, "format");
+        bool json_format = format && strcmp(format, "json") == 0;
+        cbm_operation_arg_free(format);
+        if (json_format) {
+            result = json_result(doc, false);
+        } else {
+            if (!semantic_only) {
+                yyjson_mut_obj_remove_key(root, "cols");
+                yyjson_mut_obj_remove_key(root, "groups");
+                yyjson_mut_obj_remove_key(root, "count");
+                if (!budget_hit) {
+                    yyjson_mut_obj_add_int(doc, root, "returned", output.count);
+                    if (output.total > offset + output.count)
+                        yyjson_mut_obj_add_int(doc, root, "next_offset", offset + output.count);
+                }
+            }
+            cbm_operation_result_t metadata_result = json_result(doc, false);
+            char *metadata = !metadata_result.is_error && metadata_result.payload
+                                 ? cbm_json_to_tree(metadata_result.payload)
+                                 : NULL;
+            cbm_operation_result_dispose(&metadata_result);
+            cbm_sb_t tree;
+            cbm_sb_init(&tree);
+            if (!semantic_only)
+                emit_search_results_tree(&tree, &output, fields, field_count, include_connected,
+                                         output.count);
+            if (!metadata)
+                tree.oom = true;
+            cbm_sb_append(&tree, metadata);
+            free(metadata);
+            result = cbm_operation_result_take(cbm_sb_finish(&tree), false);
+        }
+
+        if (!result.payload) {
+            result.is_error = true;
+            break;
+        }
+        if (!ceiling || strlen(result.payload) <= ceiling)
+            break;
+        budget_hit = true;
+        cbm_operation_result_dispose(&result);
+        if (field_count > 0)
+            field_count = 0;
+        else if (semantic_page.limit > 0 && semantic_present)
+            --semantic_page.limit;
+        else if (output.count > 0)
+            --output.count;
+        else {
+            result = error_result("max_output_tokens is too small for search metadata", NULL);
+            break;
+        }
     }
-    yyjson_mut_doc_set_root(doc, root);
-    if (!semantic_only)
-        emit_structural(doc, root, &output, offset, fields, field_count, include_connected);
-    if (core_requested)
-        yyjson_mut_obj_add_str(
-            doc, root, "fields_hint",
-            "Core fields are already included and were not duplicated as extra property columns.");
-    if (output.total == 0 && !semantic_only && structural) {
-        yyjson_mut_obj_add_str(
-            doc, root, "hint",
-            "No results match the current filters; broaden or remove filters and retry.");
-    }
-    if (semantic_present) {
-        emit_semantic(doc, root, &semantic_page);
-        if (semantic_only && vector_count == 0)
-            yyjson_mut_obj_add_str(doc, root, "hint",
-                                   "No semantic matches. Re-index at moderate/full semantic depth "
-                                   "or broaden the keywords.");
-    }
-    result = json_result(doc, false);
 
 done:
     if (fields_owner)
         yyjson_doc_free(fields_owner);
     if (vectors)
         cbm_store_free_vector_results(vectors, vector_count);
+    if (original_count > 0)
+        output.count = original_count;
     cbm_store_search_free(&output);
     if (store)
         cbm_store_close(store);
-    free(project);
-    free(query);
-    free(label);
-    free(name_pattern);
-    free(qn_pattern);
-    free(file_pattern);
-    free(relationship);
+    cbm_operation_arg_free(project);
+    cbm_operation_arg_free(query);
+    cbm_operation_arg_free(label);
+    cbm_operation_arg_free(name_pattern);
+    cbm_operation_arg_free(qn_pattern);
+    cbm_operation_arg_free(file_pattern);
+    cbm_operation_arg_free(relationship);
     return result;
 }

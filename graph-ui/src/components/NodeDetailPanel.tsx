@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { colorForLabel } from "../lib/colors";
-import { callTool } from "../api/rpc";
+import { fetchRead } from "../api/native";
 import type { GraphNode, GraphEdge, RepoInfo } from "../lib/types";
 
 interface Connection {
@@ -73,10 +73,9 @@ export function NodeDetailPanel({
     setCodeLoading(true);
     setCodeError(null);
     try {
-      const res = await callTool<SnippetResult>("get_code_snippet", {
+      const res = await fetchRead<SnippetResult>("snippet", {
         qualified_name: node.qualified_name,
         project,
-        format: "json",
         source_mode: "full",
       });
       setCode(res.source ?? "(source not available)");

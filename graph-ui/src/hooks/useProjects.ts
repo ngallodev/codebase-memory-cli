@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { callTool } from "../api/rpc";
+import { fetchRead } from "../api/native";
 import type { Project, SchemaInfo } from "../lib/types";
 
 interface ProjectInfo {
@@ -13,7 +13,7 @@ interface ProjectPage {
   next_offset?: number;
 }
 
-interface SchemaPage extends SchemaInfo {
+interface SchemaPage extends Omit<SchemaInfo, "total_nodes" | "total_edges"> {
   has_more?: boolean;
   next_offset?: number;
 }
@@ -35,9 +35,7 @@ async function fetchAllProjects(): Promise<Project[]> {
   const projects: Project[] = [];
   let offset = 0;
   for (;;) {
-    const page = await callTool<ProjectPage>("list_projects", {
-      format: "json",
-      detail: "stats",
+    const page = await fetchRead<ProjectPage>("projects", {
       limit: PAGE_LIMIT,
       offset,
     });
@@ -54,9 +52,8 @@ async function fetchFullSchema(project: string): Promise<SchemaInfo> {
   let firstPage: SchemaPage | null = null;
   let offset = 0;
   for (;;) {
-    const page = await callTool<SchemaPage>("get_graph_schema", {
+    const page = await fetchRead<SchemaPage>("schema", {
       project,
-      format: "json",
       limit: PAGE_LIMIT,
       offset,
     });
@@ -65,7 +62,13 @@ async function fetchFullSchema(project: string): Promise<SchemaInfo> {
     edgeTypes.push(...(page.edge_types ?? []));
     const next = nextPageOffset(page, offset);
     if (next === null) {
-      return { ...firstPage, node_labels: nodeLabels, edge_types: edgeTypes };
+      return {
+        ...firstPage,
+        node_labels: nodeLabels,
+        edge_types: edgeTypes,
+        total_nodes: nodeLabels.reduce((total, label) => total + label.count, 0),
+        total_edges: edgeTypes.reduce((total, edge) => total + edge.count, 0),
+      };
     }
     offset = next;
   }

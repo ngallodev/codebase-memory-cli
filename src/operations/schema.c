@@ -11,16 +11,6 @@
 #include <string.h>
 #include <sys/stat.h>
 
-static char *copy_string(const char *text) {
-    if (!text)
-        return NULL;
-    size_t len = strlen(text);
-    char *copy = malloc(len + 1U);
-    if (copy)
-        memcpy(copy, text, len + 1U);
-    return copy;
-}
-
 static char *project_arg(const char *args_json) {
     yyjson_doc *doc =
         yyjson_read(args_json ? args_json : "{}", strlen(args_json ? args_json : "{}"), 0);
@@ -30,7 +20,7 @@ static char *project_arg(const char *args_json) {
     for (size_t i = 0; yyjson_is_obj(root) && i < sizeof(names) / sizeof(names[0]); ++i) {
         yyjson_val *value = yyjson_obj_get(root, names[i]);
         if (yyjson_is_str(value)) {
-            result = copy_string(yyjson_get_str(value));
+            result = cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, yyjson_get_str(value));
             break;
         }
     }
@@ -95,13 +85,13 @@ static int schema_record_compare(const void *left, const void *right) {
 cbm_operation_result_t cbm_schema_operation_execute(const char *args_json) {
     char *project = project_arg(args_json);
     if (!project || !project[0]) {
-        free(project);
+        cbm_operation_arg_free(project);
         return cbm_operation_result_copy("project is required", true);
     }
     cbm_store_open_status_t open_status = CBM_STORE_OPEN_OK;
     cbm_store_t *store = cbm_store_host_open_query(project, &open_status);
     if (!store) {
-        free(project);
+        cbm_operation_arg_free(project);
         return cbm_operation_result_copy(open_status == CBM_STORE_OPEN_CORRUPT
                                              ? CBM_STORE_CORRUPT_ERROR
                                              : "project not found or not indexed",
@@ -109,7 +99,7 @@ cbm_operation_result_t cbm_schema_operation_execute(const char *args_json) {
     }
     if (cbm_store_count_nodes(store, project) <= 0) {
         cbm_store_close(store);
-        free(project);
+        cbm_operation_arg_free(project);
         return cbm_operation_result_copy("project not indexed or index is empty", true);
     }
 
@@ -133,7 +123,7 @@ cbm_operation_result_t cbm_schema_operation_execute(const char *args_json) {
     if (!records) {
         cbm_store_schema_free(&schema);
         cbm_store_close(store);
-        free(project);
+        cbm_operation_arg_free(project);
         return cbm_operation_result_copy("out of memory while rendering schema", true);
     }
     int record_count = 0;
@@ -154,7 +144,7 @@ cbm_operation_result_t cbm_schema_operation_execute(const char *args_json) {
         free(records);
         cbm_store_schema_free(&schema);
         cbm_store_close(store);
-        free(project);
+        cbm_operation_arg_free(project);
         return cbm_operation_result_copy("result allocation failed", true);
     }
     yyjson_mut_doc_set_root(doc, root);
@@ -220,7 +210,7 @@ cbm_operation_result_t cbm_schema_operation_execute(const char *args_json) {
     free(records);
     cbm_store_schema_free(&schema);
     cbm_store_close(store);
-    free(project);
+    cbm_operation_arg_free(project);
     return payload ? cbm_operation_result_take(payload, false)
                    : cbm_operation_result_copy("result encoding failed", true);
 }

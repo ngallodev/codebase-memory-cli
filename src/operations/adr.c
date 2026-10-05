@@ -5,6 +5,7 @@
 
 #include "foundation/compat_fs.h"
 #include "foundation/constants.h"
+#include "foundation/mem_core.h"
 #include "store/store.h"
 #include "yyjson/yyjson.h"
 
@@ -45,7 +46,7 @@ static char *adr_string_arg(const char *args, const char *key) {
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, key) : NULL;
     const char *text = yyjson_is_str(value) ? yyjson_get_str(value) : NULL;
-    char *copy = text ? adr_strdup(text) : NULL;
+    char *copy = text ? cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, text) : NULL;
     if (doc)
         yyjson_doc_free(doc);
     return copy;
@@ -395,28 +396,28 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
     char *mode = adr_string_arg(args, "mode");
     char *content = adr_string_arg(args, "content");
     if (!mode)
-        mode = adr_strdup("outline");
+        mode = cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, "outline");
 
     bool valid_mode = mode && (strcmp(mode, "outline") == 0 || strcmp(mode, "get") == 0 ||
                                strcmp(mode, "sections") == 0 || strcmp(mode, "update") == 0 ||
                                strcmp(mode, "set_sections") == 0 || strcmp(mode, "store") == 0);
     if (!valid_mode) {
-        cbm_operation_arg_free(project);
-        free(mode);
-        free(content);
+        cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+        cbm_operation_arg_free(mode);
+        cbm_operation_arg_free(content);
         return adr_error("invalid_arguments",
                          "invalid mode: use outline, get, sections, set_sections, or update");
     }
     if ((strcmp(mode, "update") == 0 || strcmp(mode, "store") == 0) && !content) {
-        cbm_operation_arg_free(project);
-        free(mode);
+        cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+        cbm_operation_arg_free(mode);
         return adr_error("invalid_arguments", "content is required for update");
     }
 
     if (adr_has_removed_sections_arg(args)) {
-        cbm_operation_arg_free(project);
-        free(mode);
-        free(content);
+        cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+        cbm_operation_arg_free(mode);
+        cbm_operation_arg_free(content);
         return adr_error("invalid_arguments", "The sections argument is not an update primitive "
                                               "and has been removed. No ADR write was performed.");
     }
@@ -436,9 +437,9 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
         if (updates.status) {
             cbm_operation_result_t result = adr_error(updates.status, updates.error);
             adr_updates_free(&updates);
-            cbm_operation_arg_free(project);
-            free(mode);
-            free(content);
+            cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+            cbm_operation_arg_free(mode);
+            cbm_operation_arg_free(content);
             return result;
         }
     }
@@ -448,9 +449,9 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
         set_sections;
     if (!runtime || !runtime->store_resolve) {
         adr_updates_free(&updates);
-        cbm_operation_arg_free(project);
-        free(mode);
-        free(content);
+        cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+        cbm_operation_arg_free(mode);
+        cbm_operation_arg_free(content);
         return adr_error("store_unavailable",
                          "project store resolution is unavailable for this execution path");
     }
@@ -460,18 +461,18 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
         if (!runtime->mutation_begin || !runtime->mutation_end ||
             !runtime->mutation_begin(runtime->mutation_context, project)) {
             adr_updates_free(&updates);
-            cbm_operation_arg_free(project);
-            free(mode);
-            free(content);
+            cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+            cbm_operation_arg_free(mode);
+            cbm_operation_arg_free(content);
             return adr_error("busy", "project operation cancelled or blocked by an active index");
         }
         mutation_held = true;
         if (runtime->cancelled && runtime->cancelled(runtime->cancelled_context)) {
             runtime->mutation_end(runtime->mutation_context, project);
             adr_updates_free(&updates);
-            cbm_operation_arg_free(project);
-            free(mode);
-            free(content);
+            cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+            cbm_operation_arg_free(mode);
+            cbm_operation_arg_free(content);
             return adr_error("cancelled", "project operation cancelled for this request");
         }
     }
@@ -498,9 +499,9 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
         if (mutation_held)
             runtime->mutation_end(runtime->mutation_context, project);
         adr_updates_free(&updates);
-        cbm_operation_arg_free(project);
-        free(mode);
-        free(content);
+        cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+        cbm_operation_arg_free(mode);
+        cbm_operation_arg_free(content);
         return result;
     }
 
@@ -512,9 +513,9 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
             if (mutation_held)
                 runtime->mutation_end(runtime->mutation_context, project);
             adr_updates_free(&updates);
-            cbm_operation_arg_free(project);
-            free(mode);
-            free(content);
+            cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+            cbm_operation_arg_free(mode);
+            cbm_operation_arg_free(content);
             return adr_error("open_failed", "failed to open writable ADR store");
         }
     }
@@ -572,9 +573,9 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
         adr_updates_free(&updates);
         free(legacy_seed);
         free(legacy);
-        cbm_operation_arg_free(project);
-        free(mode);
-        free(content);
+        cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+        cbm_operation_arg_free(mode);
+        cbm_operation_arg_free(content);
         return cbm_operation_result_copy("{\"error\":\"result allocation failed\"}", true);
     }
     yyjson_mut_doc_set_root(doc, root);
@@ -657,8 +658,8 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
     adr_updates_free(&updates);
     free(legacy_seed);
     free(legacy);
-    cbm_operation_arg_free(project);
-    free(mode);
-    free(content);
+    cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+    cbm_operation_arg_free(mode);
+    cbm_operation_arg_free(content);
     return result;
 }

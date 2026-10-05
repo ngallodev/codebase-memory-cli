@@ -40,11 +40,7 @@ typedef struct trace_cursor {
 static char *copy_text(const char *text) {
     if (!text)
         return NULL;
-    size_t len = strlen(text);
-    char *copy = malloc(len + 1U);
-    if (copy)
-        memcpy(copy, text, len + 1U);
-    return copy;
+    return cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, text);
 }
 
 static yyjson_doc *args_doc(const char *args) {
@@ -1102,11 +1098,11 @@ done:
         cbm_store_free_nodes(nodes, node_count);
     if (store)
         cbm_store_close(store);
-    free(function);
-    free(project);
-    free(direction);
-    free(mode);
-    free(parameter_name);
-    free(cursor_text);
+    cbm_operation_arg_free(function);
+    cbm_operation_arg_free(project);
+    cbm_operation_arg_free(direction);
+    cbm_operation_arg_free(mode);
+    cbm_operation_arg_free(parameter_name);
+    cbm_operation_arg_free(cursor_text);
     return result;
 }

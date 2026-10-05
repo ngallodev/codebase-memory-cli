@@ -7,6 +7,7 @@
 #include "foundation/compat_fs.h"
 #include "foundation/constants.h"
 #include "foundation/mem.h"
+#include "foundation/mem_core.h"
 #include "foundation/platform.h"
 #include "foundation/str_util.h"
 #include "pipeline/pipeline.h"

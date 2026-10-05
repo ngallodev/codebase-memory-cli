@@ -10934,6 +10934,11 @@ static void uninstall_cli_agents(const cbm_detected_agents_t *agents, const char
         snprintf(ip, sizeof(ip), "%s/AGENTS.md", config_dir);
         snprintf(skills_dir, sizeof(skills_dir), "%s/skills", config_dir);
         snprintf(ap, sizeof(ap), "%s/agents/codebase-memory.toml", config_dir);
+        /* The Codex branch removes instructions through its own activation
+         * pointer helper instead of uninstall_agent_mcp_instr, so it has to
+         * emit the legacy MCP block warning itself. Read-only under --dry-run
+         * too, like the generic path. */
+        cbm_warn_legacy_mcp_block(ip);
         bool pointer_removed = uninstall_codex_activation_pointer(ip, dry_run);
         cbm_agent_installed_binary_path(home, installed_binary, sizeof(installed_binary));
         char hook_command[CLI_BUF_8K];

@@ -25,11 +25,7 @@ enum { QUERY_MAX_VISIBLE_ROWS = 99998, QUERY_DEFAULT_VISIBLE_ROWS = 200 };
 static char *copy_string(const char *text) {
     if (!text)
         return NULL;
-    size_t len = strlen(text);
-    char *copy = malloc(len + 1U);
-    if (copy)
-        memcpy(copy, text, len + 1U);
-    return copy;
+    return cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, text);
 }
 
 static yyjson_doc *read_args(const char *args_json) {
@@ -413,49 +409,49 @@ cbm_operation_result_t cbm_query_operation_execute(const char *args_json) {
     char *cursor_arg = string_arg(args_json, "cursor");
     char *graph = string_arg(args_json, "graph");
     bool missed_graph = graph && strcmp(graph, "missed") == 0;
-    free(graph);
+    cbm_operation_arg_free(graph);
 
     if (!query) {
-        free(cursor_arg);
-        free(project);
+        cbm_operation_arg_free(cursor_arg);
+        cbm_operation_arg_free(project);
         return error_result("query is required");
     }
     if (missed_graph && !project) {
-        free(cursor_arg);
-        free(query);
+        cbm_operation_arg_free(cursor_arg);
+        cbm_operation_arg_free(query);
         return error_result("project is required when graph=\"missed\"");
     }
     if (!project || !project[0]) {
-        free(cursor_arg);
-        free(query);
-        free(project);
+        cbm_operation_arg_free(cursor_arg);
+        cbm_operation_arg_free(query);
+        cbm_operation_arg_free(project);
         return error_result("project is required");
     }
 
     cbm_store_open_status_t open_status = CBM_STORE_OPEN_OK;
     cbm_store_t *store = cbm_store_host_open_query(project, &open_status);
     if (!store) {
-        free(cursor_arg);
-        free(query);
-        free(project);
+        cbm_operation_arg_free(cursor_arg);
+        cbm_operation_arg_free(query);
+        cbm_operation_arg_free(project);
         return error_result(open_status == CBM_STORE_OPEN_CORRUPT
                                 ? CBM_STORE_CORRUPT_ERROR
                                 : "project not found or not indexed");
     }
     if (cbm_store_count_nodes(store, project) <= 0) {
         cbm_store_close(store);
-        free(cursor_arg);
-        free(query);
-        free(project);
+        cbm_operation_arg_free(cursor_arg);
+        cbm_operation_arg_free(query);
+        cbm_operation_arg_free(project);
         return error_result("project not indexed or index is empty");
     }
 
     char generation[QUERY_GENERATION_CAP] = "";
     if (cbm_store_generation(store, generation, sizeof(generation)) != CBM_STORE_OK) {
         cbm_store_close(store);
-        free(cursor_arg);
-        free(query);
-        free(project);
+        cbm_operation_arg_free(cursor_arg);
+        cbm_operation_arg_free(query);
+        cbm_operation_arg_free(project);
         return error_result(
             "index_metadata_error: generation metadata is unreadable; reindex before querying");
     }
@@ -474,9 +470,9 @@ cbm_operation_result_t cbm_query_operation_execute(const char *args_json) {
         if (cursor_error) {
             cbm_operation_result_t error = error_result(cursor_error);
             cbm_store_close(store);
-            free(cursor_arg);
-            free(query);
-            free(project);
+            cbm_operation_arg_free(cursor_arg);
+            cbm_operation_arg_free(query);
+            cbm_operation_arg_free(project);
             return error;
         }
         row_offset = cursor.offset;
@@ -496,9 +492,9 @@ cbm_operation_result_t cbm_query_operation_execute(const char *args_json) {
             error_result(result.error ? result.error : "query execution failed");
         cbm_cypher_result_free(&result);
         cbm_store_close(store);
-        free(cursor_arg);
-        free(query);
-        free(project);
+        cbm_operation_arg_free(cursor_arg);
+        cbm_operation_arg_free(query);
+        cbm_operation_arg_free(project);
         return error;
     }
 
@@ -511,9 +507,9 @@ cbm_operation_result_t cbm_query_operation_execute(const char *args_json) {
             "issued; re-run the original query without 'cursor'");
         cbm_cypher_result_free(&result);
         cbm_store_close(store);
-        free(cursor_arg);
-        free(query);
-        free(project);
+        cbm_operation_arg_free(cursor_arg);
+        cbm_operation_arg_free(query);
+        cbm_operation_arg_free(project);
         return error;
     }
     query_cursor_context_t cursor_context = {
@@ -528,7 +524,7 @@ cbm_operation_result_t cbm_query_operation_execute(const char *args_json) {
 
     char *format = string_arg(args_json, "format");
     bool legacy_json = format && strcmp(format, "json") == 0;
-    free(format);
+    cbm_operation_arg_free(format);
 
     char *payload =
         legacy_json
@@ -537,8 +533,8 @@ cbm_operation_result_t cbm_query_operation_execute(const char *args_json) {
 
     cbm_cypher_result_free(&result);
     cbm_store_close(store);
-    free(cursor_arg);
-    free(query);
-    free(project);
+    cbm_operation_arg_free(cursor_arg);
+    cbm_operation_arg_free(query);
+    cbm_operation_arg_free(project);
     return payload ? cbm_operation_result_take(payload, false) : error_result("out of memory");
 }

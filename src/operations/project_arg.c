@@ -1,9 +1,9 @@
 #include "operations/json_args.h"
-#include "foundation/mem_core.h"
 #include "operations/project_arg.h"
 
 #include "foundation/compat_fs.h"
 #include "foundation/constants.h"
+#include "foundation/mem_core.h"
 #include "foundation/platform.h"
 #include "foundation/workspace.h"
 #include "store/store.h"
@@ -15,6 +15,8 @@
 #include <string.h>
 
 static char *project_arg_strdup(const char *text) {
+    if (!text)
+        return NULL;
     return cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, text);
 }
 
@@ -151,8 +153,11 @@ static char *project_arg_resolve_tail(char *project) {
     }
     cbm_closedir(dir);
     if (matches == 1) {
-        cbm_operation_arg_free(project);
-        return project_arg_strdup(match);
+        char *copy = project_arg_strdup(match);
+        if (!copy)
+            return project; /* keep the supplied project on allocation failure */
+        cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+        return copy;
     }
     return project;
 }

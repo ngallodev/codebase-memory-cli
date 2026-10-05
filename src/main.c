@@ -30,6 +30,8 @@
 #include "daemon/project_lock.h"
 #include "daemon/version_cohort.h"
 #include "foundation/json_args.h"
+#include "foundation/mem_core.h"
+#include "operations/tool_catalog.h"
 #include "operations/result_wire.h"
 #include "operations/operation.h"
 #include "operations/reliability_events.h"
@@ -847,7 +849,7 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
         return SKIP_ONE;
     }
 
-    (void)cli_strip_flag(&argc, argv, "--json");
+    bool json_requested = cli_strip_flag(&argc, argv, "--json");
 
     /* Supervisor worker role: when this process was spawned as a supervised index
      * worker, run indexing in-process (never re-supervise) and write the result to
@@ -952,6 +954,32 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
             heap_args = NULL;
             args_json = "{}";
         }
+    }
+
+    /* Outer --json keeps canonical automation on the JSON payload surface. */
+    const char *schema = cbm_tool_catalog_input_schema(tool_name);
+    if (json_requested && schema && strstr(schema, "\"format\"")) {
+        yyjson_doc *input = yyjson_read(args_json, strlen(args_json), 0);
+        yyjson_mut_doc *doc = input ? yyjson_doc_mut_copy(input, NULL) : NULL;
+        if (input)
+            yyjson_doc_free(input);
+        yyjson_mut_val *root = doc ? yyjson_mut_doc_get_root(doc) : NULL;
+        char *encoded = NULL;
+        if (yyjson_mut_is_obj(root)) {
+            yyjson_mut_obj_remove_key(root, "format");
+            if (yyjson_mut_obj_add_str(doc, root, "format", "json"))
+                encoded = yyjson_mut_write(doc, 0, NULL);
+        }
+        if (doc)
+            yyjson_mut_doc_free(doc);
+        if (!encoded) {
+            fprintf(stderr, "error: could not select JSON output\n");
+            free(heap_args);
+            return SKIP_ONE;
+        }
+        free(heap_args);
+        heap_args = encoded;
+        args_json = heap_args;
     }
 
     bool progress =
@@ -1120,7 +1148,7 @@ static int run_named_cli(const cbm_cli_command_alias_t *alias, int argc, char **
 
     size_t extra = has_positional ? 2U : 0U;
     size_t mapped_count = 1U + (size_t)argc + extra;
-    char **mapped = calloc(mapped_count + 1U, sizeof(*mapped));
+    char **mapped = cbm_calloc(CBM_MEM_CLASS_OTHER, (mapped_count + 1U) * sizeof(*mapped));
     if (!mapped) {
         (void)fprintf(stderr, "error: out of memory while preparing '%s'\n", alias->command);
         return SKIP_ONE;
@@ -1139,7 +1167,7 @@ static int run_named_cli(const cbm_cli_command_alias_t *alias, int argc, char **
         }
     }
     int result = run_cli((int)out, mapped, project_locks, maintenance_context, true);
-    free(mapped);
+    cbm_free(CBM_MEM_CLASS_OTHER, mapped);
     return result;
 }
 
