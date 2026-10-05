@@ -399,16 +399,17 @@ try {
 } finally {
     if (-not $ActivationSucceeded -and $retired -and
         (Test-Path -LiteralPath $retired -PathType Leaf)) {
-        try {
-            # A failed candidate may itself be locked; rename it instead of
-            # deleting it, and retain both images if restoration is refused.
-            if (Test-Path -LiteralPath $Dest) {
-                $FailedCandidate = "$Dest.failed-$([Guid]::NewGuid().ToString('N'))"
-                Move-Item -LiteralPath $Dest -Destination $FailedCandidate -ErrorAction Stop
+        if (-not (Test-Path -LiteralPath $Dest)) {
+            try {
+                Move-Item -LiteralPath $retired -Destination $Dest -ErrorAction Stop
+            } catch {
+                Write-Host "error: could not restore $Dest; previous binary retained at $retired : $_" -ForegroundColor Red
             }
-            Move-Item -LiteralPath $retired -Destination $Dest -ErrorAction Stop
-        } catch {
-            Write-Host "error: could not restore $Dest; previous binary retained at $retired : $_" -ForegroundColor Red
+        } else {
+            # The inner activation may deliberately retain a published candidate
+            # after partial config/PATH changes. Do not override that decision or
+            # overwrite an unexpected path entry outside its activation lease.
+            Write-Host "note: keeping the published executable; previous binary retained at $retired"
         }
     }
 }

@@ -119,7 +119,7 @@ test('PowerShell install mutation runs through the downloaded binary', () => {
 });
 
 
-test('PowerShell installer restores the retired image after failed activation', (t) => {
+test('PowerShell installer restores an absent target and preserves a published candidate', (t) => {
   const command = process.platform === 'win32' ? 'powershell.exe' : 'pwsh';
   const probe = spawnSync(command, ['-NoProfile', '-Command', '$PSVersionTable.PSVersion.ToString()']);
   if (probe.error && probe.error.code === 'ENOENT') {
@@ -148,7 +148,10 @@ test('PowerShell installer restores the retired image after failed activation', 
         if ($candidatePresent) { [IO.File]::WriteAllText($Dest, 'failed candidate') }
         $ActivationSucceeded = $false
         . $rollback
-        if ([IO.File]::ReadAllText($Dest) -ne 'previous image' -or (Test-Path $retired)) { throw 'previous image not restored' }
+        if ($candidatePresent) {
+          if ([IO.File]::ReadAllText($Dest) -ne 'failed candidate' -or [IO.File]::ReadAllText($retired) -ne 'previous image') { throw 'partial activation image overwritten' }
+          Remove-Item -LiteralPath $retired
+        } elseif ([IO.File]::ReadAllText($Dest) -ne 'previous image' -or (Test-Path $retired)) { throw 'previous image not restored' }
         Remove-Item -LiteralPath $Dest
       }
       [IO.File]::WriteAllText($retired, 'previous image')
