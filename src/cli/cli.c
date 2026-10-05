@@ -629,7 +629,11 @@ static cli_activation_scope_t cli_activation_resolve_scope(
     case CBM_VERSION_COHORT_OK:
         return CLI_ACTIVATION_SCOPE_ACTIVE;
     case CBM_VERSION_COHORT_BUSY:
-        return CLI_ACTIVATION_SCOPE_ACTIVE;
+        /* User decision 2026-09-28, "unknown = foreign, keep it": a busy
+         * maintenance gate means ownership is unconfirmed, so the running
+         * cohort is left serving and only this home/cache is mutated. */
+        return cli_activation_scope_unconfirmed(
+            context, scope, "the session group was busy, so its cache identity could not be read");
     case CBM_VERSION_COHORT_CONFLICT:
         break;
     default:
