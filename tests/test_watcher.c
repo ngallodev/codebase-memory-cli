@@ -3273,8 +3273,13 @@ TEST(watcher_touch_resets_immediate) {
     cbm_watcher_watch(w, "tch-repo", tmpdir);
     index_call_count = 0;
 
-    /* Baseline */
-    cbm_watcher_poll_once(w);
+    /* Establish the baseline before testing backoff: baseline git probes
+     * can also fail transiently under runner load. */
+    for (int attempt = 0; attempt < 20 && cbm_watcher_test_next_poll_ns(w, "tch-repo") <= 0;
+         attempt++) {
+        cbm_watcher_poll_once(w);
+    }
+    ASSERT_GT(cbm_watcher_test_next_poll_ns(w, "tch-repo"), 0);
     ASSERT_EQ(index_call_count, 0);
 
     /* Make dirty */
