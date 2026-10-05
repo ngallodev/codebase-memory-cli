@@ -43,6 +43,7 @@
 #include <unistd.h>
 #ifdef _WIN32
 #include <io.h>
+#include "../src/foundation/win_utf8.h"
 #endif
 #ifndef _WIN32
 #include <sys/socket.h>
@@ -3145,6 +3146,24 @@ TEST(cli_uninstall_quiesces_active_cohort_before_removing_binary_and_index) {
     PASS();
 }
 
+static bool cli_uninstall_test_absent(const char *path) {
+#ifdef _WIN32
+    wchar_t *wide = cbm_path_to_wide(path);
+    if (!wide) {
+        return false;
+    }
+    DWORD attributes = GetFileAttributesW(wide);
+    DWORD error = GetLastError();
+    free(wide);
+    return attributes == INVALID_FILE_ATTRIBUTES &&
+           (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND);
+#else
+    struct stat st;
+    errno = 0;
+    return lstat(path, &st) != 0 && errno == ENOENT;
+#endif
+}
+
 TEST(cli_uninstall_leaves_foreign_cache_running_while_removing_cli_files) {
     char tmpdir[256];
     snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-foreign-cache-XXXXXX");
@@ -3207,9 +3226,8 @@ TEST(cli_uninstall_leaves_foreign_cache_running_while_removing_cli_files) {
         (void)fread(output, 1, sizeof(output) - 1, capture);
         fclose(capture);
     }
-    struct stat removed_status;
-    bool binary_removed = stat(binary, &removed_status) != 0 && errno == ENOENT;
-    bool index_removed = stat(index, &removed_status) != 0 && errno == ENOENT;
+    bool binary_removed = cli_uninstall_test_absent(binary);
+    bool index_removed = cli_uninstall_test_absent(index);
     if (lease)
         (void)cbm_version_cohort_lease_release(&lease);
     if (owner)
@@ -3316,12 +3334,6 @@ static bool cli_uninstall_index_fixture_intact(const cli_uninstall_index_fixture
 static bool cli_uninstall_test_file_is(const char *path, const char *expected) {
     const char *body = read_test_file(path);
     return body && strcmp(body, expected) == 0;
-}
-
-static bool cli_uninstall_test_absent(const char *path) {
-    struct stat st;
-    errno = 0;
-    return stat(path, &st) != 0 && errno == ENOENT;
 }
 
 static bool cli_uninstall_index_fixture_setup(cli_uninstall_index_fixture_t *fx, const char *tag) {
@@ -3496,6 +3508,24 @@ TEST(cli_uninstall_delete_indexes_is_explicit_and_overrides_no) {
         ASSERT_TRUE(internal_kept);
     }
     PASS();
+}
+
+TEST(cli_uninstall_absence_check_preserves_dangling_symlink_entries) {
+#ifdef _WIN32
+    SKIP_PLATFORM("POSIX symlink fixture; Windows uses non-following Win32 attributes");
+#else
+    char dir[256];
+    snprintf(dir, sizeof(dir), "%s/cbm-uninstall-absence-XXXXXX", cbm_tmpdir());
+    ASSERT_NOT_NULL(cbm_mkdtemp(dir));
+    char link[512];
+    snprintf(link, sizeof(link), "%s/dangling", dir);
+    bool created = symlink("missing-target", link) == 0;
+    bool retained = created && !cli_uninstall_test_absent(link);
+    bool removed = created && cbm_unlink(link) == 0 && cli_uninstall_test_absent(link);
+    th_rmtree(dir);
+    ASSERT_TRUE(retained && removed);
+    PASS();
+#endif
 }
 
 TEST(cli_uninstall_delete_indexes_dry_run_keeps_files) {
@@ -14954,6 +14984,7 @@ SUITE(cli) {
     RUN_TEST(cli_uninstall_preserves_binary_and_index_when_cohort_does_not_drain);
     RUN_TEST(cli_uninstall_auto_answers_keep_indexes_without_delete_indexes);
     RUN_TEST(cli_uninstall_delete_indexes_is_explicit_and_overrides_no);
+    RUN_TEST(cli_uninstall_absence_check_preserves_dangling_symlink_entries);
     RUN_TEST(cli_uninstall_delete_indexes_dry_run_keeps_files);
     RUN_TEST(cli_uninstall_non_tty_affirmative_input_keeps_indexes);
     RUN_TEST(cli_uninstall_delete_indexes_help_and_invalid_options_preserve_files);
