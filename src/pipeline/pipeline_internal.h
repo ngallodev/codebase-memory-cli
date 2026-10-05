@@ -50,8 +50,8 @@ const char *cbm_route_canon_path(const char *in, char *out, size_t out_sz);
 /* ── Definition properties JSON (shared by pass_definitions.c and the
  * parallel extraction pass) ──────────────────────────────────── */
 
-/* Serialize one definition's properties JSON into buf (buf[0]='\0' on
- * overflow). Implemented in pass_definitions.c. */
+/* Serialize one definition's properties JSON, dropping oversized fields whole.
+ * Implemented in pass_definitions.c. */
 void cbm_def_props_build(char *buf, size_t bufsize, const CBMDefinition *def);
 
 /* A def's properties buffer: CBM_SZ_2K plus the whole serialized docstring

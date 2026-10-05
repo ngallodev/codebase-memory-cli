@@ -2158,17 +2158,16 @@ const cbm_gbuf_node_t *cbm_pipeline_resolve_import_node(const cbm_pipeline_ctx_t
      * importers spell class paths with backslashes, so the unresolved
      * short-circuit is scoped to them and every other importer keeps falling
      * through to the strategies below. */
-    const cbm_gbuf_node_t *psr4_target = NULL;
-    switch (resolve_php_psr4_class(ctx, source_file_qn, imp, &psr4_target)) {
-    case PSR4_RESOLVED:
-        return psr4_target;
-    case PSR4_UNRESOLVED:
-        if (cbm_language_for_filename(source_rel) == CBM_LANG_PHP) {
+    if (cbm_language_for_filename(source_rel) == CBM_LANG_PHP) {
+        const cbm_gbuf_node_t *psr4_target = NULL;
+        switch (resolve_php_psr4_class(ctx, source_file_qn, imp, &psr4_target)) {
+        case PSR4_RESOLVED:
+            return psr4_target;
+        case PSR4_UNRESOLVED:
             return NULL;
+        case PSR4_NOT_APPLICABLE:
+            break;
         }
-        break;
-    case PSR4_NOT_APPLICABLE:
-        break;
     }
 
     /* Strategy 1: module-path resolution → existing node (Python/TS/Go).
