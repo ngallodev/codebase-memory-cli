@@ -2617,11 +2617,16 @@ static const char *extract_docstring(CBMExtractCtx *ctx, TSNode node, const char
         (doc_kind_is(node, "type_spec") || doc_kind_is(node, "type_alias"))) {
         return doc_go_type(ctx, node);
     }
-    const char *doc = doc_for_anchor(ctx, doc_anchor(ctx, node));
-    if (!doc && lang == CBM_LANG_PYTHON) {
-        return extract_python_docstring(ctx->arena, node, ctx->source);
+    /* Python's own docstring beats a comment run above the definition: the
+     * in-body string is the documented API, a `# TODO` or section comment is
+     * only a fallback for definitions without one. */
+    if (lang == CBM_LANG_PYTHON) {
+        const char *py = extract_python_docstring(ctx->arena, node, ctx->source);
+        if (py) {
+            return py;
+        }
     }
-    return doc;
+    return doc_for_anchor(ctx, doc_anchor(ctx, node));
 }
 
 /* Doc of a Field, Variable, enum member or Macro (code languages only). */

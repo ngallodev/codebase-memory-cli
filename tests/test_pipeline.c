@@ -16951,7 +16951,7 @@ TEST(pipeline_delta_patch_indexes_docstring_into_fts_body) {
 
 /* End-to-end for #518/#519: source → docstring → properties JSON → nodes_fts
  * `body` → findable. Each layer has its own test; this one proves they connect.
- * It is also the guard on the size budget: build_def_props drops an oversized
+ * It is also the guard on the size budget: cbm_def_props_build drops an oversized
  * field ATOMICALLY, so a 500-byte section body that did not fit the 2 KB
  * properties buffer would vanish silently and every narrower test would still
  * pass. */
