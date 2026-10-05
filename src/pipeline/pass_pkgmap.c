@@ -457,28 +457,35 @@ static void extract_psr4(yyjson_val *root, const char *section, const char *dir,
     yyjson_obj_iter iter = yyjson_obj_iter_with(psr4);
     while ((key = yyjson_obj_iter_next(&iter)) != NULL) {
         yyjson_val *val = yyjson_obj_iter_get_val(key);
-        if (!yyjson_is_str(key) || !yyjson_is_str(val)) {
+        if (!yyjson_is_str(key)) {
             continue;
         }
         const char *ns_prefix = yyjson_get_str(key);
-        const char *ns_dir = yyjson_get_str(val);
-        while (ns_dir[0] == '.' && ns_dir[SKIP_ONE] == '/') {
-            ns_dir += PAIR_LEN; /* "./src/" names src/ */
+        size_t count = yyjson_is_arr(val) ? yyjson_arr_size(val) : 1;
+        for (size_t i = 0; i < count; i++) {
+            yyjson_val *path = yyjson_is_arr(val) ? yyjson_arr_get(val, i) : val;
+            if (!yyjson_is_str(path)) {
+                continue;
+            }
+            const char *ns_dir = yyjson_get_str(path);
+            while (ns_dir[0] == '.' && ns_dir[SKIP_ONE] == '/') {
+                ns_dir += PAIR_LEN; /* "./src/" names src/ */
+            }
+            if (strcmp(ns_dir, ".") == 0) {
+                ns_dir = ""; /* "." names the manifest's own directory */
+            }
+            char ns_entry[PKGMAP_PATH_BUF];
+            if (dir[0]) {
+                snprintf(ns_entry, sizeof(ns_entry), "%s/%s", dir, ns_dir);
+            } else {
+                snprintf(ns_entry, sizeof(ns_entry), "%s", ns_dir);
+            }
+            size_t nelen = strlen(ns_entry);
+            if (nelen > 0 && ns_entry[nelen - SKIP_ONE] == '/') {
+                ns_entry[nelen - SKIP_ONE] = '\0';
+            }
+            pkg_entries_push(entries, strdup(ns_prefix), strdup(ns_entry));
         }
-        if (strcmp(ns_dir, ".") == 0) {
-            ns_dir = ""; /* "." names the manifest's own directory */
-        }
-        char ns_entry[PKGMAP_PATH_BUF];
-        if (dir[0]) {
-            snprintf(ns_entry, sizeof(ns_entry), "%s/%s", dir, ns_dir);
-        } else {
-            snprintf(ns_entry, sizeof(ns_entry), "%s", ns_dir);
-        }
-        size_t nelen = strlen(ns_entry);
-        if (nelen > 0 && ns_entry[nelen - SKIP_ONE] == '/') {
-            ns_entry[nelen - SKIP_ONE] = '\0';
-        }
-        pkg_entries_push(entries, strdup(ns_prefix), strdup(ns_entry));
     }
 }
 
@@ -1003,6 +1010,17 @@ static bool pkgmap_is_psr4_prefix(const char *pkg_name) {
     return n > 0 && pkg_name[n - SKIP_ONE] == '\\';
 }
 
+/* PSR-4 values own an ordered directory list; other package values remain QNs. */
+typedef struct psr4_dir {
+    struct psr4_dir *next;
+    char path[];
+} psr4_dir_t;
+
+static const char *pkgmap_first_path(CBMHashTable *map, const char *key) {
+    void *value = cbm_ht_get(map, key);
+    return value && pkgmap_is_psr4_prefix(key) ? ((psr4_dir_t *)value)->path : value;
+}
+
 CBMHashTable *cbm_pkgmap_build(cbm_pkg_entries_t *worker_entries, int worker_count,
                                const char *project_name) {
     /* Count total entries */
@@ -1020,28 +1038,43 @@ CBMHashTable *cbm_pkgmap_build(cbm_pkg_entries_t *worker_entries, int worker_cou
     for (int w = 0; w < worker_count; w++) {
         cbm_pkg_entries_t *we = &worker_entries[w];
         for (int i = 0; i < we->count; i++) {
-            /* Convert entry_rel to QN: project.dir.parts. A PSR-4 namespace
-             * prefix (key ends in '\\') keeps its repo-relative DIRECTORY
-             * instead: its readers map `Prefix\Sub\Class` onto a file path
-             * (<dir>/Sub/Class.php), which a dotted QN cannot express (#1186). */
+            const bool psr4 = pkgmap_is_psr4_prefix(we->items[i].pkg_name);
+            psr4_dir_t *dirs = psr4 ? cbm_ht_get(map, we->items[i].pkg_name) : NULL;
+            /* Other package mappings retain their existing first-wins rule. */
+            if (!psr4 && cbm_ht_has(map, we->items[i].pkg_name)) {
+                continue;
+            }
+            char *key = dirs ? NULL : strdup(we->items[i].pkg_name);
+            if (!dirs && !key) {
+                continue;
+            }
             const char *entry_rel = we->items[i].entry_rel;
-            char *qn = pkgmap_is_psr4_prefix(we->items[i].pkg_name)
-                           ? cbm_strndup(entry_rel, strlen(entry_rel))
-                           : cbm_pipeline_fqn_module(project_name, entry_rel);
-            if (!qn) {
+            void *value = NULL;
+            if (psr4) {
+                size_t len = strlen(entry_rel);
+                psr4_dir_t *node = cbm_alloc(CBM_MEM_CLASS_SEMANTIC, sizeof(*node) + len + 1);
+                if (node) {
+                    node->next = NULL;
+                    memcpy(node->path, entry_rel, len + 1);
+                }
+                value = node;
+            } else {
+                value = cbm_pipeline_fqn_module(project_name, entry_rel);
+            }
+            if (!value) {
+                free(key);
                 continue;
             }
-
-            /* Check for duplicate — first wins */
-            if (cbm_ht_has(map, we->items[i].pkg_name)) {
-                free(qn);
-                continue;
+            if (dirs) {
+                /* ponytail: linear append for small lists; cache a tail if large lists matter. */
+                while (dirs->next) {
+                    dirs = dirs->next;
+                }
+                dirs->next = value;
+            } else {
+                cbm_ht_set(map, key, value);
+                merged++;
             }
-
-            /* Transfer ownership: key = strdup'd pkg_name, value = qn */
-            char *key = strdup(we->items[i].pkg_name);
-            cbm_ht_set(map, key, qn);
-            merged++;
         }
     }
 
@@ -1296,8 +1329,17 @@ CBMHashTable *cbm_pkgmap_build_from_repo(const char *repo_path, const cbm_file_i
 
 static void pkgmap_free_entry(const char *key, void *value, void *userdata) {
     (void)userdata;
+    if (pkgmap_is_psr4_prefix(key)) {
+        psr4_dir_t *dir = value;
+        while (dir) {
+            psr4_dir_t *next = dir->next;
+            cbm_free(CBM_MEM_CLASS_SEMANTIC, dir);
+            dir = next;
+        }
+    } else {
+        free(value);
+    }
     free((void *)key);
-    free(value);
 }
 
 void cbm_pkgmap_free(CBMHashTable *pkgmap) {
@@ -1322,7 +1364,7 @@ static char *resolve_slash_prefix(CBMHashTable *map, const char *module_path) {
             continue;
         }
         *slash = '\0';
-        const char *base_qn = (const char *)cbm_ht_get(map, buf);
+        const char *base_qn = pkgmap_first_path(map, buf);
         if (!base_qn) {
             continue;
         }
@@ -1355,7 +1397,7 @@ static char *resolve_dot_prefix(CBMHashTable *map, const char *module_path,
             continue;
         }
         *dot = '\0';
-        const char *base_qn = (const char *)cbm_ht_get(map, buf);
+        const char *base_qn = pkgmap_first_path(map, buf);
         if (!base_qn) {
             continue;
         }
@@ -1377,8 +1419,8 @@ static char *resolve_dot_prefix(CBMHashTable *map, const char *module_path,
 }
 
 /* Try backslash-based prefix matching (PHP PSR-4: App\\Controllers\\Foo).
- * The map value of a PSR-4 prefix is its repo-relative directory (see
- * cbm_pkgmap_build). Returns heap QN or NULL. */
+ * Generic module resolution uses the first mapped directory; class imports
+ * search every directory through resolve_php_psr4_class. Returns heap QN or NULL. */
 static char *resolve_backslash_prefix(CBMHashTable *map, const char *module_path,
                                       const char *project_name) {
     char *buf = strdup(module_path);
@@ -1392,7 +1434,7 @@ static char *resolve_backslash_prefix(CBMHashTable *map, const char *module_path
         *bs = '\0';
         char prefix[PKGMAP_PATH_BUF];
         snprintf(prefix, sizeof(prefix), "%s\\", buf);
-        const char *base_dir = (const char *)cbm_ht_get(map, prefix);
+        const char *base_dir = pkgmap_first_path(map, prefix);
         if (!base_dir) {
             continue;
         }
@@ -1452,7 +1494,7 @@ char *cbm_pipeline_resolve_module(const cbm_pipeline_ctx_t *ctx, const char *sou
     }
 
     /* 3. Exact lookup */
-    const char *mapped_qn = (const char *)cbm_ht_get(pkgmap, module_path);
+    const char *mapped_qn = pkgmap_first_path(pkgmap, module_path);
     if (mapped_qn) {
         return strdup(mapped_qn);
     }
@@ -2111,26 +2153,29 @@ static psr4_outcome_t resolve_php_psr4_class(const cbm_pipeline_ctx_t *ctx,
         }
         memcpy(key, name, cut);
         key[cut] = '\0';
-        const char *dir = (const char *)cbm_ht_get(pkgmap, key);
-        if (!dir) {
+        const psr4_dir_t *dirs = cbm_ht_get(pkgmap, key);
+        if (!dirs) {
             continue;
         }
         covered = true;
-        char rel[PKGMAP_PATH_BUF];
-        int w = snprintf(rel, sizeof(rel), "%s%s%s.php", dir, dir[0] ? "/" : "", name + cut);
-        if (w <= 0 || (size_t)w >= sizeof(rel)) {
-            continue;
-        }
-        for (char *c = rel; *c; c++) {
-            if (*c == '\\') {
-                *c = '/';
+        for (const psr4_dir_t *dir = dirs; dir; dir = dir->next) {
+            char rel[PKGMAP_PATH_BUF];
+            int w = snprintf(rel, sizeof(rel), "%s%s%s.php", dir->path, dir->path[0] ? "/" : "",
+                             name + cut);
+            if (w <= 0 || (size_t)w >= sizeof(rel)) {
+                continue;
             }
-        }
-        const cbm_gbuf_node_t *file = psr4_file_node(ctx, rel);
-        if (file && (!source_file_qn || !file->qualified_name ||
-                     strcmp(file->qualified_name, source_file_qn) != 0)) {
-            *out = file;
-            return PSR4_RESOLVED;
+            for (char *c = rel; *c; c++) {
+                if (*c == '\\') {
+                    *c = '/';
+                }
+            }
+            const cbm_gbuf_node_t *file = psr4_file_node(ctx, rel);
+            if (file && (!source_file_qn || !file->qualified_name ||
+                         strcmp(file->qualified_name, source_file_qn) != 0)) {
+                *out = file;
+                return PSR4_RESOLVED;
+            }
         }
     }
     return covered ? PSR4_UNRESOLVED : PSR4_NOT_APPLICABLE;

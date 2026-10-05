@@ -1280,7 +1280,10 @@ static void ei_import_target_path(cbm_store_t *store, const char *project, const
         cbm_node_t target;
         memset(&target, 0, sizeof(target));
         if (cbm_store_find_node_by_id(store, edges[i].target_id, &target) == CBM_STORE_OK) {
-            snprintf(out, outsz, "%s", target.file_path ? target.file_path : "?");
+            snprintf(out, outsz, "%s",
+                     target.label && strcmp(target.label, "File") == 0 && target.file_path
+                         ? target.file_path
+                         : "?");
             cbm_node_free_fields(&target);
         }
         break;
@@ -1387,6 +1390,49 @@ TEST(ei_php_psr4_multiple_roots_longest_prefix_issue1186) {
         {"Assert", "tests/Support/Assert.php"},
     };
     ASSERT_TRUE(ei_php_imports_match(f, 10, "app/Http/Checkout.php", want, 3));
+    PASS();
+}
+
+/* Array mappings keep Composer order, including later-only files and root dirs. */
+TEST(ei_php_psr4_array_directories) {
+    static const EILangFile f[] = {
+        {"composer.json", "{\"autoload\":{\"psr-4\":{\"App\\\\\":[\"./missing/\","
+                          "\"z-first/\",42,\"a-second/\",\"third/\"]}},"
+                          "\"autoload-dev\":{\"psr-4\":{\"Tests\\\\\":[\"./absent/\",\".\"]}}}\n"},
+        {"z-first/Shared.php", EI_PHP_CLASS("App", "Shared")},
+        {"a-second/Shared.php", EI_PHP_CLASS("App", "Shared")},
+        {"a-second/Later.php", EI_PHP_CLASS("App", "Later")},
+        {"third/Last.php", EI_PHP_CLASS("App", "Last")},
+        {"z-first/Decoy.php", EI_PHP_CLASS("App", "Missing")},
+        {"Support.php", EI_PHP_CLASS("Tests", "Support")},
+        {"Consumer.php", "<?php\nnamespace Consumer;\n\n"
+                         "use App\\Shared;\nuse App\\Later;\nuse App\\Last;\n"
+                         "use App\\Missing;\nuse Tests\\Support;\n\nclass Consumer {}\n"}};
+    static const EIPhpImportExpect want[] = {
+        {"Shared", "z-first/Shared.php"}, {"Later", "a-second/Later.php"},
+        {"Last", "third/Last.php"},       {"Missing", NULL},
+        {"Support", "Support.php"},
+    };
+    ASSERT_TRUE(ei_php_imports_match(f, 8, "Consumer.php", want, 5));
+    PASS();
+}
+
+/* Each directory is relative to its own composer.json, not the repo root. */
+TEST(ei_php_psr4_array_manifest_relative) {
+    static const EILangFile f[] = {
+        {"packages/billing/composer.json",
+         "{\"autoload\":{\"psr-4\":{\"Billing\\\\\":[\"./absent/\",\"./src/\",\"backup/\"]}}}\n"},
+        {"src/Account.php", EI_PHP_CLASS("Billing", "Account")},
+        {"packages/billing/src/Account.php", EI_PHP_CLASS("Billing", "Account")},
+        {"packages/billing/backup/Account.php", EI_PHP_CLASS("Billing", "Account")},
+        {"packages/billing/backup/Ledger.php", EI_PHP_CLASS("Billing", "Ledger")},
+        {"Checkout.php", "<?php\nnamespace Consumer;\n\nuse Billing\\Account;\n"
+                         "use Billing\\Ledger;\n\nclass Checkout {}\n"}};
+    static const EIPhpImportExpect want[] = {
+        {"Account", "packages/billing/src/Account.php"},
+        {"Ledger", "packages/billing/backup/Ledger.php"},
+    };
+    ASSERT_TRUE(ei_php_imports_match(f, 6, "Checkout.php", want, 2));
     PASS();
 }
 
@@ -1517,6 +1563,8 @@ SUITE(edge_imports) {
     RUN_TEST(ei_php_psr4_class_per_file_issue1186);
     RUN_TEST(ei_php_psr4_nested_subnamespace_issue1186);
     RUN_TEST(ei_php_psr4_multiple_roots_longest_prefix_issue1186);
+    RUN_TEST(ei_php_psr4_array_directories);
+    RUN_TEST(ei_php_psr4_array_manifest_relative);
     RUN_TEST(ei_php_psr4_use_function_not_class_mapped_issue1186);
     RUN_TEST(ei_php_psr4_missing_class_file_unresolved_issue1186);
 }
