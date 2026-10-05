@@ -33,8 +33,10 @@ static char *project_arg_normalize(char *project) {
         bool usable = encoded && strcmp(encoded, "root") != 0 && cbm_validate_project_name(encoded);
         if (usable) {
             char *copy = project_arg_strdup(encoded);
-            cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
             free(encoded);
+            if (!copy)
+                return project; /* keep the supplied project on allocation failure */
+            cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
             return copy;
         }
         free(encoded);
@@ -54,6 +56,8 @@ static char *project_arg_normalize(char *project) {
     if (normalized) {
         char *copy = project_arg_strdup(normalized);
         free(normalized);
+        if (!copy)
+            return project; /* keep the supplied project on allocation failure */
         cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
         return copy;
     }
@@ -101,8 +105,11 @@ static char *project_arg_resolve_tail(char *project) {
     }
     cbm_closedir(dir);
     if (matches == 1) {
+        char *copy = project_arg_strdup(match);
+        if (!copy)
+            return project; /* keep the supplied project on allocation failure */
         cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
-        return project_arg_strdup(match);
+        return copy;
     }
     return project;
 }

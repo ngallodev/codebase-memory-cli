@@ -2088,7 +2088,8 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
     if (!use_regex && strchr(pattern, ' ')) {
         size_t plen = strlen(pattern);
         /* Worst case: every char is a space → ".*" between each char */
-        char *regex_pat = malloc(plen * 3 + 1);
+        /* Same class as the pattern it replaces: released via cbm_operation_arg_free(). */
+        char *regex_pat = cbm_alloc(CBM_MEM_CLASS_OPERATION_ARG, plen * 3 + 1);
         if (regex_pat) {
             char *dst = regex_pat;
             const char *src = pattern;

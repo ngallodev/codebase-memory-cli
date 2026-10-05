@@ -6,9 +6,10 @@ export async function fetchRead<T>(
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(args)) query.set(key, String(value));
   const res = await fetch(`/api/${endpoint}?${query}`);
-  const json = await res.json();
   if (!res.ok) {
-    throw new Error(json.error ?? `HTTP ${res.status}: ${res.statusText}`);
+    // Error bodies are not always JSON (plain-text 404, proxy error pages).
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? `HTTP ${res.status}: ${res.statusText}`);
   }
-  return json as T;
+  return (await res.json()) as T;
 }
