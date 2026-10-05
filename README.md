@@ -337,3 +337,5 @@ See [`SECURITY.md`](SECURITY.md) and [`docs/SECURITY-DISCLOSURE.md`](docs/SECURI
 ## License and upstream attribution
 
 MIT. The root [`LICENSE`](LICENSE) preserves the upstream `Copyright (c) 2025 DeusData` notice. See [`UPSTREAM_ATTRIBUTION.md`](UPSTREAM_ATTRIBUTION.md) for the explicit distinction between inherited DeusData work and modifications made in this fork.
+
+Uninstall keeps project indexes by default, including with `--yes`, `--no`, or noninteractive input. Use `--delete-indexes` to remove them explicitly; `--dry-run` previews the changes.

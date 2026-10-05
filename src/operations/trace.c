@@ -1,3 +1,5 @@
+#include "callable_sig.h"
+#include "operations/json_args.h"
 #include "operations/output_budget.h"
 #include "operations/result_wire.h"
 #include "operations/trace.h"
@@ -60,13 +62,7 @@ static char *string_arg(const char *args, const char *name) {
 }
 
 static int int_arg(const char *args, const char *name, int fallback) {
-    yyjson_doc *doc = args_doc(args);
-    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
-    yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
-    int result = value && yyjson_is_int(value) ? (int)yyjson_get_sint(value) : fallback;
-    if (doc)
-        yyjson_doc_free(doc);
-    return result;
+    return cbm_json_int_arg(args, name, fallback);
 }
 
 static bool bool_arg(const char *args, const char *name) {
@@ -623,9 +619,14 @@ static bool edge_evidence(const cbm_edge_info_t *edge, char class_buffer[32], do
     return true;
 }
 
-static size_t qn_prefix_length(const char *qualified_name) {
-    const char *last = qualified_name ? strrchr(qualified_name, '.') : NULL;
-    return last ? (size_t)(last - qualified_name) : 0U;
+static size_t qn_prefix_length(const char *qualified_name, const char *name) {
+    size_t last = 0;
+    size_t base_len = cbm_qn_callable_base_len_named(qualified_name, name);
+    for (size_t i = 0; i < base_len; i++) {
+        if (qualified_name[i] == '.')
+            last = i;
+    }
+    return last;
 }
 
 static yyjson_mut_val *leg_json(yyjson_mut_doc *doc, const cbm_traverse_result_t *result,
@@ -656,7 +657,7 @@ static yyjson_mut_val *leg_json(yyjson_mut_doc *doc, const cbm_traverse_result_t
     for (int i = 0; i < result->visited_count; ++i) {
         const cbm_node_hop_t *hop = &result->visited[i];
         const char *qn = hop->node.qualified_name ? hop->node.qualified_name : "";
-        size_t prefix = qn_prefix_length(qn);
+        size_t prefix = qn_prefix_length(qn, hop->node.name);
         if (prefix >= sizeof(group_name))
             prefix = 0U;
         if (!have_group || strlen(group_name) != prefix || strncmp(group_name, qn, prefix) != 0) {
@@ -774,6 +775,11 @@ cbm_operation_result_t cbm_trace_operation_execute(const char *args) {
             nodes[0] = exact;
             node_count = 1;
         }
+    }
+    if (node_count == 0) {
+        cbm_store_free_nodes(nodes, 0);
+        nodes = NULL;
+        cbm_store_find_nodes_by_qn_base(store, project, function, false, &nodes, &node_count);
     }
     if (node_count == 0) {
         result = error_result(

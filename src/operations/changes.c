@@ -1,3 +1,5 @@
+#include "foundation/mem_core.h"
+#include "operations/json_args.h"
 #include "operations/output_budget.h"
 #include "operations/result_wire.h"
 #include "operations/changes.h"
@@ -67,7 +69,9 @@ static char *changes_string_arg(const char *args, const char *name) {
     yyjson_doc *doc = changes_args_doc(args);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
-    char *result = value && yyjson_is_str(value) ? changes_strdup(yyjson_get_str(value)) : NULL;
+    char *result = value && yyjson_is_str(value)
+                       ? cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, yyjson_get_str(value))
+                       : NULL;
     if (doc)
         yyjson_doc_free(doc);
     return result;
@@ -84,13 +88,7 @@ static char *changes_project_arg(const char *args) {
 }
 
 static int changes_int_arg(const char *args, const char *name, int fallback) {
-    yyjson_doc *doc = changes_args_doc(args);
-    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
-    yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
-    int result = value && yyjson_is_int(value) ? (int)yyjson_get_sint(value) : fallback;
-    if (doc)
-        yyjson_doc_free(doc);
-    return result;
+    return cbm_json_int_arg(args, name, fallback);
 }
 
 static int changes_clamp_depth(int depth, const char *tool) {
@@ -801,6 +799,89 @@ static char *detect_budget_floor(bool legacy_json, bool engine_saturated, size_t
     return json;
 }
 
+static bool detect_git_first_line(const cbm_operation_runtime_t *runtime, const char *command,
+                                  char *out, size_t out_size) {
+    out[0] = '\0';
+    char output_path[CBM_SZ_2K] = {0};
+    cbm_proc_result_t result = {0};
+    int run = cbm_operation_run_shell_command(runtime, command, output_path, &result);
+    bool ok = run == 0 && result.exit_code == 0 && !result.cancellation_requested &&
+              !cbm_operation_runtime_cancelled(runtime);
+    FILE *fp = ok ? cbm_fopen(output_path, "rb") : NULL;
+    bool read = fp && fgets(out, (int)out_size, fp) != NULL;
+    if (fp) {
+        (void)fclose(fp);
+    }
+    if (output_path[0]) {
+        (void)cbm_unlink(output_path);
+    }
+    size_t length = read ? strlen(out) : 0;
+    /* A line that filled the buffer without its newline was truncated. */
+    bool complete = length > 0 && out[length - 1] == '\n';
+    while (length > 0 && (out[length - 1] == '\n' || out[length - 1] == '\r')) {
+        out[--length] = '\0';
+    }
+    ok = ok && complete && length > 0 && out[0] != '-' && cbm_validate_shell_arg(out) &&
+         changes_validate_windows_cmd_interpolation_arg(out);
+    if (!ok) {
+        out[0] = '\0';
+    }
+    return ok;
+}
+
+/* #1357: without base_branch, diff against the repository's default branch
+ * rather than a literal "main" that trunk/master/develop repositories do not
+ * have. Order: origin/HEAD (what the clone calls the default), a local main,
+ * a local master, then the current branch's upstream. main and master come
+ * before the upstream on purpose: a pushed feature branch tracks its own
+ * remote twin, and diffing against that would silently shrink the impact
+ * analysis to unpushed commits. Nothing resolves -> false, out = "main", and
+ * the caller reports that ref as the one it tried. */
+static bool detect_default_base(const cbm_operation_runtime_t *runtime, const char *root_path,
+                                char *out, size_t out_size) {
+#ifdef _WIN32
+#define DETECT_GIT_Q "\""
+#define DETECT_GIT_NULL "2>NUL"
+#else
+#define DETECT_GIT_Q "'"
+#define DETECT_GIT_NULL "2>/dev/null"
+#endif
+    char command[CBM_SZ_2K];
+    char line[CBM_SZ_1K];
+    snprintf(command, sizeof(command),
+             "git -C " DETECT_GIT_Q "%s" DETECT_GIT_Q
+             " symbolic-ref -q --short refs/remotes/origin/HEAD " DETECT_GIT_NULL,
+             root_path);
+    if (detect_git_first_line(runtime, command, line, sizeof(line))) {
+        snprintf(out, out_size, "%s", line);
+        return true;
+    }
+    static const char *const local_defaults[] = {"main", "master"};
+    for (size_t i = 0; i < sizeof(local_defaults) / sizeof(local_defaults[0]); i++) {
+        snprintf(command, sizeof(command),
+                 "git -C " DETECT_GIT_Q "%s" DETECT_GIT_Q " rev-parse -q --verify " DETECT_GIT_Q
+                 "refs/heads/%s^{commit}" DETECT_GIT_Q " " DETECT_GIT_NULL,
+                 root_path, local_defaults[i]);
+        if (detect_git_first_line(runtime, command, line, sizeof(line))) {
+            snprintf(out, out_size, "%s", local_defaults[i]);
+            return true;
+        }
+    }
+    snprintf(command, sizeof(command),
+             "git -C " DETECT_GIT_Q "%s" DETECT_GIT_Q
+             " rev-parse -q --abbrev-ref --symbolic-full-name " DETECT_GIT_Q
+             "@{upstream}" DETECT_GIT_Q " " DETECT_GIT_NULL,
+             root_path);
+    if (detect_git_first_line(runtime, command, line, sizeof(line))) {
+        snprintf(out, out_size, "%s", line);
+        return true;
+    }
+#undef DETECT_GIT_Q
+#undef DETECT_GIT_NULL
+    snprintf(out, out_size, "%s", "main");
+    return false;
+}
+
 cbm_operation_result_t cbm_changes_operation_execute(const char *args,
                                                      const cbm_operation_runtime_t *runtime) {
     char *project = changes_project_arg(args);
@@ -820,15 +901,14 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
      * existing `<base>...HEAD` (three-dot) diff apply unchanged — `since` thus
      * adopts the same merge-base semantics base_branch already uses. */
     if (since && since[0]) {
-        free(base_branch);
+        cbm_operation_arg_free(base_branch);
         base_branch = since; /* transfer ownership */
         since = NULL;
     }
-    free(since); /* no-op after the swap (since is NULL); frees it otherwise */
+    cbm_operation_arg_free(since); /* no-op after the swap (since is NULL); frees it otherwise */
 
-    if (!base_branch) {
-        base_branch = changes_strdup("main");
-    }
+    bool base_defaulted = base_branch == NULL;
+    bool default_base_found = true;
 
     cbm_operation_result_t result = {0};
     cbm_store_t *store = NULL;
@@ -856,8 +936,8 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
      * "<base>"...HEAD`; a value starting with '-' would be read by git as an
      * option rather than a ref (e.g. `--output=<path>` writes the diff to an
      * arbitrary file). A real git ref never begins with '-'. */
-    if (!cbm_validate_shell_arg(base_branch) || base_branch[0] == '-' ||
-        !changes_validate_windows_cmd_interpolation_arg(base_branch)) {
+    if (base_branch && (!cbm_validate_shell_arg(base_branch) || base_branch[0] == '-' ||
+                        !changes_validate_windows_cmd_interpolation_arg(base_branch))) {
         result = changes_error("base_branch contains invalid characters");
         goto done;
     }
@@ -875,6 +955,17 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
         goto done;
     }
 
+    if (base_defaulted) {
+        char default_base[CBM_SZ_1K];
+        default_base_found =
+            detect_default_base(runtime, root_path, default_base, sizeof(default_base));
+        base_branch = cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, default_base);
+        if (!base_branch) {
+            result = changes_error("out of memory resolving default base");
+            goto done;
+        }
+    }
+
     /* Every detect snapshot and cursor is generation-bound. Validate the
      * metadata immediately after store resolution so fresh requests and cursor
      * replays fail identically before Git work or cursor minting. */
@@ -890,7 +981,7 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
      * the changed code depends on; both = union. */
     direction = changes_string_arg(args, "direction");
     if (!direction) {
-        direction = changes_strdup("inbound");
+        direction = cbm_mem_strdup(CBM_MEM_CLASS_OPERATION_ARG, "inbound");
     }
     /* Teaching error, same contract as trace_path: never silently correct an
      * unknown direction — the caller would misread the result's semantics. */
@@ -906,7 +997,7 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
     }
     char *fmt = changes_string_arg(args, "format");
     bool legacy_json = fmt && strcmp(fmt, "json") == 0;
-    free(fmt);
+    cbm_operation_arg_free(fmt);
 
     /* Freeze both endpoints before collecting paths. A failed or unknown base is
      * a request error, never an exact-looking empty diff, and a concurrent HEAD
@@ -947,9 +1038,16 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
         int run = git.run;
         changes_git_finish(&git);
         result = changes_error(
-            cancelled  ? "detect_changes cancelled for this request"
-            : run != 0 ? "git revision resolution failed: the contained command could not complete"
-                       : "git revision resolution failed: base_branch or HEAD is not a commit");
+            cancelled ? "detect_changes cancelled for this request"
+            : run != 0
+                ? "git revision resolution failed: the contained command could not complete"
+                : (!base_defaulted
+                       ? "git revision resolution failed: base_branch or HEAD is not a commit"
+                   : !default_base_found ? "git revision resolution failed: no default base found "
+                                           "(tried origin/HEAD, main, master and the upstream; "
+                                           "fell back to \"main\"); pass base_branch"
+                                         : "git revision resolution failed: default base or HEAD "
+                                           "is not a commit; pass base_branch"));
         goto done;
     }
     changes_git_finish(&git);
@@ -1636,14 +1734,14 @@ done:
     free(files);
     free(seeds);
     free(hunks);
-    free(impact_cursor_arg);
-    free(changed_cursor_arg);
-    free(module_cursor_arg);
-    free(direction);
+    cbm_operation_arg_free(impact_cursor_arg);
+    cbm_operation_arg_free(changed_cursor_arg);
+    cbm_operation_arg_free(module_cursor_arg);
+    cbm_operation_arg_free(direction);
     free(root_path);
-    free(project);
-    free(base_branch);
-    free(scope);
+    cbm_operation_arg_free(project);
+    cbm_operation_arg_free(base_branch);
+    cbm_operation_arg_free(scope);
     if (store) {
         cbm_store_close(store);
     }

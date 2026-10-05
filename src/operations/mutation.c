@@ -1,3 +1,4 @@
+#include "operations/json_args.h"
 #include "operations/mutation.h"
 #include "operations/project_arg.h"
 #include "operations/index.h"
@@ -43,27 +44,27 @@ static cbm_operation_result_t execute_delete_project(const char *args_json,
                                                      const cbm_operation_runtime_t *runtime) {
     char *project = cbm_operation_project_arg(args_json);
     if (!project || !project[0]) {
-        free(project);
+        cbm_operation_arg_free(project);
         return cbm_operation_result_copy("{\"error\":\"project is required\"}", true);
     }
     if (!cbm_validate_project_name(project)) {
         cbm_operation_result_t result =
             mutation_json_result(project, "invalid_project", "invalid project name", true);
-        free(project);
+        cbm_operation_arg_free(project);
         return result;
     }
     if (!runtime || !runtime->mutation_begin || !runtime->mutation_end) {
         cbm_operation_result_t result = mutation_json_result(
             project, "coordination_unavailable",
             "project mutation coordination is unavailable for this execution path", true);
-        free(project);
+        cbm_operation_arg_free(project);
         return result;
     }
     if (!runtime->mutation_begin(runtime->mutation_context, project)) {
         cbm_operation_result_t result = mutation_json_result(
             project, "busy",
             "project operation cancelled or blocked by an active index or mutation", true);
-        free(project);
+        cbm_operation_arg_free(project);
         return result;
     }
 
@@ -115,7 +116,7 @@ static cbm_operation_result_t execute_delete_project(const char *args_json,
     cbm_mem_collect();
     runtime->mutation_end(runtime->mutation_context, project);
     cbm_operation_result_t result = mutation_json_result(project, status, error_detail, is_error);
-    free(project);
+    cbm_operation_arg_free(project);
     return result;
 }
 

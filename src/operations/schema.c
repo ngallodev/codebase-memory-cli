@@ -1,3 +1,4 @@
+#include "operations/json_args.h"
 #include "operations/result_wire.h"
 #include "operations/schema.h"
 #include "operations/store_host.h"
@@ -58,14 +59,7 @@ static bool project_has_adr(cbm_store_t *store, const char *project, const char 
 }
 
 static int int_arg(const char *args_json, const char *name, int fallback) {
-    yyjson_doc *doc =
-        yyjson_read(args_json ? args_json : "{}", strlen(args_json ? args_json : "{}"), 0);
-    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
-    yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
-    int result = value && yyjson_is_int(value) ? (int)yyjson_get_sint(value) : fallback;
-    if (doc)
-        yyjson_doc_free(doc);
-    return result;
+    return cbm_json_int_arg(args_json, name, fallback);
 }
 
 static bool diagnostics_full(const char *args_json) {

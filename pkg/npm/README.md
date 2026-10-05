@@ -58,3 +58,5 @@ The source repository and full documentation are at https://github.com/ngallodev
 ## License
 
 MIT
+
+Uninstall keeps project indexes by default, including with `--yes`, `--no`, or noninteractive input. Use `--delete-indexes` to remove them explicitly; `--dry-run` previews the changes.

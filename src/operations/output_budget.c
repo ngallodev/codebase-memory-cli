@@ -1,8 +1,10 @@
 #include "operations/output_budget.h"
+#include "operations/json_args.h"
 
 #include "yyjson/yyjson.h"
 
 #include <stdbool.h>
+#include <limits.h>
 #include <string.h>
 
 int cbm_output_budget_tokens(const char *args_json, int fallback) {
@@ -10,8 +12,10 @@ int cbm_output_budget_tokens(const char *args_json, int fallback) {
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, "max_output_tokens") : NULL;
-    bool present = value && yyjson_is_int(value);
-    int tokens = present ? (int)yyjson_get_sint(value) : fallback;
+    bool present = (yyjson_is_sint(value) && yyjson_get_sint(value) >= INT_MIN &&
+                    yyjson_get_sint(value) <= INT_MAX) ||
+                   (yyjson_is_uint(value) && yyjson_get_uint(value) <= (uint64_t)INT_MAX);
+    int tokens = cbm_json_int_arg(args_json, "max_output_tokens", fallback);
     if (doc) {
         yyjson_doc_free(doc);
     }

@@ -88,6 +88,7 @@ Current keys:
 | `auto_index` | `false` | Permit the retained warm runtime to auto-index newly encountered projects. Canonical CLI usage can always index explicitly with `codebase-memory-cli index`. |
 | `auto_index_limit` | `50000` | Maximum file count allowed for automatic indexing of a new project. |
 | `auto_watch` | `true` | Register an active project with the retained background watcher when a warm runtime/hook integration supplies project context. The ordinary one-shot CLI does not require this. |
+| `watch_non_git` | `false` | Poll non-Git roots with the indexer discovery rules and an adaptive file-tree scan. Skipped paths, including `.codebase-memory/`, do not trigger indexing. The first poll after daemon startup reindexes once; later changes trigger one reindex. This walks the whole tree each poll and is read when the daemon starts. |
 | `watcher_enabled` | `true` | Master switch for the retained background watcher subsystem. Set `false` to stop its poll thread/project registration. Reindex manually with `codebase-memory-cli index` when disabled. |
 | `index_max_files` | `off` | Optional maximum number of accepted source files in one discovery run. |
 | `index_max_source_mb` | `off` | Optional maximum accepted source size in MiB in one discovery run. |

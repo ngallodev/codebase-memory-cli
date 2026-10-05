@@ -1,3 +1,5 @@
+#include "callable_sig.h"
+#include "operations/json_args.h"
 #include "operations/result_wire.h"
 #include "operations/search.h"
 #include "operations/store_host.h"
@@ -67,13 +69,7 @@ static char *string_arg(const char *args, const char *name) {
 }
 
 static int int_arg(const char *args, const char *name, int fallback) {
-    yyjson_doc *doc = read_args(args);
-    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
-    yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
-    int result = value && yyjson_is_int(value) ? (int)yyjson_get_sint(value) : fallback;
-    if (doc)
-        yyjson_doc_free(doc);
-    return result;
+    return cbm_json_int_arg(args, name, fallback);
 }
 
 static bool bool_arg(const char *args, const char *name) {
@@ -407,9 +403,14 @@ static int result_qn_cmp(const void *left, const void *right) {
     return strcmp(aq, bq);
 }
 
-static size_t prefix_length(const char *qn) {
-    const char *last = qn ? strrchr(qn, '.') : NULL;
-    return last ? (size_t)(last - qn) : 0U;
+static size_t prefix_length(const char *qn, const char *name) {
+    size_t last = 0;
+    size_t base_len = cbm_qn_callable_base_len_named(qn, name);
+    for (size_t i = 0; i < base_len; i++) {
+        if (qn[i] == '.')
+            last = i;
+    }
+    return last;
 }
 
 static void add_property_value(yyjson_mut_doc *doc, yyjson_mut_val *row, yyjson_val *value) {
@@ -443,7 +444,7 @@ static void emit_structural(yyjson_mut_doc *doc, yyjson_mut_val *root, cbm_searc
         cbm_search_result_t *search = &output->results[i];
         const char *qn = search->node.qualified_name ? search->node.qualified_name : "";
         const char *file = search->node.file_path ? search->node.file_path : "";
-        size_t prefix = prefix_length(qn);
+        size_t prefix = prefix_length(qn, search->node.name);
         char key[2048];
         (void)snprintf(key, sizeof(key), "%.*s|%s", (int)prefix, qn, file);
         if (!rows || strcmp(key, current) != 0) {
@@ -673,10 +674,9 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
     }
     store = open_indexed_project(project, &open_status);
     if (!store) {
-        result =
-            open_status == CBM_STORE_OPEN_CORRUPT
-                ? error_result(CBM_STORE_CORRUPT_MESSAGE, CBM_STORE_CORRUPT_HINT)
-                : error_result("project not indexed", "Run 'codebase-memory-cli index .' first.");
+        result = open_status == CBM_STORE_OPEN_CORRUPT
+                     ? error_result(CBM_STORE_CORRUPT_MESSAGE, CBM_STORE_CORRUPT_HINT)
+                     : cbm_operation_result_take(cbm_store_host_error(project), true);
         goto done;
     }
 
@@ -725,7 +725,7 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
                                   .min_degree = min_degree,
                                   .max_degree = max_degree};
     if (!semantic_only && cbm_store_search(store, &params, &output) != CBM_STORE_OK) {
-        result = error_result("graph search failed", NULL);
+        result = error_result(cbm_store_error(store), NULL);
         goto done;
     }
 
@@ -747,18 +747,10 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
         yyjson_mut_obj_add_str(
             doc, root, "fields_hint",
             "Core fields are already included and were not duplicated as extra property columns.");
-    if (output.total == 0 && !semantic_only) {
-        if (name_pattern && label)
-            yyjson_mut_obj_add_str(doc, root, "hint",
-                                   "No results. Remove the label filter or broaden name_pattern.");
-        else if (name_pattern)
-            yyjson_mut_obj_add_str(
-                doc, root, "hint",
-                "No nodes match this pattern. Check spelling or broaden the regex.");
-        else if (label)
-            yyjson_mut_obj_add_str(doc, root, "hint",
-                                   "No nodes have this label. Use architecture/schema discovery to "
-                                   "inspect available labels.");
+    if (output.total == 0 && !semantic_only && structural) {
+        yyjson_mut_obj_add_str(
+            doc, root, "hint",
+            "No results match the current filters; broaden or remove filters and retry.");
     }
     if (semantic_present) {
         emit_semantic(doc, root, &semantic_page);

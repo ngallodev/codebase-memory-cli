@@ -1,3 +1,4 @@
+#include "operations/json_args.h"
 #include "operations/result_wire.h"
 #include "operations/operation.h"
 #include "operations/store_host.h"
@@ -57,13 +58,7 @@ static char *op_string_arg(const char *args, const char *name) {
 }
 
 static int op_int_arg(const char *args, const char *name, int fallback) {
-    yyjson_doc *doc = args ? yyjson_read(args, strlen(args), 0) : NULL;
-    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
-    yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
-    int result = value && yyjson_is_int(value) ? (int)yyjson_get_sint(value) : fallback;
-    if (doc)
-        yyjson_doc_free(doc);
-    return result;
+    return cbm_json_int_arg(args, name, fallback);
 }
 
 static cbm_operation_result_t op_json_result(yyjson_mut_doc *doc, bool error) {

@@ -8,14 +8,17 @@ BINARY="${CBM_TEST_BINARY:-${ROOT}/build/c/codebase-memory-cli}"
 [ -x "${BINARY}" ] || { echo "missing test binary: ${BINARY}" >&2; exit 2; }
 command -v git >/dev/null 2>&1 || { echo "git required for fixture" >&2; exit 2; }
 
-work="$(mktemp -d)"
+# shellcheck source=../scripts/test-runtime.sh
+source "${ROOT}/scripts/test-runtime.sh"
+cbm_test_runtime_init
+work="${CBM_TEST_RUNTIME_ROOT}"
 cleanup() {
   local cache
   for cache in "${work}"/cache-*; do
     [[ -d "${cache}" ]] || continue
     CBM_CACHE_DIR="${cache}" "${BINARY}" daemon stop >/dev/null 2>&1 || true
   done
-  rm -rf "${work}"
+  cbm_test_runtime_cleanup "${BINARY}"
 }
 trap cleanup EXIT
 

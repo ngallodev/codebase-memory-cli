@@ -1,3 +1,4 @@
+#include "operations/json_args.h"
 #include "operations/result_wire.h"
 #include "operations/adr.h"
 #include "operations/project_arg.h"
@@ -400,20 +401,20 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
                                strcmp(mode, "sections") == 0 || strcmp(mode, "update") == 0 ||
                                strcmp(mode, "set_sections") == 0 || strcmp(mode, "store") == 0);
     if (!valid_mode) {
-        free(project);
+        cbm_operation_arg_free(project);
         free(mode);
         free(content);
         return adr_error("invalid_arguments",
                          "invalid mode: use outline, get, sections, set_sections, or update");
     }
     if ((strcmp(mode, "update") == 0 || strcmp(mode, "store") == 0) && !content) {
-        free(project);
+        cbm_operation_arg_free(project);
         free(mode);
         return adr_error("invalid_arguments", "content is required for update");
     }
 
     if (adr_has_removed_sections_arg(args)) {
-        free(project);
+        cbm_operation_arg_free(project);
         free(mode);
         free(content);
         return adr_error("invalid_arguments", "The sections argument is not an update primitive "
@@ -435,7 +436,7 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
         if (updates.status) {
             cbm_operation_result_t result = adr_error(updates.status, updates.error);
             adr_updates_free(&updates);
-            free(project);
+            cbm_operation_arg_free(project);
             free(mode);
             free(content);
             return result;
@@ -447,7 +448,7 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
         set_sections;
     if (!runtime || !runtime->store_resolve) {
         adr_updates_free(&updates);
-        free(project);
+        cbm_operation_arg_free(project);
         free(mode);
         free(content);
         return adr_error("store_unavailable",
@@ -459,7 +460,7 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
         if (!runtime->mutation_begin || !runtime->mutation_end ||
             !runtime->mutation_begin(runtime->mutation_context, project)) {
             adr_updates_free(&updates);
-            free(project);
+            cbm_operation_arg_free(project);
             free(mode);
             free(content);
             return adr_error("busy", "project operation cancelled or blocked by an active index");
@@ -468,7 +469,7 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
         if (runtime->cancelled && runtime->cancelled(runtime->cancelled_context)) {
             runtime->mutation_end(runtime->mutation_context, project);
             adr_updates_free(&updates);
-            free(project);
+            cbm_operation_arg_free(project);
             free(mode);
             free(content);
             return adr_error("cancelled", "project operation cancelled for this request");
@@ -497,7 +498,7 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
         if (mutation_held)
             runtime->mutation_end(runtime->mutation_context, project);
         adr_updates_free(&updates);
-        free(project);
+        cbm_operation_arg_free(project);
         free(mode);
         free(content);
         return result;
@@ -511,7 +512,7 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
             if (mutation_held)
                 runtime->mutation_end(runtime->mutation_context, project);
             adr_updates_free(&updates);
-            free(project);
+            cbm_operation_arg_free(project);
             free(mode);
             free(content);
             return adr_error("open_failed", "failed to open writable ADR store");
@@ -571,7 +572,7 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
         adr_updates_free(&updates);
         free(legacy_seed);
         free(legacy);
-        free(project);
+        cbm_operation_arg_free(project);
         free(mode);
         free(content);
         return cbm_operation_result_copy("{\"error\":\"result allocation failed\"}", true);
@@ -656,7 +657,7 @@ cbm_operation_result_t cbm_adr_operation_execute(const char *args_json,
     adr_updates_free(&updates);
     free(legacy_seed);
     free(legacy);
-    free(project);
+    cbm_operation_arg_free(project);
     free(mode);
     free(content);
     return result;

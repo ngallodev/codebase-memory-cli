@@ -1,3 +1,4 @@
+#include "operations/json_args.h"
 #include "operations/output_budget.h"
 #include "operations/result_wire.h"
 #include "operations/operation.h"
@@ -48,13 +49,7 @@ static char *string_arg(const char *args, const char *name) {
 }
 
 static int int_arg(const char *args, const char *name, int fallback) {
-    yyjson_doc *doc = args ? yyjson_read(args, strlen(args), 0) : NULL;
-    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
-    yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
-    int result = value && yyjson_is_int(value) ? (int)yyjson_get_sint(value) : fallback;
-    if (doc)
-        yyjson_doc_free(doc);
-    return result;
+    return cbm_json_int_arg(args, name, fallback);
 }
 
 static bool bool_arg(const char *args, const char *name) {
@@ -611,13 +606,25 @@ cbm_operation_result_t cbm_snippet_operation_execute(const char *args) {
 
     cbm_node_t *matches = NULL;
     int count = 0;
-    (void)cbm_store_find_nodes_by_qn_suffix(store, project, qualified_name, &matches, &count);
+    const char *method = "base";
+    cbm_store_find_nodes_by_qn_base(store, project, qualified_name, false, &matches, &count);
+    if (count == 0) {
+        cbm_store_free_nodes(matches, count);
+        matches = NULL;
+        method = "suffix";
+        cbm_store_find_nodes_by_qn_suffix(store, project, qualified_name, &matches, &count);
+    }
+    if (count == 0) {
+        cbm_store_free_nodes(matches, count);
+        matches = NULL;
+        cbm_store_find_nodes_by_qn_base(store, project, qualified_name, true, &matches, &count);
+    }
     if (count > 0) {
         bool ambiguous = false;
         int selected = resolved_node(matches, count, &ambiguous);
         cbm_operation_result_t result = ambiguous ? ambiguous_result(qualified_name, matches, count)
                                                   : node_result(store, project, &matches[selected],
-                                                                "suffix", include_neighbors, args);
+                                                                method, include_neighbors, args);
         cbm_store_free_nodes(matches, count);
         cbm_store_close(store);
         free(project);

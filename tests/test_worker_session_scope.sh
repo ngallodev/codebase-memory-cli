@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# A supervised index worker (`cli --index-worker index_repository ...`) runs in
+# A supervised index worker (`codebase-memory-cli cli --index-worker index_repository ...`) runs in
 # the DAEMON's environment, not the requesting client's. The daemon has already
 # admitted the request under the client's session policy and re-executes the
 # worker with the canonical repo_path in its args, so the worker must scope its
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BINARY="${CBM_TEST_BINARY:-${ROOT}/build/c/codebase-memory-mcp}"
+BINARY="${CBM_TEST_BINARY:-${ROOT}/build/c/codebase-memory-cli}"
 if [[ ! -x "${BINARY}" && -x "${BINARY}.exe" ]]; then
   BINARY="${BINARY}.exe"
 fi
@@ -93,8 +93,14 @@ if grep -q 'outside the allowed root' "${response}"; then
   cat "${response}" >&2
   exit 1
 fi
-if ! grep -q '"status":"indexed"' "${response}"; then
-  echo "worker did not index the admitted repository" >&2
+if ! python3 - "${response}" <<'PYJSON'
+import json, sys
+wire = json.load(open(sys.argv[1], encoding="utf-8"))
+body = json.loads(wire["payload"])
+if wire.get("is_error") is not False or body.get("status") != "indexed" or body.get("nodes", 0) <= 0:
+    raise SystemExit("worker did not index the admitted repository")
+PYJSON
+then
   cat "${response}" >&2
   exit 1
 fi

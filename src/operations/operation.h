@@ -79,6 +79,7 @@ typedef cbm_operation_result_t (*cbm_operation_index_status_fn)(void *context, c
 typedef void (*cbm_operation_project_invalidate_fn)(void *context, const char *project);
 
 typedef struct cbm_operation_runtime {
+    const char *search_scratch_dir; /* optional private parent; NULL uses cbm_tmpdir() */
     cbm_operation_cancelled_fn cancelled;
     void *cancelled_context;
     cbm_operation_command_allowed_fn command_allowed;
