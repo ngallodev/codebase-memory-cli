@@ -320,81 +320,101 @@ try {
 
 $Dest = Join-Path $InstallDir $BinName
 
-# Retire the running installation before replacing it. Windows keeps an image
-# lock on a running .exe: the file cannot be overwritten, but it CAN be renamed
-# out of the way, which is what makes an in-place update possible from here.
-if (Test-Path -LiteralPath $Dest -PathType Leaf) {
-    try { & $Dest daemon stop 2>&1 | Out-Null } catch { }
-    $retired = "$Dest.retired-$(Get-Date -Format yyyyMMddHHmmss)"
-    $renamed = $false
-    foreach ($attempt in 1..10) {
-        try { Move-Item -LiteralPath $Dest -Destination $retired -Force -ErrorAction Stop; $renamed = $true; break }
-        catch { Start-Sleep -Milliseconds 500 }
+$retired = $null
+$ActivationSucceeded = $false
+try {
+    # Retire the running installation before replacing it. Windows keeps an image
+    # lock on a running .exe: the file cannot be overwritten, but it CAN be renamed
+    # out of the way, which is what makes an in-place update possible from here.
+    if (Test-Path -LiteralPath $Dest -PathType Leaf) {
+        try { & $Dest daemon stop 2>&1 | Out-Null } catch { }
+        $retired = "$Dest.retired-$([Guid]::NewGuid().ToString('N'))"
+        $renamed = $false
+        foreach ($attempt in 1..10) {
+            try { Move-Item -LiteralPath $Dest -Destination $retired -ErrorAction Stop; $renamed = $true; break }
+            catch { Start-Sleep -Milliseconds 500 }
+        }
+        if (-not $renamed) {
+            Write-Host "error: could not retire the existing $BinName - close all running" -ForegroundColor Red
+            Write-Host "       codebase-memory-cli sessions and coding agents, then re-run." -ForegroundColor Red
+            Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
+            exit 1
+        }
+        # Keep the old image until activation and the installed-binary probe succeed.
     }
-    if (-not $renamed) {
-        Write-Host "error: could not retire the existing $BinName - close all running" -ForegroundColor Red
-        Write-Host "       codebase-memory-cli sessions and coding agents, then re-run." -ForegroundColor Red
+
+    $InstallArgs = @("install", "-y", "--force", "--dir=$InstallDir")
+    if ($SkipConfig) { $InstallArgs += "--skip-config" }
+    & $DownloadedBinary @InstallArgs
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "error: installation failed (exit code $LASTEXITCODE)" -ForegroundColor Red
         Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
         exit 1
     }
-    # A retired image stays locked until its last process exits; delete it when
-    # we can, and leave it for the next run when we cannot. Never fail here.
-    Remove-Item -LiteralPath $retired -Force -ErrorAction SilentlyContinue
+
+    # Place the installer beside the binary so `update` points at a local file
+    # rather than a URL, and so the next update runs THIS release's installer.
+    #
+    # Sourced from the archive we just checksum-verified, and published by rename
+    # rather than written over the live path. PowerShell parses a script fully
+    # before executing it, so self-overwrite is less hazardous here than it is for
+    # bash -- but rename costs nothing and keeps both platforms on one rule.
+    # Best effort: a failure here still leaves a working install.
+    $DownloadedInstaller = Join-Path $TmpDir "install.ps1"
+    if (Test-Path -LiteralPath $DownloadedInstaller -PathType Leaf) {
+        $InstallerDest = Join-Path $InstallDir "install.ps1"
+        $InstallerTmp = "$InstallerDest.new"
+        try {
+            Copy-Item -LiteralPath $DownloadedInstaller -Destination $InstallerTmp -Force -ErrorAction Stop
+            Move-Item -LiteralPath $InstallerTmp -Destination $InstallerDest -Force -ErrorAction Stop
+            Write-Host "Installed updater -> $InstallerDest"
+        } catch {
+            Remove-Item -LiteralPath $InstallerTmp -Force -ErrorAction SilentlyContinue
+            Write-Host "note: could not place install.ps1 in $InstallDir (update will explain where to find it)"
+        }
+    }
+
+    # Verify
+    # Same PS 5.1 stderr-wrapping guard as the candidate probe above; the pre-seed
+    # matters MOST here, because prior successful native calls leave a stale
+    # $LASTEXITCODE=0 that a start-failure would otherwise inherit.
+    try {
+        $ProbeEap = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = "Continue"
+            $global:LASTEXITCODE = 1
+            $ver = & $Dest --version 2>&1
+        } finally {
+            $ErrorActionPreference = $ProbeEap
+        }
+        if ($LASTEXITCODE -ne 0) { throw "installed binary exited with $LASTEXITCODE" }
+        Write-Host "Installed: $ver"
+    } catch {
+        Write-Host "error: installed binary failed to run" -ForegroundColor Red
+        Remove-Item -Recurse -Force $TmpDir
+        exit 1
+    }
+
+    $ActivationSucceeded = $true
+} finally {
+    if (-not $ActivationSucceeded -and $retired -and
+        (Test-Path -LiteralPath $retired -PathType Leaf)) {
+        try {
+            # A failed candidate may itself be locked; rename it instead of
+            # deleting it, and retain both images if restoration is refused.
+            if (Test-Path -LiteralPath $Dest) {
+                $FailedCandidate = "$Dest.failed-$([Guid]::NewGuid().ToString('N'))"
+                Move-Item -LiteralPath $Dest -Destination $FailedCandidate -ErrorAction Stop
+            }
+            Move-Item -LiteralPath $retired -Destination $Dest -ErrorAction Stop
+        } catch {
+            Write-Host "error: could not restore $Dest; previous binary retained at $retired : $_" -ForegroundColor Red
+        }
+    }
 }
+# Retired images are disposable only after the replacement has been verified.
 Get-ChildItem -LiteralPath $InstallDir -Filter "$BinName.retired-*" -ErrorAction SilentlyContinue |
     ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
-
-$InstallArgs = @("install", "-y", "--force", "--dir=$InstallDir")
-if ($SkipConfig) { $InstallArgs += "--skip-config" }
-& $DownloadedBinary @InstallArgs
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "error: installation failed (exit code $LASTEXITCODE)" -ForegroundColor Red
-    Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
-    exit 1
-}
-
-# Place the installer beside the binary so `update` points at a local file
-# rather than a URL, and so the next update runs THIS release's installer.
-#
-# Sourced from the archive we just checksum-verified, and published by rename
-# rather than written over the live path. PowerShell parses a script fully
-# before executing it, so self-overwrite is less hazardous here than it is for
-# bash -- but rename costs nothing and keeps both platforms on one rule.
-# Best effort: a failure here still leaves a working install.
-$DownloadedInstaller = Join-Path $TmpDir "install.ps1"
-if (Test-Path -LiteralPath $DownloadedInstaller -PathType Leaf) {
-    $InstallerDest = Join-Path $InstallDir "install.ps1"
-    $InstallerTmp = "$InstallerDest.new"
-    try {
-        Copy-Item -LiteralPath $DownloadedInstaller -Destination $InstallerTmp -Force -ErrorAction Stop
-        Move-Item -LiteralPath $InstallerTmp -Destination $InstallerDest -Force -ErrorAction Stop
-        Write-Host "Installed updater -> $InstallerDest"
-    } catch {
-        Remove-Item -LiteralPath $InstallerTmp -Force -ErrorAction SilentlyContinue
-        Write-Host "note: could not place install.ps1 in $InstallDir (update will explain where to find it)"
-    }
-}
-
-# Verify
-# Same PS 5.1 stderr-wrapping guard as the candidate probe above; the pre-seed
-# matters MOST here, because prior successful native calls leave a stale
-# $LASTEXITCODE=0 that a start-failure would otherwise inherit.
-try {
-    $ProbeEap = $ErrorActionPreference
-    try {
-        $ErrorActionPreference = "Continue"
-        $global:LASTEXITCODE = 1
-        $ver = & $Dest --version 2>&1
-    } finally {
-        $ErrorActionPreference = $ProbeEap
-    }
-    if ($LASTEXITCODE -ne 0) { throw "installed binary exited with $LASTEXITCODE" }
-    Write-Host "Installed: $ver"
-} catch {
-    Write-Host "error: installed binary failed to run" -ForegroundColor Red
-    Remove-Item -Recurse -Force $TmpDir
-    exit 1
-}
 
 # Agent configuration was included in the candidate-owned activation window.
 if ($SkipConfig) {

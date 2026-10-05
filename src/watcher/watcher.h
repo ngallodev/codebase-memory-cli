@@ -128,6 +128,8 @@ int cbm_watcher_index_failure_count(cbm_watcher_t *w, const char *project_name);
  * otherwise unobservable — cbm_watcher_free frees the same list, so a poll
  * that stopped draining would neither crash nor leak. Test builds only. */
 int cbm_watcher_test_pending_free_count(cbm_watcher_t *w);
+/* Single-threaded test inspection of touch/backoff scheduling. */
+int64_t cbm_watcher_test_next_poll_ns(cbm_watcher_t *w, const char *project_name);
 #endif
 
 /* Return the adaptive poll interval (ms) for a given file count. */

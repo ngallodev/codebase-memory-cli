@@ -4891,7 +4891,7 @@ static void execute_return_simple(cbm_return_clause_t *ret, binding_t *bindings,
                                   int max_rows, result_builder_t *rb) {
     int proj_cap = max_rows;
     bool cap_is_engine_budget = true;
-    if (ret->limit >= 0 && ret->order_key_count == 0 && ret->skip <= 0) {
+    if (ret->limit >= 0 && ret->limit <= max_rows && ret->order_key_count == 0 && ret->skip <= 0) {
         proj_cap = ret->limit; /* DISTINCT: the cap counts distinct rows (#1364) */
         cap_is_engine_budget = false;
     }

@@ -1757,6 +1757,17 @@ int cbm_watcher_run(cbm_watcher_t *w, int base_interval_ms) {
 }
 
 #if defined(CBM_ENABLE_TEST_SEAMS) && CBM_ENABLE_TEST_SEAMS
+int64_t cbm_watcher_test_next_poll_ns(cbm_watcher_t *w, const char *project_name) {
+    if (!w || !project_name) {
+        return -1;
+    }
+    cbm_mutex_lock(&w->projects_lock);
+    project_state_t *s = cbm_ht_get(w->projects, project_name);
+    int64_t result = s ? s->next_poll_ns : -1;
+    cbm_mutex_unlock(&w->projects_lock);
+    return result;
+}
+
 int cbm_watcher_test_pending_free_count(cbm_watcher_t *w) {
     if (!w) {
         return -1;

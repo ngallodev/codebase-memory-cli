@@ -12,9 +12,12 @@
 #include "foundation/constants.h"
 #include "foundation/compat_regex.h"
 
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <wchar.h>
+#include <wctype.h>
 
 /* ── Compile-size guard (shared by both backends) ─────────────────
  *
@@ -80,16 +83,52 @@ static uint64_t regex_frame_units(const regex_frame_t *f) {
     return units ? units : 1;
 }
 
-/* Skip the bracket expression opening at p[i] == '['. Returns the index just
- * past its closing ']', or the end of the string when it is unterminated.
- * Nothing inside is an operator: `[]a]`, `[^]a]` and `[[:alpha:]]` are each
- * one atom, and a brace inside brackets never opens an interval. */
-static size_t regex_skip_bracket(const char *p, size_t i) {
+/* Byte-locale TRE expands a named class into disjoint ranges. Count those
+ * ranges even in multibyte locales, where the backend may use one class item. */
+static uint64_t regex_class_items(const char *name, size_t len, bool icase) {
+    char buf[64];
+    if (len >= sizeof(buf)) {
+        return 1; /* invalid class: the backend rejects it */
+    }
+    memcpy(buf, name, len);
+    buf[len] = '\0';
+    wctype_t cls = wctype(buf);
+    uint64_t items = 0;
+    bool previous = false;
+    for (wint_t c = 0; c < 256; c++) {
+        bool member =
+            cls && (iswctype(c, cls) ||
+                    (icase && (iswctype(towlower(c), cls) || iswctype(towupper(c), cls))));
+        if (member && !previous) {
+            items++;
+        }
+        previous = member;
+    }
+    return items ? items : 1;
+}
+
+static size_t regex_bracket_char(const char *p, size_t i, wchar_t *out) {
+    mbstate_t state = {0};
+    size_t len = mbrtowc(out, p + i, MB_LEN_MAX, &state);
+    if (len == (size_t)-1 || len == (size_t)-2 || len == 0) {
+        *out = (unsigned char)p[i];
+        len = 1; /* malformed input is left for the backend to reject */
+    }
+    return i + len;
+}
+
+/* Bracket members form a union in TRE; repetition multiplies that union too.
+ * Count ranges, leading ']', named classes and case-folded range items, then
+ * apply the same conservative union charge used for ordinary alternation. */
+static size_t regex_skip_bracket(const char *p, size_t i, bool icase, uint64_t *units) {
     size_t j = i + 1;
-    if (p[j] == '^') {
+    bool negate = p[j] == '^';
+    if (negate) {
         j++;
     }
+    uint64_t items = 0;
     if (p[j] == ']') {
+        items++;
         j++;
     }
     while (p[j] && p[j] != ']') {
@@ -99,11 +138,40 @@ static size_t regex_skip_bracket(const char *p, size_t i) {
             while (p[k] && !(p[k] == close && p[k + 1] == ']')) {
                 k++;
             }
+            items = regex_sat_add(
+                items, close == ':' ? regex_class_items(p + j + 2, k - j - 2, icase) : 1);
             j = p[k] ? k + 2 : k;
         } else {
-            j++;
+            wchar_t first;
+            j = regex_bracket_char(p, j, &first);
+            wchar_t last = first;
+            if (p[j] == '-' && p[j + 1] && p[j + 1] != ']') {
+                j = regex_bracket_char(p, j + 1, &last);
+            }
+            items = regex_sat_add(items, 1);
+            if (icase && last >= first) {
+                if (last < 256) {
+                    wint_t previous = WEOF;
+                    for (wint_t c = (wint_t)first; c <= (wint_t)last; c++) {
+                        wint_t folded =
+                            iswlower(c) ? towupper(c) : (iswupper(c) ? towlower(c) : WEOF);
+                        if (folded != WEOF && (previous == WEOF || folded != previous + 1)) {
+                            items = regex_sat_add(items, 1);
+                        }
+                        previous = folded;
+                    }
+                } else {
+                    /* ponytail: bound Unicode folding by one item per codepoint;
+                     * count locale-specific runs if this ceiling rejects useful patterns. */
+                    items = regex_sat_add(items, (uint64_t)(last - first) + 1);
+                }
+            }
         }
     }
+    if (negate) {
+        items = regex_sat_add(items, 1); /* complement's final range */
+    }
+    *units = regex_sat_add(items, regex_sat_mul(items, items) / 8);
     return p[j] ? j + 1 : j;
 }
 
@@ -170,8 +238,9 @@ uint64_t cbm_regcomp_estimate_units(const char *pattern, int flags) {
     while (pattern[i]) {
         char c = pattern[i];
         if (c == '[') {
-            i = regex_skip_bracket(pattern, i);
-            regex_frame_atom(&frames[depth], 1);
+            uint64_t units = 0;
+            i = regex_skip_bracket(pattern, i, (flags & CBM_REG_ICASE) != 0, &units);
+            regex_frame_atom(&frames[depth], units);
             continue;
         }
         /* In extended syntax the bare characters operate and `\x` is one

@@ -1359,6 +1359,21 @@ TEST(cypher_return_distinct_counts_distinct_rows_against_cap_issue1364) {
     ASSERT_TRUE(r.truncated);
     cbm_cypher_result_free(&r);
 
+    /* An oversized user LIMIT cannot bypass the engine projection budget. */
+    const char *bounded_queries[] = {
+        "MATCH (n) RETURN n.name LIMIT 1000000",
+        "MATCH (n) RETURN DISTINCT n.name LIMIT 1000000",
+        "MATCH (n) RETURN * LIMIT 1000000",
+    };
+    for (size_t i = 0; i < sizeof(bounded_queries) / sizeof(bounded_queries[0]); i++) {
+        memset(&r, 0, sizeof(r));
+        rc = cbm_cypher_execute(s, bounded_queries[i], "test", 5, &r);
+        ASSERT_EQ(rc, 0);
+        ASSERT_EQ(r.row_count, 5);
+        ASSERT_TRUE(r.truncated);
+        cbm_cypher_result_free(&r);
+    }
+
     cbm_store_close(s);
     PASS();
 }

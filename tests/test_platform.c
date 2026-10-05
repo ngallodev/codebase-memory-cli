@@ -1240,6 +1240,17 @@ TEST(regex_compile_refuses_oversized_expansion) {
     regex_one_letter_alternation(alts, 508);
     ASSERT_EQ(regex_units_ere(alts), 32766);
     ASSERT_LTE(regex_units_ere(alts), (uint64_t)CBM_REGEX_COMPILE_BUDGET_UNITS);
+    /* TRE expands bracket members into union nodes, including case folds. */
+    ASSERT_EQ(regex_units_ere("([abcdefghijklmnop]{255}){3}"), 36720);
+    ASSERT_EQ(cbm_regcomp(&re, "([abcdefghijklmnop]{255}){3}", CBM_REG_EXTENDED | CBM_REG_NOSUB),
+              CBM_REG_ETOOBIG);
+    ASSERT_EQ(cbm_regcomp_estimate_units("([abcdefgh]{255}){3}", CBM_REG_EXTENDED | CBM_REG_ICASE),
+              36720);
+    ASSERT_EQ(
+        cbm_regcomp(&re, "([abcdefgh]{255}){3}", CBM_REG_EXTENDED | CBM_REG_NOSUB | CBM_REG_ICASE),
+        CBM_REG_ETOOBIG);
+    ASSERT_EQ(cbm_regcomp_estimate_units("[A-z]", CBM_REG_EXTENDED | CBM_REG_ICASE), 4);
+    ASSERT_GTE(cbm_regcomp_estimate_units("[[:lower:]]", CBM_REG_EXTENDED | CBM_REG_ICASE), 2);
     /* Bounds too large to represent saturate instead of wrapping around. */
     ASSERT_EQ(cbm_regcomp(&re, "(a{99999999999999999999}){99999999999999999999}",
                           CBM_REG_EXTENDED | CBM_REG_NOSUB),
@@ -1388,10 +1399,10 @@ TEST(regex_estimate_counts_brackets_and_escapes_literally) {
     ASSERT_EQ(regex_units_ere("[{]{2}"), 2);
     ASSERT_EQ(regex_units_ere("\\{"), 1);
     ASSERT_EQ(regex_units_ere("a\\{2\\}"), 4);
-    ASSERT_EQ(regex_units_ere("[]a]{2}"), 2);
-    ASSERT_EQ(regex_units_ere("[^]a]{3}"), 3);
-    ASSERT_EQ(regex_units_ere("[[:alpha:]]{4}"), 4);
-    ASSERT_EQ(regex_units_ere("[a-z{3}]"), 1);
+    ASSERT_EQ(regex_units_ere("[]a]{2}"), 4);
+    ASSERT_EQ(regex_units_ere("[^]a]{3}"), 12);
+    ASSERT_GTE(regex_units_ere("[[:alpha:]]{4}"), 4);
+    ASSERT_EQ(regex_units_ere("[a-z{3}]"), 6);
     ASSERT_EQ(regex_units_ere("a{"), 2);
     ASSERT_EQ(regex_units_ere("a{2"), 3);
     ASSERT_EQ(regex_units_ere("a{x}"), 4);

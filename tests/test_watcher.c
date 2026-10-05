@@ -3265,8 +3265,8 @@ TEST(watcher_touch_resets_immediate) {
         char p[300];
         th_write_file(wt_path(p, sizeof(p), tmpdir, "file.txt"), "hello\n");
     }
-    wt_git(tmpdir, "add file.txt");
-    wt_git(tmpdir, "commit -q -m init");
+    ASSERT_EQ(wt_git(tmpdir, "add file.txt"), 0);
+    ASSERT_EQ(wt_git(tmpdir, "commit -q -m init"), 0);
 
     cbm_store_t *store = cbm_store_open_memory();
     cbm_watcher_t *w = cbm_watcher_new(store, index_callback, NULL);
@@ -3281,17 +3281,23 @@ TEST(watcher_touch_resets_immediate) {
     {
         char _p[1024];
         snprintf(_p, sizeof(_p), "%s/file.txt", tmpdir);
-        th_append_file(_p, "dirty\n");
+        ASSERT_EQ(th_append_file(_p, "dirty\n"), 0);
     }
 
     /* Without touch: interval blocks poll */
     cbm_watcher_poll_once(w);
     ASSERT_EQ(index_call_count, 0); /* blocked */
 
-    /* With touch: poll proceeds */
+    /* Assert the scheduling change directly: a transient git-probe failure
+     * under runner load is a fail-closed poll, not a failure of touch. */
+    ASSERT_GT(cbm_watcher_test_next_poll_ns(w, "tch-repo"), 0);
     cbm_watcher_touch(w, "tch-repo");
-    cbm_watcher_poll_once(w);
-    ASSERT_EQ(index_call_count, 1); /* detected */
+    ASSERT_EQ(cbm_watcher_test_next_poll_ns(w, "tch-repo"), 0);
+    for (int attempt = 0; attempt < 20 && index_call_count == 0; attempt++) {
+        cbm_watcher_touch(w, "tch-repo");
+        cbm_watcher_poll_once(w);
+    }
+    ASSERT_EQ(index_call_count, 1); /* detected despite transient probe failures */
 
     cbm_watcher_free(w);
     cbm_store_close(store);
