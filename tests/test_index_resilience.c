@@ -365,7 +365,12 @@ TEST(index_long_log_override_writes_no_cut_path) {
     }
     th_rmtree(logroot);
 
-    ASSERT_TRUE(made);
+    if (!made) {
+        /* ASSERT_TRUE would return before the fixture is removed and leak the
+         * temporary project directory (store/resp are NULL here). */
+        rh_cleanup(&lp, store);
+        FAIL("log override fixture setup failed");
+    }
     if (!resp) {
         rh_cleanup(&lp, store);
         FAIL("no operation response");

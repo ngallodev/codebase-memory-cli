@@ -21,6 +21,7 @@
 #include <foundation/mem.h>
 #include <foundation/platform.h>
 
+#include <ctype.h>
 #include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
@@ -598,8 +599,16 @@ TEST(incr_purge_reports_bounded_progress_issue1300) {
     const char *changed_at = strstr(start, "changed=");
     const char *deleted_at = strstr(start, "deleted=");
     ASSERT(changed_at != NULL && deleted_at != NULL);
-    changed = atoi(changed_at + strlen("changed="));
-    deleted = atoi(deleted_at + strlen("deleted="));
+    const char *changed_val = changed_at + strlen("changed=");
+    const char *deleted_val = deleted_at + strlen("deleted=");
+    char *changed_end = NULL;
+    char *deleted_end = NULL;
+    changed = (int)strtol(changed_val, &changed_end, 10);
+    deleted = (int)strtol(deleted_val, &deleted_end, 10);
+    /* Checked parsing: a missing or malformed field fails the test instead of
+     * silently reading as 0, which atoi cannot detect. */
+    ASSERT(changed_end != changed_val && !isdigit((unsigned char)*changed_end));
+    ASSERT(deleted_end != deleted_val && !isdigit((unsigned char)*deleted_end));
     int total = changed + deleted;
     ASSERT_GT(total, 20); /* enough files that one line per file would exceed the bound */
     ASSERT_GT(g_purge_progress_lines, 0);
