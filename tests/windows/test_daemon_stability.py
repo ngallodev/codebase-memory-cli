@@ -245,7 +245,8 @@ def make_busy_repo(work):
     """Many tiny source files keep a real foreground index client attached."""
     repo = os.path.join(work, "busy-repo")
     os.makedirs(repo, exist_ok=True)
-    for index in range(2000):
+    # ponytail: bounded workload; use an admission barrier if indexing outruns CLI startup.
+    for index in range(20000):
         with open(os.path.join(repo, "module_%04d.py" % index), "w",
                   encoding="utf-8") as handle:
             handle.write("def value_%d():\n    return %d\n" % (index, index))

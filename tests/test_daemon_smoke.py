@@ -134,7 +134,8 @@ def create_repo(root):
 
 def create_busy_repo(root):
     root.mkdir()
-    for index in range(2000):
+    # ponytail: bounded workload; use an admission barrier if indexing outruns CLI startup.
+    for index in range(20000):
         (root / ("module_{:04d}.py".format(index))).write_text(
             "def value_{}():\n    return {}\n".format(index, index), encoding="utf-8"
         )
@@ -252,7 +253,7 @@ def main():
                 "daemon status did not report an absent daemon",
             )
 
-            cold = run_cli(binary, cache, ["projects", "--json"])
+            cold = run_cli(binary, cache, ["cli", "--verbose", "list_projects", "--json"])
             require_json(cold, "cold projects")
             check(
                 "daemon start" in output_text(cold),
@@ -329,7 +330,7 @@ def main():
                 "stale daemon state did not clear after SIGKILL",
             )
 
-            post_crash = run_cli(binary, cache, ["projects", "--json"])
+            post_crash = run_cli(binary, cache, ["cli", "--verbose", "list_projects", "--json"])
             require_json(post_crash, "post-crash cold projects")
             check(
                 "daemon start" in output_text(post_crash),
