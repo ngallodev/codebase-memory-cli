@@ -14747,6 +14747,12 @@ TEST(cli_cp78_install_and_hook_plans_are_disjoint) {
     char claude_dir[512];
     snprintf(claude_dir, sizeof(claude_dir), "%s/.claude", tmpdir);
     test_mkdirp(claude_dir);
+    /* #1180: a bare ~/.claude no longer counts as a Claude Code install, so
+     * give the fixture the settings.json Claude Code leaves. Without it the
+     * result depends on whether a `claude` CLI is on the host PATH. */
+    char claude_settings[640];
+    snprintf(claude_settings, sizeof(claude_settings), "%s/settings.json", claude_dir);
+    write_test_file(claude_settings, "{}\n");
 
     char *assets = cbm_build_install_plan_json(tmpdir, "/opt/codebase-memory-cli");
     char *hooks = cbm_build_hook_install_plan_json(tmpdir, "/opt/codebase-memory-cli");
