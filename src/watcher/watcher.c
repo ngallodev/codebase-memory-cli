@@ -1538,9 +1538,10 @@ static void poll_project(const char *key, void *val, void *ud) {
     }
 
     /* Failures back off; success and busy-skip keep the adaptive cadence. */
-    s->next_poll_ns =
-        ctx->now +
-        ((int64_t)cbm_watcher_index_backoff_ms(s->interval_ms, s->index_failures) * US_PER_MS);
+    int64_t after = now_ns();
+    int64_t delay_ns =
+        (int64_t)cbm_watcher_index_backoff_ms(s->interval_ms, s->index_failures) * US_PER_MS;
+    s->next_poll_ns = after > INT64_MAX - delay_ns ? INT64_MAX : after + delay_ns;
 }
 
 /* Callback to snapshot project state pointers into an array. */

@@ -1490,7 +1490,7 @@ static bool cbm_line_is_inert(const char *src, const uint32_t *offs, uint32_t nl
     if (p[0] == '/' && p + 1 < end && (p[1] == '/' || p[1] == '*')) {
         return true;
     }
-    return p[0] == '*' || p[0] == '#';
+    return p[0] == '#';
 }
 
 static void cbm_regions_emit_gap(cbm_error_regions_t *out, uint32_t gs, uint32_t ge,

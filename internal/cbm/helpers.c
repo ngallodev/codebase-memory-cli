@@ -645,8 +645,12 @@ bool cbm_walk_stack_reserve(void **items, int *cap, int need, size_t elem_size,
     if (need <= *cap) {
         return true;
     }
-    size_t new_cap = (size_t)*cap;
+    size_t new_cap = *cap > 0 ? (size_t)*cap : 16U;
     while (new_cap < (size_t)need) {
+        if (new_cap > (size_t)INT_MAX / 2U) {
+            new_cap = (size_t)need;
+            break;
+        }
         new_cap *= 2;
     }
     void *grown = NULL;

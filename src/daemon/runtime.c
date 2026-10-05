@@ -3006,14 +3006,14 @@ bool cbm_daemon_conflict_remedy_format(const cbm_daemon_runtime_status_t *active
     out[0] = '\0';
     static const char install_hint[] =
         "Usually another editor or agent session (for example Codex or Claude Code) "
-        "launched a different codebase-memory-mcp install: close it, or point every client "
-        "at one binary (compare `which -a codebase-memory-mcp` with each client's MCP "
-        "config).";
+        "launched a different codebase-memory-cli install: close it, or point every client "
+        "at one binary (compare `which -a codebase-memory-cli` with each client's "
+        "configured command).";
     int written;
     if (!active) {
         written = snprintf(out, out_size,
-                           "Run `codebase-memory-mcp daemon status` to see the active daemon and "
-                           "the sessions using it. %s `codebase-memory-mcp daemon stop` retires "
+                           "Run `codebase-memory-cli daemon status` to see the active daemon and "
+                           "the sessions using it. %s `codebase-memory-cli daemon stop` retires "
                            "the daemon once no session uses it.",
                            install_hint);
     } else {
@@ -3025,7 +3025,7 @@ bool cbm_daemon_conflict_remedy_format(const cbm_daemon_runtime_status_t *active
             active->permanent ? "permanent" : "session-managed, exits when its last session closes";
         written = snprintf(out, out_size,
                            "Active daemon: pid %lu, version %s, %s%s%s. %s "
-                           "`codebase-memory-mcp daemon stop` retires the daemon once no session "
+                           "`codebase-memory-cli daemon stop` retires the daemon once no session "
                            "uses it.",
                            (unsigned long)active->daemon_pid, active->semantic_version, lifetime,
                            active->stopping ? ", already stopping" : "", sessions, install_hint);

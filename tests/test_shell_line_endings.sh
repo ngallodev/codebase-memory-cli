@@ -26,11 +26,8 @@ cd "$ROOT"
 # patterns ourselves, which is a partial copy of git's attribute semantics and
 # so a false-green risk. tests/test_version_metadata_contract.sh guards the
 # same way for the same reason.
-if ! git rev-parse --git-dir >/dev/null 2>&1; then
-    echo "SKIP: no repository metadata in this checkout (working tree without" \
-        "its git dir) — the line-ending contract gates on the host leg and CI"
-    exit 0
-fi
+# Source archives and working trees without repository metadata use the direct
+# byte-inspection fallback below.
 
 failures=0
 checked=0

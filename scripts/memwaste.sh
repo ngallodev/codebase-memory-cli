@@ -61,9 +61,9 @@ fi
 
 case "$LANE" in
 event) BUILD_ARGS=(BUILD_DIR=build/memwaste MEMWASTE=1 ${CC:+CC=$CC} ${CXX:+CXX=$CXX})
-    BIN="$ROOT/build/memwaste/codebase-memory-mcp" ;;
+    BIN="$ROOT/build/memwaste/codebase-memory-cli" ;;
 access) BUILD_ARGS=(BUILD_DIR=build/memwaste-access MEMWASTE_ACCESS=1 CC=clang CXX=clang++)
-    BIN="$ROOT/build/memwaste-access/codebase-memory-mcp" ;;
+    BIN="$ROOT/build/memwaste-access/codebase-memory-cli" ;;
 *) echo "memwaste.sh: --lane must be event or access" >&2; exit 2 ;;
 esac
 if [ "$BUILD" -eq 1 ]; then

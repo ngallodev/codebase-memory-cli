@@ -1638,7 +1638,9 @@ static bool python_import_local_materialized(const cbm_gbuf_t *gbuf, const char 
         return false;
     }
     char needle[CBM_SZ_256];
-    snprintf(needle, sizeof(needle), "\"local_name\":\"%s\"", local_name);
+    char escaped[CBM_SZ_256];
+    cbm_json_escape(escaped, sizeof(escaped), local_name);
+    snprintf(needle, sizeof(needle), "\"local_name\":\"%s\"", escaped);
     for (int i = 0; i < edge_count; i++) {
         if (edges[i]->properties_json && strstr(edges[i]->properties_json, needle)) {
             return true;

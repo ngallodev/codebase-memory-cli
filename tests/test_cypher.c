@@ -4832,6 +4832,15 @@ TEST(cypher_single_hop_seeds_from_selective_far_node) {
     ASSERT_STR_EQ(where_form.rows[0][0], "HandleOrder");
     cbm_cypher_result_free(&where_form);
 
+    cbm_cypher_result_t star_form = {0};
+    ASSERT_EQ(cbm_cypher_execute(s, "MATCH (a)-[:CALLS]->(b {name: 'ValidateOrder'}) RETURN *",
+                                 "test", 0, &star_form),
+              0);
+    ASSERT_EQ(star_form.col_count, 8);
+    ASSERT_STR_EQ(star_form.columns[0], "a.name");
+    ASSERT_STR_EQ(star_form.columns[4], "b.name");
+    cbm_cypher_result_free(&star_form);
+
     cbm_cypher_result_t inline_form = {0};
     ASSERT_EQ(cbm_cypher_execute(s,
                                  "MATCH (a)-[:CALLS]->(b {name: 'SubmitOrder'}) "
