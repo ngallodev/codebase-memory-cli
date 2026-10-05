@@ -377,13 +377,18 @@ static void tf_index_worker_probe(const char *args_json, const char *response_ou
         fflush(NULL);
         _Exit(response ? 0 : 1);
     }
-    if (strstr(args_json, "\"silent-exit\"")) {
+    if (strstr(args_json, "\"silent-exit\"") || strstr(args_json, "\"unreadable-response\"")) {
         /* #1300: reach a phase, then exit 0 without writing the response. The
          * trailing plain-text line must not be mistaken for a phase. */
+        bool readable = true;
+        if (strstr(args_json, "\"unreadable-response\"")) {
+            /* A real missing file exercises fopen failure in the supervisor. */
+            readable = response_out && cbm_unlink(response_out) == 0;
+        }
         cbm_log_info("incremental.edge_snapshot", "captured", "3");
         (void)fprintf(stderr, "async worker silent-exit probe\n");
         fflush(NULL);
-        _Exit(0);
+        _Exit(readable ? 0 : 1);
     }
     if (strstr(args_json, "\"crash\"")) {
         (void)fprintf(stderr, "async worker crash probe\n");

@@ -855,7 +855,7 @@ static void index_supervisor_test_no_response_sink(const char *line) {
  * worker log, the only record of where the run stopped. It must instead be a
  * named failure: no response, the log retained, and the last phase the log
  * recorded (incremental.edge_snapshot, not the plain stderr line after it). */
-TEST(index_supervisor_clean_exit_without_response_is_named_failure_issue1300) {
+static int index_supervisor_no_response_case(bool unreadable) {
     char cache[INDEX_SUPERVISOR_TEST_PATH_CAP];
     (void)snprintf(cache, sizeof(cache), "%s/cbm-index-silent-XXXXXX", cbm_tmpdir());
     ASSERT_NOT_NULL(cbm_mkdtemp(cache));
@@ -870,8 +870,9 @@ TEST(index_supervisor_clean_exit_without_response_is_named_failure_issue1300) {
     cbm_log_set_sink_ex(index_supervisor_test_no_response_sink, CBM_LOG_SINK_TEE);
 
     cbm_index_worker_handle_t *handle = NULL;
-    int start_rc = cbm_index_worker_start("{\"__cbm_test_worker\":\"silent-exit\"}", 0, false, NULL,
-                                          NULL, &handle);
+    const char *args = unreadable ? "{\"__cbm_test_worker\":\"unreadable-response\"}"
+                                  : "{\"__cbm_test_worker\":\"silent-exit\"}";
+    int start_rc = cbm_index_worker_start(args, 0, false, NULL, NULL, &handle);
     char log_path[INDEX_SUPERVISOR_TEST_PATH_CAP] = {0};
     if (handle) {
         (void)snprintf(log_path, sizeof(log_path), "%s", cbm_index_worker_log_path(handle));
@@ -882,7 +883,8 @@ TEST(index_supervisor_clean_exit_without_response_is_named_failure_issue1300) {
     bool clean_exit = terminal && result && result->outcome == CBM_PROC_CLEAN &&
                       result->exit_code == 0 && result->tree_quiesced;
     bool no_response = terminal && result && result->response == NULL;
-    bool named = terminal && result && result->response_missing && !result->response_unreadable &&
+    bool named = terminal && result && result->response_missing &&
+                 result->response_unreadable == unreadable &&
                  strcmp(result->last_phase, "incremental.edge_snapshot") == 0 &&
                  strcmp(result->worker_log, log_path) == 0;
     bool not_success =
@@ -899,7 +901,8 @@ TEST(index_supervisor_clean_exit_without_response_is_named_failure_issue1300) {
     cbm_log_set_level(saved_level);
     cbm_log_set_format(saved_format);
     bool event_named =
-        strstr(g_index_supervisor_no_response_log, "reason=worker_did_not_write") != NULL &&
+        strstr(g_index_supervisor_no_response_log,
+               unreadable ? "reason=response_read_error" : "reason=worker_did_not_write") != NULL &&
         strstr(g_index_supervisor_no_response_log, "last_phase=incremental.edge_snapshot") !=
             NULL &&
         log_path[0] && strstr(g_index_supervisor_no_response_log, log_path) != NULL;
@@ -1021,6 +1024,14 @@ TEST(index_supervisor_job_memory_limit_has_floor_headroom_and_no_overflow) {
     PASS();
 }
 
+TEST(index_supervisor_clean_exit_without_response_is_named_failure_issue1300) {
+    return index_supervisor_no_response_case(false);
+}
+
+TEST(index_supervisor_unreadable_response_reports_supervisor_error) {
+    return index_supervisor_no_response_case(true);
+}
+
 SUITE(index_supervisor) {
     RUN_TEST(index_supervisor_job_memory_limit_has_floor_headroom_and_no_overflow);
     RUN_TEST(index_supervisor_worker_argv_requires_exact_build_bound_grammar);
@@ -1031,5 +1042,6 @@ SUITE(index_supervisor) {
     RUN_TEST(index_supervisor_drains_terminal_backlog_into_request_progress_callback);
     RUN_TEST(index_supervisor_oversized_response_is_contained_and_log_is_retained);
     RUN_TEST(index_supervisor_clean_exit_without_response_is_named_failure_issue1300);
+    RUN_TEST(index_supervisor_unreadable_response_reports_supervisor_error);
     RUN_TEST(index_supervisor_killed_worker_log_is_never_empty_and_names_the_run);
 }
