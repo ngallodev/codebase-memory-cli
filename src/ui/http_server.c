@@ -44,6 +44,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>
+#include <limits.h>
 #include <stdatomic.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -73,7 +74,7 @@
 #define CBM_VERSION "dev"
 #endif
 
-/* Max JSON-RPC request body size (1 MB) — transport enforces the same cap. */
+/* Max request body size (1 MB) — transport enforces the same cap. */
 #define MAX_BODY_SIZE CBM_HTTP_MAX_BODY
 
 /* ── CORS: only allow localhost origins (blocks remote website attacks) ────── */
@@ -1867,6 +1868,105 @@ static bool request_passes_http_security(cbm_http_server_t *srv, cbm_http_conn_t
     return true;
 }
 
+/* Translate the native read API's bounded query into operation arguments.
+ * Only these three read operations are reachable; format and project details
+ * are server-owned so the response is always machine-readable. */
+static void handle_read_operation(cbm_http_conn_t *c, const cbm_http_req_t *req,
+                                  cbm_operation_id_t operation) {
+    /* The transport caps the entire query at 2 KiB. Sixfold JSON escaping
+     * plus keys fits here without adding heap allocations. */
+    char args[16384] = "{\"format\":\"json\",\"detail\":\"stats\"";
+    size_t used = strlen(args);
+    const char *query = req->query;
+    while (*query) {
+        const char *end = strchr(query, '&');
+        if (!end)
+            end = query + strlen(query);
+        const char *eq = memchr(query, '=', (size_t)(end - query));
+        char key[32], value[2048], escaped[12288];
+        size_t key_len = eq ? (size_t)(eq - query) : 0;
+        if (!key_len || key_len >= sizeof(key))
+            goto bad_query;
+        memcpy(key, query, key_len);
+        key[key_len] = '\0';
+        char pair[2048];
+        size_t pair_len = (size_t)(end - query);
+        if (pair_len >= sizeof(pair))
+            goto bad_query;
+        memcpy(pair, query, pair_len);
+        pair[pair_len] = '\0';
+        if (!cbm_http_query_param(pair, key, value, (int)sizeof(value)) || !value[0])
+            goto bad_query;
+
+        bool string_arg = strcmp(key, "project") == 0 && operation != CBM_OPERATION_PROJECTS;
+        bool number_arg = operation != CBM_OPERATION_SNIPPET &&
+                          (strcmp(key, "limit") == 0 || strcmp(key, "offset") == 0);
+        bool bool_arg = false;
+        if (operation == CBM_OPERATION_SNIPPET) {
+            string_arg =
+                string_arg || strcmp(key, "qualified_name") == 0 || strcmp(key, "source_mode") == 0;
+            number_arg = strcmp(key, "start_line") == 0 || strcmp(key, "max_lines") == 0 ||
+                         strcmp(key, "member_limit") == 0 || strcmp(key, "member_offset") == 0 ||
+                         strcmp(key, "max_output_tokens") == 0;
+            bool_arg = strcmp(key, "include_neighbors") == 0;
+        }
+        if (!string_arg && !number_arg && !bool_arg)
+            goto bad_query;
+        /* Reject duplicate keys rather than depending on JSON lookup order. */
+        char marker[40];
+        snprintf(marker, sizeof(marker), ",\"%s\":", key);
+        if (strstr(args, marker))
+            goto bad_query;
+        int n;
+        if (string_arg) {
+            cbm_json_escape(escaped, (int)sizeof(escaped), value);
+            n = snprintf(args + used, sizeof(args) - used, ",\"%s\":\"%s\"", key, escaped);
+        } else {
+            if (number_arg) {
+                for (const char *p = value; *p; p++) {
+                    if (*p < '0' || *p > '9')
+                        goto bad_query;
+                }
+                errno = 0;
+                unsigned long parsed = strtoul(value, NULL, 10);
+                if (errno || parsed > INT_MAX)
+                    goto bad_query;
+                n = snprintf(args + used, sizeof(args) - used, ",\"%s\":%lu", key, parsed);
+            } else {
+                if (strcmp(value, "true") != 0 && strcmp(value, "false") != 0)
+                    goto bad_query;
+                n = snprintf(args + used, sizeof(args) - used, ",\"%s\":%s", key, value);
+            }
+        }
+        if (n < 0 || (size_t)n >= sizeof(args) - used - 2)
+            goto bad_query;
+        used += (size_t)n;
+        query = *end ? end + 1 : end;
+    }
+    if (operation != CBM_OPERATION_PROJECTS && !strstr(args, ",\"project\":"))
+        goto bad_query;
+    if (operation == CBM_OPERATION_SNIPPET && !strstr(args, ",\"qualified_name\":"))
+        goto bad_query;
+    args[used++] = '}';
+    args[used] = '\0';
+    cbm_operation_result_t result = cbm_operation_execute(NULL, operation, args);
+    /* Schema reports failures as plain text; the other read operations already
+     * return JSON error objects. Keep the native API's error contract JSON. */
+    if (result.is_error && result.payload && operation == CBM_OPERATION_SCHEMA) {
+        char escaped[4096];
+        cbm_json_escape(escaped, (int)sizeof(escaped), result.payload);
+        cbm_http_replyf(c, 400, g_cors_json, "{\"error\":\"%s\"}", escaped);
+    } else {
+        cbm_http_replyf(c, result.payload ? (result.is_error ? 400 : 200) : 500, g_cors_json, "%s",
+                        result.payload ? result.payload : "{\"error\":\"operation failed\"}");
+    }
+    cbm_operation_result_dispose(&result);
+    return;
+
+bad_query:
+    cbm_http_replyf(c, 400, g_cors_json, "%s", "{\"error\":\"invalid query parameters\"}");
+}
+
 static void dispatch_request(cbm_http_server_t *srv, cbm_http_conn_t *c,
                              const cbm_http_req_t *req) {
     if (!request_passes_http_security(srv, c, req))
@@ -1887,6 +1987,19 @@ static void dispatch_request(cbm_http_server_t *srv, cbm_http_conn_t *c,
      * authenticated application and HTTP server instances. */
     if (is_get && strcmp(req->path, "/__cbm/ui-readiness") == 0) {
         handle_ui_readiness(srv, c, req);
+        return;
+    }
+
+    if (is_get && strcmp(req->path, "/api/projects") == 0) {
+        handle_read_operation(c, req, CBM_OPERATION_PROJECTS);
+        return;
+    }
+    if (is_get && strcmp(req->path, "/api/schema") == 0) {
+        handle_read_operation(c, req, CBM_OPERATION_SCHEMA);
+        return;
+    }
+    if (is_get && strcmp(req->path, "/api/snippet") == 0) {
+        handle_read_operation(c, req, CBM_OPERATION_SNIPPET);
         return;
     }
 
