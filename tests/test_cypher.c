@@ -3091,12 +3091,14 @@ TEST(cypher_apply_limit) {
     ASSERT_TRUE(r.truncated);
     cbm_cypher_result_free(&r);
 
-    /* LIMIT above max_rows → explicit limit wins */
+    /* LIMIT above max_rows → the engine budget still bounds the projection:
+     * an explicit limit larger than max_rows is capped at max_rows, not
+     * allowed to bypass it (#1364, oversized-limit guard). */
     memset(&r, 0, sizeof(r));
     rc = cbm_cypher_execute(s, "MATCH (f:Function) RETURN f.name LIMIT 30", "lim", 10, &r);
     ASSERT_EQ(rc, 0);
-    ASSERT_EQ(r.row_count, 30);
-    ASSERT_FALSE(r.truncated);
+    ASSERT_EQ(r.row_count, 10);
+    ASSERT_TRUE(r.truncated);
     cbm_cypher_result_free(&r);
 
     cbm_store_close(s);
