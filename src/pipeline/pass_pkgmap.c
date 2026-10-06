@@ -440,9 +440,12 @@ static void parse_pyproject_toml(const char *source, int source_len, const char 
     }
 }
 
-/* Extract PSR-4 autoload entries from composer.json root. */
-static void extract_psr4(yyjson_val *root, const char *dir, cbm_pkg_entries_t *entries) {
-    yyjson_val *autoload = yyjson_obj_get(root, "autoload");
+/* Extract PSR-4 entries from one composer.json autoload section ("autoload"
+ * or "autoload-dev": composer registers both, so test namespaces such as
+ * Tests\ map to their directory as well). */
+static void extract_psr4(yyjson_val *root, const char *section, const char *dir,
+                         cbm_pkg_entries_t *entries) {
+    yyjson_val *autoload = yyjson_obj_get(root, section);
     if (!yyjson_is_obj(autoload)) {
         return;
     }
@@ -454,22 +457,35 @@ static void extract_psr4(yyjson_val *root, const char *dir, cbm_pkg_entries_t *e
     yyjson_obj_iter iter = yyjson_obj_iter_with(psr4);
     while ((key = yyjson_obj_iter_next(&iter)) != NULL) {
         yyjson_val *val = yyjson_obj_iter_get_val(key);
-        if (!yyjson_is_str(key) || !yyjson_is_str(val)) {
+        if (!yyjson_is_str(key)) {
             continue;
         }
         const char *ns_prefix = yyjson_get_str(key);
-        const char *ns_dir = yyjson_get_str(val);
-        char ns_entry[PKGMAP_PATH_BUF];
-        if (dir[0]) {
-            snprintf(ns_entry, sizeof(ns_entry), "%s/%s", dir, ns_dir);
-        } else {
-            snprintf(ns_entry, sizeof(ns_entry), "%s", ns_dir);
+        size_t count = yyjson_is_arr(val) ? yyjson_arr_size(val) : 1;
+        for (size_t i = 0; i < count; i++) {
+            yyjson_val *path = yyjson_is_arr(val) ? yyjson_arr_get(val, i) : val;
+            if (!yyjson_is_str(path)) {
+                continue;
+            }
+            const char *ns_dir = yyjson_get_str(path);
+            while (ns_dir[0] == '.' && ns_dir[SKIP_ONE] == '/') {
+                ns_dir += PAIR_LEN; /* "./src/" names src/ */
+            }
+            if (strcmp(ns_dir, ".") == 0) {
+                ns_dir = ""; /* "." names the manifest's own directory */
+            }
+            char ns_entry[PKGMAP_PATH_BUF];
+            if (dir[0]) {
+                snprintf(ns_entry, sizeof(ns_entry), "%s/%s", dir, ns_dir);
+            } else {
+                snprintf(ns_entry, sizeof(ns_entry), "%s", ns_dir);
+            }
+            size_t nelen = strlen(ns_entry);
+            if (nelen > 0 && ns_entry[nelen - SKIP_ONE] == '/') {
+                ns_entry[nelen - SKIP_ONE] = '\0';
+            }
+            pkg_entries_push(entries, strdup(ns_prefix), strdup(ns_entry));
         }
-        size_t nelen = strlen(ns_entry);
-        if (nelen > 0 && ns_entry[nelen - SKIP_ONE] == '/') {
-            ns_entry[nelen - SKIP_ONE] = '\0';
-        }
-        pkg_entries_push(entries, strdup(ns_prefix), strdup(ns_entry));
     }
 }
 
@@ -497,7 +513,8 @@ static void parse_composer_json(const char *source, int source_len, const char *
         }
     }
 
-    extract_psr4(root, dir, entries);
+    extract_psr4(root, "autoload", dir, entries);
+    extract_psr4(root, "autoload-dev", dir, entries);
 
     free(dir);
     yyjson_doc_free(doc);
@@ -987,6 +1004,23 @@ bool cbm_pkgmap_try_parse(const char *basename, const char *rel_path, const char
 
 /* ── Merge: per-worker entries → hash table ────────────────────── */
 
+/* A composer.json `autoload.psr-4` key: a namespace prefix ending in '\\'. */
+static bool pkgmap_is_psr4_prefix(const char *pkg_name) {
+    size_t n = pkg_name ? strlen(pkg_name) : 0;
+    return n > 0 && pkg_name[n - SKIP_ONE] == '\\';
+}
+
+/* PSR-4 values own an ordered directory list; other package values remain QNs. */
+typedef struct psr4_dir {
+    struct psr4_dir *next;
+    char path[];
+} psr4_dir_t;
+
+static const char *pkgmap_first_path(CBMHashTable *map, const char *key) {
+    void *value = cbm_ht_get(map, key);
+    return value && pkgmap_is_psr4_prefix(key) ? ((psr4_dir_t *)value)->path : value;
+}
+
 CBMHashTable *cbm_pkgmap_build(cbm_pkg_entries_t *worker_entries, int worker_count,
                                const char *project_name) {
     /* Count total entries */
@@ -1004,22 +1038,43 @@ CBMHashTable *cbm_pkgmap_build(cbm_pkg_entries_t *worker_entries, int worker_cou
     for (int w = 0; w < worker_count; w++) {
         cbm_pkg_entries_t *we = &worker_entries[w];
         for (int i = 0; i < we->count; i++) {
-            /* Convert entry_rel to QN: project.dir.parts */
-            char *qn = cbm_pipeline_fqn_module(project_name, we->items[i].entry_rel);
-            if (!qn) {
+            const bool psr4 = pkgmap_is_psr4_prefix(we->items[i].pkg_name);
+            psr4_dir_t *dirs = psr4 ? cbm_ht_get(map, we->items[i].pkg_name) : NULL;
+            /* Other package mappings retain their existing first-wins rule. */
+            if (!psr4 && cbm_ht_has(map, we->items[i].pkg_name)) {
                 continue;
             }
-
-            /* Check for duplicate — first wins */
-            if (cbm_ht_has(map, we->items[i].pkg_name)) {
-                free(qn);
+            char *key = dirs ? NULL : strdup(we->items[i].pkg_name);
+            if (!dirs && !key) {
                 continue;
             }
-
-            /* Transfer ownership: key = strdup'd pkg_name, value = qn */
-            char *key = strdup(we->items[i].pkg_name);
-            cbm_ht_set(map, key, qn);
-            merged++;
+            const char *entry_rel = we->items[i].entry_rel;
+            void *value = NULL;
+            if (psr4) {
+                size_t len = strlen(entry_rel);
+                psr4_dir_t *node = cbm_alloc(CBM_MEM_CLASS_SEMANTIC, sizeof(*node) + len + 1);
+                if (node) {
+                    node->next = NULL;
+                    memcpy(node->path, entry_rel, len + 1);
+                }
+                value = node;
+            } else {
+                value = cbm_pipeline_fqn_module(project_name, entry_rel);
+            }
+            if (!value) {
+                free(key);
+                continue;
+            }
+            if (dirs) {
+                /* ponytail: linear append for small lists; cache a tail if large lists matter. */
+                while (dirs->next) {
+                    dirs = dirs->next;
+                }
+                dirs->next = value;
+            } else {
+                cbm_ht_set(map, key, value);
+                merged++;
+            }
         }
     }
 
@@ -1274,8 +1329,17 @@ CBMHashTable *cbm_pkgmap_build_from_repo(const char *repo_path, const cbm_file_i
 
 static void pkgmap_free_entry(const char *key, void *value, void *userdata) {
     (void)userdata;
+    if (pkgmap_is_psr4_prefix(key)) {
+        psr4_dir_t *dir = value;
+        while (dir) {
+            psr4_dir_t *next = dir->next;
+            cbm_free(CBM_MEM_CLASS_SEMANTIC, dir);
+            dir = next;
+        }
+    } else {
+        free(value);
+    }
     free((void *)key);
-    free(value);
 }
 
 void cbm_pkgmap_free(CBMHashTable *pkgmap) {
@@ -1300,7 +1364,7 @@ static char *resolve_slash_prefix(CBMHashTable *map, const char *module_path) {
             continue;
         }
         *slash = '\0';
-        const char *base_qn = (const char *)cbm_ht_get(map, buf);
+        const char *base_qn = pkgmap_first_path(map, buf);
         if (!base_qn) {
             continue;
         }
@@ -1333,7 +1397,7 @@ static char *resolve_dot_prefix(CBMHashTable *map, const char *module_path,
             continue;
         }
         *dot = '\0';
-        const char *base_qn = (const char *)cbm_ht_get(map, buf);
+        const char *base_qn = pkgmap_first_path(map, buf);
         if (!base_qn) {
             continue;
         }
@@ -1355,7 +1419,8 @@ static char *resolve_dot_prefix(CBMHashTable *map, const char *module_path,
 }
 
 /* Try backslash-based prefix matching (PHP PSR-4: App\\Controllers\\Foo).
- * Returns heap QN or NULL. */
+ * Generic module resolution uses the first mapped directory; class imports
+ * search every directory through resolve_php_psr4_class. Returns heap QN or NULL. */
 static char *resolve_backslash_prefix(CBMHashTable *map, const char *module_path,
                                       const char *project_name) {
     char *buf = strdup(module_path);
@@ -1369,13 +1434,14 @@ static char *resolve_backslash_prefix(CBMHashTable *map, const char *module_path
         *bs = '\0';
         char prefix[PKGMAP_PATH_BUF];
         snprintf(prefix, sizeof(prefix), "%s\\", buf);
-        const char *base_dir = (const char *)cbm_ht_get(map, prefix);
+        const char *base_dir = pkgmap_first_path(map, prefix);
         if (!base_dir) {
             continue;
         }
         const char *subpath = module_path + (size_t)(bs - buf) + SKIP_ONE;
         char path_result[PKGMAP_PATH_BUF];
-        snprintf(path_result, sizeof(path_result), "%s/%s", base_dir, subpath);
+        snprintf(path_result, sizeof(path_result), "%s%s%s", base_dir, base_dir[0] ? "/" : "",
+                 subpath);
         for (char *c = path_result; *c; c++) {
             if (*c == '\\') {
                 *c = '/';
@@ -1428,7 +1494,7 @@ char *cbm_pipeline_resolve_module(const cbm_pipeline_ctx_t *ctx, const char *sou
     }
 
     /* 3. Exact lookup */
-    const char *mapped_qn = (const char *)cbm_ht_get(pkgmap, module_path);
+    const char *mapped_qn = pkgmap_first_path(pkgmap, module_path);
     if (mapped_qn) {
         return strdup(mapped_qn);
     }
@@ -2027,6 +2093,94 @@ static const cbm_gbuf_node_t *resolve_sibling_file(const cbm_pipeline_ctx_t *ctx
     return found;
 }
 
+/* ── PHP PSR-4 class imports (#1186) ──────────────────────────────── */
+
+typedef enum {
+    PSR4_NOT_APPLICABLE = 0, /* no composer psr-4 prefix covers the import */
+    PSR4_RESOLVED,           /* the class file exists: *out is its File node */
+    PSR4_UNRESOLVED,         /* a prefix covers it but no class file exists */
+} psr4_outcome_t;
+
+/* The File node at exactly `rel_path`, or NULL. Looked up through the name
+ * index (File nodes are named by basename) and matched on the full path, so
+ * a same-named file in another directory never qualifies. */
+static const cbm_gbuf_node_t *psr4_file_node(const cbm_pipeline_ctx_t *ctx, const char *rel_path) {
+    const cbm_gbuf_node_t **hits = NULL;
+    int hit_count = 0;
+    if (cbm_gbuf_find_by_name(ctx->gbuf, path_leaf(rel_path), &hits, &hit_count) != 0 || !hits) {
+        return NULL;
+    }
+    for (int i = 0; i < hit_count; i++) {
+        const cbm_gbuf_node_t *n = hits[i];
+        if (n && n->label && strcmp(n->label, "File") == 0 && n->file_path &&
+            strcmp(n->file_path, rel_path) == 0) {
+            return n;
+        }
+    }
+    return NULL;
+}
+
+/* Resolve a PHP class import `use A\B\C;` the way composer's PSR-4 autoloader
+ * does: for every autoload.psr-4 prefix covering the name, longest first, the
+ * class lives in exactly <prefix-dir>/<rest>.php with sub-namespaces as
+ * subdirectories; the first existing file wins. When a prefix covers the name
+ * but no such file exists the import is UNRESOLVED: it must never fall through
+ * to the namespace bucket, which binds it to whichever file of the namespace
+ * came first. `use function` / `use const` name namespace members, not class
+ * files, so they are not applicable. */
+static psr4_outcome_t resolve_php_psr4_class(const cbm_pipeline_ctx_t *ctx,
+                                             const char *source_file_qn, const CBMImport *imp,
+                                             const cbm_gbuf_node_t **out) {
+    *out = NULL;
+    CBMHashTable *pkgmap = cbm_pipeline_get_pkgmap();
+    if (!pkgmap || imp->kind != CBM_IMPORT_KIND_DEFAULT) {
+        return PSR4_NOT_APPLICABLE;
+    }
+    const char *name = imp->module_path;
+    if (name[0] == '\\') {
+        name++; /* fully qualified `use \App\X;` */
+    }
+    char key[PKGMAP_PATH_BUF];
+    size_t name_len = strlen(name);
+    if (name_len == 0 || name_len >= sizeof(key) || !strchr(name, '\\')) {
+        return PSR4_NOT_APPLICABLE;
+    }
+    bool covered = false;
+    /* Right to left: each '\' ends a candidate prefix, longest first. */
+    for (size_t cut = name_len - SKIP_ONE; cut > 0; cut--) {
+        if (name[cut - SKIP_ONE] != '\\') {
+            continue;
+        }
+        memcpy(key, name, cut);
+        key[cut] = '\0';
+        const psr4_dir_t *dirs = cbm_ht_get(pkgmap, key);
+        if (!dirs) {
+            continue;
+        }
+        covered = true;
+        for (const psr4_dir_t *dir = dirs; dir; dir = dir->next) {
+            char rel[PKGMAP_PATH_BUF];
+            int w = snprintf(rel, sizeof(rel), "%s%s%s.php", dir->path, dir->path[0] ? "/" : "",
+                             name + cut);
+            if (w <= 0 || (size_t)w >= sizeof(rel)) {
+                continue;
+            }
+            for (char *c = rel; *c; c++) {
+                if (*c == '\\') {
+                    *c = '/';
+                }
+            }
+            const cbm_gbuf_node_t *file = psr4_file_node(ctx, rel);
+            if (file && (!source_file_qn || !file->qualified_name ||
+                         strcmp(file->qualified_name, source_file_qn) != 0)) {
+                *out = file;
+                return PSR4_RESOLVED;
+            }
+        }
+    }
+    return covered ? PSR4_UNRESOLVED : PSR4_NOT_APPLICABLE;
+}
+
 const cbm_gbuf_node_t *cbm_pipeline_resolve_import_node(const cbm_pipeline_ctx_t *ctx,
                                                         const char *source_rel,
                                                         const char *source_file_qn,
@@ -2042,6 +2196,23 @@ const cbm_gbuf_node_t *cbm_pipeline_resolve_import_node(const cbm_pipeline_ctx_t
         resolve_header_include(ctx, source_rel, source_file_qn, imp->module_path);
     if (header_target) {
         return header_target;
+    }
+
+    /* PHP class imports covered by a composer psr-4 prefix name exactly one
+     * file; when it is absent the import stays unresolved (#1186). Only PHP
+     * importers spell class paths with backslashes, so the unresolved
+     * short-circuit is scoped to them and every other importer keeps falling
+     * through to the strategies below. */
+    if (cbm_language_for_filename(source_rel) == CBM_LANG_PHP) {
+        const cbm_gbuf_node_t *psr4_target = NULL;
+        switch (resolve_php_psr4_class(ctx, source_file_qn, imp, &psr4_target)) {
+        case PSR4_RESOLVED:
+            return psr4_target;
+        case PSR4_UNRESOLVED:
+            return NULL;
+        case PSR4_NOT_APPLICABLE:
+            break;
+        }
     }
 
     /* Strategy 1: module-path resolution → existing node (Python/TS/Go).

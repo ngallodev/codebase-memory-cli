@@ -72,11 +72,8 @@ static const char *project_db_path(const char *project, char *buf, size_t bufsz)
 }
 
 bool cbm_store_host_is_project_db_file(const char *name, size_t len) {
-    if (!name || len < 4 || strcmp(name + len - 3, ".db") != 0)
-        return false;
-    if (name[0] == '_' || strncmp(name, ":memory:", 8) == 0)
-        return false;
-    return true;
+    (void)len;
+    return cbm_is_project_index_db(name);
 }
 
 bool cbm_store_host_db_internal_project_name(const char *full_path, char *name_out, size_t name_sz,

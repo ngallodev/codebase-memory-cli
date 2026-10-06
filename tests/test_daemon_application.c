@@ -1185,6 +1185,8 @@ TEST(daemon_application_prune_clears_logical_watch_for_reregistration) {
 
 enum { APP_FAKE_MAX_ATTEMPTS = 16 };
 enum { APP_FAKE_ARGS_CAP = 2048 };
+/* Scripted response slot: a CLEAN exit that wrote no response (#1300). */
+static const char APP_FAKE_NO_RESPONSE[] = "<no response>";
 
 typedef struct {
     atomic_int starts;
@@ -1370,7 +1372,12 @@ static cbm_index_worker_poll_t app_fake_worker_poll(void *opaque,
             worker->attempt < APP_FAKE_MAX_ATTEMPTS && worker->context->responses[worker->attempt]
                 ? worker->context->responses[worker->attempt]
                 : "{\"status\":\"indexed\"}";
-        if (outcome == CBM_PROC_CLEAN) {
+        bool silent = response == APP_FAKE_NO_RESPONSE;
+        if (silent) {
+            worker->result.response_missing = true;
+            snprintf(worker->result.last_phase, sizeof(worker->result.last_phase), "%s",
+                     "incremental.purge.progress");
+        } else if (outcome == CBM_PROC_CLEAN) {
             cbm_operation_result_t operation_result = cbm_operation_result_copy(
                 response, worker->attempt < APP_FAKE_MAX_ATTEMPTS &&
                               worker->context->response_errors[worker->attempt]);
@@ -3031,6 +3038,130 @@ TEST(daemon_application_disconnect_before_request_callback_is_sticky) {
     ASSERT_TRUE(stopped);
 
     free(cancelled_response);
+    free(response);
+    free(context);
+    free(tool);
+    (void)cbm_rmdir(root);
+    PASS();
+}
+
+/* #1300: a worker that exits cleanly without a response must reach the
+ * client as a named failure: said to be a clean exit with no response, with
+ * the last phase it reached and the worker log to inspect — not the generic
+ * "ended with clean" line. No recovery re-run for a worker that did not
+ * crash. */
+TEST(daemon_application_clean_exit_without_response_is_named_failure_issue1300) {
+    app_fake_worker_context_t fake;
+    app_fake_worker_context_init(&fake);
+    atomic_store(&fake.scripted, true);
+    fake.outcomes[0] = CBM_PROC_CLEAN;
+    fake.responses[0] = APP_FAKE_NO_RESPONSE;
+    cbm_daemon_application_worker_ops_t worker_ops = {
+        .context = &fake,
+        .start = app_fake_worker_start,
+        .poll = app_fake_worker_poll,
+        .cancel = app_fake_worker_cancel,
+        .log_path = app_fake_worker_log_path,
+        .destroy = app_fake_worker_destroy,
+    };
+    cbm_daemon_application_config_t config = {.worker_ops = &worker_ops};
+    cbm_daemon_application_t *application = cbm_daemon_application_new(&config);
+    cbm_daemon_runtime_application_callbacks_t callbacks =
+        cbm_daemon_application_runtime_callbacks(application);
+    cbm_daemon_runtime_application_session_t *session = app_test_open(&callbacks, 1300);
+    char root[APP_TEST_PATH_CAP];
+    snprintf(root, sizeof(root), "%s/cbm-app-no-response-XXXXXX", cbm_tmpdir());
+    bool root_ok = cbm_mkdtemp(root) != NULL;
+    uint8_t *context = NULL;
+    uint32_t context_length = 0;
+    char args[APP_TEST_PATH_CAP + 32];
+    snprintf(args, sizeof(args), "{\"repo_path\":\"%s\"}", root);
+    uint8_t *tool = NULL;
+    uint32_t tool_length = 0;
+    bool setup = application && session && root_ok &&
+                 app_test_context_request(root, root, &context, &context_length) &&
+                 app_test_tool_request("index_repository", args, &tool, &tool_length);
+    uint8_t *response = NULL;
+    uint32_t response_length = 0;
+    setup = setup && app_test_request(&callbacks, session, context, context_length, &response,
+                                      &response_length) == CBM_DAEMON_RUNTIME_APPLICATION_OK;
+    free(response);
+    response = NULL;
+    response_length = 0;
+    cbm_daemon_runtime_application_status_t status =
+        setup
+            ? app_test_request(&callbacks, session, tool, tool_length, &response, &response_length)
+            : CBM_DAEMON_RUNTIME_APPLICATION_HANDLER_ERROR;
+    if (session) {
+        callbacks.session_close(callbacks.context, session);
+    }
+    bool stopped = application && cbm_daemon_application_shutdown(application, APP_TEST_TIMEOUT_MS);
+    cbm_daemon_application_free(application);
+
+    ASSERT_TRUE(setup);
+    ASSERT_EQ(status, CBM_DAEMON_RUNTIME_APPLICATION_OK);
+    ASSERT_TRUE(
+        app_test_response_contains(response, response_length, "without writing a response"));
+    ASSERT_TRUE(
+        app_test_response_contains(response, response_length, "incremental.purge.progress"));
+    ASSERT_TRUE(app_test_response_contains(response, response_length, "/tmp/cbm-fake-worker.log"));
+    ASSERT_TRUE(!app_test_response_contains(response, response_length, "indexed"));
+    ASSERT_EQ(atomic_load(&fake.starts), 1);
+    ASSERT_TRUE(stopped);
+
+    free(response);
+    free(context);
+    free(tool);
+    (void)cbm_rmdir(root);
+    PASS();
+}
+
+TEST(daemon_application_real_worker_no_response_preserves_named_failure) {
+    cbm_daemon_application_t *application = cbm_daemon_application_new(NULL);
+    cbm_daemon_runtime_application_callbacks_t callbacks =
+        cbm_daemon_application_runtime_callbacks(application);
+    cbm_daemon_runtime_application_session_t *session = app_test_open(&callbacks, 1300);
+    char root[APP_TEST_PATH_CAP];
+    snprintf(root, sizeof(root), "%s/cbm-app-no-response-XXXXXX", cbm_tmpdir());
+    bool root_ok = cbm_mkdtemp(root) != NULL;
+    uint8_t *context = NULL;
+    uint32_t context_length = 0;
+    char args[APP_TEST_PATH_CAP + 32];
+    snprintf(args, sizeof(args), "{\"repo_path\":\"%s\",\"__cbm_test_worker\":\"silent-exit\"}",
+             root);
+    uint8_t *tool = NULL;
+    uint32_t tool_length = 0;
+    bool setup = application && session && root_ok &&
+                 app_test_context_request(root, root, &context, &context_length) &&
+                 app_test_tool_request("index_repository", args, &tool, &tool_length);
+    uint8_t *response = NULL;
+    uint32_t response_length = 0;
+    setup = setup && app_test_request(&callbacks, session, context, context_length, &response,
+                                      &response_length) == CBM_DAEMON_RUNTIME_APPLICATION_OK;
+    free(response);
+    response = NULL;
+    response_length = 0;
+    cbm_daemon_runtime_application_status_t status =
+        setup
+            ? app_test_request(&callbacks, session, tool, tool_length, &response, &response_length)
+            : CBM_DAEMON_RUNTIME_APPLICATION_HANDLER_ERROR;
+    if (session) {
+        callbacks.session_close(callbacks.context, session);
+    }
+    bool stopped = application && cbm_daemon_application_shutdown(application, APP_TEST_TIMEOUT_MS);
+    cbm_daemon_application_free(application);
+
+    ASSERT_TRUE(setup);
+    ASSERT_EQ(status, CBM_DAEMON_RUNTIME_APPLICATION_OK);
+    ASSERT_TRUE(
+        app_test_response_contains(response, response_length, "without writing a response"));
+    ASSERT_TRUE(app_test_response_contains(response, response_length, "incremental.edge_snapshot"));
+    ASSERT_TRUE(app_test_response_contains(response, response_length, "worker_log"));
+    ASSERT_TRUE(!app_test_response_contains(response, response_length, "indexed"));
+    ASSERT_TRUE(response && response_length > 1 && response[0] == 1);
+    ASSERT_TRUE(app_test_response_contains(response, response_length, "no_response"));
+    ASSERT_TRUE(stopped);
+
     free(response);
     free(context);
     free(tool);
@@ -5875,4 +6006,6 @@ SUITE(daemon_application) {
     RUN_TEST(daemon_application_over_budget_response_passes_through_without_recovery);
     RUN_TEST(daemon_application_free_reports_retained_live_ownership);
     RUN_TEST(daemon_application_rejects_clean_exit_when_process_tree_is_not_contained);
+    RUN_TEST(daemon_application_clean_exit_without_response_is_named_failure_issue1300);
+    RUN_TEST(daemon_application_real_worker_no_response_preserves_named_failure);
 }

@@ -9,6 +9,7 @@
 #include "test_framework.h"
 #include "../src/pipeline/path_alias.h"
 #include "../src/foundation/compat.h"
+#include "../src/foundation/compat_fs.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -112,8 +113,7 @@ TEST(path_alias_at_nested) {
 
 TEST(path_alias_specificity_longest_first) {
     // @/lib/* must beat @/* even though @/* would also match.
-    cbm_path_alias_map_t *m =
-        make_map(NULL, 2, "@/*", "src/*", "@/lib/*", "src/shared/lib/*");
+    cbm_path_alias_map_t *m = make_map(NULL, 2, "@/*", "src/*", "@/lib/*", "src/shared/lib/*");
     char *r = cbm_path_alias_resolve(m, "@/lib/auth");
     ASSERT_NOT_NULL(r);
     ASSERT_STR_EQ(r, "src/shared/lib/auth");
@@ -205,8 +205,7 @@ TEST(path_alias_find_for_file_nearest_ancestor) {
     ASSERT_EQ(m1->count, 1);
     ASSERT_STR_EQ(m1->entries[0].alias_prefix, "@/");
 
-    const cbm_path_alias_map_t *m2 =
-        cbm_path_alias_find_for_file(coll, "packages/utils/index.ts");
+    const cbm_path_alias_map_t *m2 = cbm_path_alias_find_for_file(coll, "packages/utils/index.ts");
     ASSERT_NOT_NULL(m2);
     ASSERT_EQ(m2->count, 1);
     ASSERT_STR_EQ(m2->entries[0].alias_prefix, "@root/");
@@ -242,14 +241,12 @@ TEST(path_alias_loader_monorepo) {
 
     char path[512];
     snprintf(path, sizeof(path), "%s/tsconfig.json", root);
-    ASSERT_EQ(write_file(path,
-                         "{\n  \"compilerOptions\": {\n    \"paths\": {\n"
-                         "      \"@root/*\": [\"shared/*\"]\n    }\n  }\n}\n"),
+    ASSERT_EQ(write_file(path, "{\n  \"compilerOptions\": {\n    \"paths\": {\n"
+                               "      \"@root/*\": [\"shared/*\"]\n    }\n  }\n}\n"),
               0);
     snprintf(path, sizeof(path), "%s/apps/manager/tsconfig.json", root);
-    ASSERT_EQ(write_file(path,
-                         "{\n  // monorepo subpackage\n  \"compilerOptions\": {\n"
-                         "    \"paths\": {\n      \"@/*\": [\"./src/*\"]\n    }\n  },\n}\n"),
+    ASSERT_EQ(write_file(path, "{\n  // monorepo subpackage\n  \"compilerOptions\": {\n"
+                               "    \"paths\": {\n      \"@/*\": [\"./src/*\"]\n    }\n  },\n}\n"),
               0);
 
     cbm_path_alias_collection_t *coll = cbm_load_path_aliases(root);
@@ -305,17 +302,15 @@ TEST(path_alias_loader_monorepo_dotdot_climb) {
 
     char path[512];
     snprintf(path, sizeof(path), "%s/apps/web/tsconfig.json", root);
-    ASSERT_EQ(write_file(path,
-                         "{\n  \"compilerOptions\": {\n    \"paths\": {\n"
-                         "      \"@shared/*\": [\"../../packages/shared/src/*\"]\n"
-                         "    }\n  }\n}\n"),
+    ASSERT_EQ(write_file(path, "{\n  \"compilerOptions\": {\n    \"paths\": {\n"
+                               "      \"@shared/*\": [\"../../packages/shared/src/*\"]\n"
+                               "    }\n  }\n}\n"),
               0);
 
     cbm_path_alias_collection_t *coll = cbm_load_path_aliases(root);
     ASSERT_NOT_NULL(coll);
 
-    const cbm_path_alias_map_t *m =
-        cbm_path_alias_find_for_file(coll, "apps/web/src/feature/x.ts");
+    const cbm_path_alias_map_t *m = cbm_path_alias_find_for_file(coll, "apps/web/src/feature/x.ts");
     ASSERT_NOT_NULL(m);
     char *r = cbm_path_alias_resolve(m, "@shared/utils");
     ASSERT_NOT_NULL(r);
@@ -353,14 +348,12 @@ TEST(path_alias_loader_honors_discovery_exclusions) {
 
     char path[512];
     snprintf(path, sizeof(path), "%s/tsconfig.json", root);
-    ASSERT_EQ(write_file(path,
-                         "{\n  \"compilerOptions\": {\n    \"paths\": {\n"
-                         "      \"@root/*\": [\"shared/*\"]\n    }\n  }\n}\n"),
+    ASSERT_EQ(write_file(path, "{\n  \"compilerOptions\": {\n    \"paths\": {\n"
+                               "      \"@root/*\": [\"shared/*\"]\n    }\n  }\n}\n"),
               0);
     snprintf(path, sizeof(path), "%s/big_generated/tsconfig.json", root);
-    ASSERT_EQ(write_file(path,
-                         "{\n  \"compilerOptions\": {\n    \"paths\": {\n"
-                         "      \"@gen/*\": [\"./src/*\"]\n    }\n  }\n}\n"),
+    ASSERT_EQ(write_file(path, "{\n  \"compilerOptions\": {\n    \"paths\": {\n"
+                               "      \"@gen/*\": [\"./src/*\"]\n    }\n  }\n}\n"),
               0);
 
     /* Control: the unexcluded loader collects BOTH configs. */
@@ -407,6 +400,144 @@ TEST(path_alias_loader_no_configs) {
     PASS();
 }
 
+/* ── Loader does not follow a linked directory ─────────────────── */
+
+/* The walk must not leave the repository through a link, as discovery does
+ * not. A config in a real subdirectory is collected; one reachable only
+ * through a link to a directory outside the tree is not. */
+TEST(path_alias_loader_skips_linked_directory) {
+#ifdef _WIN32
+    /* symlink() does not exist on Windows, and creating a symbolic link there
+     * needs a privilege an ordinary account (and the CI runner) does not hold.
+     * The Windows shape of this case is a directory junction (cmd.exe mklink
+     * /J), which this file has no cmd.exe fixture for; the junction case is
+     * not covered here. */
+    SKIP_PLATFORM("Windows: symlink() unavailable; links need a privilege");
+#else
+    char tmpl[256];
+    snprintf(tmpl, sizeof(tmpl), "/tmp/cbm_palias_link_XXXXXX");
+    char *root = cbm_mkdtemp(tmpl);
+    ASSERT_NOT_NULL(root);
+    char outside_tmpl[256];
+    snprintf(outside_tmpl, sizeof(outside_tmpl), "/tmp/cbm_palias_outside_XXXXXX");
+    char *outside = cbm_mkdtemp(outside_tmpl);
+    ASSERT_NOT_NULL(outside);
+
+    char sub[512];
+    snprintf(sub, sizeof(sub), "%s/pkg", root);
+    cbm_mkdir(sub);
+
+    char path[512];
+    snprintf(path, sizeof(path), "%s/pkg/tsconfig.json", root);
+    ASSERT_EQ(write_file(path, "{\n  \"compilerOptions\": {\n    \"paths\": {\n"
+                               "      \"@pkg/*\": [\"./src/*\"]\n    }\n  }\n}\n"),
+              0);
+    snprintf(path, sizeof(path), "%s/tsconfig.json", outside);
+    ASSERT_EQ(write_file(path, "{\n  \"compilerOptions\": {\n    \"paths\": {\n"
+                               "      \"@out/*\": [\"./src/*\"]\n    }\n  }\n}\n"),
+              0);
+
+    char link[512];
+    snprintf(link, sizeof(link), "%s/linked", root);
+    ASSERT_EQ(symlink(outside, link), 0);
+
+    cbm_path_alias_collection_t *coll = cbm_load_path_aliases(root);
+    ASSERT_NOT_NULL(coll);
+    /* Only the real subdirectory contributes a scope. */
+    ASSERT_EQ(coll->count, 1);
+    ASSERT_STR_EQ(coll->scopes[0].dir_prefix, "pkg");
+    ASSERT_NULL(cbm_path_alias_find_for_file(coll, "linked/src/x.ts"));
+    cbm_path_alias_collection_free(coll);
+
+    unlink(link);
+    snprintf(path, sizeof(path), "%s/pkg/tsconfig.json", root);
+    unlink(path);
+    snprintf(path, sizeof(path), "%s/pkg", root);
+    rmdir(path);
+    rmdir(root);
+    snprintf(path, sizeof(path), "%s/tsconfig.json", outside);
+    unlink(path);
+    rmdir(outside);
+    PASS();
+#endif
+}
+
+#ifdef _WIN32
+/* ── Loader does not follow a directory junction (Windows) ─────── */
+
+/* The Windows shape of the linked-directory case. A junction needs no
+ * privilege (a symbolic link does), and the directory listing reports it
+ * with the directory attribute, so is_dir alone would descend through it.
+ * Compiled out elsewhere: cmd.exe and junctions exist only on Windows, so
+ * this case runs on the Windows leg and nowhere else. */
+TEST(path_alias_loader_skips_junction) {
+    char root_tmpl[512];
+    char outside_tmpl[512];
+    snprintf(root_tmpl, sizeof(root_tmpl), "%s/cbm_palias_junction_XXXXXX", cbm_tmpdir());
+    snprintf(outside_tmpl, sizeof(outside_tmpl), "%s/cbm_palias_outside_XXXXXX", cbm_tmpdir());
+    char *root = cbm_mkdtemp(root_tmpl);
+    ASSERT_NOT_NULL(root);
+    char *outside = cbm_mkdtemp(outside_tmpl);
+    ASSERT_NOT_NULL(outside);
+
+    char sub[600];
+    snprintf(sub, sizeof(sub), "%s/pkg", root);
+    cbm_mkdir(sub);
+
+    char path[700];
+    snprintf(path, sizeof(path), "%s/pkg/tsconfig.json", root);
+    ASSERT_EQ(write_file(path, "{\n  \"compilerOptions\": {\n    \"paths\": {\n"
+                               "      \"@pkg/*\": [\"./src/*\"]\n    }\n  }\n}\n"),
+              0);
+    snprintf(path, sizeof(path), "%s/tsconfig.json", outside);
+    ASSERT_EQ(write_file(path, "{\n  \"compilerOptions\": {\n    \"paths\": {\n"
+                               "      \"@out/*\": [\"./src/*\"]\n    }\n  }\n}\n"),
+              0);
+
+    /* cbm_tmpdir() can expose the MSYS spelling C:/msys64/...; cmd's mklink
+     * builtin treats the slash before "msys64" as another option delimiter.
+     * Native backslashes are required only at this cmd.exe fixture boundary. */
+    char junction[600];
+    snprintf(junction, sizeof(junction), "%s/linked", root);
+    char junction_native[sizeof(junction)];
+    char outside_native[sizeof(outside_tmpl)];
+    snprintf(junction_native, sizeof(junction_native), "%s", junction);
+    snprintf(outside_native, sizeof(outside_native), "%s", outside);
+    for (char *cursor = junction_native; *cursor; cursor++) {
+        if (*cursor == '/') {
+            *cursor = '\\';
+        }
+    }
+    for (char *cursor = outside_native; *cursor; cursor++) {
+        if (*cursor == '/') {
+            *cursor = '\\';
+        }
+    }
+    const char *junction_argv[] = {"cmd.exe",       "/d",           "/c", "mklink", "/J",
+                                   junction_native, outside_native, NULL};
+    ASSERT_EQ(cbm_exec_no_shell(junction_argv), 0);
+
+    cbm_path_alias_collection_t *coll = cbm_load_path_aliases(root);
+    ASSERT_NOT_NULL(coll);
+    /* Only the real subdirectory contributes a scope. */
+    ASSERT_EQ(coll->count, 1);
+    ASSERT_STR_EQ(coll->scopes[0].dir_prefix, "pkg");
+    ASSERT_NULL(cbm_path_alias_find_for_file(coll, "linked/src/x.ts"));
+    cbm_path_alias_collection_free(coll);
+
+    /* Removing the junction removes the link, not its target. */
+    cbm_rmdir(junction);
+    snprintf(path, sizeof(path), "%s/pkg/tsconfig.json", root);
+    cbm_unlink(path);
+    cbm_rmdir(sub);
+    cbm_rmdir(root);
+    snprintf(path, sizeof(path), "%s/tsconfig.json", outside);
+    cbm_unlink(path);
+    cbm_rmdir(outside);
+    PASS();
+}
+#endif
+
 void suite_path_alias(void);
 void suite_path_alias(void) {
     RUN_TEST(path_alias_at_wildcard);
@@ -421,4 +552,8 @@ void suite_path_alias(void) {
     RUN_TEST(path_alias_loader_monorepo_dotdot_climb);
     RUN_TEST(path_alias_loader_honors_discovery_exclusions);
     RUN_TEST(path_alias_loader_no_configs);
+    RUN_TEST(path_alias_loader_skips_linked_directory);
+#ifdef _WIN32
+    RUN_TEST(path_alias_loader_skips_junction);
+#endif
 }

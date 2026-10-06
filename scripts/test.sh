@@ -370,6 +370,9 @@ fi
 echo "=== Step 0y: VM leg verdict contract ==="
 bash "$ROOT/tests/test_vm_verdict_contract.sh"
 
+echo "=== Step 0z: setup scripts install through the installers' verified path ==="
+bash "$ROOT/tests/test_setup_scripts_contract.sh"
+
 # Verify compiler supports target arch
 verify_compiler "$CC"
 

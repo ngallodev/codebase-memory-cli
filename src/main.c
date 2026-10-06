@@ -1217,7 +1217,7 @@ static void print_help(void) {
     printf("                                      [--clients=<tokens>]  Run "
            "'install --clients' to list tokens\n");
     printf("  codebase-memory-cli install-hooks [--dry-run] [--plan] [--clients=<list>]\n");
-    printf("  codebase-memory-cli uninstall [-y|-n] [--dry-run]\n");
+    printf("  codebase-memory-cli uninstall [-y|-n] [--dry-run] [--delete-indexes]\n");
     printf("  codebase-memory-cli update [-y|-n]\n");
     printf("  codebase-memory-cli config <list|get|set|reset>\n");
     printf("  codebase-memory-cli daemon <start|stop|status>\n");

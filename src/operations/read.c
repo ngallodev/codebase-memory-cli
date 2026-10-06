@@ -1,3 +1,6 @@
+#include "operations/project_arg.h"
+#include "foundation/str_util.h"
+#include "operations/json_args.h"
 #include "operations/result_wire.h"
 #include "operations/read.h"
 #include "operations/compact_out.h"
@@ -15,7 +18,6 @@
 #include "operations/file_outline.h"
 #include "operations/compare.h"
 #include "operations/store_host.h"
-#include "operations/json_args.h"
 
 #include "foundation/platform.h"
 #include "foundation/compat_fs.h"
@@ -37,14 +39,7 @@
 static char *copy_string(const char *text);
 
 static int json_int_arg(const char *args_json, const char *name, int fallback) {
-    yyjson_doc *doc = args_json ? yyjson_read(args_json, strlen(args_json), 0) : NULL;
-    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
-    yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, name) : NULL;
-    int result = value && yyjson_is_int(value) ? (int)yyjson_get_sint(value) : fallback;
-    if (doc) {
-        yyjson_doc_free(doc);
-    }
-    return result;
+    return cbm_json_int_arg(args_json, name, fallback);
 }
 
 static bool json_bool_arg(const char *args_json, const char *name, bool fallback) {
@@ -100,14 +95,7 @@ static cbm_operation_result_t json_error(const char *message, const char *hint) 
 }
 
 static bool project_db_file(const char *name) {
-    if (!name) {
-        return false;
-    }
-    size_t len = strlen(name);
-    if (len <= OP_DB_EXT_LEN || strcmp(name + len - OP_DB_EXT_LEN, ".db") != 0) {
-        return false;
-    }
-    return name[0] != '_' && strncmp(name, ":memory:", strlen(":memory:")) != 0;
+    return cbm_is_project_index_db(name);
 }
 
 static char *copy_string(const char *text) {
@@ -671,9 +659,9 @@ bool cbm_read_operation_supported(cbm_operation_id_t operation) {
            operation == CBM_OPERATION_COMPARE || operation == CBM_OPERATION_INGEST_TRACES;
 }
 
-cbm_operation_result_t cbm_read_operation_execute(cbm_operation_id_t operation,
-                                                  const char *args_json,
-                                                  const cbm_operation_runtime_t *runtime) {
+static cbm_operation_result_t read_operation_execute(cbm_operation_id_t operation,
+                                                     const char *args_json,
+                                                     const cbm_operation_runtime_t *runtime) {
     (void)runtime;
     if (operation == CBM_OPERATION_PROJECTS) {
         return execute_projects(args_json);
@@ -718,4 +706,31 @@ cbm_operation_result_t cbm_read_operation_execute(cbm_operation_id_t operation,
         return cbm_trace_ingest_operation_execute(args_json);
     }
     return cbm_operation_result_copy("native read operation not implemented", true);
+}
+
+cbm_operation_result_t cbm_read_operation_execute(cbm_operation_id_t operation,
+                                                  const char *args_json,
+                                                  const cbm_operation_runtime_t *runtime) {
+    char *project = cbm_operation_project_arg(args_json);
+    if (!project)
+        return read_operation_execute(operation, args_json, runtime);
+    const char *json = args_json ? args_json : "{}";
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_mut_doc *copy = doc ? yyjson_doc_mut_copy(doc, NULL) : NULL;
+    if (doc)
+        yyjson_doc_free(doc);
+    yyjson_mut_val *root = copy ? yyjson_mut_doc_get_root(copy) : NULL;
+    bool ok =
+        yyjson_mut_is_obj(root) && (yyjson_mut_obj_remove_key(root, "project"),
+                                    yyjson_mut_obj_add_strcpy(copy, root, "project", project));
+    cbm_operation_arg_free(project);
+    char *normalized = ok ? cbm_operation_json_write(copy) : NULL;
+    if (copy)
+        yyjson_mut_doc_free(copy);
+    if (!normalized)
+        return json_error("project argument normalization failed", NULL);
+    cbm_operation_result_t owned = cbm_operation_result_take(normalized, false);
+    cbm_operation_result_t result = read_operation_execute(operation, normalized, runtime);
+    cbm_operation_result_dispose(&owned);
+    return result;
 }

@@ -1,3 +1,4 @@
+#include "operations/json_args.h"
 #include "operations/index.h"
 #include "cli/cli.h"
 #include "foundation/index_policy.h"
@@ -5,7 +6,6 @@
 #include "operations/cross_repo.h"
 #include "operations/index_supervisor.h"
 #include "operations/project_arg.h"
-#include "operations/json_args.h"
 #include "operations/read.h"
 
 #include "foundation/compat_fs.h"
@@ -351,7 +351,7 @@ static char *index_repo_path_from_project(const char *args_json) {
             cbm_store_close(store);
         }
     }
-    cbm_free(CBM_MEM_CLASS_OPERATION_ARG, project);
+    cbm_operation_arg_free(project);
     return root_path;
 }
 
@@ -599,7 +599,11 @@ static bool index_write_log(const char *project, const cbm_file_error_t *errs, i
     char path[CBM_SZ_1K];
     const char *override = getenv("CBM_INDEX_LOG");
     if (override && override[0]) {
-        snprintf(path, sizeof(path), "%s", override);
+        int written = snprintf(path, sizeof(path), "%s", override);
+        if (written <= 0 || (size_t)written >= sizeof(path)) {
+            cbm_log_warn("index.logfile_path_too_long", "source", "CBM_INDEX_LOG");
+            return false;
+        }
     } else {
         const char *cache = cbm_resolve_cache_dir();
         if (!cache)

@@ -5,7 +5,7 @@
 #include "foundation/mem_core.h"
 
 /* Returned strings belong to CBM_MEM_CLASS_OPERATION_ARG; release with
- * cbm_free(CBM_MEM_CLASS_OPERATION_ARG, value). */
+ * cbm_operation_arg_free(value). */
 
 char *cbm_json_string_arg(const char *args_json, const char *key);
 void cbm_operation_arg_free(char *value);

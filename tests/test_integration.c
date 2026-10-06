@@ -1,3 +1,6 @@
+#include "foundation/subprocess.h"
+#include "foundation/mem_core.h"
+#include "callable_sig.h"
 /*
  * test_integration.c — End-to-end integration tests for the pure C pipeline.
  *
@@ -14,7 +17,6 @@
 #include "operations/output_budget.h"
 #include "operations/result_wire.h"
 #include "cbm.h"
-#include "foundation/mem_core.h"
 #include <yyjson/yyjson.h>
 #include <store/store.h>
 #include <pipeline/pipeline.h>
@@ -1579,6 +1581,319 @@ TEST(integ_coverage_freshness_uses_indexer_mtime_source_issue1714) {
     PASS();
 }
 
+/* Step-5 ports: direct operations over real stores and source files. */
+static char *step5_execute(const char *operation, const char *extra) {
+    char args[CBM_SZ_4K];
+    snprintf(args, sizeof(args), "{\"project\":\"%s\"%s}", g_project, extra ? extra : "");
+    return cbm_test_operation_execute(g_srv, operation, args);
+}
+
+TEST(integ_step5_search_filters_and_integer_bounds) {
+    static const char *filters[] = {
+        ",\"file_pattern\":\"missing-step5/*\"",
+        ",\"qn_pattern\":\"missing-step5\"",
+        ",\"relationship\":\"IMPORTS\",\"name_pattern\":\"greet\"",
+        ",\"min_degree\":2147483647",
+    };
+    for (size_t i = 0; i < sizeof(filters) / sizeof(filters[0]); i++) {
+        char *response = step5_execute("search_graph", filters[i]);
+        ASSERT_NOT_NULL(response);
+        ASSERT_NOT_NULL(strstr(response, "No results match the current filters"));
+        free(response);
+    }
+    static const char *integers[] = {"4294967297", "-4294967297", "18446744073709551615"};
+    char *expected = step5_execute("search_graph", ",\"label\":\"Function\",\"format\":\"json\"");
+    ASSERT_NOT_NULL(expected);
+    for (size_t i = 0; i < sizeof(integers) / sizeof(integers[0]); i++) {
+        char extra[256];
+        snprintf(extra, sizeof(extra), ",\"label\":\"Function\",\"format\":\"json\",\"limit\":%s",
+                 integers[i]);
+        char *response = step5_execute("search_graph", extra);
+        ASSERT_NOT_NULL(response);
+        ASSERT_STR_EQ(response, expected);
+        free(response);
+    }
+    free(expected);
+    PASS();
+}
+
+TEST(integ_step5_search_regex_errors_and_cleanup) {
+    size_t before = cbm_mem_class_live_blocks(CBM_MEM_CLASS_OPERATION_ARG);
+    static const char *bad[] = {
+        ",\"path_filter\":\".*\"", /* missing pattern */
+        ",\"pattern\":\"greet\",\"path_filter\":\"(\"",
+        ",\"pattern\":\"a{1000000000}\",\"regex\":true",
+        ",\"name_pattern\":\"(\"",
+        ",\"pattern\":\"greet\",\"path_filter\":\"a{1000000000}\"",
+        ",\"pattern\":\"greet\",\"file_pattern\":\"quote'path\"",
+    };
+    for (size_t i = 0; i < sizeof(bad) / sizeof(bad[0]); i++) {
+        char *response = step5_execute(i == 3 ? "search_graph" : "search_code", bad[i]);
+        ASSERT_NOT_NULL(response);
+        ASSERT_TRUE(strstr(response, "required") || strstr(response, "regex") ||
+                    strstr(response, "invalid") || strstr(response, "budget"));
+        free(response);
+        ASSERT_EQ(cbm_mem_class_live_blocks(CBM_MEM_CLASS_OPERATION_ARG), before);
+    }
+    cbm_operation_runtime_t runtime = {.search_scratch_dir = "/step5-no-such-scratch-parent"};
+    cbm_operation_context_t context = {.runtime = &runtime};
+    char args[CBM_SZ_1K];
+    snprintf(args, sizeof(args),
+             "{\"project\":\"%s\",\"pattern\":\"greet\",\"path_filter\":\".*\"}", g_project);
+    cbm_operation_result_t result =
+        cbm_operation_execute(&context, CBM_OPERATION_SOURCE_SEARCH, args);
+    ASSERT_TRUE(result.is_error);
+    ASSERT_NOT_NULL(strstr(result.payload, "cannot create temp file"));
+    cbm_operation_result_dispose(&result);
+    ASSERT_EQ(cbm_mem_class_live_blocks(CBM_MEM_CLASS_OPERATION_ARG), before);
+    PASS();
+}
+
+TEST(integ_step5_source_context_bounds) {
+    char path[CBM_SZ_1K];
+    snprintf(path, sizeof(path), "%s/step5-long.md", g_tmpdir);
+    FILE *fp = cbm_fopen(path, "wb");
+    ASSERT_NOT_NULL(fp);
+    for (int line = 1; line <= 1000; line++)
+        fprintf(fp, line == 500 ? "needle-context-window\n" : "line %04d\n", line);
+    ASSERT_EQ(fclose(fp), 0);
+    cbm_store_t *store = cbm_store_open_path(g_dbpath);
+    ASSERT_NOT_NULL(store);
+    cbm_node_t node = {.project = g_project,
+                       .label = "File",
+                       .name = "long",
+                       .qualified_name = "step5.long",
+                       .file_path = "step5-long.md",
+                       .start_line = 1,
+                       .end_line = 1000};
+    ASSERT_GT(cbm_store_upsert_node(store, &node), 0);
+    cbm_store_close(store);
+    static const char *values[] = {"200", "999999", "2147483647", "-5", "4294967297"};
+    for (size_t i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
+        char extra[256];
+        snprintf(extra, sizeof(extra),
+                 ",\"pattern\":\"needle-context-window\",\"format\":\"json\",\"context\":%s",
+                 values[i]);
+        char *response = step5_execute("search_code", extra);
+        ASSERT_NOT_NULL(response);
+        yyjson_doc *doc = yyjson_read(response, strlen(response), 0);
+        ASSERT_NOT_NULL(doc);
+        yyjson_val *root = yyjson_doc_get_root(doc);
+        yyjson_val *cols = yyjson_obj_get(root, "cols");
+        yyjson_val *rows = yyjson_obj_get(root, "rows");
+        ASSERT_GT(yyjson_arr_size(rows), 0);
+        bool found = false;
+        for (size_t col = 0; col < yyjson_arr_size(cols); col++) {
+            const char *name = yyjson_get_str(yyjson_arr_get(cols, col));
+            if (name && strcmp(name, "context") == 0) {
+                found = true;
+                yyjson_val *context = yyjson_arr_get(yyjson_arr_get(rows, 0), col);
+                ASSERT_EQ(yyjson_get_int(yyjson_obj_get(context, "context_start")), 300);
+                const char *text = yyjson_get_str(yyjson_obj_get(context, "context"));
+                ASSERT_NOT_NULL(text);
+                int lines = 0;
+                for (const char *p = text; *p; p++)
+                    lines += *p == '\n';
+                ASSERT_EQ(lines, 401);
+            }
+        }
+        ASSERT_EQ(found, i < 3);
+        yyjson_doc_free(doc);
+        free(response);
+    }
+    cbm_unlink(path);
+    store = cbm_store_open_path(g_dbpath);
+    ASSERT_NOT_NULL(store);
+    ASSERT_EQ(cbm_store_delete_nodes_by_file(store, g_project, "step5-long.md"), CBM_STORE_OK);
+    cbm_store_close(store);
+    PASS();
+}
+
+TEST(integ_step5_callable_lookup_and_grouping) {
+    cbm_store_t *store = cbm_store_open_path(g_dbpath);
+    ASSERT_NOT_NULL(store);
+    const char *qn = "step5.module.overloaded(pkg.Type)";
+    cbm_node_t node = {.project = g_project,
+                       .label = "Function",
+                       .name = "overloaded",
+                       .qualified_name = qn,
+                       .file_path = "main.py",
+                       .start_line = 1,
+                       .end_line = 2};
+    ASSERT_GT(cbm_store_upsert_node(store, &node), 0);
+    cbm_store_close(store);
+    char *response =
+        step5_execute("get_code_snippet", ",\"qualified_name\":\"step5.module.overloaded\"");
+    ASSERT_NOT_NULL(response);
+    ASSERT_NOT_NULL(strstr(response, "def greet"));
+    free(response);
+    response = step5_execute("get_code_snippet", ",\"qualified_name\":\"module.overloaded\"");
+    ASSERT_NOT_NULL(response);
+    ASSERT_NOT_NULL(strstr(response, "def greet"));
+    free(response);
+    response = step5_execute("trace_path", ",\"function_name\":\"step5.module.overloaded\"");
+    ASSERT_NOT_NULL(response);
+    ASSERT_NULL(strstr(response, "function not found"));
+    free(response);
+    response =
+        step5_execute("search_graph", ",\"name_pattern\":\"overloaded\",\"format\":\"json\"");
+    ASSERT_NOT_NULL(response);
+    ASSERT_NOT_NULL(strstr(response, "\"qn_prefix\":\"step5.module\""));
+    free(response);
+    response = step5_execute("search_graph",
+                             ",\"name_pattern\":\"overloaded\",\"fields\":[\"docstring\"]");
+    ASSERT_NOT_NULL(response);
+    ASSERT_NOT_NULL(strstr(response, "step5.module (main.py):"));
+    ASSERT_NOT_NULL(strstr(response, "overloaded(pkg.Type)"));
+    free(response);
+    PASS();
+}
+
+static bool step5_seed_project(const char *cache, const char *name, const char *root,
+                               const char *function) {
+    char path[CBM_SZ_4K];
+    snprintf(path, sizeof(path), "%s/%s.db", cache, name);
+    cbm_store_t *store = cbm_store_open_path(path);
+    if (!store)
+        return false;
+    cbm_node_t node = {.project = name,
+                       .label = "Function",
+                       .name = function,
+                       .qualified_name = function,
+                       .file_path = "app.py",
+                       .start_line = 1,
+                       .end_line = 1};
+    bool ok = cbm_store_upsert_project(store, name, root) == CBM_STORE_OK &&
+              cbm_store_upsert_node(store, &node) > 0;
+    cbm_store_close(store);
+    return ok;
+}
+
+TEST(integ_step5_named_path_owners_and_underscore_discovery) {
+    char temp[CBM_SZ_4K];
+    snprintf(temp, sizeof(temp), "%s/cbm-step5-owners-XXXXXX", cbm_tmpdir());
+    ASSERT_NOT_NULL(cbm_mkdtemp(temp));
+    char cache[CBM_SZ_4K], root[CBM_SZ_4K], sub[CBM_SZ_4K], sibling[CBM_SZ_4K];
+    snprintf(cache, sizeof(cache), "%s/cache", temp);
+    snprintf(root, sizeof(root), "%s/repo", temp);
+    snprintf(sub, sizeof(sub), "%s/repo/pkg", temp);
+    snprintf(sibling, sizeof(sibling), "%s/repo-sibling", temp);
+    ASSERT_TRUE(cbm_mkdir_p(cache, 0700));
+    ASSERT_TRUE(cbm_mkdir_p(sub, 0700));
+    ASSERT_TRUE(cbm_mkdir_p(sibling, 0700));
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? strdup(saved) : NULL;
+    cbm_setenv("CBM_CACHE_DIR", cache, 1);
+    bool seeded = step5_seed_project(cache, "__named", root, "parent_fn") &&
+                  step5_seed_project(cache, "_nested", sub, "nested_fn");
+    cbm_operation_context_t context = {0};
+    char args[CBM_SZ_8K];
+    snprintf(args, sizeof(args), "{\"project\":\"%s\",\"name_pattern\":\".*\"}", root);
+    cbm_operation_result_t parent = cbm_operation_execute(&context, CBM_OPERATION_SEARCH, args);
+    snprintf(args, sizeof(args), "{\"project_name\":\"%s\",\"name_pattern\":\".*\"}", sub);
+    cbm_operation_result_t nested = cbm_operation_execute(&context, CBM_OPERATION_SEARCH, args);
+    snprintf(args, sizeof(args), "{\"project\":\"%s\"}", sibling);
+    cbm_operation_result_t absent = cbm_operation_execute(&context, CBM_OPERATION_SEARCH, args);
+    cbm_operation_result_t listed = cbm_operation_execute(&context, CBM_OPERATION_PROJECTS, "{}");
+    seeded = seeded && step5_seed_project(cache, "_twin", sub, "twin_fn");
+    snprintf(args, sizeof(args), "{\"project\":\"%s\"}", sub);
+    cbm_operation_result_t ambiguous = cbm_operation_execute(&context, CBM_OPERATION_SEARCH, args);
+    bool ok = seeded && !parent.is_error && parent.payload && strstr(parent.payload, "parent_fn") &&
+              !nested.is_error && nested.payload && strstr(nested.payload, "nested_fn") &&
+              absent.is_error && ambiguous.is_error && listed.payload &&
+              strstr(listed.payload, "__named") && strstr(listed.payload, "_nested");
+    cbm_operation_result_dispose(&parent);
+    cbm_operation_result_dispose(&nested);
+    cbm_operation_result_dispose(&absent);
+    cbm_operation_result_dispose(&listed);
+    cbm_operation_result_dispose(&ambiguous);
+    if (saved_copy)
+        cbm_setenv("CBM_CACHE_DIR", saved_copy, 1);
+    else
+        cbm_unsetenv("CBM_CACHE_DIR");
+    free(saved_copy);
+    ASSERT_EQ(th_rmtree(temp), 0);
+    ASSERT_TRUE(ok);
+    PASS();
+}
+
+static bool step5_git(const char *repo, const char *const *args) {
+    const char *argv[32] = {"git",
+                            "-C",
+                            repo,
+                            "-c",
+                            "core.hooksPath=/dev/null",
+                            "-c",
+                            "commit.gpgsign=false",
+                            "-c",
+                            "user.name=cbm-test",
+                            "-c",
+                            "user.email=cbm-test@example.invalid"};
+    size_t n = 11;
+    while (*args && n < 31)
+        argv[n++] = *args++;
+    cbm_proc_opts_t options = {
+        .bin = "git", .argv = argv, .quiet_timeout_ms = 10000, .strip_git_repo_env = true};
+    cbm_proc_result_t result = {0};
+    return cbm_subprocess_run(&options, &result) == 0 && result.outcome == CBM_PROC_CLEAN;
+}
+
+TEST(integ_step5_detect_default_branch_and_explicit_base) {
+    static const char *branches[] = {"trunk", "master", "main", "develop", "trunk", "trunk"};
+    for (size_t scenario = 0; scenario < sizeof(branches) / sizeof(branches[0]); scenario++) {
+        char repo[CBM_SZ_4K];
+        snprintf(repo, sizeof(repo), "%s/cbm-step5-git-XXXXXX", cbm_tmpdir());
+        ASSERT_NOT_NULL(cbm_mkdtemp(repo));
+        const char *init[] = {"init", "-q", NULL};
+        char head[256];
+        snprintf(head, sizeof(head), "refs/heads/%s", branches[scenario]);
+        const char *head_args[] = {"symbolic-ref", "HEAD", head, NULL};
+        const char *add[] = {"add", "base.c", NULL};
+        const char *commit[] = {"commit", "-q", "-m", "fixture", NULL};
+        bool ok = step5_git(repo, init) && step5_git(repo, head_args) &&
+                  th_write_file(TH_PATH(repo, "base.c"), "int base = 1;\n") == 0 &&
+                  step5_git(repo, add) && step5_git(repo, commit);
+        const char *remote[] = {"update-ref", "refs/remotes/origin/trunk", "HEAD", NULL};
+        const char *remote_head[] = {"symbolic-ref", "refs/remotes/origin/HEAD",
+                                     "refs/remotes/origin/trunk", NULL};
+        if (scenario == 0 || scenario == 4)
+            ok = ok && step5_git(repo, remote) && step5_git(repo, remote_head);
+        const char *checkout[] = {"checkout", "-q", "-b", "feature", NULL};
+        const char *add_feature[] = {"add", "feature.c", NULL};
+        ok = ok && step5_git(repo, checkout) &&
+             th_write_file(TH_PATH(repo, "feature.c"), "int feature = 2;\n") == 0 &&
+             step5_git(repo, add_feature) && step5_git(repo, commit);
+        if (scenario == 5) {
+            const char *remote_add[] = {"remote", "add", "origin", repo, NULL};
+            const char *track_ref[] = {"update-ref", "refs/remotes/origin/trunk", "HEAD~1", NULL};
+            const char *track_remote[] = {"config", "branch.feature.remote", "origin", NULL};
+            const char *track_merge[] = {"config", "branch.feature.merge", "refs/heads/trunk",
+                                         NULL};
+            ok = ok && step5_git(repo, remote_add) && step5_git(repo, track_ref) &&
+                 step5_git(repo, track_remote) && step5_git(repo, track_merge);
+        }
+        cbm_store_t *store = cbm_store_open_path(g_dbpath);
+        ASSERT_NOT_NULL(store);
+        ASSERT_EQ(cbm_store_upsert_project(store, g_project, repo), CBM_STORE_OK);
+        cbm_store_close(store);
+        char *response = step5_execute(
+            "detect_changes",
+            scenario == 4 ? ",\"scope\":\"files\",\"format\":\"json\",\"base_branch\":\"trunk\""
+                          : ",\"scope\":\"files\",\"format\":\"json\"");
+        bool answered =
+            response && (scenario == 3 ? strstr(response, "origin/HEAD") && strstr(response, "main")
+                                       : strstr(response, "feature.c") != NULL);
+        free(response);
+        ASSERT_EQ(th_rmtree(repo), 0);
+        ASSERT_TRUE(ok && answered);
+    }
+    cbm_store_t *store = cbm_store_open_path(g_dbpath);
+    ASSERT_NOT_NULL(store);
+    ASSERT_EQ(cbm_store_upsert_project(store, g_project, g_tmpdir), CBM_STORE_OK);
+    cbm_store_close(store);
+    PASS();
+}
+
 SUITE(integration) {
     RUN_TEST(index_reports_excluded_subtrees_issue411);
     /* Set up: create temp project and index it */
@@ -1591,6 +1906,14 @@ SUITE(integration) {
         integration_teardown();
         return;
     }
+
+    RUN_TEST(integ_step5_search_filters_and_integer_bounds);
+    RUN_TEST(integ_step5_search_regex_errors_and_cleanup);
+    RUN_TEST(integ_step5_source_context_bounds);
+    RUN_TEST(integ_step5_callable_lookup_and_grouping);
+
+    RUN_TEST(integ_step5_named_path_owners_and_underscore_discovery);
+    RUN_TEST(integ_step5_detect_default_branch_and_explicit_base);
 
     /* Pipeline result validation */
     RUN_TEST(integ_index_has_nodes);

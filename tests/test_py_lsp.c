@@ -16,8 +16,8 @@
 /* ── Helpers — same shape as test_go_lsp.c ──────────────────────── */
 
 static CBMFileResult *extract_py(const char *source) {
-    return cbm_extract_file(source, (int)strlen(source), CBM_LANG_PYTHON,
-                            "test", "main.py", 0, NULL, NULL);
+    return cbm_extract_file(source, (int)strlen(source), CBM_LANG_PYTHON, "test", "main.py", 0,
+                            NULL, NULL);
 }
 
 static int find_resolved(const CBMFileResult *r, const char *callerSub, const char *calleeSub) {
@@ -32,18 +32,16 @@ static int find_resolved(const CBMFileResult *r, const char *callerSub, const ch
 
 /* Avoid unused-static-function warnings: helpers compiled but not yet used
  * outside the smoke tests will be referenced in Phase 3+ tests. */
-__attribute__((unused))
-static int require_resolved(const CBMFileResult *r, const char *callerSub, const char *calleeSub) {
+__attribute__((unused)) static int require_resolved(const CBMFileResult *r, const char *callerSub,
+                                                    const char *calleeSub) {
     int idx = find_resolved(r, callerSub, calleeSub);
     if (idx < 0) {
-        printf("  MISSING resolved call: caller~%s -> callee~%s (have %d)\n",
-               callerSub, calleeSub, r->resolved_calls.count);
+        printf("  MISSING resolved call: caller~%s -> callee~%s (have %d)\n", callerSub, calleeSub,
+               r->resolved_calls.count);
         for (int i = 0; i < r->resolved_calls.count; i++) {
             const CBMResolvedCall *rc = &r->resolved_calls.items[i];
-            printf("    %s -> %s [%s %.2f]\n",
-                   rc->caller_qn ? rc->caller_qn : "(null)",
-                   rc->callee_qn ? rc->callee_qn : "(null)",
-                   rc->strategy ? rc->strategy : "(null)",
+            printf("    %s -> %s [%s %.2f]\n", rc->caller_qn ? rc->caller_qn : "(null)",
+                   rc->callee_qn ? rc->callee_qn : "(null)", rc->strategy ? rc->strategy : "(null)",
                    rc->confidence);
         }
     }
@@ -61,9 +59,8 @@ TEST(pylsp_smoke_empty) {
 }
 
 TEST(pylsp_smoke_one_function) {
-    CBMFileResult *r = extract_py(
-        "def greet(name):\n"
-        "    return name\n");
+    CBMFileResult *r = extract_py("def greet(name):\n"
+                                  "    return name\n");
     ASSERT_NOT_NULL(r);
     /* Phase 2 stub: no resolutions yet, but extraction must succeed and
      * the result must be addressable without crashes. */
@@ -73,12 +70,11 @@ TEST(pylsp_smoke_one_function) {
 }
 
 TEST(pylsp_smoke_one_class) {
-    CBMFileResult *r = extract_py(
-        "class Greeter:\n"
-        "    def __init__(self, name):\n"
-        "        self.name = name\n"
-        "    def greet(self):\n"
-        "        return self.name\n");
+    CBMFileResult *r = extract_py("class Greeter:\n"
+                                  "    def __init__(self, name):\n"
+                                  "        self.name = name\n"
+                                  "    def greet(self):\n"
+                                  "        return self.name\n");
     ASSERT_NOT_NULL(r);
     /* Class + 2 methods at minimum */
     ASSERT_GTE(r->defs.count, 1);
@@ -89,10 +85,9 @@ TEST(pylsp_smoke_one_class) {
 TEST(pylsp_no_crash_on_syntax_error) {
     /* Tree-sitter recovers from errors but we must not crash on the
      * recovered tree. */
-    CBMFileResult *r = extract_py(
-        "def broken(\n"
-        "    x = 1\n"
-        "class\n");
+    CBMFileResult *r = extract_py("def broken(\n"
+                                  "    x = 1\n"
+                                  "class\n");
     ASSERT_NOT_NULL(r);
     cbm_free_result(r);
     PASS();
@@ -102,13 +97,12 @@ TEST(pylsp_smoke_imports_passed_through) {
     /* Imports populate ctx->import_local_names — Phase 2 just verifies
      * the unified extractor still produces them; resolution happens in
      * Phase 3. */
-    CBMFileResult *r = extract_py(
-        "import os\n"
-        "import json as j\n"
-        "from pathlib import Path\n"
-        "from . import sibling\n"
-        "def use():\n"
-        "    return os.getcwd()\n");
+    CBMFileResult *r = extract_py("import os\n"
+                                  "import json as j\n"
+                                  "from pathlib import Path\n"
+                                  "from . import sibling\n"
+                                  "def use():\n"
+                                  "    return os.getcwd()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(r->imports.count, 3);
     cbm_free_result(r);
@@ -120,8 +114,7 @@ TEST(pylsp_smoke_imports_passed_through) {
 /* Build a context, register one or more imports, run the binding pass,
  * and let the caller verify scope state. */
 static void bind_imports_into_ctx(PyLSPContext *ctx, CBMArena *a, CBMTypeRegistry *reg,
-                                  const char *const *locals, const char *const *qns,
-                                  int count) {
+                                  const char *const *locals, const char *const *qns, int count) {
     py_lsp_init(ctx, a, "", 0, reg, "test.main", NULL);
     for (int i = 0; i < count; i++) {
         py_lsp_add_import(ctx, locals[i], qns[i]);
@@ -279,12 +272,11 @@ TEST(pylsp_import_multi_pass_through_extract_file) {
     /* End-to-end: extract_file + run_py_lsp populate scope via imports.
      * We can't peek into the embedded ctx, but we verify imports survive
      * to the result and bind correctly when re-traversed. */
-    CBMFileResult *r = extract_py(
-        "import os\n"
-        "import json as j\n"
-        "from pathlib import Path\n"
-        "def use():\n"
-        "    return Path('.')\n");
+    CBMFileResult *r = extract_py("import os\n"
+                                  "import json as j\n"
+                                  "from pathlib import Path\n"
+                                  "def use():\n"
+                                  "    return Path('.')\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(r->imports.count, 3);
     cbm_free_result(r);
@@ -296,11 +288,10 @@ TEST(pylsp_import_multi_pass_through_extract_file) {
 TEST(pylsp_direct_function_call) {
     /* def helper(): return 1
      * def main(): return helper() */
-    CBMFileResult *r = extract_py(
-        "def helper():\n"
-        "    return 1\n"
-        "def main():\n"
-        "    return helper()\n");
+    CBMFileResult *r = extract_py("def helper():\n"
+                                  "    return 1\n"
+                                  "def main():\n"
+                                  "    return helper()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "main", "helper"), 0);
     cbm_free_result(r);
@@ -312,12 +303,11 @@ TEST(pylsp_method_call_simple) {
      *     def m(self): return 1
      * def use(c):
      *     c.m()  -- with annotation */
-    CBMFileResult *r = extract_py(
-        "class C:\n"
-        "    def m(self):\n"
-        "        return 1\n"
-        "def use(c: C):\n"
-        "    return c.m()\n");
+    CBMFileResult *r = extract_py("class C:\n"
+                                  "    def m(self):\n"
+                                  "        return 1\n"
+                                  "def use(c: C):\n"
+                                  "    return c.m()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "m"), 0);
     cbm_free_result(r);
@@ -325,12 +315,11 @@ TEST(pylsp_method_call_simple) {
 }
 
 TEST(pylsp_method_via_self) {
-    CBMFileResult *r = extract_py(
-        "class C:\n"
-        "    def helper(self):\n"
-        "        return 1\n"
-        "    def caller(self):\n"
-        "        return self.helper()\n");
+    CBMFileResult *r = extract_py("class C:\n"
+                                  "    def helper(self):\n"
+                                  "        return 1\n"
+                                  "    def caller(self):\n"
+                                  "        return self.helper()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "caller", "helper"), 0);
     cbm_free_result(r);
@@ -342,13 +331,12 @@ TEST(pylsp_constructor_call_returns_instance) {
      * def use():
      *   f = Foo()
      *   f.method()  -- requires inferring f as Foo */
-    CBMFileResult *r = extract_py(
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "def use():\n"
-        "    f = Foo()\n"
-        "    return f.method()\n");
+    CBMFileResult *r = extract_py("class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "def use():\n"
+                                  "    f = Foo()\n"
+                                  "    return f.method()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "method"), 0);
     cbm_free_result(r);
@@ -356,13 +344,12 @@ TEST(pylsp_constructor_call_returns_instance) {
 }
 
 TEST(pylsp_method_via_inheritance) {
-    CBMFileResult *r = extract_py(
-        "class Base:\n"
-        "    def shared(self):\n"
-        "        return 1\n"
-        "class Child(Base):\n"
-        "    def go(self):\n"
-        "        return self.shared()\n");
+    CBMFileResult *r = extract_py("class Base:\n"
+                                  "    def shared(self):\n"
+                                  "        return 1\n"
+                                  "class Child(Base):\n"
+                                  "    def go(self):\n"
+                                  "        return self.shared()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "go", "shared"), 0);
     cbm_free_result(r);
@@ -372,9 +359,8 @@ TEST(pylsp_method_via_inheritance) {
 TEST(pylsp_no_false_positive_on_unknown_method) {
     /* Calling a method on an UNKNOWN type should NOT emit a high-confidence
      * resolution. */
-    CBMFileResult *r = extract_py(
-        "def f(x):\n"
-        "    return x.something_unknown_42()\n");
+    CBMFileResult *r = extract_py("def f(x):\n"
+                                  "    return x.something_unknown_42()\n");
     ASSERT_NOT_NULL(r);
     /* Should produce no high-confidence match for "something_unknown_42" */
     int idx = find_resolved(r, "f", "something_unknown_42");
@@ -390,13 +376,12 @@ TEST(pylsp_no_false_positive_on_unknown_method) {
 
 TEST(pylsp_decorated_function_resolves) {
     /* Decorated functions still resolve as their bare-name target. */
-    CBMFileResult *r = extract_py(
-        "import functools\n"
-        "@functools.cache\n"
-        "def helper():\n"
-        "    return 1\n"
-        "def main():\n"
-        "    return helper()\n");
+    CBMFileResult *r = extract_py("import functools\n"
+                                  "@functools.cache\n"
+                                  "def helper():\n"
+                                  "    return 1\n"
+                                  "def main():\n"
+                                  "    return helper()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "main", "helper"), 0);
     cbm_free_result(r);
@@ -404,13 +389,12 @@ TEST(pylsp_decorated_function_resolves) {
 }
 
 TEST(pylsp_classmethod_resolves) {
-    CBMFileResult *r = extract_py(
-        "class C:\n"
-        "    @classmethod\n"
-        "    def make(cls):\n"
-        "        return cls()\n"
-        "def use():\n"
-        "    return C.make()\n");
+    CBMFileResult *r = extract_py("class C:\n"
+                                  "    @classmethod\n"
+                                  "    def make(cls):\n"
+                                  "        return cls()\n"
+                                  "def use():\n"
+                                  "    return C.make()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "make"), 0);
     cbm_free_result(r);
@@ -418,13 +402,12 @@ TEST(pylsp_classmethod_resolves) {
 }
 
 TEST(pylsp_staticmethod_resolves) {
-    CBMFileResult *r = extract_py(
-        "class C:\n"
-        "    @staticmethod\n"
-        "    def add(a, b):\n"
-        "        return a + b\n"
-        "def use():\n"
-        "    return C.add(1, 2)\n");
+    CBMFileResult *r = extract_py("class C:\n"
+                                  "    @staticmethod\n"
+                                  "    def add(a, b):\n"
+                                  "        return a + b\n"
+                                  "def use():\n"
+                                  "    return C.add(1, 2)\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "add"), 0);
     cbm_free_result(r);
@@ -434,17 +417,16 @@ TEST(pylsp_staticmethod_resolves) {
 TEST(pylsp_dataclass_constructor) {
     /* @dataclass synthesizes __init__. We don't emit __init__ explicitly,
      * but the constructor call should still link to the class qn. */
-    CBMFileResult *r = extract_py(
-        "from dataclasses import dataclass\n"
-        "@dataclass\n"
-        "class Point:\n"
-        "    x: int\n"
-        "    y: int\n"
-        "    def magnitude(self):\n"
-        "        return self.x + self.y\n"
-        "def use():\n"
-        "    p = Point(1, 2)\n"
-        "    return p.magnitude()\n");
+    CBMFileResult *r = extract_py("from dataclasses import dataclass\n"
+                                  "@dataclass\n"
+                                  "class Point:\n"
+                                  "    x: int\n"
+                                  "    y: int\n"
+                                  "    def magnitude(self):\n"
+                                  "        return self.x + self.y\n"
+                                  "def use():\n"
+                                  "    p = Point(1, 2)\n"
+                                  "    return p.magnitude()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "magnitude"), 0);
     cbm_free_result(r);
@@ -452,13 +434,12 @@ TEST(pylsp_dataclass_constructor) {
 }
 
 TEST(pylsp_super_call) {
-    CBMFileResult *r = extract_py(
-        "class Base:\n"
-        "    def greet(self):\n"
-        "        return 'hi'\n"
-        "class Child(Base):\n"
-        "    def greet(self):\n"
-        "        return super().greet()\n");
+    CBMFileResult *r = extract_py("class Base:\n"
+                                  "    def greet(self):\n"
+                                  "        return 'hi'\n"
+                                  "class Child(Base):\n"
+                                  "    def greet(self):\n"
+                                  "        return super().greet()\n");
     ASSERT_NOT_NULL(r);
     /* super().greet() should resolve to Base.greet, not Child.greet. */
     int idx = find_resolved(r, "greet", "greet");
@@ -472,17 +453,16 @@ TEST(pylsp_super_call) {
 }
 
 TEST(pylsp_multi_inheritance_first_base) {
-    CBMFileResult *r = extract_py(
-        "class A:\n"
-        "    def a_method(self):\n"
-        "        return 1\n"
-        "class B:\n"
-        "    def b_method(self):\n"
-        "        return 2\n"
-        "class C(A, B):\n"
-        "    def use(self):\n"
-        "        self.a_method()\n"
-        "        self.b_method()\n");
+    CBMFileResult *r = extract_py("class A:\n"
+                                  "    def a_method(self):\n"
+                                  "        return 1\n"
+                                  "class B:\n"
+                                  "    def b_method(self):\n"
+                                  "        return 2\n"
+                                  "class C(A, B):\n"
+                                  "    def use(self):\n"
+                                  "        self.a_method()\n"
+                                  "        self.b_method()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "a_method"), 0);
     ASSERT_GTE(require_resolved(r, "use", "b_method"), 0);
@@ -492,12 +472,11 @@ TEST(pylsp_multi_inheritance_first_base) {
 
 TEST(pylsp_pep695_generic_class) {
     /* PEP 695: class Box[T]:  -- our implementation ignores the [T] part */
-    CBMFileResult *r = extract_py(
-        "class Box:\n"
-        "    def get(self):\n"
-        "        return 1\n"
-        "def use(b: Box):\n"
-        "    return b.get()\n");
+    CBMFileResult *r = extract_py("class Box:\n"
+                                  "    def get(self):\n"
+                                  "        return 1\n"
+                                  "def use(b: Box):\n"
+                                  "    return b.get()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "get"), 0);
     cbm_free_result(r);
@@ -510,8 +489,8 @@ static int find_resolved_arr(const CBMResolvedCallArray *arr, const char *caller
                              const char *calleeSub) {
     for (int i = 0; i < arr->count; i++) {
         const CBMResolvedCall *rc = &arr->items[i];
-        if (rc->caller_qn && strstr(rc->caller_qn, callerSub) &&
-            rc->callee_qn && strstr(rc->callee_qn, calleeSub))
+        if (rc->caller_qn && strstr(rc->caller_qn, callerSub) && rc->callee_qn &&
+            strstr(rc->callee_qn, calleeSub))
             return i;
     }
     return -1;
@@ -547,10 +526,9 @@ TEST(pylsp_crossfile_method_dispatch) {
     /* file svc.py defines class RedisStore with Get(); file main.py calls
      * the method on a typed parameter. Reuses CBMLSPDef to feed the
      * cross-file definition into the resolver. */
-    const char *source =
-        "from svc import RedisStore\n"
-        "def process(s: RedisStore):\n"
-        "    return s.Get('k')\n";
+    const char *source = "from svc import RedisStore\n"
+                         "def process(s: RedisStore):\n"
+                         "    return s.Get('k')\n";
 
     CBMLSPDef defs[2];
     memset(defs, 0, sizeof(defs));
@@ -576,6 +554,119 @@ TEST(pylsp_crossfile_method_dispatch) {
                          imp_qns, 1, NULL, &out, NULL);
 
     ASSERT_GTE(find_resolved_arr(&out, "process", "Get"), 0);
+    cbm_arena_destroy(&arena);
+    PASS();
+}
+
+/* Issue #1277 (reproducer contributed by @Enferlain): a method call through a
+ * typed instance field of a class imported from ANOTHER file. The field type
+ * reaches the resolver only through CBMLSPDef.field_defs on the class def. */
+TEST(pylsp_crossfile_receiver_through_typed_field) {
+    const char *source = "from trainer import Trainer\n"
+                         "def run(trainer: Trainer):\n"
+                         "    strategies = trainer.strategies\n"
+                         "    return strategies.process_batch()\n";
+
+    CBMLSPDef defs[3];
+    memset(defs, 0, sizeof(defs));
+
+    defs[0].qualified_name = "contracts.Contract";
+    defs[0].short_name = "Contract";
+    defs[0].label = "Class";
+    defs[0].def_module_qn = "contracts";
+
+    defs[1].qualified_name = "contracts.Contract.process_batch";
+    defs[1].short_name = "process_batch";
+    defs[1].label = "Method";
+    defs[1].receiver_type = "contracts.Contract";
+    defs[1].def_module_qn = "contracts";
+
+    defs[2].qualified_name = "trainer.Trainer";
+    defs[2].short_name = "Trainer";
+    defs[2].label = "Class";
+    defs[2].def_module_qn = "trainer";
+    defs[2].field_defs = "strategies:contracts.Contract";
+
+    const char *imp_names[] = {"Trainer"};
+    const char *imp_qns[] = {"trainer.Trainer"};
+
+    CBMArena arena;
+    cbm_arena_init(&arena);
+    CBMResolvedCallArray out = {0};
+
+    cbm_run_py_lsp_cross(&arena, source, (int)strlen(source), "test.loop", defs, 3, imp_names,
+                         imp_qns, 1, NULL, &out, NULL);
+
+    ASSERT_GTE(find_resolved_arr(&out, "run", "process_batch"), 0);
+    cbm_arena_destroy(&arena);
+    PASS();
+}
+
+/* #1277 on the production path: the sealed shared Tier-2 registry. Covers the
+ * direct chain, the local alias, a field inherited from a base class, and two
+ * controls: an undeclared field and a field whose type has no such method
+ * must stay unresolved (never guessed). */
+TEST(pylsp_crossfile_typed_field_shared_registry) {
+    CBMArena arena;
+    cbm_arena_init(&arena);
+
+    CBMLSPDef defs[5];
+    memset(defs, 0, sizeof(defs));
+    defs[0].qualified_name = "contracts.Contract";
+    defs[0].short_name = "Contract";
+    defs[0].label = "Class";
+    defs[0].def_module_qn = "contracts";
+    defs[1].qualified_name = "contracts.Contract.process_batch";
+    defs[1].short_name = "process_batch";
+    defs[1].label = "Method";
+    defs[1].receiver_type = "contracts.Contract";
+    defs[1].def_module_qn = "contracts";
+    defs[2].qualified_name = "trainer.Trainer";
+    defs[2].short_name = "Trainer";
+    defs[2].label = "Class";
+    defs[2].def_module_qn = "trainer";
+    defs[2].field_defs = "strategies:contracts.Contract|name:builtins.str";
+    defs[3].qualified_name = "trainer.SubTrainer";
+    defs[3].short_name = "SubTrainer";
+    defs[3].label = "Class";
+    defs[3].def_module_qn = "trainer";
+    defs[3].embedded_types = "trainer.Trainer";
+    defs[4].qualified_name = "trainer.Other";
+    defs[4].short_name = "Other";
+    defs[4].label = "Class";
+    defs[4].def_module_qn = "trainer";
+    for (int i = 0; i < 5; i++) {
+        defs[i].lang = CBM_LANG_PYTHON;
+    }
+
+    CBMTypeRegistry *reg = cbm_py_build_cross_registry(&arena, defs, 5);
+    ASSERT_NOT_NULL(reg);
+    ASSERT_TRUE(reg->read_only);
+
+    const char *src = "from trainer import Trainer, SubTrainer, Other\n"
+                      "def direct(t: Trainer):\n"
+                      "    return t.strategies.process_batch()\n"
+                      "def alias(t: Trainer):\n"
+                      "    s = t.strategies\n"
+                      "    return s.process_batch()\n"
+                      "def inherited(t: SubTrainer):\n"
+                      "    return t.strategies.process_batch()\n"
+                      "def undeclared(t: Other):\n"
+                      "    return t.strategies.process_batch()\n"
+                      "def wrong_type(t: Trainer):\n"
+                      "    return t.name.process_batch()\n";
+    const char *imp_names[] = {"Trainer", "SubTrainer", "Other"};
+    const char *imp_qns[] = {"trainer.Trainer", "trainer.SubTrainer", "trainer.Other"};
+    CBMResolvedCallArray out = {0};
+    cbm_run_py_lsp_cross_with_registry(&arena, src, (int)strlen(src), "test.loop", reg, imp_names,
+                                       imp_qns, 3, NULL, &out, NULL);
+
+    ASSERT_GTE(find_resolved_arr(&out, "direct", "Contract.process_batch"), 0);
+    ASSERT_GTE(find_resolved_arr(&out, "alias", "Contract.process_batch"), 0);
+    ASSERT_GTE(find_resolved_arr(&out, "inherited", "Contract.process_batch"), 0);
+    ASSERT_EQ(find_resolved_arr(&out, "undeclared", "process_batch"), -1);
+    ASSERT_EQ(find_resolved_arr(&out, "wrong_type", "process_batch"), -1);
+
     cbm_arena_destroy(&arena);
     PASS();
 }
@@ -642,10 +733,9 @@ TEST(pylsp_fused_self_attr_chain_via_overlay) {
  * the method showed in/out degree 0 and was flagged as dead code. Distinct from
  * pylsp_crossfile_method_dispatch (which dispatches on a typed *instance*). */
 TEST(pylsp_crossfile_classmethod_on_class_issue228) {
-    const char *source =
-        "from core.schemas import ActionRecordX\n"
-        "def run_plain_flow():\n"
-        "    return ActionRecordX.build_from_text('hello')\n";
+    const char *source = "from core.schemas import ActionRecordX\n"
+                         "def run_plain_flow():\n"
+                         "    return ActionRecordX.build_from_text('hello')\n";
 
     CBMLSPDef defs[2];
     memset(defs, 0, sizeof(defs));
@@ -679,11 +769,10 @@ TEST(pylsp_crossfile_inheritance) {
     /* svc.py defines class Base with shared(); main.py defines class Child(Base)
      * and calls self.shared(). Caller passes ALL relevant defs (cross-file
      * Base/shared + local Child/go) — same convention as test_go_lsp.c. */
-    const char *source =
-        "from svc import Base\n"
-        "class Child(Base):\n"
-        "    def go(self):\n"
-        "        return self.shared()\n";
+    const char *source = "from svc import Base\n"
+                         "class Child(Base):\n"
+                         "    def go(self):\n"
+                         "        return self.shared()\n";
 
     CBMLSPDef defs[4];
     memset(defs, 0, sizeof(defs));
@@ -726,13 +815,11 @@ TEST(pylsp_crossfile_inheritance) {
 }
 
 TEST(pylsp_batch_two_files) {
-    const char *src_a =
-        "def helper():\n"
-        "    return 1\n";
-    const char *src_b =
-        "from a import helper\n"
-        "def main():\n"
-        "    return helper()\n";
+    const char *src_a = "def helper():\n"
+                        "    return 1\n";
+    const char *src_b = "from a import helper\n"
+                        "def main():\n"
+                        "    return helper()\n";
 
     CBMLSPDef a_defs[1];
     memset(a_defs, 0, sizeof(a_defs));
@@ -788,8 +875,8 @@ TEST(pylsp_batch_two_files) {
 }
 
 static int pylsp_exact_reference_count(const CBMResolvedCallArray *out, const char *caller,
-                                        const char *callee_qn, const char *reason,
-                                        uint32_t site_start, uint32_t site_end) {
+                                       const char *callee_qn, const char *reason,
+                                       uint32_t site_start, uint32_t site_end) {
     int count = 0;
     for (int i = 0; out && i < out->count; i++) {
         const CBMResolvedCall *resolved = &out->items[i];
@@ -810,9 +897,11 @@ typedef struct {
     int second_target;
 } PyImportReferenceCounts;
 
-static PyImportReferenceCounts pylsp_import_reference_counts(
-    const char *source, const char *local_name, const char *import_qn, const char *first_target_qn,
-    const char *second_target_qn) {
+static PyImportReferenceCounts pylsp_import_reference_counts(const char *source,
+                                                             const char *local_name,
+                                                             const char *import_qn,
+                                                             const char *first_target_qn,
+                                                             const char *second_target_qn) {
     PyImportReferenceCounts counts = {0};
     const char *call = strstr(source, "    accept(");
     if (!call)
@@ -861,11 +950,11 @@ static PyImportReferenceCounts pylsp_import_reference_counts(
     cbm_arena_init(&arena);
     CBMResolvedCallArray out = {0};
     cbm_batch_py_lsp_cross(&arena, &file, 1, &out);
-    counts.first_target = pylsp_exact_reference_count(
-        &out, "crossArgument", first_target_qn, local_name, site_start, site_end);
+    counts.first_target = pylsp_exact_reference_count(&out, "crossArgument", first_target_qn,
+                                                      local_name, site_start, site_end);
     if (second_target_qn) {
-        counts.second_target = pylsp_exact_reference_count(
-            &out, "crossArgument", second_target_qn, local_name, site_start, site_end);
+        counts.second_target = pylsp_exact_reference_count(&out, "crossArgument", second_target_qn,
+                                                           local_name, site_start, site_end);
     }
     cbm_arena_destroy(&arena);
     return counts;
@@ -1012,7 +1101,7 @@ TEST(pylsp_batch_cross_file_callable_value_preserves_exact_reference_site) {
     cbm_batch_py_lsp_cross(&arena, &file, 1, &out);
 
     int exact = pylsp_exact_reference_count(&out, "crossArgument", "target.handler", NULL,
-                                             site_start, site_end);
+                                            site_start, site_end);
     cbm_arena_destroy(&arena);
     ASSERT_EQ(exact, 1);
 
@@ -1042,9 +1131,8 @@ TEST(pylsp_batch_cross_file_callable_value_preserves_exact_reference_site) {
     cbm_arena_init(&arena);
     cbm_batch_py_lsp_cross(&arena, &file, 1, &out);
 
-    int alias_exact = pylsp_exact_reference_count(&out, "crossArgument",
-                                                   "project.target.handler", "callback",
-                                                   site_start, site_end);
+    int alias_exact = pylsp_exact_reference_count(&out, "crossArgument", "project.target.handler",
+                                                  "callback", site_start, site_end);
     cbm_arena_destroy(&arena);
     ASSERT_EQ(alias_exact, 1);
 
@@ -1278,10 +1366,9 @@ TEST(pylsp_scratch_cross_dunder_carrier_survives_copy) {
 
 TEST(pylsp_stdlib_os_getcwd) {
     /* Top-level module attribute resolution against the stdlib registry. */
-    CBMFileResult *r = extract_py(
-        "import os\n"
-        "def use():\n"
-        "    return os.getcwd()\n");
+    CBMFileResult *r = extract_py("import os\n"
+                                  "def use():\n"
+                                  "    return os.getcwd()\n");
     ASSERT_NOT_NULL(r);
     int idx = find_resolved(r, "use", "getcwd");
     ASSERT_GTE(idx, 0);
@@ -1290,10 +1377,9 @@ TEST(pylsp_stdlib_os_getcwd) {
 }
 
 TEST(pylsp_stdlib_collections_defaultdict) {
-    CBMFileResult *r = extract_py(
-        "from collections import defaultdict\n"
-        "def use():\n"
-        "    return defaultdict(list)\n");
+    CBMFileResult *r = extract_py("from collections import defaultdict\n"
+                                  "def use():\n"
+                                  "    return defaultdict(list)\n");
     ASSERT_NOT_NULL(r);
     /* defaultdict(list) is a constructor — emits lsp_constructor edge */
     int idx = find_resolved(r, "use", "defaultdict");
@@ -1303,10 +1389,9 @@ TEST(pylsp_stdlib_collections_defaultdict) {
 }
 
 TEST(pylsp_stdlib_pathlib_path_method) {
-    CBMFileResult *r = extract_py(
-        "from pathlib import Path\n"
-        "def use(p: Path):\n"
-        "    return p.exists()\n");
+    CBMFileResult *r = extract_py("from pathlib import Path\n"
+                                  "def use(p: Path):\n"
+                                  "    return p.exists()\n");
     ASSERT_NOT_NULL(r);
     int idx = find_resolved(r, "use", "exists");
     ASSERT_GTE(idx, 0);
@@ -1315,10 +1400,9 @@ TEST(pylsp_stdlib_pathlib_path_method) {
 }
 
 TEST(pylsp_stdlib_logging_getlogger) {
-    CBMFileResult *r = extract_py(
-        "import logging\n"
-        "def use():\n"
-        "    return logging.getLogger('app')\n");
+    CBMFileResult *r = extract_py("import logging\n"
+                                  "def use():\n"
+                                  "    return logging.getLogger('app')\n");
     ASSERT_NOT_NULL(r);
     int idx = find_resolved(r, "use", "getLogger");
     ASSERT_GTE(idx, 0);
@@ -1332,10 +1416,9 @@ TEST(pylsp_round1_dotted_import_walk) {
     /* `import os.path` — `os` and `os.path` should both be navigable
      * through attribute access so `os.path.join('a', 'b')` resolves to
      * the registered os.path.join function. */
-    CBMFileResult *r = extract_py(
-        "import os.path\n"
-        "def use():\n"
-        "    return os.path.join('a', 'b')\n");
+    CBMFileResult *r = extract_py("import os.path\n"
+                                  "def use():\n"
+                                  "    return os.path.join('a', 'b')\n");
     ASSERT_NOT_NULL(r);
     ASSERT_EQ(r->imports.count, 1);
     ASSERT_STR_EQ(r->imports.items[0].local_name, "os");
@@ -1366,14 +1449,13 @@ TEST(pylsp_round1_dotted_import_alias_matching_root) {
 TEST(pylsp_round1_typing_cast) {
     /* cast(Foo, x) returns NAMED("Foo"), enabling subsequent method
      * dispatch to resolve. */
-    CBMFileResult *r = extract_py(
-        "from typing import cast\n"
-        "class Foo:\n"
-        "    def m(self):\n"
-        "        return 1\n"
-        "def use(x):\n"
-        "    f = cast(Foo, x)\n"
-        "    return f.m()\n");
+    CBMFileResult *r = extract_py("from typing import cast\n"
+                                  "class Foo:\n"
+                                  "    def m(self):\n"
+                                  "        return 1\n"
+                                  "def use(x):\n"
+                                  "    f = cast(Foo, x)\n"
+                                  "    return f.m()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "m"), 0);
     cbm_free_result(r);
@@ -1383,14 +1465,13 @@ TEST(pylsp_round1_typing_cast) {
 TEST(pylsp_round1_assert_type_passthrough) {
     /* assert_type(x, T) is a no-op at runtime; the returned value's type
      * is unchanged. We type the result as type-of(x). */
-    CBMFileResult *r = extract_py(
-        "from typing import assert_type\n"
-        "class Foo:\n"
-        "    def m(self):\n"
-        "        return 1\n"
-        "def use(x: Foo):\n"
-        "    f = assert_type(x, Foo)\n"
-        "    return f.m()\n");
+    CBMFileResult *r = extract_py("from typing import assert_type\n"
+                                  "class Foo:\n"
+                                  "    def m(self):\n"
+                                  "        return 1\n"
+                                  "def use(x: Foo):\n"
+                                  "    f = assert_type(x, Foo)\n"
+                                  "    return f.m()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "m"), 0);
     cbm_free_result(r);
@@ -1399,12 +1480,11 @@ TEST(pylsp_round1_assert_type_passthrough) {
 
 TEST(pylsp_round1_forward_reference) {
     /* def f(x: "Foo") — quoted annotation must resolve as if unquoted. */
-    CBMFileResult *r = extract_py(
-        "class Foo:\n"
-        "    def m(self):\n"
-        "        return 1\n"
-        "def use(x: \"Foo\"):\n"
-        "    return x.m()\n");
+    CBMFileResult *r = extract_py("class Foo:\n"
+                                  "    def m(self):\n"
+                                  "        return 1\n"
+                                  "def use(x: \"Foo\"):\n"
+                                  "    return x.m()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "m"), 0);
     cbm_free_result(r);
@@ -1417,17 +1497,16 @@ TEST(pylsp_round1_self_return_chains) {
      *   def step2(self) -> Self: return self
      *   def build(self): return ...
      * Builder().step1().step2().build()  — must chain through Self. */
-    CBMFileResult *r = extract_py(
-        "from typing import Self\n"
-        "class Builder:\n"
-        "    def step1(self) -> Self:\n"
-        "        return self\n"
-        "    def step2(self) -> Self:\n"
-        "        return self\n"
-        "    def build(self):\n"
-        "        return 1\n"
-        "def use():\n"
-        "    return Builder().step1().step2().build()\n");
+    CBMFileResult *r = extract_py("from typing import Self\n"
+                                  "class Builder:\n"
+                                  "    def step1(self) -> Self:\n"
+                                  "        return self\n"
+                                  "    def step2(self) -> Self:\n"
+                                  "        return self\n"
+                                  "    def build(self):\n"
+                                  "        return 1\n"
+                                  "def use():\n"
+                                  "    return Builder().step1().step2().build()\n");
     ASSERT_NOT_NULL(r);
     /* Each chain link should resolve. We assert the final .build() does. */
     ASSERT_GTE(require_resolved(r, "use", "build"), 0);
@@ -1438,13 +1517,12 @@ TEST(pylsp_round1_self_return_chains) {
 TEST(pylsp_round1_generic_subscript_annotation) {
     /* `def f(items: list[Foo])` — the generic subscript should not
      * confuse annotation resolution; we drop the [Foo] part for v1. */
-    CBMFileResult *r = extract_py(
-        "from typing import Optional\n"
-        "class Foo:\n"
-        "    def m(self):\n"
-        "        return 1\n"
-        "def use(x: Optional[Foo]):\n"
-        "    return x.m()\n");
+    CBMFileResult *r = extract_py("from typing import Optional\n"
+                                  "class Foo:\n"
+                                  "    def m(self):\n"
+                                  "        return 1\n"
+                                  "def use(x: Optional[Foo]):\n"
+                                  "    return x.m()\n");
     ASSERT_NOT_NULL(r);
     /* x has type Optional which strips to Optional, then we look up
      * .m on it. This SHOULD NOT resolve in v1 since Optional is just
@@ -1464,13 +1542,12 @@ TEST(pylsp_round1_generic_subscript_annotation) {
 
 TEST(pylsp_round2_isinstance_narrow) {
     /* if isinstance(x, Foo): x.method() — x narrowed to Foo */
-    CBMFileResult *r = extract_py(
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "def use(x):\n"
-        "    if isinstance(x, Foo):\n"
-        "        return x.method()\n");
+    CBMFileResult *r = extract_py("class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "def use(x):\n"
+                                  "    if isinstance(x, Foo):\n"
+                                  "        return x.method()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "method"), 0);
     cbm_free_result(r);
@@ -1481,14 +1558,13 @@ TEST(pylsp_round2_is_not_none_narrow) {
     /* def f(x: Optional[Foo]):
      *   if x is not None:
      *     x.method() */
-    CBMFileResult *r = extract_py(
-        "from typing import Optional\n"
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "def use(x: Optional[Foo]):\n"
-        "    if x is not None:\n"
-        "        return x.method()\n");
+    CBMFileResult *r = extract_py("from typing import Optional\n"
+                                  "class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "def use(x: Optional[Foo]):\n"
+                                  "    if x is not None:\n"
+                                  "        return x.method()\n");
     ASSERT_NOT_NULL(r);
     /* Optional strips to Foo for v1 (we drop generic args). x: Optional[Foo]
      * binds x as NAMED("Optional"). After narrowing, ideally NAMED("Foo").
@@ -1505,15 +1581,14 @@ TEST(pylsp_round2_is_not_none_narrow) {
 
 TEST(pylsp_round2_isinstance_no_false_positive_in_else) {
     /* In the else branch, narrowing must NOT apply. */
-    CBMFileResult *r = extract_py(
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "def use(x):\n"
-        "    if isinstance(x, Foo):\n"
-        "        return 1\n"
-        "    else:\n"
-        "        return x.method()\n");
+    CBMFileResult *r = extract_py("class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "def use(x):\n"
+                                  "    if isinstance(x, Foo):\n"
+                                  "        return 1\n"
+                                  "    else:\n"
+                                  "        return x.method()\n");
     ASSERT_NOT_NULL(r);
     /* No high-confidence resolution should exist for x.method() in the
      * else branch, since x is UNKNOWN there. */
@@ -1531,17 +1606,16 @@ TEST(pylsp_round2_isinstance_no_false_positive_in_else) {
 TEST(pylsp_round2_narrow_after_call) {
     /* Without walrus: x = compute(); if x is not None: x.method().
      * Tests narrow on UNION return-type-of-call. */
-    CBMFileResult *r = extract_py(
-        "from typing import Optional\n"
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "def compute() -> Optional[Foo]:\n"
-        "    return None\n"
-        "def use():\n"
-        "    x = compute()\n"
-        "    if x is not None:\n"
-        "        return x.method()\n");
+    CBMFileResult *r = extract_py("from typing import Optional\n"
+                                  "class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "def compute() -> Optional[Foo]:\n"
+                                  "    return None\n"
+                                  "def use():\n"
+                                  "    x = compute()\n"
+                                  "    if x is not None:\n"
+                                  "        return x.method()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "method"), 0);
     cbm_free_result(r);
@@ -1550,16 +1624,15 @@ TEST(pylsp_round2_narrow_after_call) {
 
 TEST(pylsp_round2_walrus_binds) {
     /* if (x := compute()) is not None: x.method() */
-    CBMFileResult *r = extract_py(
-        "from typing import Optional\n"
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "def compute() -> Optional[Foo]:\n"
-        "    return None\n"
-        "def use():\n"
-        "    if (x := compute()) is not None:\n"
-        "        return x.method()\n");
+    CBMFileResult *r = extract_py("from typing import Optional\n"
+                                  "class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "def compute() -> Optional[Foo]:\n"
+                                  "    return None\n"
+                                  "def use():\n"
+                                  "    if (x := compute()) is not None:\n"
+                                  "        return x.method()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "method"), 0);
     cbm_free_result(r);
@@ -1568,12 +1641,11 @@ TEST(pylsp_round2_walrus_binds) {
 
 TEST(pylsp_round3_listcomp_element_method) {
     /* [x.method() for x in items] where items: list[Foo] */
-    CBMFileResult *r = extract_py(
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "def use(items: list[Foo]):\n"
-        "    return [x.method() for x in items]\n");
+    CBMFileResult *r = extract_py("class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "def use(items: list[Foo]):\n"
+                                  "    return [x.method() for x in items]\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "method"), 0);
     cbm_free_result(r);
@@ -1582,13 +1654,12 @@ TEST(pylsp_round3_listcomp_element_method) {
 
 TEST(pylsp_round3_for_loop_element_method) {
     /* for x in items: x.method() — items: list[Foo] */
-    CBMFileResult *r = extract_py(
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "def use(items: list[Foo]):\n"
-        "    for x in items:\n"
-        "        x.method()\n");
+    CBMFileResult *r = extract_py("class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "def use(items: list[Foo]):\n"
+                                  "    for x in items:\n"
+                                  "        x.method()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "method"), 0);
     cbm_free_result(r);
@@ -1598,14 +1669,13 @@ TEST(pylsp_round3_for_loop_element_method) {
 TEST(pylsp_round3_optional_narrow_with_union) {
     /* def f(x: Optional[Foo]):
      *   if x is not None: x.method() */
-    CBMFileResult *r = extract_py(
-        "from typing import Optional\n"
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "def use(x: Optional[Foo]):\n"
-        "    if x is not None:\n"
-        "        return x.method()\n");
+    CBMFileResult *r = extract_py("from typing import Optional\n"
+                                  "class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "def use(x: Optional[Foo]):\n"
+                                  "    if x is not None:\n"
+                                  "        return x.method()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "method"), 0);
     cbm_free_result(r);
@@ -1616,19 +1686,18 @@ TEST(pylsp_round3_optional_narrow_with_union) {
 
 TEST(pylsp_round3_match_case_class_pattern) {
     /* match x: case Foo(): subject narrows to Foo */
-    CBMFileResult *r = extract_py(
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "class Bar:\n"
-        "    def method(self):\n"
-        "        return 2\n"
-        "def use(x):\n"
-        "    match x:\n"
-        "        case Foo():\n"
-        "            return x.method()\n"
-        "        case _:\n"
-        "            return None\n");
+    CBMFileResult *r = extract_py("class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "class Bar:\n"
+                                  "    def method(self):\n"
+                                  "        return 2\n"
+                                  "def use(x):\n"
+                                  "    match x:\n"
+                                  "        case Foo():\n"
+                                  "            return x.method()\n"
+                                  "        case _:\n"
+                                  "            return None\n");
     ASSERT_NOT_NULL(r);
     int idx = find_resolved(r, "use", "method");
     ASSERT_GTE(idx, 0);
@@ -1644,15 +1713,14 @@ TEST(pylsp_round3_match_case_class_pattern) {
 TEST(pylsp_round3_async_await_pass_through) {
     /* await expr returns expr's type. async def f() -> int registers
      * with return int. await f() should resolve as int. */
-    CBMFileResult *r = extract_py(
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "async def make() -> Foo:\n"
-        "    return Foo()\n"
-        "async def use():\n"
-        "    f = await make()\n"
-        "    return f.method()\n");
+    CBMFileResult *r = extract_py("class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "async def make() -> Foo:\n"
+                                  "    return Foo()\n"
+                                  "async def use():\n"
+                                  "    f = await make()\n"
+                                  "    return f.method()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "method"), 0);
     cbm_free_result(r);
@@ -1667,29 +1735,27 @@ TEST(pylsp_round4_instance_attribute_init) {
      *     self.cfg = cfg     # field cfg : Config
      *   def use(self):
      *     return self.cfg.display()  # resolves through field type */
-    CBMFileResult *r = extract_py(
-        "class Config:\n"
-        "    def display(self):\n"
-        "        return 1\n"
-        "class App:\n"
-        "    def __init__(self, cfg: Config):\n"
-        "        self.cfg = cfg\n"
-        "    def use(self):\n"
-        "    self.cfg.display()\n");
+    CBMFileResult *r = extract_py("class Config:\n"
+                                  "    def display(self):\n"
+                                  "        return 1\n"
+                                  "class App:\n"
+                                  "    def __init__(self, cfg: Config):\n"
+                                  "        self.cfg = cfg\n"
+                                  "    def use(self):\n"
+                                  "    self.cfg.display()\n");
     /* Note: extra indentation simulates a body block; real test
      * mirrors realistic Python code. */
     ASSERT_NOT_NULL(r);
     /* The above source has bad indent — replace with proper test source. */
     cbm_free_result(r);
-    r = extract_py(
-        "class Config:\n"
-        "    def display(self):\n"
-        "        return 1\n"
-        "class App:\n"
-        "    def __init__(self, cfg: Config):\n"
-        "        self.cfg = cfg\n"
-        "    def use(self):\n"
-        "        return self.cfg.display()\n");
+    r = extract_py("class Config:\n"
+                   "    def display(self):\n"
+                   "        return 1\n"
+                   "class App:\n"
+                   "    def __init__(self, cfg: Config):\n"
+                   "        self.cfg = cfg\n"
+                   "    def use(self):\n"
+                   "        return self.cfg.display()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "display"), 0);
     cbm_free_result(r);
@@ -1700,14 +1766,13 @@ TEST(pylsp_round4_instance_attribute_class_annotation) {
     /* class C:
      *   x: Foo
      *   def use(self): return self.x.method() */
-    CBMFileResult *r = extract_py(
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "class C:\n"
-        "    x: Foo\n"
-        "    def use(self):\n"
-        "        return self.x.method()\n");
+    CBMFileResult *r = extract_py("class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "class C:\n"
+                                  "    x: Foo\n"
+                                  "    def use(self):\n"
+                                  "        return self.x.method()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "method"), 0);
     cbm_free_result(r);
@@ -1718,15 +1783,14 @@ TEST(pylsp_round4_instance_attribute_class_annotation) {
 
 TEST(pylsp_round5_dict_subscript_value_type) {
     /* self.cache: dict[str, Foo]; self.cache[k].method() resolves. */
-    CBMFileResult *r = extract_py(
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "class C:\n"
-        "    def __init__(self):\n"
-        "        self.cache: dict[str, Foo] = {}\n"
-        "    def use(self, k):\n"
-        "        return self.cache[k].method()\n");
+    CBMFileResult *r = extract_py("class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "class C:\n"
+                                  "    def __init__(self):\n"
+                                  "        self.cache: dict[str, Foo] = {}\n"
+                                  "    def use(self, k):\n"
+                                  "        return self.cache[k].method()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "method"), 0);
     cbm_free_result(r);
@@ -1734,12 +1798,11 @@ TEST(pylsp_round5_dict_subscript_value_type) {
 }
 
 TEST(pylsp_round5_list_subscript_value_type) {
-    CBMFileResult *r = extract_py(
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "def use(items: list[Foo]):\n"
-        "    return items[0].method()\n");
+    CBMFileResult *r = extract_py("class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "def use(items: list[Foo]):\n"
+                                  "    return items[0].method()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "method"), 0);
     cbm_free_result(r);
@@ -1747,14 +1810,13 @@ TEST(pylsp_round5_list_subscript_value_type) {
 }
 
 TEST(pylsp_round5_super_init) {
-    CBMFileResult *r = extract_py(
-        "class Base:\n"
-        "    def __init__(self, root):\n"
-        "        self.root = root\n"
-        "class Child(Base):\n"
-        "    def __init__(self, root, extra):\n"
-        "        super().__init__(root)\n"
-        "        self.extra = extra\n");
+    CBMFileResult *r = extract_py("class Base:\n"
+                                  "    def __init__(self, root):\n"
+                                  "        self.root = root\n"
+                                  "class Child(Base):\n"
+                                  "    def __init__(self, root, extra):\n"
+                                  "        super().__init__(root)\n"
+                                  "        self.extra = extra\n");
     ASSERT_NOT_NULL(r);
     int idx = find_resolved(r, "__init__", "__init__");
     ASSERT_GTE(idx, 0);
@@ -1986,16 +2048,15 @@ TEST(pylsp_ordinary_same_leaf_calls_join_by_exact_site) {
 TEST(pylsp_round6_generator_yields_iterable) {
     /* def gen() -> Generator[Foo, None, None]: yield Foo()
      * for x in gen(): x.method()  — x : Foo via element-of(generator) */
-    CBMFileResult *r = extract_py(
-        "from typing import Generator\n"
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "def gen() -> Generator[Foo, None, None]:\n"
-        "    yield Foo()\n"
-        "def use():\n"
-        "    for x in gen():\n"
-        "        x.method()\n");
+    CBMFileResult *r = extract_py("from typing import Generator\n"
+                                  "class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "def gen() -> Generator[Foo, None, None]:\n"
+                                  "    yield Foo()\n"
+                                  "def use():\n"
+                                  "    for x in gen():\n"
+                                  "        x.method()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "method"), 0);
     cbm_free_result(r);
@@ -2004,17 +2065,16 @@ TEST(pylsp_round6_generator_yields_iterable) {
 
 TEST(pylsp_round6_dataclass_field_access) {
     /* @dataclass class Point: x: Foo; def use(p: Point): p.x.method() */
-    CBMFileResult *r = extract_py(
-        "from dataclasses import dataclass\n"
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "@dataclass\n"
-        "class Point:\n"
-        "    x: Foo\n"
-        "    y: int\n"
-        "def use(p: Point):\n"
-        "    return p.x.method()\n");
+    CBMFileResult *r = extract_py("from dataclasses import dataclass\n"
+                                  "class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "@dataclass\n"
+                                  "class Point:\n"
+                                  "    x: Foo\n"
+                                  "    y: int\n"
+                                  "def use(p: Point):\n"
+                                  "    return p.x.method()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "method"), 0);
     cbm_free_result(r);
@@ -2025,16 +2085,15 @@ TEST(pylsp_round6_property_access_chains) {
     /* class C: @property def thing(self) -> Foo: ...
      * def use(c: C): c.thing.method()  -- thing is a property; access
      * returns its getter's return type. */
-    CBMFileResult *r = extract_py(
-        "class Foo:\n"
-        "    def method(self):\n"
-        "        return 1\n"
-        "class C:\n"
-        "    @property\n"
-        "    def thing(self) -> Foo:\n"
-        "        return Foo()\n"
-        "def use(c: C):\n"
-        "    return c.thing.method()\n");
+    CBMFileResult *r = extract_py("class Foo:\n"
+                                  "    def method(self):\n"
+                                  "        return 1\n"
+                                  "class C:\n"
+                                  "    @property\n"
+                                  "    def thing(self) -> Foo:\n"
+                                  "        return Foo()\n"
+                                  "def use(c: C):\n"
+                                  "    return c.thing.method()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "use", "method"), 0);
     cbm_free_result(r);
@@ -2054,24 +2113,24 @@ TEST(pylsp_issue710_deep_call_chain_resolves) {
      * finish and the suite times out, rather than passing silently.
      * We also require the FINAL link to actually resolve — the fix must
      * preserve resolution quality, not just terminate. */
-    CBMFileResult *r = extract_py(
-        "from typing import Self\n"
-        "class G:\n"
-        "    def add(self, x) -> Self:\n"
-        "        return self\n"
-        "    def compile(self):\n"
-        "        return 1\n"
-        "def build():\n"
-        "    return (\n"
-        "        G()\n"
-        "        .add(1).add(2).add(3).add(4).add(5).add(6).add(7).add(8)\n"
-        "        .add(9).add(10).add(11).add(12).add(13).add(14).add(15)\n"
-        "        .add(16).add(17).add(18).add(19).add(20).add(21).add(22)\n"
-        "        .add(23).add(24).add(25).add(26).add(27).add(28).add(29)\n"
-        "        .add(30).add(31).add(32).add(33).add(34).add(35).add(36)\n"
-        "        .add(37).add(38).add(39).add(40)\n"
-        "        .compile()\n"
-        "    )\n");
+    CBMFileResult *r =
+        extract_py("from typing import Self\n"
+                   "class G:\n"
+                   "    def add(self, x) -> Self:\n"
+                   "        return self\n"
+                   "    def compile(self):\n"
+                   "        return 1\n"
+                   "def build():\n"
+                   "    return (\n"
+                   "        G()\n"
+                   "        .add(1).add(2).add(3).add(4).add(5).add(6).add(7).add(8)\n"
+                   "        .add(9).add(10).add(11).add(12).add(13).add(14).add(15)\n"
+                   "        .add(16).add(17).add(18).add(19).add(20).add(21).add(22)\n"
+                   "        .add(23).add(24).add(25).add(26).add(27).add(28).add(29)\n"
+                   "        .add(30).add(31).add(32).add(33).add(34).add(35).add(36)\n"
+                   "        .add(37).add(38).add(39).add(40)\n"
+                   "        .compile()\n"
+                   "    )\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "build", "G.add"), 0);
     ASSERT_GTE(require_resolved(r, "build", "G.compile"), 0);
@@ -2089,19 +2148,18 @@ TEST(pylsp_issue710_heterogeneous_receiver_chain) {
      * resolves wrongly or not at all. Each link here returns a DIFFERENT
      * class so any such aliasing changes an assertable QN. Keying by node
      * identity (TSNode.id) keeps every link distinct. */
-    CBMFileResult *r = extract_py(
-        "class Result:\n"
-        "    def fetch(self):\n"
-        "        return 1\n"
-        "class Session:\n"
-        "    def execute(self) -> \"Result\":\n"
-        "        return Result()\n"
-        "class Client:\n"
-        "    def session(self) -> \"Session\":\n"
-        "        return Session()\n"
-        "def run():\n"
-        "    c = Client()\n"
-        "    return c.session().execute().fetch()\n");
+    CBMFileResult *r = extract_py("class Result:\n"
+                                  "    def fetch(self):\n"
+                                  "        return 1\n"
+                                  "class Session:\n"
+                                  "    def execute(self) -> \"Result\":\n"
+                                  "        return Result()\n"
+                                  "class Client:\n"
+                                  "    def session(self) -> \"Session\":\n"
+                                  "        return Session()\n"
+                                  "def run():\n"
+                                  "    c = Client()\n"
+                                  "    return c.session().execute().fetch()\n");
     ASSERT_NOT_NULL(r);
     ASSERT_GTE(require_resolved(r, "run", "Client.session"), 0);
     ASSERT_GTE(require_resolved(r, "run", "Session.execute"), 0);
@@ -2193,6 +2251,8 @@ SUITE(py_lsp) {
     RUN_TEST(pylsp_pep695_generic_class);
     /* Phase 9 — cross-file + batch */
     RUN_TEST(pylsp_crossfile_method_dispatch);
+    RUN_TEST(pylsp_crossfile_receiver_through_typed_field);
+    RUN_TEST(pylsp_crossfile_typed_field_shared_registry);
     RUN_TEST(pylsp_fused_self_attr_chain_via_overlay);
     RUN_TEST(pylsp_crossfile_classmethod_on_class_issue228);
     RUN_TEST(pylsp_crossfile_inheritance);

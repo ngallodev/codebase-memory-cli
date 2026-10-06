@@ -61,7 +61,7 @@ src/operations/execute.c	2
 src/operations/file_outline.c	1
 src/operations/index.c	56
 src/operations/index_supervisor.c	8
-src/operations/project_arg.c	3
+src/operations/project_arg.c	2
 src/operations/query.c	4
 src/operations/read.c	6
 src/operations/reliability_events.c	4

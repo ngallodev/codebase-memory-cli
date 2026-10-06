@@ -1,5 +1,8 @@
 #include "operations/json_args.h"
+#include "foundation/mem_core.h"
 #include "yyjson/yyjson.h"
+#include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 
 void cbm_operation_arg_free(char *value) {
@@ -28,7 +31,16 @@ int cbm_json_int_arg(const char *args_json, const char *key, int fallback) {
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, key) : NULL;
-    int out = yyjson_is_int(value) ? (int)yyjson_get_sint(value) : fallback;
+    int out = fallback;
+    if (yyjson_is_sint(value)) {
+        int64_t parsed = yyjson_get_sint(value);
+        if (parsed >= INT_MIN && parsed <= INT_MAX)
+            out = (int)parsed;
+    } else if (yyjson_is_uint(value)) {
+        uint64_t parsed = yyjson_get_uint(value);
+        if (parsed <= (uint64_t)INT_MAX)
+            out = (int)parsed;
+    }
     if (doc)
         yyjson_doc_free(doc);
     return out;

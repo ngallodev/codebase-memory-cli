@@ -2,6 +2,7 @@
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
@@ -115,4 +116,54 @@ test('PowerShell install mutation runs through the downloaded binary', () => {
   // the existing binary by renaming it aside first. This script IS the Windows
   // update path, so losing that step would silently break every update.
   assert.match(installer, /Move-Item[\s\S]{0,80}\$Dest[\s\S]{0,40}\$retired/);
+});
+
+
+test('PowerShell installer restores an absent target and preserves a published candidate', (t) => {
+  const command = process.platform === 'win32' ? 'powershell.exe' : 'pwsh';
+  const probe = spawnSync(command, ['-NoProfile', '-Command', '$PSVersionTable.PSVersion.ToString()']);
+  if (probe.error && probe.error.code === 'ENOENT') {
+    t.skip('PowerShell is not installed');
+    return;
+  }
+  const installerPath = path.join(__dirname, '..', '..', '..', 'install.ps1');
+  const script = `
+    $ErrorActionPreference = 'Stop'
+    $tokens = $null; $errors = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile($env:CBM_INSTALLER_TEST_PATH, [ref]$tokens, [ref]$errors)
+    if ($errors.Count) { throw 'installer parse failed' }
+    $guard = @($ast.FindAll({ param($node)
+      $node -is [System.Management.Automation.Language.TryStatementAst] -and
+      $node.Finally -and $node.Finally.Extent.Text.Contains('-not $ActivationSucceeded')
+    }, $true))
+    if ($guard.Count -ne 1) { throw 'activation rollback guard missing' }
+    $rollback = [ScriptBlock]::Create(($guard[0].Finally.Statements | ForEach-Object { $_.Extent.Text }) -join [Environment]::NewLine)
+    $root = Join-Path ([IO.Path]::GetTempPath()) ('cbm-rollback-' + [Guid]::NewGuid().ToString('N'))
+    [IO.Directory]::CreateDirectory($root) | Out-Null
+    try {
+      $Dest = Join-Path $root 'codebase-memory-cli.exe'
+      $retired = $Dest + '.retired-test'
+      foreach ($candidatePresent in @($false, $true)) {
+        [IO.File]::WriteAllText($retired, 'previous image')
+        if ($candidatePresent) { [IO.File]::WriteAllText($Dest, 'failed candidate') }
+        $ActivationSucceeded = $false
+        . $rollback
+        if ($candidatePresent) {
+          if ([IO.File]::ReadAllText($Dest) -ne 'failed candidate' -or [IO.File]::ReadAllText($retired) -ne 'previous image') { throw 'partial activation image overwritten' }
+          Remove-Item -LiteralPath $retired
+        } elseif ([IO.File]::ReadAllText($Dest) -ne 'previous image' -or (Test-Path $retired)) { throw 'previous image not restored' }
+        Remove-Item -LiteralPath $Dest
+      }
+      [IO.File]::WriteAllText($retired, 'previous image')
+      [IO.File]::WriteAllText($Dest, 'accepted candidate')
+      $ActivationSucceeded = $true
+      . $rollback
+      if ([IO.File]::ReadAllText($Dest) -ne 'accepted candidate' -or -not (Test-Path $retired)) { throw 'successful activation rolled back' }
+    } finally { Remove-Item -LiteralPath $root -Recurse -Force }
+  `;
+  const result = spawnSync(command, ['-NoProfile', '-Command', script], {
+    env: { ...process.env, CBM_INSTALLER_TEST_PATH: installerPath },
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
 });

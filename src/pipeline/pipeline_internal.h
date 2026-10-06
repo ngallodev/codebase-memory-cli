@@ -47,6 +47,22 @@
  * out_sz >= strlen(in) + 1 always suffices. Returns out. */
 const char *cbm_route_canon_path(const char *in, char *out, size_t out_sz);
 
+/* ── Definition properties JSON (shared by pass_definitions.c and the
+ * parallel extraction pass) ──────────────────────────────────── */
+
+/* Serialize one definition's properties JSON, dropping oversized fields whole.
+ * Implemented in pass_definitions.c. */
+void cbm_def_props_build(char *buf, size_t bufsize, const CBMDefinition *def);
+
+/* A def's properties buffer: CBM_SZ_2K plus the whole serialized docstring
+ * field. Returns `stack` for a def without a docstring; the caller frees a
+ * returned larger buffer with cbm_free(CBM_MEM_CLASS_GBUF_STRING, ...). */
+char *cbm_def_props_buf(const CBMDefinition *def, char *stack, size_t *size);
+
+/* Add a file's own doc (Go package comment, Rust inner docs) to its File node
+ * as "docstring". */
+void cbm_def_file_doc(const cbm_gbuf_node_t *file_node, const char *doc);
+
 /* True when a graph node is a structural directory container (Folder/Project)
  * rather than a code node. In a directory-based-module language (Java/Go, see
  * cbm_lang_module_is_dir) a file's module QN equals its directory QN, so an

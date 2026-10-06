@@ -157,7 +157,9 @@ static bool compare_parse_bounded_integer(yyjson_val *root, const char *key, int
             *error_message = "limit values must be integers";
             return false;
         }
-        parsed = yyjson_get_int(value);
+        parsed = yyjson_is_uint(value) && yyjson_get_uint(value) > (uint64_t)maximum
+                     ? maximum + 1
+                     : yyjson_get_sint(value);
     }
     if (parsed < 1 || parsed > maximum) {
         *error_message = strcmp(key, "limit") == 0 ? "limit must be between 1 and 1000"

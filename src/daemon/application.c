@@ -1514,7 +1514,8 @@ static char *application_wire_add_notice(char *wire, const char *notice) {
     return rebuilt;
 }
 
-static char *application_job_failure_response(const cbm_index_worker_result_t *result,
+static char *application_job_failure_response(const char *args_json,
+                                              const cbm_index_worker_result_t *result,
                                               const char *log_path) {
     char message[1024];
     if (result && result->cancellation_requested) {
@@ -1526,6 +1527,44 @@ static char *application_job_failure_response(const cbm_index_worker_result_t *r
         (void)snprintf(message, sizeof(message),
                        "index worker containment failed (%s); inspect log: %s",
                        cbm_proc_outcome_str(result->outcome), log_path ? log_path : "unavailable");
+    } else if (result && result->response_missing) {
+        /* #1300: identify a silent worker separately from a supervisor read error. */
+        const char *log = log_path                ? log_path
+                          : result->worker_log[0] ? result->worker_log
+                                                  : "unavailable";
+        const char *reason = result->response_unreadable
+                                 ? "supervisor could not read the worker response"
+                                 : "worker exited cleanly (exit 0) without writing a response";
+        (void)snprintf(message, sizeof(message),
+                       "%s; the index was not published; last phase reached: %s; inspect log: %s",
+                       reason, result->last_phase[0] ? result->last_phase : "unknown", log);
+        yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+        yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
+        if (root) {
+            yyjson_mut_doc_set_root(doc, root);
+            yyjson_mut_obj_add_str(doc, root, "status", "error");
+            yyjson_mut_obj_add_str(doc, root, "outcome", "clean");
+            yyjson_mut_obj_add_str(doc, root, "reason", "no_response");
+            yyjson_mut_obj_add_strcpy(doc, root, "last_phase",
+                                      result->last_phase[0] ? result->last_phase : "unknown");
+            yyjson_mut_obj_add_strcpy(doc, root, "worker_log", log);
+            yyjson_mut_obj_add_strcpy(doc, root, "hint", message);
+            yyjson_doc *args = args_json ? yyjson_read(args_json, strlen(args_json), 0) : NULL;
+            const char *repo =
+                yyjson_get_str(yyjson_obj_get(yyjson_doc_get_root(args), "repo_path"));
+            if (repo)
+                yyjson_mut_obj_add_strcpy(doc, root, "repo_path", repo);
+            yyjson_doc_free(args);
+            cbm_operation_result_t error =
+                cbm_operation_result_take(cbm_operation_json_write(doc), true);
+            char *wire = cbm_operation_result_wire_encode(&error);
+            cbm_operation_result_dispose(&error);
+            yyjson_mut_doc_free(doc);
+            if (wire)
+                return wire;
+        } else if (doc) {
+            yyjson_mut_doc_free(doc);
+        }
     } else if (result) {
         (void)snprintf(message, sizeof(message),
                        "index worker ended with %s (exit=%d, signal=%d); inspect log: %s",
@@ -1817,7 +1856,7 @@ static void application_job_publish(cbm_daemon_application_job_t *job,
                                     application_job_execution_t *execution) {
     if (!execution->response) {
         execution->response = application_job_failure_response(
-            execution->have_last_result ? &execution->last_result : NULL,
+            job->args_json, execution->have_last_result ? &execution->last_result : NULL,
             execution->last_log[0] ? execution->last_log : NULL);
     }
     cbm_daemon_application_t *application = job->application;
