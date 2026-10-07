@@ -268,3 +268,7 @@ cache-root cohort handoff; complexity determinism; Razor; embedded sibling hosts
 10/10 source confirmed, selected remainder0. Canonical308 owns evidence/limits;
 no subtraction from678 ancestry or separate35 ops/runtime pending reviews.
 Native Windows qualification and fresh Jenkins51 result remain separate.
+
+## External Luna worker CLI cache resolution — 2026-10-05
+
+- [ ] Investigate `codebase-memory-cli: secure CLI coordination could not be created (cache-resolve)` in prepared external Herdr workers. Observed on `cbm status --project ttm-jenkins-repair-20261005 --json` / exact-project status/projects probes in Tax Machine runs `ttm-jenkins-repair-20261005` and `ttm-jenkins-verify-20261005`; installed parent CLI reports `dev`. Both exact worktrees under `/home/nate/.local/share/agent-workflow/worktrees/the-tax-machine/jenkins-{repair,verify}-20261005` were fully indexed with persistence false, ready at 2026-10-05T14:27:42/43Z, source `efa9b0a1971ec6d9a33457401ddeb337c1eeea3b`, and unchanged empty Git porcelain. Parent status/projects succeed; worker calls fail before graph query despite launch args approval never / danger-full-access. Expected workers to access those ready graphs. Runtime/environment cause remains unproven. Workers preserve unchanged porcelain and use exact source/config fallback; issue remains open. Durable evidence: `/home/nate/.local/state/agent-workflow/runs/ttm-jenkins-verify-20261005/output.log` and both runs' `evidence/launch-preflight/`. Do not reset the shared daemon or widen allow-roots as a workaround.
