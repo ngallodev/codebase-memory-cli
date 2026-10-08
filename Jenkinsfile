@@ -260,13 +260,19 @@ arena hash_table dyn_array str_intern log str_util index_policy workspace platfo
     }
     post {
         always {
-            sh '''
-                set -eu
-                if [ -s .jenkins-installed-cli ]; then
-                    installed_cli=$(cat .jenkins-installed-cli)
-                    "$installed_cli" daemon start >/dev/null 2>&1
-                fi
-            '''
+            script {
+                try {
+                    sh '''
+                        set -eu
+                        if [ -s .jenkins-installed-cli ]; then
+                            installed_cli=$(cat .jenkins-installed-cli)
+                            "$installed_cli" daemon start >/dev/null 2>&1
+                        fi
+                    '''
+                } finally {
+                    cleanWs(deleteDirs: true, notFailBuild: true)
+                }
+            }
         }
     }
 }
