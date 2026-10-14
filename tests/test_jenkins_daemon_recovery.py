@@ -9,7 +9,9 @@ import tempfile
 
 pipeline = (Path(__file__).resolve().parents[1] / "Jenkinsfile").read_text()
 stop = re.search(r"stage\('Stop active CBM daemon'\).*?sh '''(.*?)'''", pipeline, re.S).group(1)
-restore = re.search(r"post\s*\{\s*always\s*\{\s*sh '''(.*?)'''", pipeline, re.S).group(1)
+# The always block may wrap the restore step (script/try for cleanWs), so allow
+# any content before the first sh step inside it.
+restore = re.search(r"post\s*\{\s*always\s*\{.*?sh '''(.*?)'''", pipeline, re.S).group(1)
 
 with tempfile.TemporaryDirectory() as directory:
     root = Path(directory)
