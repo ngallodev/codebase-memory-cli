@@ -3,7 +3,6 @@
 
 #include "operations/operation.h"
 
-cbm_operation_result_t cbm_coverage_operation_execute(const char *args_json,
-                                                      const cbm_operation_runtime_t *runtime);
+cbm_operation_result_t cbm_coverage_operation_execute(const char *args_json);
 
 #endif

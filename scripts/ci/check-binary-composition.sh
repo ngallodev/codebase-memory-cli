@@ -93,7 +93,7 @@ SQLITE_LOADEXT_NEEDLES=(
 #   'HTTP/1.1 %d %s'                  httpd.c response-status writer
 #   'Request Header Fields Too Large'  httpd.c status-text table
 #   '/api/ui-config', '/api/processes' http_server.c route dispatch
-#   'ps -eo …' / '[c]odebase-memory-mcp'  the popen() process enumerator's
+#   'ps -eo …' / '[c]odebase-memory-cli'  the popen() process enumerator's
 #                                     shell pipeline, both halves
 # Verified unique to src/ui/ across src/, vendored/ and internal/ — the only
 # other occurrences in the repo are tests/test_httpd.c and scripts/, neither of
@@ -104,13 +104,13 @@ UI_HTTP_NEEDLES=(
     '/api/ui-config'
     '/api/processes'
     'ps -eo pid,pcpu,rss,etime,comm'
-    '[c]odebase-memory-mcp'
+    '[c]odebase-memory-cli'
 )
 
 # Canary: proves the needle scan can actually see this file's strings. Without
 # it, handing the gate a gzip, a stub or a 0-byte file would pass every
-# absence assertion. many occurrences in a real artifact, 0 in anything else.
-CANARY_NEEDLE='codebase-memory-cli'
+# absence assertion. 168+ occurrences in a real artifact, 0 in anything else.
+CANARY_NEEDLE='codebase-memory-mcp'
 
 # ── Args ────────────────────────────────────────────────────────────
 TARGETS=()
@@ -302,7 +302,7 @@ skipped_files=0
 check_file() {
     file="$1"
     # Two path components: the binary is literally named
-    # "codebase-memory-cli", so the parent directory disambiguates the log.
+    # "codebase-memory-mcp", so the parent directory disambiguates the log.
     token=$(printf '%s' "$file" | awk -F/ '{ if (NF > 1) print $(NF - 1) "/" $NF; else print $NF }')
     fmt=$(detect_format "$file")
     if [ "$fmt" = other ]; then
