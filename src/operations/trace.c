@@ -6,6 +6,7 @@
 #include "operations/store_host.h"
 
 #include "foundation/limits.h"
+#include "cbm.h"
 #include "store/store.h"
 #include "yyjson/yyjson.h"
 
@@ -140,6 +141,17 @@ static long resolution_score(const cbm_node_t *node) {
         } else if (strcmp(node->label, "Module") != 0 && strcmp(node->label, "File") != 0) {
             rank = TRACE_RES_OTHER;
         }
+    }
+    /* Tie rule (CBM_MACRO_QN_SUFFIX): a name that is both a definition and a C
+     * macro -- a typedef or enumerator next to its rename macro -- resolves to
+     * the definition. The macro scores just under every other definition, and
+     * still above Module/File; without this a one-line typedef and its macro
+     * tie on span and the name reads as ambiguous. */
+    size_t qn_len = node->qualified_name ? strlen(node->qualified_name) : 0;
+    size_t fence_len = sizeof(CBM_MACRO_QN_SUFFIX) - 1U;
+    if (rank == TRACE_RES_OTHER && qn_len > fence_len &&
+        strcmp(node->qualified_name + qn_len - fence_len, CBM_MACRO_QN_SUFFIX) == 0) {
+        return TRACE_RES_OTHER * (long)TRACE_RES_WEIGHT - 1;
     }
     long span = (long)node->end_line - (long)node->start_line;
     if (span < 0)

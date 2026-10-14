@@ -18,6 +18,7 @@
 #include "operations/file_outline.h"
 #include "operations/compare.h"
 #include "operations/store_host.h"
+#include "pipeline/pass_cross_repo.h"
 
 #include "foundation/platform.h"
 #include "foundation/compat_fs.h"
@@ -637,6 +638,7 @@ static cbm_operation_result_t execute_status(const char *args_json) {
     }
     add_status_coverage(doc, root, store, project, have_info ? info.indexed_at : NULL,
                         coverage_samples);
+    (void)cbm_cross_repo_add_status_json(doc, root, store, project);
     if (have_info)
         cbm_project_free_fields(&info);
     if (nodes == 0) {
