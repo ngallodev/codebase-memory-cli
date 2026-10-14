@@ -11,7 +11,6 @@
 #include "operations/snippet.h"
 #include "operations/search.h"
 #include "operations/trace.h"
-#include "operations/trace_ingest.h"
 #include "operations/schema.h"
 #include "operations/query.h"
 #include "operations/architecture.h"
@@ -670,7 +669,7 @@ bool cbm_read_operation_supported(cbm_operation_id_t operation) {
            operation == CBM_OPERATION_SCHEMA || operation == CBM_OPERATION_QUERY ||
            operation == CBM_OPERATION_ARCHITECTURE || operation == CBM_OPERATION_CHANGES ||
            operation == CBM_OPERATION_SOURCE_SEARCH || operation == CBM_OPERATION_FILE_OUTLINE ||
-           operation == CBM_OPERATION_COMPARE || operation == CBM_OPERATION_INGEST_TRACES;
+           operation == CBM_OPERATION_COMPARE;
 }
 
 static cbm_operation_result_t read_operation_execute(cbm_operation_id_t operation,
@@ -714,9 +713,6 @@ static cbm_operation_result_t read_operation_execute(cbm_operation_id_t operatio
     }
     if (operation == CBM_OPERATION_COMPARE) {
         return cbm_compare_operation_execute(args_json, runtime);
-    }
-    if (operation == CBM_OPERATION_INGEST_TRACES) {
-        return cbm_trace_ingest_operation_execute(args_json);
     }
     return cbm_operation_result_copy("native read operation not implemented", true);
 }

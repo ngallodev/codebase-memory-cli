@@ -60,7 +60,7 @@ It includes:
 - definitions, calls, imports, usages, routes, channels, and cross-service links;
 - architecture summaries, change-impact analysis, dead-code queries, ADRs, and Cypher queries;
 - BM25, semantic, structural, and graph-augmented source search;
-- cross-repository graph intelligence and optional 3D graph visualization;
+- cross-repository graph intelligence and the CBM Atlas web UI: an explorer and read-only reader, a semantic twin that follows the caret, flow, bug-hunt and change-scope reading modes, the 3D galaxy and project management, served by the binary on loopback (`localhost:9749`) through native `/api/*` endpoints and `POST /api/tool`;
 - a persistent local index with incremental updates and optional shared graph artifacts;
 - a coordination daemon, supervised workers, and filesystem watcher for reliable background indexing.
 

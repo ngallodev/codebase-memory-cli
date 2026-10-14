@@ -2,6 +2,7 @@
 #include "operations/json_args.h"
 #include "operations/architecture.h"
 #include "operations/store_host.h"
+#include "operations/architecture_jobs.h"
 
 #include "foundation/constants.h"
 #include "operations/compact_out.h"
@@ -55,10 +56,10 @@ static cbm_operation_result_t architecture_error(const char *message) {
  * of truth for the server-side validation (authoritative); the JSON-Schema
  * enum in the TOOLS entry above is the advisory client-side mirror — update
  * both together when the aspect set changes. */
-static const char *VALID_ASPECTS[] = {"all",      "overview",   "structure", "dependencies",
-                                      "routes",   "languages",  "packages",  "entry_points",
-                                      "hotspots", "boundaries", "layers",    "file_tree",
-                                      "clusters", "cycles",     NULL};
+static const char *VALID_ASPECTS[] = {"all",      "overview",   "structure",        "dependencies",
+                                      "routes",   "languages",  "packages",         "entry_points",
+                                      "hotspots", "boundaries", "layers",           "file_tree",
+                                      "clusters", "cycles",     "system_structure", NULL};
 
 /* ── SCC / cycle condensation (get_architecture "cycles") ─────────
  * Iterative Tarjan over the CALLS call graph. Recursion would overflow on a
@@ -547,9 +548,20 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
     /* Parse aspects array from args */
     yyjson_doc *aspects_doc = NULL;
     yyjson_val *aspects_arr = NULL;
+    bool include_behavior_evidence = false;
     {
         yyjson_doc *args_doc = yyjson_read(args, strlen(args), 0);
         if (args_doc) {
+            yyjson_val *evidence =
+                yyjson_obj_get(yyjson_doc_get_root(args_doc), "include_behavior_evidence");
+            if (evidence && !yyjson_is_bool(evidence)) {
+                yyjson_doc_free(args_doc);
+                cbm_store_close(store);
+                cbm_operation_arg_free(project);
+                cbm_operation_arg_free(scope_path);
+                return architecture_error("include_behavior_evidence must be a boolean.");
+            }
+            include_behavior_evidence = yyjson_get_bool(evidence);
             yyjson_val *aval = yyjson_obj_get(yyjson_doc_get_root(args_doc), "aspects");
             if (yyjson_is_arr(aval)) {
                 aspects_doc = args_doc; /* keep alive */
@@ -558,6 +570,17 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
                 yyjson_doc_free(args_doc);
             }
         }
+    }
+
+    if (include_behavior_evidence && !aspect_explicitly_named(aspects_arr, "system_structure")) {
+        if (aspects_doc) {
+            yyjson_doc_free(aspects_doc);
+        }
+        cbm_store_close(store);
+        cbm_operation_arg_free(project);
+        cbm_operation_arg_free(scope_path);
+        return architecture_error(
+            "include_behavior_evidence=true requires aspects:[\"system_structure\"].");
     }
 
     /* Build a C string array from aspects for cbm_store_get_architecture.
@@ -603,6 +626,42 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
             }
             return err;
         }
+    }
+
+    if (aspect_explicitly_named(aspects_arr, "system_structure")) {
+        yyjson_val *aroot = yyjson_doc_get_root(aspects_doc);
+        yyjson_val *entry = yyjson_obj_get(aroot, "entry_node_id");
+        yyjson_val *target = yyjson_obj_get(aroot, "target_node_id");
+        yyjson_val *generation = yyjson_obj_get(aroot, "expected_generation");
+        bool valid_entry = !entry || (yyjson_is_int(entry) && yyjson_get_sint(entry) > 0);
+        bool valid_target =
+            !target || (entry && yyjson_is_int(target) && yyjson_get_sint(target) > 0);
+        bool valid_generation =
+            !generation || (yyjson_is_str(generation) && yyjson_get_len(generation) > 0 &&
+                            yyjson_get_len(generation) < 512);
+        cbm_operation_result_t reply;
+        if (yyjson_arr_size(aspects_arr) != 1 || (scope_path && scope_path[0]) || !valid_entry ||
+            !valid_target || !valid_generation) {
+            reply = architecture_error(
+                "Request system_structure alone, without path; entry_node_id must be a positive "
+                "integer when supplied. target_node_id requires entry_node_id; expected_generation "
+                "must be a nonempty generation token.");
+        } else {
+            /* Pending jobs outlive this call; the daemon-lifetime job holder is
+             * polled by repeating the request. */
+            char *json = cbm_architecture_jobs_request_query(
+                cbm_architecture_jobs_shared(), store, project, entry ? yyjson_get_sint(entry) : 0,
+                target ? yyjson_get_sint(target) : 0,
+                generation ? yyjson_get_str(generation) : NULL, include_behavior_evidence);
+            reply = json ? cbm_operation_result_copy(json, false)
+                         : architecture_error("Architecture request allocation failed.");
+            cbm_free(CBM_MEM_CLASS_OTHER, json);
+        }
+        yyjson_doc_free(aspects_doc);
+        cbm_store_close(store);
+        cbm_operation_arg_free(project);
+        cbm_operation_arg_free(scope_path);
+        return reply;
     }
 
     /* Default (no aspects) = compact summary. The old default rendered ALL

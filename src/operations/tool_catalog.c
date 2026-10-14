@@ -269,7 +269,10 @@ static const tool_def_t TOOLS[] = {
      "surfacing the de-facto modules (label, member count, cohesion score, representative "
      "top_nodes, binding packages/edge_types) — the real architectural seams, which often cut "
      "across the folder layout. Optional path scopes analysis to nodes under that directory "
-     "prefix (file_path).",
+     "prefix (file_path). 'system_structure' (opt-in, alone, no path) returns bounded static "
+     "architecture from a background job: poll by repeating the request while status is "
+     "pending. include_behavior_evidence=true adds indexed call arguments, parameter "
+     "declarations and return types; not full dataflow or runtime traces.",
      /* The aspects enum mirrors VALID_ASPECTS (see aspect_is_valid) — update both together. */
      "{\"type\":\"object\",\"properties\":{\"project\":{\"type\":\"string\"},\"path\":{\"type\":"
      "\"string\",\"description\":\"Optional directory prefix to scope architecture (e.g. "
@@ -277,10 +280,19 @@ static const tool_def_t TOOLS[] = {
      "\"aspects\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"enum\":[\"all\","
      "\"overview\",\"structure\",\"dependencies\",\"routes\",\"languages\",\"packages\","
      "\"entry_points\",\"hotspots\",\"boundaries\",\"layers\",\"file_tree\",\"clusters\","
-     "\"cycles\"]},"
+     "\"cycles\",\"system_structure\"]},"
      "\"description\":\"Aspects to include. 'all' = everything; 'overview' = compact summary "
      "(all except file_tree); omit = all. 'cycles' is opt-in ONLY (never via all/overview): it "
-     "scans the whole call graph for circular CALLS dependencies (SCCs of size > 1).\"}},"
+     "scans the whole call graph for circular CALLS dependencies (SCCs of size > 1). "
+     "'system_structure' is opt-in ONLY and must be requested alone, without path.\"},"
+     "\"entry_node_id\":{\"type\":\"integer\",\"minimum\":1,"
+     "\"description\":\"Start symbol (system_structure).\"},"
+     "\"target_node_id\":{\"type\":\"integer\",\"minimum\":1,"
+     "\"description\":\"Requires entry_node_id.\"},"
+     "\"expected_generation\":{\"type\":\"string\",\"minLength\":1,"
+     "\"description\":\"Required generation.\"},"
+     "\"include_behavior_evidence\":{\"type\":\"boolean\",\"default\":false,"
+     "\"description\":\"system_structure only.\"}},"
      "\"required\":[\"project\"]}"},
 
     {"search_code", "Search code",
@@ -483,10 +495,20 @@ static const tool_def_t TOOLS[] = {
      "\"additionalProperties\":{\"type\":\"string\"}}},\"additionalProperties\":false,"
      "\"required\":[\"project\"]}"},
 
-    {"ingest_traces", "Ingest traces", "Ingest runtime traces to enhance the knowledge graph",
+    {"ingest_traces", "Ingest traces",
+     "Record observed runtime calls so the graph can distinguish observed from merely possible "
+     "paths. Each trace is a call path (qualified names, adjacent = caller\xe2\x86\x92"
+     "callee) or a bare caller/callee pair. Stored per run label, keyed by qualified name "
+     "(reindex-proof). Only pairs whose both endpoints are indexed symbols are stored; the "
+     "response reports unresolved names (up to 10) so the producer can fix its naming.",
      "{\"type\":\"object\",\"properties\":{\"traces\":{\"type\":\"array\",\"items\":{\"type\":"
-     "\"object\",\"properties\":{\"caller\":{\"type\":\"string\"},\"callee\":{\"type\":\"string\"},"
-     "\"count\":{\"type\":\"integer\"}},\"additionalProperties\":false}},\"project\":{\"type\":"
+     "\"object\",\"properties\":{\"path\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},"
+     "\"description\":\"Call path of qualified names, caller before callee; 2..256 entries\"},"
+     "\"caller\":{\"type\":\"string\"},\"callee\":{\"type\":\"string\"},"
+     "\"count\":{\"type\":\"integer\",\"description\":\"How often this trace was observed "
+     "(default 1)\"}},\"additionalProperties\":false}},\"label\":{\"type\":\"string\","
+     "\"description\":\"Run identity, e.g. 'pytest 2026-08-27' (default 'unlabeled'); counts "
+     "accumulate per label and whole runs age out together\"},\"project\":{\"type\":"
      "\"string\"}},\"required\":[\"traces\",\"project\"]}"},
 };
 

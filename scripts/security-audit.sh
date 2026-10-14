@@ -37,21 +37,19 @@ while IFS= read -r file; do
     relfile="${file#"$ROOT/"}"
 
     for func in $FUNC_LIST; do
-        # Build precise grep pattern to avoid substring matches:
-        # 'popen(' must NOT match 'cbm_popen(' — use [^a-z] negative class
+        # Match complete C identifiers, including calls at column one and
+        # whitespace before '('. Git wrappers use the existing cbm_popen key;
+        # neither wrapper family may be mistaken for raw popen.
         case "$func" in
-            cbm_popen) pattern="cbm_popen(" ;;
-            popen)     pattern="[^a-z]popen(" ;;
-            system)    pattern="[^a-z_]system(" ;;
-            fork)      pattern="[^a-z_]fork(" ;;
-            *)         pattern="[^a-z_]${func}(" ;;
+            cbm_popen) pattern='(^|[^[:alnum:]_])cbm_popen(_git)?[[:space:]]*\(' ;;
+            *)         pattern="(^|[^[:alnum:]_])${func}[[:space:]]*\\(" ;;
         esac
 
         # Grep for pattern, excluding comments and #define lines
-        if grep -n "$pattern" "$file" 2>/dev/null | grep -v '^\s*//' | grep -v '^\s*\*' | grep -v '#define' > /dev/null 2>&1; then
+        if grep -nE "$pattern" "$file" 2>/dev/null | grep -v '^\s*//' | grep -v '^\s*\*' | grep -v '#define' > /dev/null 2>&1; then
             if ! grep -q "^${relfile}:${func}:" "$ALLOWLIST" 2>/dev/null; then
                 echo "BLOCKED: ${relfile}: contains ${func}() — not on allow-list"
-                grep -n "$pattern" "$file" 2>/dev/null | grep -v '^\s*//' | grep -v '^\s*\*' | grep -v '#define' | head -3 | sed 's/^/  /'
+                grep -nE "$pattern" "$file" 2>/dev/null | grep -v '^\s*//' | grep -v '^\s*\*' | grep -v '#define' | head -3 | sed 's/^/  /'
                 fail
             fi
         fi
@@ -193,7 +191,7 @@ while IFS= read -r file; do
                 printf '%s\n' "$matches" | sed 's/^/  /'
                 FOPEN_FOUND=true
             else
-                echo "REVIEWED: ${relfile}: ${actual_count} count-bounded private write(s)"
+                echo "REVIEWED: ${relfile}: ${actual_count} count-bounded file write(s)"
             fi
             ;;
     esac
@@ -215,7 +213,7 @@ while IFS= read -r file; do
     relfile="${file#"$ROOT/"}"
 
     # Extract line numbers of dangerous calls
-    DANGER_LINES=$(grep -n 'system(\|popen(\|cbm_popen(\|connect(\|execl(' "$file" 2>/dev/null \
+    DANGER_LINES=$(grep -nE '(^|[^[:alnum:]_])(system|popen|cbm_popen(_git)?|connect|execl)[[:space:]]*\(' "$file" 2>/dev/null \
         | grep -v '^\s*//' | grep -v '^\s*\*' | grep -v '#define' \
         | cut -d: -f1 || true)
 

@@ -2310,6 +2310,67 @@ static bool test_buffer_appendf(char *buffer, size_t capacity, size_t *used, con
     return true;
 }
 
+static CBM_TLS int objectscript_timeout_calls;
+static CBM_TLS int64_t objectscript_expected_timeout;
+static CBM_TLS bool objectscript_timeout_mismatch;
+
+static CBMFileResult *test_objectscript_timeout_extractor(
+    const char *source, int source_len, CBMLanguage language, const char *project,
+    const char *rel_path, int64_t timeout_micros, const char **extra_defines,
+    const char **include_paths, const CBMMacroTable *macro_table,
+    const CBMReturnTypeTable *return_type_table) {
+    (void)source;
+    (void)source_len;
+    (void)language;
+    (void)project;
+    (void)rel_path;
+    (void)extra_defines;
+    (void)include_paths;
+    (void)macro_table;
+    (void)return_type_table;
+    objectscript_timeout_calls++;
+    objectscript_timeout_mismatch |= timeout_micros != objectscript_expected_timeout;
+    CBMFileResult *result = calloc(1, sizeof(*result));
+    if (result) {
+        cbm_arena_init(&result->arena);
+    }
+    return result;
+}
+
+TEST(pipeline_objectscript_export_forwards_parse_timeout) {
+    const char *xml =
+        "<Export generator=\"Cache\"><Class name=\"Timeout.First\">"
+        "<Method name=\"Run\"><ClassMethod>1</ClassMethod>"
+        "<Implementation><![CDATA[ Quit ]]></Implementation></Method></Class>"
+        "<Class name=\"Timeout.Second\">"
+        "<Method name=\"Run\"><ClassMethod>1</ClassMethod>"
+        "<Implementation><![CDATA[ Quit ]]></Implementation></Method></Class></Export>";
+    const int64_t timeouts[] = {0, 17, 5000000};
+    for (size_t i = 0; i < sizeof(timeouts) / sizeof(timeouts[0]); i++) {
+        objectscript_timeout_calls = 0;
+        objectscript_expected_timeout = timeouts[i];
+        objectscript_timeout_mismatch = false;
+        cbm_pipeline_set_objectscript_export_extractor_for_tests(
+            test_objectscript_timeout_extractor);
+        CBMFileResult *result =
+            i == 2 ? cbm_pipeline_extract_objectscript_export(xml, (int)strlen(xml), "timeout",
+                                                              "export.xml", NULL, NULL)
+                   : cbm_pipeline_extract_objectscript_export_with_timeout(
+                         xml, (int)strlen(xml), "timeout", "export.xml", NULL, NULL, timeouts[i]);
+        cbm_pipeline_set_objectscript_export_extractor_for_tests(NULL);
+        bool complete = result && result->owned_result_count == 2;
+        cbm_free_result(result);
+        ASSERT_TRUE(complete);
+        ASSERT_EQ(objectscript_timeout_calls, 2);
+        ASSERT_FALSE(objectscript_timeout_mismatch);
+    }
+    PASS();
+}
+
+SUITE(pipeline_objectscript_timeout) {
+    RUN_TEST(pipeline_objectscript_export_forwards_parse_timeout);
+}
+
 /* Each extracted class owns a separate arena. A CBMCall includes eight argument
  * slots, so growing its call array through the 513th item requires at least four
  * arena blocks per class. Sixty-four classes therefore exceed the aggregate's
@@ -9895,8 +9956,8 @@ static int python_typed_field_scope_case(bool external) {
              "class TestCase:\n    pass\n\n"
              "class Holder:\n    field: %s\n",
              external ? "unittest.TestCase" : "TestCase");
-    CBMFileResult *result = cbm_extract_file(source, (int)strlen(source), CBM_LANG_PYTHON,
-                                             "proj", "models.py", 0, NULL, NULL);
+    CBMFileResult *result = cbm_extract_file(source, (int)strlen(source), CBM_LANG_PYTHON, "proj",
+                                             "models.py", 0, NULL, NULL);
     cbm_registry_t *reg = cbm_registry_new();
     cbm_gbuf_t *gbuf = cbm_gbuf_new("proj", "/unused");
     CBMArena arena;
@@ -9912,11 +9973,11 @@ static int python_typed_field_scope_case(bool external) {
         const char **keys = NULL;
         const char **vals = NULL;
         int import_count = 0;
-        cbm_pxc_build_import_map(gbuf, "proj", "models.py", CBM_LANG_PYTHON, result, &keys,
-                                 &vals, &import_count);
-        cbm_resolution_t raw = cbm_registry_resolve(
-            reg, external ? "unittest.TestCase" : "TestCase", "proj.models", keys, vals,
-            import_count);
+        cbm_pxc_build_import_map(gbuf, "proj", "models.py", CBM_LANG_PYTHON, result, &keys, &vals,
+                                 &import_count);
+        cbm_resolution_t raw =
+            cbm_registry_resolve(reg, external ? "unittest.TestCase" : "TestCase", "proj.models",
+                                 keys, vals, import_count);
         bool candidate = raw.qualified_name && raw.strategy &&
                          strcmp(raw.qualified_name, "proj.models.TestCase") == 0 &&
                          strcmp(raw.strategy, "same_module") == 0;
@@ -9925,18 +9986,18 @@ static int python_typed_field_scope_case(bool external) {
         cbm_file_info_t files[1] = {{.rel_path = "models.py", .language = CBM_LANG_PYTHON}};
         CBMFileResult *cache[1] = {result};
         int count = 0;
-        defs = cbm_pxc_collect_all_defs(&ctx, &arena, cache, files, 1, "proj", modules, &count,
-                                        NULL);
+        defs =
+            cbm_pxc_collect_all_defs(&ctx, &arena, cache, files, 1, "proj", modules, &count, NULL);
         int holders = 0;
         bool field_ok = false;
         for (int i = 0; defs && i < count; i++) {
             if (defs[i].qualified_name &&
                 strcmp(defs[i].qualified_name, "proj.models.Holder") == 0) {
                 holders++;
-                field_ok = external ? !defs[i].field_defs
-                                    : defs[i].field_defs &&
-                                          strcmp(defs[i].field_defs,
-                                                 "field:proj.models.TestCase") == 0;
+                field_ok = external
+                               ? !defs[i].field_defs
+                               : defs[i].field_defs &&
+                                     strcmp(defs[i].field_defs, "field:proj.models.TestCase") == 0;
             }
         }
         ok = candidate && holders == 1 && field_ok;
@@ -10063,8 +10124,7 @@ TEST(override_explicit_walks_to_nearest_declaring_ancestor) {
     cbm_gbuf_insert_edge(gb, tied, tie_left_mid, "INHERITS", "{}");
 
     /* The separate Go implicit-satisfaction pass owns .go classes. */
-    int64_t go_type =
-        cbm_gbuf_upsert_node(gb, "Struct", "GoType", "m.GoType", "m.go", 1, 5, "{}");
+    int64_t go_type = cbm_gbuf_upsert_node(gb, "Struct", "GoType", "m.GoType", "m.go", 1, 5, "{}");
     int64_t go_process = ovr_method(gb, go_type, "GoType", "process");
     cbm_gbuf_insert_edge(gb, go_type, processor, "IMPLEMENTS", "{}");
 

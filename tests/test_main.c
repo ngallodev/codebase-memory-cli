@@ -26,6 +26,7 @@ int tf_deselected_count = 0;
 #include "operations/index_supervisor.h" /* cbm_index_set_worker_role */
 #include "operations/json_args.h"
 #include "test_operation_host.h"
+#include "operations/result_wire.h"
 #include "ui/http_server.h" /* deleted-self executable probe */
 #include "result_spill.h"   /* pinned free disk: spill verdicts ignore the host disk */
 #include <sqlite3.h>
@@ -520,16 +521,24 @@ static int tf_maybe_run_index_worker(int argc, char **argv) {
     if (!srv) {
         return 1;
     }
-    char *result = cbm_test_operation_execute(srv, "index_repository", invocation.args_json);
+    bool result_is_error = false;
+    char *result = cbm_test_operation_execute_ex(srv, "index_repository", invocation.args_json,
+                                                 &result_is_error);
     if (result) {
         const char *ro = cbm_index_worker_response_out();
-        if (ro) {
+        /* The production worker writes the native result wire (payload plus
+         * error bit); the daemon decodes it to tell success from a delivered
+         * tool error. */
+        cbm_operation_result_t wire_input = {.payload = result, .is_error = result_is_error};
+        char *wire = cbm_operation_result_wire_encode(&wire_input);
+        if (ro && wire) {
             FILE *rf = cbm_fopen(ro, "wb");
             if (rf) {
-                (void)fputs(result, rf);
+                (void)fputs(wire, rf);
                 (void)fclose(rf);
             }
         }
+        free(wire);
     }
     /* Faithful worker exit: mirror run_cli's supervised-worker fast path.
      * The worker-role pipeline deliberately skips its teardown (the OS
@@ -1739,6 +1748,7 @@ extern void suite_store_search(void);
 extern void suite_cypher(void);
 extern void suite_index_supervisor(void);
 extern void suite_changes_operation(void);
+extern void suite_trace_architecture_operations(void);
 extern void suite_daemon(void);
 extern void suite_project_lock(void);
 extern void suite_version_cohort(void);
@@ -1766,6 +1776,7 @@ extern void suite_discover(void);
 extern void suite_graph_buffer(void);
 extern void suite_registry(void);
 extern void suite_pipeline(void);
+extern void suite_pipeline_objectscript_timeout(void);
 extern void suite_pipeline_conventions(void);
 extern void suite_pipeline_frozen(void);
 extern void suite_importance(void);
@@ -1799,6 +1810,7 @@ extern void suite_java_lsp_coverage(void);
 extern void suite_kotlin_lsp(void);
 extern void suite_rust_lsp(void);
 extern void suite_store_arch(void);
+extern void suite_architecture_projection(void);
 extern void suite_store_bulk(void);
 extern void suite_store_pragmas(void);
 extern void suite_store_checkpoint(void);
@@ -1823,6 +1835,7 @@ extern void suite_diagrams(void);
 extern void suite_openapi(void);
 extern void suite_infrascan(void);
 extern void suite_cli(void);
+extern void suite_runtime_settings(void);
 extern void suite_agent_clients(void);
 extern void suite_legacy_agent_profiles(void);
 extern void suite_config_json_like(void);
@@ -1917,7 +1930,31 @@ const char *tf_runner_image(int argc, char **argv) {
     return argc > 0 && argv ? argv[0] : NULL;
 }
 
+const char *cbm_test_program_path;
+
 int main(int argc, char **argv) {
+    cbm_test_program_path = tf_runner_image(argc, argv);
+    if (argc >= 4 && argc % 2 == 0 && strcmp(argv[1], "__cbm_env_values") == 0) {
+        for (int i = 2; i < argc; i += 2) {
+            const char *value = getenv(argv[i]);
+            if (!value || strcmp(value, argv[i + 1]) != 0) {
+                return 61;
+            }
+        }
+        return 0;
+    }
+    if (argc >= 5 && strcmp(argv[1], "__cbm_env_isolation") == 0) {
+        const char *value = getenv(argv[2]);
+        if (!value || strcmp(value, argv[3]) != 0) {
+            return 61;
+        }
+        for (int i = 4; i < argc; i++) {
+            if (getenv(argv[i])) {
+                return 62;
+            }
+        }
+        return 0;
+    }
     /* #2003: never let a caller's GIT_DIR/GIT_INDEX_FILE/... redirect fixture
      * git commands at the caller's real repository. */
     th_clear_git_repo_env();
@@ -2176,6 +2213,7 @@ int main(int argc, char **argv) {
     /* Neutral index supervision and daemon coordination. */
     RUN_SELECTED_SUITE(index_supervisor);
     RUN_SELECTED_SUITE(changes_operation);
+    RUN_SELECTED_SUITE(trace_architecture_operations);
 
     /* Daemon coordination + private framing */
     RUN_SELECTED_SUITE(daemon);
@@ -2208,6 +2246,7 @@ int main(int argc, char **argv) {
     /* Pipeline (M8) */
     RUN_SELECTED_SUITE(registry);
     RUN_SELECTED_SUITE(pipeline);
+    RUN_SELECTED_SUITE(pipeline_objectscript_timeout);
     RUN_SELECTED_SUITE(pipeline_conventions);
     RUN_SELECTED_SUITE(pipeline_frozen);
     RUN_SELECTED_SUITE(importance);
@@ -2266,6 +2305,7 @@ int main(int argc, char **argv) {
 
     /* Architecture + ADR + Louvain */
     RUN_SELECTED_SUITE(store_arch);
+    RUN_SELECTED_SUITE(architecture_projection);
 
     /* HTTP link */
 
@@ -2301,6 +2341,7 @@ int main(int argc, char **argv) {
 
     /* CLI (install, update, config) */
     RUN_SELECTED_SUITE(cli);
+    RUN_SELECTED_SUITE(runtime_settings);
     RUN_SELECTED_SUITE(agent_clients);
     RUN_SELECTED_SUITE(legacy_agent_profiles);
     RUN_SELECTED_SUITE(config_json_like);

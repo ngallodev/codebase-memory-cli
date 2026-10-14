@@ -450,12 +450,12 @@ PREPROCESSOR_SRC = $(CBM_DIR)/preprocessor.cpp
 SQLITE_WRITER_SRC = $(CBM_DIR)/sqlite_writer.c
 
 # Store module (new)
-STORE_SRCS = src/store/store.c src/store/store_impact.c src/store/store_graph_digest.c src/store/store_content_digest.c
+STORE_SRCS = src/store/store.c src/store/architecture_projection.c src/store/store_impact.c src/store/store_graph_digest.c src/store/store_content_digest.c
 
 # Cypher module (new)
 CYPHER_SRCS = src/cypher/cypher.c
 
-OPERATION_SRCS = src/operations/registry.c src/operations/json_args.c src/operations/reliability_events.c src/operations/execute.c src/operations/result_wire.c src/operations/output_budget.c src/operations/tool_catalog.c src/operations/doc_candidates.c src/operations/index_admission.c src/operations/store_host.c src/operations/session_state.c src/operations/mutation.c src/operations/adr.c src/operations/cross_repo.c src/operations/index.c src/operations/project_arg.c src/operations/index_supervisor.c src/operations/command_runner.c src/operations/read.c src/operations/coverage.c src/operations/snippet.c src/operations/search.c src/operations/trace.c src/operations/trace_ingest.c src/operations/schema.c src/operations/query.c src/operations/architecture.c src/operations/changes.c src/operations/source_search.c src/operations/file_outline.c src/operations/compare.c src/operations/compact_out.c
+OPERATION_SRCS = src/operations/registry.c src/operations/json_args.c src/operations/reliability_events.c src/operations/execute.c src/operations/result_wire.c src/operations/output_budget.c src/operations/tool_catalog.c src/operations/doc_candidates.c src/operations/index_admission.c src/operations/store_host.c src/operations/session_state.c src/operations/mutation.c src/operations/adr.c src/operations/cross_repo.c src/operations/index.c src/operations/project_arg.c src/operations/index_supervisor.c src/operations/command_runner.c src/operations/read.c src/operations/coverage.c src/operations/snippet.c src/operations/search.c src/operations/trace.c src/operations/trace_ingest.c src/operations/schema.c src/operations/query.c src/operations/architecture.c src/operations/architecture_jobs.c src/operations/changes.c src/operations/source_search.c src/operations/file_outline.c src/operations/compare.c src/operations/compact_out.c
 OPERATION_SRCS += $(wildcard src/operations/test_impact*.c)
 OPERATION_SRCS += src/operations/doc_links_report.c src/operations/watch_status.c
 
@@ -566,7 +566,7 @@ WATCHER_SRCS = src/watcher/watcher.c
 GIT_SRCS = src/git/git_context.c
 
 # CLI module (new)
-CLI_SRCS = src/cli/cli.c src/cli/progress_sink.c src/cli/hook_augment.c \
+CLI_SRCS = src/cli/cli.c src/cli/runtime_settings.c src/cli/progress_sink.c src/cli/hook_augment.c \
 	src/cli/agent_clients.c src/cli/legacy_agent_profiles.c \
 	src/cli/config_json_like.c src/cli/config_toml_edit.c src/cli/config_yaml_edit.c \
 	src/cli/config_text_edit.c src/cli/config_edit_path.c src/cli/activation_transaction.c
@@ -575,7 +575,16 @@ CLI_SRCS = src/cli/cli.c src/cli/progress_sink.c src/cli/hook_augment.c \
 UI_SRCS = \
     src/ui/config.c \
     src/ui/http_server.c \
+    src/ui/activity.c \
+    src/ui/atlas_repository.c \
     src/ui/layout3d.c \
+    src/ui/layout_regions.c \
+    src/ui/atlas_api.c \
+    src/ui/atlas_flows.c \
+    src/ui/atlas_handout.c \
+    src/ui/atlas_why.c \
+    src/ui/atlas_metrics.c \
+    src/ui/atlas_impact.c \
     src/ui/httpd.c \
     src/ui/embedded_stub.c
 
@@ -733,6 +742,7 @@ TEST_STORE_SRCS = \
     tests/test_store_graph_digest.c \
     tests/test_store_search.c \
     tests/test_store_arch.c \
+    tests/test_architecture_projection.c \
     tests/test_store_bulk.c \
     tests/test_store_pragmas.c \
     tests/test_store_checkpoint.c \
@@ -744,6 +754,7 @@ TEST_CYPHER_SRCS = \
 TEST_OPERATION_SRCS = \
     tests/test_index_supervisor.c \
     tests/test_changes_operation.c \
+    tests/test_trace_architecture_operations.c \
     $(wildcard tests/test_test_impact*.c)
 
 TEST_DAEMON_SRCS = \
@@ -820,7 +831,7 @@ TEST_INTEGRATION_SRCS = tests/test_integration.c tests/test_incremental.c tests/
 TEST_TRACES_SRCS = tests/test_traces.c
 
 
-TEST_CLI_SRCS = tests/test_cli.c tests/test_agent_clients.c tests/test_legacy_agent_profiles.c \
+TEST_CLI_SRCS = tests/test_cli.c tests/test_runtime_settings.c tests/test_agent_clients.c tests/test_legacy_agent_profiles.c \
 	tests/test_config_json_like.c \
 	tests/test_config_toml_edit.c tests/test_config_yaml_edit.c tests/test_config_text_edit.c \
 	tests/test_activation_transaction.c
@@ -990,7 +1001,7 @@ $(BUILD_DIR)/test-foundation: $(TEST_FOUNDATION_OBJS) $(MIMALLOC_OBJ_TEST) $(PRO
 	$(CC) $(CFLAGS_TEST) -o $@ $(TEST_FOUNDATION_OBJS) $(MIMALLOC_OBJ_TEST) $(LDFLAGS_TEST)
 
 test-foundation: $(BUILD_DIR)/test-foundation
-	cd $(CURDIR) && $(BUILD_DIR)/test-foundation
+	cd "$(CURDIR)" && $(BUILD_DIR)/test-foundation
 
 # ── Grammar/TS/LSP object files (compiled with relaxed warnings) ─
 
@@ -1148,13 +1159,13 @@ $(BUILD_DIR)/test-runner: $(TEST_SOURCE_OBJS) $(OBJS_VENDORED_TEST) $(PROJECT_HD
 	$(LDFLAGS_TEST)
 
 test: $(BUILD_DIR)/test-runner
-	cd $(CURDIR) && $(BUILD_DIR)/test-runner
+	cd "$(CURDIR)" && $(BUILD_DIR)/test-runner
 
 # Parallel variant: every suite as its own process; identical gate quality
 # (see the ZERO-LOSS CONTRACT in scripts/run-tests-parallel.sh — union guard
 # against --list-suites + aggregated pass/fail/skip totals).
 test-par: $(BUILD_DIR)/test-runner
-	cd $(CURDIR) && bash scripts/run-tests-parallel.sh $(BUILD_DIR)/test-runner
+	cd "$(CURDIR)" && bash scripts/run-tests-parallel.sh $(BUILD_DIR)/test-runner
 
 # Focused native development is intentionally a separate, explicit target so
 # an inherited TEST_SUITES value cannot silently narrow the gating test target.
@@ -1162,7 +1173,7 @@ TEST_SUITES ?=
 test-focused: $(BUILD_DIR)/test-runner
 	@test -n "$(strip $(TEST_SUITES))" || \
 		(echo "TEST_SUITES is required for test-focused"; exit 2)
-	cd $(CURDIR) && $(BUILD_DIR)/test-runner $(TEST_SUITES)
+	cd "$(CURDIR)" && $(BUILD_DIR)/test-runner $(TEST_SUITES)
 
 # ── Cumulative bug-reproduction runner (RED board by design, non-gating) ──
 # Mirrors test-runner's link line but uses repro_main.c (own main + counters)
@@ -1330,8 +1341,11 @@ PROD_SRCS_WITH_ASSETS = $(subst src/ui/embedded_stub.c,src/ui/embedded_assets.c,
 # Embedded asset object files (generated by embed script)
 EMBED_OBJS = $(wildcard $(BUILD_DIR)/embedded/embed_*.o)
 
+# PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: the UI's dev dependencies include
+# playwright for its local browser proofs; a plain `npm ci` would otherwise
+# download browsers, which no build or gate needs.
 frontend:
-	cd graph-ui && npm ci && npm run build
+	cd graph-ui && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci && npm run build
 
 embed: frontend
 	scripts/embed-frontend.sh graph-ui/dist $(BUILD_DIR)/embedded
