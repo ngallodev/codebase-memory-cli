@@ -8,15 +8,15 @@ const origin = process.env.CBM_PREVIEW_ORIGIN ?? 'http://127.0.0.1:9749';
 const project = 'cbm-pr2068', out = 'verification/pr-2068';
 await mkdir(out, { recursive: true });
 const report = { origin, project, startedAt: new Date().toISOString(), method: 'Fresh normal UI navigation; no localStorage seeding, graph mocks or repository writes.',
-    actions: [], screenshots: [], rpc: [], pageErrors: [], externalRequests: [], checks: {} };
+    actions: [], screenshots: [], toolCalls: [], pageErrors: [], externalRequests: [], checks: {} };
 const browser = await chromium.launch({ headless: true, args: ['--use-angle=swiftshader'] });
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, reducedMotion: 'reduce', permissions: ['clipboard-read', 'clipboard-write'] });
 const page = await context.newPage();
 page.on('pageerror', error => report.pageErrors.push(error.message));
 page.on('request', request => {
     if (/^https?:/.test(request.url()) && !request.url().startsWith(`${origin}/`)) report.externalRequests.push(request.url());
-    if (request.url() === `${origin}/rpc`) {
-        try { const body = request.postDataJSON(); if (body.params?.name) report.rpc.push({ tool: body.params.name, arguments: body.params.arguments }); } catch {}
+    if (request.url() === `${origin}/api/tool`) {
+        try { const body = request.postDataJSON(); if (body.name) report.toolCalls.push({ tool: body.name, arguments: body.arguments }); } catch {}
     }
 });
 const click = async (locator, description) => { console.log(description); report.actions.push({ description, before: await locator.boundingBox() }); await locator.click(); };
@@ -35,7 +35,7 @@ try {
     await workspace.getByText(/of \d+ changed paths loaded/).waitFor({ timeout: 90000 });
     report.checks.changeSet = await workspace.locator('.change-analysis-files').innerText();
     assert.ok(!report.checks.changeSet.includes('Change set unavailable'));
-    assert.ok(report.rpc.some(call => call.tool === 'detect_changes' && call.arguments.since === 'HEAD' && call.arguments.scope === 'files'));
+    assert.ok(report.toolCalls.some(call => call.tool === 'detect_changes' && call.arguments.since === 'HEAD' && call.arguments.scope === 'files'));
     assert.equal(await page.locator('.atlas-impact').filter({ visible: true }).count(), 0);
     await workspace.getByRole('searchbox', { name: 'Filter changed paths' }).fill('src/daemon/application.c');
     await click(workspace.getByRole('button', { name: 'src/daemon/application.c', exact: true }), 'Actual modified daemon/application.c');
@@ -103,7 +103,7 @@ try {
     await click(workspace.getByRole('button', { name: 'Read changes', exact: true }), 'Read actual changes since HEAD~1');
     await workspace.getByText(/of \d+ changed paths loaded/).waitFor({ timeout: 90000 });
     report.checks.sinceRef = await workspace.locator('.change-analysis-files').innerText();
-    assert.ok(report.rpc.some(call => call.tool === 'detect_changes' && call.arguments.since === 'HEAD~1'));
+    assert.ok(report.toolCalls.some(call => call.tool === 'detect_changes' && call.arguments.since === 'HEAD~1'));
     assert.ok(!report.checks.sinceRef.includes('Change set unavailable'));
     await capture('change-analysis-after-since-ref.png');
     await click(workspace.getByRole('button', { name: 'Close change impact', exact: true }), 'Close shared analysis');

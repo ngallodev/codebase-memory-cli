@@ -8,9 +8,8 @@
  *  1. **Isoliertes HOME.** Der Server legt persistierte Einstellungen und den
  *     Index unter HOME ab. In das echte HOME zu schreiben waere ein Beweislauf,
  *     der die Maschine des Nutzers veraendert.
- *  2. **MCP-Handshake auf stdin, und stdin bleibt offen.** Das HTTP-UI oeffnet
- *     erst nach initialize, und ein geschlossenes stdin beendet den
- *     stdio-Server sofort.
+ *  2. **UI-Daemon ueber die CLI starten.** `daemon start --port` besitzt
+ *     Lifecycle und UI; ein MCP-stdio-Handshake ist nicht erforderlich.
  *  3. **Auf GET / warten, nicht auf eine Wartezeit.** Ein Schlaf ist eine
  *     Vermutung ueber die Maschine, auf der das laeuft.
  *  4. **Am Ende zaehlen, was noch lauscht.** Ein Beweislauf, der einen Prozess
@@ -63,11 +62,9 @@ export async function countListeners(port) {
 }
 
 /**
- * Ein Repository indizieren, ueber die CLI und nicht ueber /rpc.
- *
- * Der Weg ist keine Bequemlichkeit: die Read-only-Allowlist des Servers bietet
- * index_repository auf /rpc gar nicht an. Wer indizieren will, ruft die CLI,
- * und genau das haelt der Beweislauf hier fest.
+ * Ein Repository ueber die CLI indizieren. `POST /api/tool` bietet nur
+ * Leseoperationen an; Mutationen wie Indexierung laufen ueber die CLI oder die
+ * dedizierten `/api`-Routen.
  */
 export async function indexRepository(binary, { home, repoPath, project, mode = 'full' }) {
   const started = Date.now();
@@ -104,17 +101,6 @@ export async function indexRepository(binary, { home, repoPath, project, mode = 
   return { ...parsed, durationMs: Date.now() - started, stderr: result.err.trim() };
 }
 
-const INITIALIZE = JSON.stringify({
-  jsonrpc: '2.0',
-  id: 1,
-  method: 'initialize',
-  params: {
-    protocolVersion: '2025-06-18',
-    capabilities: {},
-    clientInfo: { name: 'codeatlasweb-smoke', version: '0.0.1' },
-  },
-});
-
 /**
  * Den Server starten und warten, bis er auf 127.0.0.1:port antwortet.
  *
@@ -123,29 +109,33 @@ const INITIALIZE = JSON.stringify({
  */
 export async function startServer(binary, { home, port, log = [] }) {
   const started = Date.now();
-  const child = spawn(binary, ['--ui=true', `--port=${port}`], {
-    env: { ...process.env, HOME: home },
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
-  child.stdout.on('data', (d) => { log.push(`[server stdout] ${d.toString().trim()}`); });
-  child.stderr.on('data', (d) => { log.push(`[server stderr] ${d.toString().trim()}`); });
-
-  let exited = null;
-  child.on('exit', (code, signal) => { exited = { code, signal }; });
-  child.stdin.write(INITIALIZE + '\n');
+  const env = { ...process.env, HOME: home };
+  try {
+    const result = await execFileAsync(binary, ['daemon', 'start', `--port=${port}`], {
+      env,
+      timeout: SERVER_READY_TIMEOUT_MS,
+    });
+    if (result.stdout.trim()) log.push(`[daemon start] ${result.stdout.trim()}`);
+    if (result.stderr.trim()) log.push(`[daemon start stderr] ${result.stderr.trim()}`);
+  } catch (error) {
+    log.push(`[daemon start] ${error.stderr?.toString().trim() ?? error.message}`);
+    throw new Error(`CLI could not start the UI daemon\n${log.slice(-20).join('\n')}`);
+  }
 
   const deadline = Date.now() + SERVER_READY_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    if (exited) {
-      throw new Error(
-        `C-Server beendete sich vorzeitig (code=${exited.code}, signal=${exited.signal})\n` +
-        log.slice(-20).join('\n'),
-      );
-    }
     try {
       const res = await fetch(`http://127.0.0.1:${port}/`, { redirect: 'manual' });
       await res.arrayBuffer();
       if (res.status === 200) {
+        const child = {
+          exitCode: null,
+          signalCode: null,
+          async stopDaemon() {
+            await execFileAsync(binary, ['daemon', 'stop'], { env, timeout: SERVER_READY_TIMEOUT_MS });
+            this.exitCode = 0;
+          },
+        };
         return { child, durationMs: Date.now() - started };
       }
     } catch {
@@ -153,15 +143,21 @@ export async function startServer(binary, { home, port, log = [] }) {
     }
     await sleep(200);
   }
+  await execFileAsync(binary, ['daemon', 'stop'], { env, timeout: SERVER_READY_TIMEOUT_MS }).catch(() => undefined);
   throw new Error(
-    `C-Server wurde binnen ${SERVER_READY_TIMEOUT_MS} ms nicht auf 127.0.0.1:${port} erreichbar\n` +
+    `UI-Daemon wurde binnen ${SERVER_READY_TIMEOUT_MS} ms nicht auf 127.0.0.1:${port} erreichbar\n` +
     log.slice(-20).join('\n'),
   );
 }
 
 /** Den Prozess beenden, erst hoeflich und dann nicht mehr. */
-export async function stopServer(child, label = 'C-Server') {
-  if (!child || child.exitCode !== null || child.killed) { return; }
+export async function stopServer(child, label = 'UI-Daemon') {
+  if (!child) { return; }
+  if (typeof child.stopDaemon === 'function') {
+    await child.stopDaemon();
+    return;
+  }
+  if (child.exitCode !== null || child.killed) { return; }
   child.kill('SIGTERM');
   for (let i = 0; i < 50; i += 1) {
     if (child.exitCode !== null || child.signalCode !== null) { return; }

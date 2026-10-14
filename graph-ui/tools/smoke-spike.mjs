@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 // W0-Spike-Orchestrator. WEGWERF-BEWEISCODE, NICHT DIE PRODUKTARCHITEKTUR.
 //
-// Was hier bewiesen wird: der gebaute C-Server aus PR 1860 liefert echten
-// Quelltext über /rpc get_code_snippet, und Monaco rendert ihn read-only mit
+// Was hier bewiesen wird: der gebaute CLI-UI-Daemon liefert echten
+// Quelltext über /api/tool get_code_snippet, und Monaco rendert ihn read-only mit
 // genau einer Decoration an der Call-Site.
 //
-// Der Mini-Static-Server mit /rpc-Proxy weiter unten existiert nur, weil der
-// C-Server /rpc und /api gegen fremde Origins mit 403 sperrt (Host-Header muss
+// Der Mini-Static-Server mit /api/tool-Proxy weiter unten existiert nur, weil der
+// C-Server /api/tool und /api gegen fremde Origins mit 403 sperrt (Host-Header muss
 // exakt 127.0.0.1:<port> oder localhost:<port> sein). Eine Spike-Seite auf
-// einem anderen Port kann /rpc daher nicht direkt fetchen. Die Produktlösung
+// einem anderen Port kann /api/tool daher nicht direkt fetchen. Die Produktlösung
 // ist, dass der C-Server das Frontend selbst ausliefert; dieser Proxy ist
 // ausdrücklich nur Gerüst für den Beweis und fliegt danach raus.
 //
@@ -16,9 +16,8 @@
 //   1. Binary prüfen
 //   2. isoliertes HOME anlegen (persistierte Settings dürfen nie ins echte HOME)
 //   3. fixtures/atlas-sample indexieren (single-shot CLI)
-//   4. C-Server auf freiem Port P >= 4210 starten (MCP-initialize auf stdin,
-//      stdin bleibt offen)
-//   5. qualified_name von createUser über /rpc search_graph ermitteln
+//   4. UI-Daemon ueber `daemon start --port` auf freiem Port P >= 4210 starten
+//   5. qualified_name von createUser über /api/tool search_graph ermitteln
 //   6. Static+Proxy-Server auf P2 starten
 //   7. Playwright chromium headless auf die Spike-Seite, window.__spike lesen,
 //      Screenshot schreiben
@@ -40,7 +39,7 @@ import { promisify } from 'node:util';
 const execFileAsync = promisify(execFile);
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BINARY = join(ROOT, 'cbm', 'build', 'c', 'codebase-memory-mcp');
+const BINARY = resolve(ROOT, '..', 'build', 'c', 'codebase-memory-cli');
 const FIXTURE = join(ROOT, 'fixtures', 'atlas-sample');
 const PROJECT = 'codeatlasweb-w0-spike';
 const SYMBOL = 'createUser';
@@ -131,77 +130,60 @@ async function indexRepository(home) {
 
 // ------------------------------------------------------------ C-Server -----
 
-const INITIALIZE = JSON.stringify({
-  jsonrpc: '2.0',
-  id: 1,
-  method: 'initialize',
-  params: {
-    protocolVersion: '2025-06-18',
-    capabilities: {},
-    clientInfo: { name: 'spike', version: '0.0.1' },
-  },
-});
-
 async function startCServer(home, port) {
   const started = Date.now();
-  const child = spawn(BINARY, ['--ui=true', `--port=${port}`], {
-    env: { ...process.env, HOME: home },
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
-
-  child.stdout.on('data', (d) => { serverLog.push(`[server stdout] ${d.toString().trim()}`); });
-  child.stderr.on('data', (d) => { serverLog.push(`[server stderr] ${d.toString().trim()}`); });
-
-  let exited = null;
-  child.on('exit', (code, signal) => { exited = { code, signal }; });
-
-  // MCP-Handshake: erst danach öffnet der Server das HTTP-UI. stdin bleibt
-  // offen, sonst beendet sich der stdio-Server sofort.
-  child.stdin.write(INITIALIZE + '\n');
+  const env = { ...process.env, HOME: home };
+  try {
+    const result = await execFileAsync(BINARY, ['daemon', 'start', `--port=${port}`], {
+      env,
+      timeout: SERVER_READY_TIMEOUT_MS,
+    });
+    if (result.stdout.trim()) serverLog.push(`[daemon start] ${result.stdout.trim()}`);
+    if (result.stderr.trim()) serverLog.push(`[daemon start stderr] ${result.stderr.trim()}`);
+  } catch (error) {
+    serverLog.push(error.stderr?.toString().trim() ?? error.message);
+    throw new Error(`UI-Daemon konnte nicht starten\n${serverLog.slice(-20).join('\n')}`);
+  }
 
   const deadline = Date.now() + SERVER_READY_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    if (exited) {
-      throw new Error(
-        `C-Server beendete sich vorzeitig (code=${exited.code}, signal=${exited.signal})\n` +
-        serverLog.slice(-20).join('\n'),
-      );
-    }
     try {
       const res = await fetch(`http://127.0.0.1:${port}/`, { redirect: 'manual' });
+      await res.arrayBuffer();
       if (res.status === 200) {
-        await res.arrayBuffer();
+        const child = {
+          exitCode: null,
+          signalCode: null,
+          async stopDaemon() {
+            await execFileAsync(BINARY, ['daemon', 'stop'], { env, timeout: SERVER_READY_TIMEOUT_MS });
+            this.exitCode = 0;
+          },
+        };
         return { child, durationMs: Date.now() - started };
       }
-      await res.arrayBuffer();
     } catch {
       // noch nicht da
     }
     await sleep(200);
   }
-  throw new Error(
-    `C-Server wurde binnen ${SERVER_READY_TIMEOUT_MS} ms nicht auf 127.0.0.1:${port} erreichbar\n` +
-    serverLog.slice(-20).join('\n'),
-  );
+  await execFileAsync(BINARY, ['daemon', 'stop'], { env, timeout: SERVER_READY_TIMEOUT_MS }).catch(() => undefined);
+  throw new Error(`UI-Daemon wurde binnen ${SERVER_READY_TIMEOUT_MS} ms nicht erreichbar`);
 }
 
-async function rpc(port, name, args, id = 2) {
-  const res = await fetch(`http://127.0.0.1:${port}/rpc`, {
+async function rpc(port, name, args) {
+  const res = await fetch(`http://127.0.0.1:${port}/api/tool`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: args } }),
+    body: JSON.stringify({ name, arguments: args }),
   });
   const text = await res.text();
-  if (!res.ok) {
-    throw new Error(`/rpc ${name} -> HTTP ${res.status}: ${text.slice(0, 300)}`);
-  }
   const body = JSON.parse(text);
-  if (body.error) {
-    throw new Error(`/rpc ${name} -> Fehler: ${JSON.stringify(body.error).slice(0, 300)}`);
+  if (!res.ok || body.isError) {
+    throw new Error(`/api/tool ${name} -> HTTP ${res.status}: ${text.slice(0, 300)}`);
   }
-  const content = body.result?.content;
+  const content = body.content;
   if (!Array.isArray(content) || typeof content[0]?.text !== 'string') {
-    throw new Error(`/rpc ${name} -> unerwartete Antwort: ${text.slice(0, 300)}`);
+    throw new Error(`/api/tool ${name} -> unerwartete Antwort: ${text.slice(0, 300)}`);
   }
   return content[0].text;
 }
@@ -234,7 +216,7 @@ function extractQualifiedName(text, symbol) {
   return null;
 }
 
-// ------------------------------------------- Static + /rpc-Proxy (Wegwerf) --
+// ------------------------------------------- Static + /api/tool-Proxy (Wegwerf) --
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -254,7 +236,7 @@ function startStaticProxy(port, cPort) {
   const allowedRoots = [join(ROOT, 'spike'), join(ROOT, 'node_modules')];
 
   const server = createServer((req, res) => {
-    if (req.method === 'POST' && req.url.split('?')[0] === '/rpc') {
+    if (req.method === 'POST' && req.url.split('?')[0] === '/api/tool') {
       const chunks = [];
       req.on('data', (c) => chunks.push(c));
       req.on('end', () => {
@@ -264,7 +246,7 @@ function startStaticProxy(port, cPort) {
         const upstream = httpRequest({
           host: '127.0.0.1',
           port: cPort,
-          path: '/rpc',
+          path: '/api/tool',
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -349,7 +331,9 @@ async function driveBrowser(url) {
 // ---------------------------------------------------------------- Cleanup ---
 
 async function stopChild(child, label) {
-  if (!child || child.exitCode !== null || child.killed) { return; }
+  if (!child) { return; }
+  if (typeof child.stopDaemon === 'function') { await child.stopDaemon(); return; }
+  if (child.exitCode !== null || child.killed) { return; }
   child.kill('SIGTERM');
   for (let i = 0; i < 50; i += 1) {
     if (child.exitCode !== null || child.signalCode !== null) { return; }
@@ -362,6 +346,7 @@ async function stopChild(child, label) {
 
 function stopServer(server) {
   if (!server) { return Promise.resolve(); }
+  if (typeof server.stopDaemon === 'function') return server.stopDaemon();
   return new Promise((resolveClose) => {
     server.closeAllConnections?.();
     server.close(() => resolveClose());
@@ -407,7 +392,7 @@ async function main() {
     timings.serverStartMs = startedServer.durationMs;
     log(`C-Server bereit nach ${timings.serverStartMs} ms`);
 
-    log('suche qualified_name von', SYMBOL, 'über /rpc search_graph ...');
+    log('suche qualified_name von', SYMBOL, 'über /api/tool search_graph ...');
     const searchText = await rpc(cPort, 'search_graph', { project: PROJECT, query: SYMBOL, limit: 5 });
     qualifiedName = extractQualifiedName(searchText, SYMBOL);
     if (!qualifiedName) {
@@ -456,7 +441,7 @@ async function main() {
 
   const report = {
     serverStarted: cServer !== null && timings.serverStartMs !== undefined,
-    rpcTool: 'get_code_snippet',
+    toolCall: 'get_code_snippet',
     monacoReadOnly: spike?.monacoReadOnly === true,
     decorationCount: spike?.decorationCount ?? 0,
     port: cPort,

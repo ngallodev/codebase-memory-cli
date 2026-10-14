@@ -1,8 +1,8 @@
 /**
- * Ein Ursprung fuer den Beweislauf: dist/ ausliefern und /rpc plus /api an den
+ * Ein Ursprung fuer den Beweislauf: dist/ ausliefern und /api an den
  * C-Server weiterreichen.
  *
- * Der Server nimmt eine Anfrage auf /api oder /rpc nur an, wenn
+ * Der Server nimmt eine Anfrage auf /api nur an, wenn
  * der Host-Kopf genau seine eigene Loopback-Adresse mit seinem eigenen Port
  * nennt, und weist jeden Origin ab, der nicht derselbe Server ist. Ein anderer
  * localhost-Port ist fuer ihn ein anderes Principal. Eine Seite auf Port B kann
@@ -23,7 +23,7 @@
  * selbst aus und alles ist same-origin. Der Proxy ist
  * der Ersatz dafuer im Beweislauf, und der Unterschied ist genau ein Ursprung.
  *
- * Nebenbei schreibt er mit, welche /api-Routen und welche /rpc-Werkzeuge
+ * Nebenbei schreibt er mit, welche /api-Routen und welche /api/tool-Werkzeuge
  * wirklich gerufen wurden. Das macht aus "der Baum kommt aus /api/tree" einen
  * Befund statt einer Behauptung.
  */
@@ -65,22 +65,22 @@ function readBody(req) {
 }
 
 /**
- * dist/ ausliefern, /rpc und /api weiterreichen.
+ * dist/ ausliefern und /api weiterreichen.
  *
  * @param {{distDir: string, upstreamPort: number, port: number}} options
- * @returns {Promise<{port: number, log: {apiRoutes: Record<string, number>, rpcTools: Record<string, number>, errors: string[]}, close: () => Promise<void>}>}
+ * @returns {Promise<{port: number, log: {apiRoutes: Record<string, number>, toolCalls: Record<string, number>, errors: string[]}, close: () => Promise<void>}>}
  */
 export async function startStaticProxy({ distDir, upstreamPort, port }) {
-    const log = { apiRoutes: {}, rpcTools: {}, errors: [] };
+    const log = { apiRoutes: {}, toolCalls: {}, errors: [] };
 
     const forward = async (req, res, body) => {
         const route = req.url.split('?')[0];
-        if (route === '/rpc' && body.length > 0) {
+        if (route === '/api/tool' && body.length > 0) {
             try {
                 const parsed = JSON.parse(body.toString('utf8'));
-                const tool = parsed?.params?.name;
+                const tool = parsed?.name;
                 if (typeof tool === 'string') {
-                    log.rpcTools[tool] = (log.rpcTools[tool] ?? 0) + 1;
+                    log.toolCalls[tool] = (log.toolCalls[tool] ?? 0) + 1;
                 }
             } catch {
                 // Ein unlesbarer Rumpf ist die Sache des Servers, nicht des Proxys.
@@ -122,7 +122,7 @@ export async function startStaticProxy({ distDir, upstreamPort, port }) {
 
     const server = http.createServer((req, res) => {
         const route = (req.url ?? '/').split('?')[0];
-        if (route === '/rpc' || route.startsWith('/api')) {
+        if (route.startsWith('/api')) {
             readBody(req)
                 .then((body) => forward(req, res, body))
                 .catch((error) => {

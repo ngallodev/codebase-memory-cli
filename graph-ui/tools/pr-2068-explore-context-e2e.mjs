@@ -5,14 +5,14 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 const origin = 'http://127.0.0.1:9749', project = 'cbm-pr2068', file = 'src/daemon/application.c';
 const out = 'verification/pr-2068'; await mkdir(out, { recursive: true });
-const report = { startedAt: new Date().toISOString(), origin, project, file, method: 'Fresh browser, global search, ordinary clicks; no storage seeding, API mocks or repository changes.', actions: [], screenshots: [], pageErrors: [], externalRequests: [], rpc: [], checks: {} };
+const report = { startedAt: new Date().toISOString(), origin, project, file, method: 'Fresh browser, global search, ordinary clicks; no storage seeding, API mocks or repository changes.', actions: [], screenshots: [], pageErrors: [], externalRequests: [], toolCalls: [], checks: {} };
 const browser = await chromium.launch({ headless: true, args: ['--use-angle=swiftshader'] });
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, reducedMotion: 'reduce' });
 const page = await context.newPage();
 page.on('pageerror', error => report.pageErrors.push(error.message));
 page.on('request', request => {
     if (/^https?:/.test(request.url()) && !request.url().startsWith(`${origin}/`)) report.externalRequests.push(request.url());
-    if (request.url() === `${origin}/rpc`) { try { const body = request.postDataJSON(); if (body.params?.name) report.rpc.push({ tool: body.params.name, arguments: body.params.arguments }); } catch {} }
+    if (request.url() === `${origin}/api/tool`) { try { const body = request.postDataJSON(); if (body.name) report.toolCalls.push({ tool: body.name, arguments: body.arguments }); } catch {} }
 });
 const click = async (locator, description) => { console.log(description); report.actions.push({ description, before: await locator.boundingBox() }); await locator.click(); };
 const capture = async name => { await page.screenshot({ path: `${out}/${name}`, fullPage: false }); report.screenshots.push({ name, at: new Date().toISOString() }); };
@@ -94,16 +94,16 @@ try {
     const delayed = async route => {
         let body;
         try { body = route.request().postDataJSON(); } catch {}
-        if (!held && body?.params?.name === 'query_graph' && body.params.arguments?.query?.includes('n.file_path = "src/main.c"')) {
+        if (!held && body?.name === 'query_graph' && body.arguments?.query?.includes('n.file_path = "src/main.c"')) {
             const response = await route.fetch();
-            held = { route, response, query: body.params.arguments.query, status: response.status(), body: await response.text() };
+            held = { route, response, query: body.arguments.query, status: response.status(), body: await response.text() };
             resolveHeld();
         } else await route.continue();
     };
-    await page.route(`${origin}/rpc`, delayed);
+    await page.route(`${origin}/api/tool`, delayed);
     report.checks.searchRace = { method: 'Delayed delivery of an unchanged actual daemon response; no synthetic response data.', canceledRequests: [] };
     page.on('requestfailed', request => {
-        if (request.url() === `${origin}/rpc` && request.postData()?.includes('src/main.c'))
+        if (request.url() === `${origin}/api/tool` && request.postData()?.includes('src/main.c'))
             report.checks.searchRace.canceledRequests.push(request.failure());
     });
     const raceInput = page.locator('.atlas-command-palette[open] input');
@@ -133,7 +133,7 @@ try {
     await capture('explore-after-delayed-search-response.png');
     await raceInput.press('Enter');
     assert.ok((await inspector.locator('.selected-code-path').innerText()).startsWith(file));
-    await page.unroute(`${origin}/rpc`, delayed);
+    await page.unroute(`${origin}/api/tool`, delayed);
     assert.deepEqual(report.pageErrors, []); assert.deepEqual(report.externalRequests, []);
     report.success = true;
 } catch (error) {

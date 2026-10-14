@@ -69,7 +69,7 @@ import {
 import { startStaticProxy } from './lib/static-proxy.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BINARY = join(ROOT, 'cbm', 'build', 'c', 'codebase-memory-mcp');
+const BINARY = resolve(ROOT, '..', 'build', 'c', 'codebase-memory-cli');
 const DIST = join(ROOT, 'dist');
 const FIXTURE = join(ROOT, 'fixtures', 'atlas-sample');
 const PROJECT = 'codeatlasweb-w7b';
@@ -240,21 +240,16 @@ function median(values) {
 
 /** Ein Werkzeug am Server, direkt und ohne Browser. Nur Loopback. */
 async function callTool(port, name, args) {
-    const res = await fetch(`http://127.0.0.1:${port}/rpc`, {
+    const res = await fetch(`http://127.0.0.1:${port}/api/tool`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'tools/call',
-            params: { name, arguments: args },
-        }),
+        body: JSON.stringify({ name, arguments: args }),
     });
     const body = await res.json();
-    if (body?.error) {
-        throw new Error(`${name}: ${JSON.stringify(body.error).slice(0, 300)}`);
+    if (!res.ok || body?.isError) {
+        throw new Error(`${name}: ${(body?.content?.[0]?.text ?? res.statusText).slice(0, 300)}`);
     }
-    return body?.result?.content?.[0]?.text ?? '';
+    return body?.content?.[0]?.text ?? '';
 }
 
 /**
@@ -619,14 +614,14 @@ async function main() {
          * Anfrage an denselben Server, nur spaeter. Er ist nur waehrend der
          * beiden Halte an, an denen er gebraucht wird.
          */
-        let slowRpcMs = 0;
+        let slowToolMs = 0;
         await context.route('**/*', async (route) => {
             const url = route.request().url();
             if (url.startsWith(origin) || url.startsWith('data:') || url.startsWith('blob:')) {
-                if (slowRpcMs > 0 && url.endsWith('/rpc')) {
+                if (slowToolMs > 0 && url.endsWith('/api/tool')) {
                     const body = route.request().postData() ?? '';
                     if (body.includes('search_graph')) {
-                        await sleep(slowRpcMs);
+                        await sleep(slowToolMs);
                     }
                 }
                 await route.continue().catch(() => undefined);
@@ -970,7 +965,7 @@ async function main() {
         await page.waitForTimeout(200);
 
         // ----------------- Die ueberholte Antwort, mit verzoegertem Serverweg
-        slowRpcMs = 700;
+        slowToolMs = 700;
         await page.keyboard.type('user', { delay: 45 });
         // Lange genug, dass die Anfrage wirklich unterwegs ist, kuerzer als ihre
         // Verzoegerung: genau in diesem Fenster wird sie ueberholt.
@@ -1025,13 +1020,13 @@ async function main() {
         };
         log(`ohne Sprung: erste Zeile bei ${provisionalShot.top} -> ${rowAfterAnswer.top} `
             + `(${extras.noJump.movedPx} px)`);
-        slowRpcMs = 0;
+        slowToolMs = 0;
         await page.keyboard.press('Escape');
         await page.waitForTimeout(200);
         await readability('search-answered');
 
         extras.apiRoutes = { ...proxy.log.apiRoutes };
-        extras.rpcTools = { ...proxy.log.rpcTools };
+        extras.toolCalls = { ...proxy.log.toolCalls };
         extras.finalSeam = await searchSeam(page);
 
         /*

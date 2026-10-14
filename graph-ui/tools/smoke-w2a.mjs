@@ -13,13 +13,13 @@
  *   1. `npm run build` (schreibt den Versions-Chip zur Buildzeit hinein)
  *   2. isoliertes HOME, beide Fixtures ueber die CLI indizieren
  *   3. C-Server auf einem freien Port >= 4230 starten
- *   4. dist/ auf einem zweiten Port ausliefern, /rpc und /api dorthin proxen
+ *   4. dist/ auf einem zweiten Port ausliefern, /api/tool und /api dorthin proxen
  *      (der Server nimmt keinen fremden Origin an, siehe tools/lib/static-proxy.mjs)
  *   5. Chromium, mit abgeklemmter Namensaufloesung und einer Route-Sperre, die
  *      jede Anfrage ausserhalb des eigenen Ursprungs abbricht und mitschreibt
  *   6. Klickstrecke: Baum lesen, Ordner auf und zu, Datei oeffnen, Editor
  *      pruefen, dagegen tippen, Screenshots
- *   7. grosse Datei: Kappung im Reader messen, Fenster-Semantik direkt an /rpc
+ *   7. grosse Datei: Kappung im Reader messen, Fenster-Semantik direkt an /api/tool
  *   8. abraeumen, Restprozesse zaehlen, verification/w2/reader.json schreiben
  *
  * Das Ganze laeuft unter dem Netz-Deny-Gate (npm run smoke:w2a).
@@ -43,7 +43,7 @@ import {
 import { startStaticProxy } from './lib/static-proxy.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BINARY = join(ROOT, 'cbm', 'build', 'c', 'codebase-memory-mcp');
+const BINARY = resolve(ROOT, '..', 'build', 'c', 'codebase-memory-cli');
 const DIST = join(ROOT, 'dist');
 const FIXTURE_SMALL = join(ROOT, 'fixtures', 'atlas-sample');
 const FIXTURE_LARGE = join(ROOT, 'fixtures', 'atlas-sample-large');
@@ -123,18 +123,18 @@ function run(command, args) {
     });
 }
 
-/** Ein MCP-Werkzeug direkt am Server rufen, ohne Browser dazwischen. */
+/** Ein Tool direkt ueber die lokale Tool-API rufen. */
 async function callTool(port, name, args) {
-    const response = await fetch(`http://127.0.0.1:${port}/rpc`, {
+    const response = await fetch(`http://127.0.0.1:${port}/api/tool`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }),
+        body: JSON.stringify({ name, arguments: args }),
     });
     const body = await response.json();
-    if (body.error) {
-        throw new Error(`${name}: ${JSON.stringify(body.error)}`);
+    if (body.isError) {
+        throw new Error(`${name}: ${body.content?.[0]?.text ?? 'tool call failed'}`);
     }
-    const text = body.result?.content?.[0]?.text ?? '';
+    const text = body.content?.[0]?.text ?? '';
     try {
         return JSON.parse(text);
     } catch {
@@ -216,7 +216,7 @@ async function main() {
         editAttemptChangedContent: true,
         breadcrumb: '',
         tabOpened: false,
-        rpcTool: '',
+        toolCall: '',
         windowSemantics: '',
         truncationHonest: false,
         largeFileLines: 0,
@@ -291,7 +291,7 @@ async function main() {
         proxy = await startStaticProxy({ distDir: DIST, upstreamPort: serverPort, port: uiPort });
         report.port = uiPort;
         extras.serverPort = serverPort;
-        log(`dist/ liegt auf ${uiPort}, /rpc und /api gehen nach ${serverPort}`);
+        log(`dist/ liegt auf ${uiPort}, /api/tool und /api gehen nach ${serverPort}`);
 
         // ------------------------------------------------------- 5. Browser
         const { chromium } = await import('playwright');
@@ -416,9 +416,9 @@ async function main() {
         // Beschriftung: die Route wurde wirklich gerufen.
         const treeCalls = Object.keys(proxy.log.apiRoutes).filter((route) => route === '/api/tree');
         report.treeSource = treeCalls.length > 0 ? '/api/tree' : 'unknown';
-        report.rpcTool = proxy.log.rpcTools['get_code_snippet'] > 0 ? 'get_code_snippet' : 'unknown';
+        report.toolCall = proxy.log.toolCalls['get_code_snippet'] > 0 ? 'get_code_snippet' : 'unknown';
         extras.apiRoutes = { ...proxy.log.apiRoutes };
-        extras.rpcTools = { ...proxy.log.rpcTools };
+        extras.toolCalls = { ...proxy.log.toolCalls };
         extras.treeSourceChip = await page.evaluate(
             () => document.querySelector('[data-chip="tree"]')?.textContent?.trim() ?? '',
         );
@@ -550,7 +550,7 @@ async function main() {
         report.editAttemptChangedContent === false &&
         /src\s*(>|›)\s*services/.test(report.breadcrumb) &&
         report.tabOpened === true &&
-        report.rpcTool === 'get_code_snippet' &&
+        report.toolCall === 'get_code_snippet' &&
         /^(works|ignored)$/.test(report.windowSemantics) &&
         report.truncationHonest === true &&
         report.largeFileLines > 500 &&

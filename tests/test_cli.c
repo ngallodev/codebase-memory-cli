@@ -3272,9 +3272,9 @@ TEST(cli_update_names_the_failing_staging_step_and_os_error) {
 
 #if defined(__APPLE__)
 #if defined(__aarch64__) || defined(__arm64__)
-    const char *asset_name = "codebase-memory-mcp-darwin-arm64.tar.gz";
+    const char *asset_name = "codebase-memory-cli-darwin-arm64.tar.gz";
 #else
-    const char *asset_name = "codebase-memory-mcp-darwin-amd64.tar.gz";
+    const char *asset_name = "codebase-memory-cli-darwin-amd64.tar.gz";
 #endif
     char native_fixture_path[CBM_SZ_4K] = {0};
     uint32_t native_fixture_size = (uint32_t)sizeof(native_fixture_path);
@@ -3282,9 +3282,9 @@ TEST(cli_update_names_the_failing_staging_step_and_os_error) {
     const char *native_fixture = native_fixture_path;
 #else
 #if defined(__aarch64__)
-    const char *asset_name = "codebase-memory-mcp-linux-arm64-portable.tar.gz";
+    const char *asset_name = "codebase-memory-cli-linux-arm64-portable.tar.gz";
 #else
-    const char *asset_name = "codebase-memory-mcp-linux-amd64-portable.tar.gz";
+    const char *asset_name = "codebase-memory-cli-linux-amd64-portable.tar.gz";
 #endif
     const char *native_fixture = "/bin/true";
 #endif
@@ -3301,7 +3301,7 @@ TEST(cli_update_names_the_failing_staging_step_and_os_error) {
     ASSERT_EQ(fclose(native_file), 0);
     int archive_len = 0;
     unsigned char *archive =
-        create_test_targz("codebase-memory-mcp", replacement, (int)native_size, &archive_len);
+        create_test_targz("codebase-memory-cli", replacement, (int)native_size, &archive_len);
     free(replacement);
     ASSERT_NOT_NULL(archive);
     char archive_path[768];

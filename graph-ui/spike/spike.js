@@ -1,7 +1,7 @@
 // W0-Spike. Wegwerf-Beweiscode, NICHT die Produktarchitektur.
 //
 // Ablauf: Symbol aus den Query-Parametern (?project=...&qn=...) holen, den
-// Quelltext über POST /rpc (MCP tools/call get_code_snippet) beim gebauten
+// Quelltext über POST /api/tool (get_code_snippet) beim gebauten
 // C-Server abfragen, ihn read-only in Monaco rendern und genau eine
 // Decoration auf die Zeile mit dem validateUser(-Aufruf setzen.
 //
@@ -41,31 +41,26 @@
     };
   }
 
-  // POST /rpc im MCP-Format. Der Mini-Proxy vor dieser Seite reicht den
+  // POST /api/tool mit {name, arguments}. Der Mini-Proxy reicht den
   // Aufruf serverseitig an den C-Server weiter (dessen Origin-Prüfung
-  // lässt eine fremde Seite nicht direkt an /rpc).
+  // lässt eine fremde Seite nicht direkt an die API).
   function callTool(name, args) {
-    return fetch('/rpc', {
+    return fetch('/api/tool', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'tools/call',
-        params: { name: name, arguments: args }
-      })
+      body: JSON.stringify({ name: name, arguments: args })
     }).then(function (res) {
       if (!res.ok) {
-        throw new Error('/rpc antwortete mit HTTP ' + res.status);
+        throw new Error('/api/tool antwortete mit HTTP ' + res.status);
       }
       return res.json();
     }).then(function (body) {
-      if (body.error) {
-        throw new Error('/rpc-Fehler: ' + JSON.stringify(body.error));
+      if (body.isError) {
+        throw new Error('/api/tool-Fehler: ' + (body.content && body.content[0] && body.content[0].text));
       }
-      var content = body.result && body.result.content;
+      var content = body.content;
       if (!content || !content.length || typeof content[0].text !== 'string') {
-        throw new Error('/rpc lieferte kein content[0].text');
+        throw new Error('/api/tool lieferte kein content[0].text');
       }
       return JSON.parse(content[0].text);
     });
@@ -157,7 +152,7 @@
     }
 
     document.getElementById('hdr-qn').textContent = p.qn;
-    setStatus('hole Quelltext über /rpc get_code_snippet ...');
+    setStatus('hole Quelltext über POST /api/tool get_code_snippet ...');
 
     var snippet = null;
 
