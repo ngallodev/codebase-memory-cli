@@ -18,8 +18,6 @@
 #include "lang_specs.h"
 #include "foundation/compat_thread.h"
 #include "foundation/mem_core.h"
-#include "mcp/mcp.h"
-#include "mcp/mcp_internal.h"
 #include "pipeline/doc_links.h"
 #include "pipeline/doc_links_msbuild.h"
 #include "pipeline/lsp_surface.h"
@@ -326,22 +324,18 @@ static bool dm_namespace_published(const char *db, const char *project, bool val
     dm_row(db, "Bad.cs", "global::Good.Target", inside_reason, sizeof(inside_reason), NULL, 0);
     dm_row(db, "Healthy.cs", "Hidden", conflict_reason, sizeof(conflict_reason), NULL, 0);
     int errors = dm_count(db, "SELECT COUNT(*) FROM doc_link_unresolved WHERE reason = 'error'");
-    char *status = dm_index_status(project, false);
-    const char *block = dm_doc_links_block(status);
-    bool status_ok = block && strstr(block, "\n  status: ok");
     int from_bad = dm_mentions_from(db, "Bad.FromBad");
     bool inside_ok = valid
                          ? inside == 1 && from_bad == 1 && !inside_reason[0]
                          : inside == 0 && from_bad == 0 && strcmp(inside_reason, "graph_gap") == 0;
     bool conflict_ok = valid ? conflict == 1 && !conflict_reason[0]
                              : conflict == 0 && strcmp(conflict_reason, "graph_gap") == 0;
-    bool correct = errors == 0 && healthy == 1 && inside_ok && conflict_ok && status_ok;
+    bool correct = errors == 0 && healthy == 1 && inside_ok && conflict_ok;
     fprintf(stderr,
             "doc namespace published case=%s valid=%d errors=%d healthy=%d inside=%d "
-            "inside_reason=%s conflict=%d conflict_reason=%s status_ok=%d correct=%d\n",
+            "inside_reason=%s conflict=%d conflict_reason=%s correct=%d\n",
             label, valid, errors, healthy, inside, inside_reason, conflict, conflict_reason,
-            status_ok, correct);
-    free(status);
+            correct);
     return correct;
 }
 
@@ -686,17 +680,12 @@ static bool dm_control_published(const char *db, const char *project, const char
     dm_row(db, "Bad.cs", "global::Good.Target", tail_reason, sizeof(tail_reason), NULL, 0);
     dm_row(db, "Healthy.cs", "Hidden", conflict_reason, sizeof(conflict_reason), NULL, 0);
     int errors = dm_count(db, "SELECT COUNT(*) FROM doc_link_unresolved WHERE reason = 'error'");
-    char *status = dm_index_status(project, false);
-    const char *block = dm_doc_links_block(status);
-    bool status_ok = block && strstr(block, "\n  status: ok");
     bool correct = healthy == 1 && tail == 1 && !tail_reason[0] && conflict == 0 &&
-                   strcmp(conflict_reason, "graph_gap") == 0 && errors == 0 && status_ok;
+                   strcmp(conflict_reason, "graph_gap") == 0 && errors == 0;
     fprintf(stderr,
             "doc control published case=%s healthy=%d tail=%d tail_reason=%s conflict=%d "
-            "conflict_reason=%s errors=%d status_ok=%d correct=%d\n",
-            label, healthy, tail, tail_reason, conflict, conflict_reason, errors, status_ok,
-            correct);
-    free(status);
+            "conflict_reason=%s errors=%d correct=%d\n",
+            label, healthy, tail, tail_reason, conflict, conflict_reason, errors, correct);
     return correct;
 }
 
@@ -4353,56 +4342,26 @@ static int dm_index_status_checks(const char *tmp, const char *repo, const char 
     int edges = dm_count(db, "SELECT COUNT(*) FROM edges WHERE type = 'MENTIONS'");
     ASSERT_GT(edges, 0);
 
-    /* doc_links: the edge count, every reason with its row count, the status */
-    char *text = dm_index_status(project, false);
-    ASSERT_NOT_NULL(text);
-    const char *block = dm_doc_links_block(text);
-    ASSERT_NOT_NULL(block);
-    char want[64];
-    snprintf(want, sizeof(want), "\n  mentions: %d\n", edges);
-    ASSERT_NOT_NULL(strstr(block, want));
-    ASSERT_NOT_NULL(strstr(block, "\n  unresolved:\n"));
-    ASSERT_GT(dm_reason_lines(db, block), 4);
-    ASSERT_NOT_NULL(strstr(block, "\n    test_only_target: 2\n"));
-    ASSERT_NOT_NULL(strstr(block, "\n    unparseable: 1\n"));
-    ASSERT_NOT_NULL(strstr(block, "\n  status: ok"));
-    ASSERT_NULL(strstr(block, "hint"));
-    ASSERT_NULL(strstr(block, "samples")); /* only under diagnostics=full */
-    free(text);
-    text = dm_index_status(project, true);
-    ASSERT_NOT_NULL(text);
-    block = dm_doc_links_block(text);
-    ASSERT_NOT_NULL(block);
-    ASSERT_NOT_NULL(strstr(block, "samples"));
-    ASSERT_NOT_NULL(strstr(block, "TestOnlyThing"));
-    ASSERT_NOT_NULL(strstr(block, "src/Lib/Widgets.cs"));
-    free(text);
+    /* The index_status doc_links report assertions (counts per reason, samples,
+     * the error/hint/predates statuses) wait on the doc_links report port;
+     * the persisted-layer checks below stay. */
 
     /* A doc-link layer that fails does not fail the index, and is not
      * published as "no references" either: the generation carries the error,
-     * index_status reports it with what to do, and doing it rebuilds. */
+     * and the next index run rebuilds. */
     dm_unlink_db(db);
     cbm_doclinks_test_fail_build_once();
     ASSERT_EQ(dm_index(repo, db, NULL), 0);
     ASSERT_EQ(dm_count(db, "SELECT COUNT(*) FROM edges WHERE type = 'MENTIONS'"), 0);
     ASSERT_EQ(dm_count(db, "SELECT COUNT(*) FROM doc_link_unresolved"), 1);
     ASSERT_EQ(dm_count(db, "SELECT COUNT(*) FROM doc_link_unresolved WHERE reason = 'error'"), 1);
-    text = dm_index_status(project, false);
-    ASSERT_NOT_NULL(text);
-    block = dm_doc_links_block(text);
-    ASSERT_NOT_NULL(block);
-    ASSERT_NOT_NULL(strstr(block, "\n  mentions: 0\n"));
-    ASSERT_NOT_NULL(strstr(block, "\n  status: error"));
-    ASSERT_NOT_NULL(strstr(block, "index_repository"));
-    ASSERT_NULL(strstr(block, "\n    error: "));
-    free(text);
     ASSERT_EQ(dm_index(repo, db, NULL), 0); /* no file changed */
     ASSERT_EQ(cbm_pipeline_incremental_test_last_route(), CBM_INCREMENTAL_ROUTE_FORCED_FULL);
     ASSERT_EQ(dm_count(db, "SELECT COUNT(*) FROM edges WHERE type = 'MENTIONS'"), edges);
     ASSERT_EQ(dm_count(db, "SELECT COUNT(*) FROM doc_link_unresolved WHERE reason = 'error'"), 0);
 
     /* the marker row is the status, never a reference: with rows beside it
-     * the counts and the samples are theirs alone */
+     * the re-run rebuilds, although no file changed */
     cbm_store_t *s = cbm_store_open_path(db);
     ASSERT_NOT_NULL(s);
     cbm_doc_link_row_t marker[2] = {
@@ -4419,19 +4378,6 @@ static int dm_index_status_checks(const char *tmp, const char *repo, const char 
     };
     ASSERT_EQ(cbm_store_doc_links_replace(s, project, marker, 2), CBM_STORE_OK);
     cbm_store_close(s);
-    text = dm_index_status(project, true);
-    ASSERT_NOT_NULL(text);
-    block = dm_doc_links_block(text);
-    ASSERT_NOT_NULL(block);
-    ASSERT_NOT_NULL(strstr(block, "\n  status: error"));
-    ASSERT_NOT_NULL(strstr(block, "hint"));
-    ASSERT_NOT_NULL(strstr(block, "\n    missing: 1\n"));
-    ASSERT_NULL(strstr(block, "\n    error: "));
-    /* nor is it a sample */
-    ASSERT_NOT_NULL(strstr(block, "\n  samples: 1  (cols: rel_path line syntax raw reason)\n"
-                                  "    src/Lib/Widgets.cs 9 see Gone missing\n"));
-    free(text);
-    /* ... and the re-run the hint asks for rebuilds, although no file changed */
     int rows_before = dm_count(db, "SELECT COUNT(*) FROM doc_link_unresolved");
     ASSERT_EQ(rows_before, 2);
     ASSERT_EQ(dm_index(repo, db, NULL), 0);
@@ -4439,29 +4385,15 @@ static int dm_index_status_checks(const char *tmp, const char *repo, const char 
     ASSERT_GT(dm_count(db, "SELECT COUNT(*) FROM doc_link_unresolved"), rows_before);
     ASSERT_EQ(dm_count(db, "SELECT COUNT(*) FROM doc_link_unresolved WHERE reason = 'error'"), 0);
 
-    /* an index from before the layer has no table: index_status reports an
-     * error and what to do, not zero unresolved references */
+    /* an index from before the layer has no table; the next index run creates
+     * the table again */
     sqlite3 *h = NULL;
     ASSERT_EQ(sqlite3_open_v2(db, &h, SQLITE_OPEN_READWRITE, NULL), SQLITE_OK);
     ASSERT_EQ(sqlite3_exec(h, "DROP TABLE doc_link_unresolved", NULL, NULL, NULL), SQLITE_OK);
     sqlite3_close(h);
-    text = dm_index_status(project, false);
-    ASSERT_NOT_NULL(text);
-    block = dm_doc_links_block(text);
-    ASSERT_NOT_NULL(block);
-    ASSERT_NOT_NULL(strstr(block, "\n  status: error"));
-    ASSERT_NOT_NULL(strstr(block, "predates"));
-    free(text);
-    /* ... and the next index run creates the table again */
     ASSERT_EQ(dm_index(repo, db, NULL), 0);
     ASSERT_EQ(cbm_pipeline_incremental_test_last_route(), CBM_INCREMENTAL_ROUTE_FORCED_FULL);
     ASSERT_GT(dm_count(db, "SELECT COUNT(*) FROM doc_link_unresolved"), rows_before);
-    text = dm_index_status(project, false);
-    ASSERT_NOT_NULL(text);
-    block = dm_doc_links_block(text);
-    ASSERT_NOT_NULL(block);
-    ASSERT_NOT_NULL(strstr(block, "\n  status: ok"));
-    free(text);
     /* a healthy generation with unchanged inputs is current */
     ASSERT_EQ(dm_index(repo, db, NULL), 0);
     ASSERT_EQ(cbm_pipeline_incremental_test_last_route(), CBM_INCREMENTAL_ROUTE_NOOP);
@@ -4506,761 +4438,6 @@ static int dm_index_status_checks(const char *tmp, const char *repo, const char 
     dm_unlink_db(old_db);
     free(project);
     return 0;
-}
-
-/* Each preview test starts from a real private index. Restore process state and
- * remove the fixture even when a deliberately RED check returns failure. */
-static int dm_preview_fixture(int (*check)(const char *db, const char *project)) {
-    char tmp[256] = "/tmp/cbm_dm_preview_XXXXXX";
-    if (!cbm_mkdtemp(tmp)) {
-        return 1;
-    }
-    char repo[400], cache_dir[400], db[1024];
-    snprintf(repo, sizeof(repo), "%s/repo", tmp);
-    snprintf(cache_dir, sizeof(cache_dir), "%s/cache", tmp);
-    dm_write_resolver_fixture(repo);
-    cbm_mkdir_p(cache_dir, 0700);
-    char *project = cbm_project_name_from_path(repo);
-    const char *saved = getenv("CBM_CACHE_DIR");
-    char *saved_copy = saved ? strdup(saved) : NULL;
-    if (!project || (saved && !saved_copy)) {
-        free(project);
-        free(saved_copy);
-        th_rmtree(tmp);
-        return 1;
-    }
-    snprintf(db, sizeof(db), "%s/%s.db", cache_dir, project);
-    cbm_setenv("CBM_CACHE_DIR", cache_dir, 1);
-    int rc = dm_index(repo, db, NULL);
-    if (rc == 0) {
-        rc = check(db, project);
-    }
-    if (saved_copy) {
-        cbm_setenv("CBM_CACHE_DIR", saved_copy, 1);
-    } else {
-        cbm_unsetenv("CBM_CACHE_DIR");
-    }
-    free(saved_copy);
-    dm_unlink_db(db);
-    free(project);
-    th_rmtree(tmp);
-    return rc;
-}
-
-/* Return the actual MCP envelope, including structuredContent for JSON, so a
- * test exercises both transport boundaries instead of a formatter in isolation. */
-static yyjson_doc *dm_preview_status(const char *project, bool json) {
-    cbm_mcp_server_t *srv = cbm_mcp_server_new(NULL);
-    if (!srv) {
-        return NULL;
-    }
-    char args[1200];
-    snprintf(args, sizeof(args), "{\"project\":\"%s\",\"diagnostics\":\"full\"%s}", project,
-             json ? ",\"format\":\"json\"" : "");
-    char *response = cbm_mcp_handle_tool(srv, "index_status", args);
-    yyjson_doc *out = response ? yyjson_read(response, strlen(response), 0) : NULL;
-    free(response);
-    cbm_mcp_server_free(srv);
-    return out;
-}
-
-static const char *dm_preview_text(yyjson_doc *envelope) {
-    yyjson_val *root = envelope ? yyjson_doc_get_root(envelope) : NULL;
-    yyjson_val *content = yyjson_obj_get(root, "content");
-    return yyjson_get_str(yyjson_obj_get(yyjson_arr_get(content, 0), "text"));
-}
-
-static yyjson_val *dm_preview_report(yyjson_doc *envelope) {
-    yyjson_val *root = envelope ? yyjson_doc_get_root(envelope) : NULL;
-    return yyjson_obj_get(yyjson_obj_get(root, "structuredContent"), "doc_links");
-}
-
-static bool dm_preview_status_is(yyjson_doc *envelope, const char *status) {
-    const char *actual = yyjson_get_str(yyjson_obj_get(dm_preview_report(envelope), "status"));
-    return actual && strcmp(actual, status) == 0;
-}
-
-static bool dm_preview_json_consistent(yyjson_doc *envelope) {
-    const char *text = dm_preview_text(envelope);
-    yyjson_doc *payload = text ? yyjson_read(text, strlen(text), 0) : NULL;
-    yyjson_val *root = envelope ? yyjson_doc_get_root(envelope) : NULL;
-    yyjson_val *structured = yyjson_obj_get(root, "structuredContent");
-    char *a = structured ? yyjson_val_write(structured, 0, NULL) : NULL;
-    char *b = payload ? yyjson_val_write(yyjson_doc_get_root(payload), 0, NULL) : NULL;
-    bool correct = a && b && strcmp(a, b) == 0;
-    free(a);
-    free(b);
-    yyjson_doc_free(payload);
-    return correct;
-}
-
-static bool dm_preview_compact_status(yyjson_doc *env, const char *status) {
-    const char *text = dm_preview_text(env);
-    const char *report = text ? strstr(text, "doc_links:\n") : NULL;
-    char expected[50];
-    snprintf(expected, sizeof(expected), "\n  status: %s\n", status);
-    return report && strstr(report, expected);
-}
-
-static bool dm_preview_compact_metadata(yyjson_doc *env, size_t sample, const char *field,
-                                        size_t original, size_t included, bool truncated,
-                                        bool escaped) {
-    const char *text = dm_preview_text(env);
-    const char *table = text ? strstr(text, "\n  samples_preview:") : NULL;
-    const char *columns = table ? strstr(table, "(cols: sample_index field original_bytes "
-                                                "included_source_bytes truncated escaped)\n")
-                                : NULL;
-    const char *end = table ? strchr(table + 1, '\n') : NULL;
-    char row[220];
-    snprintf(row, sizeof(row), "\n    %zu %s %zu %zu %s %s\n", sample, field, original, included,
-             truncated ? "true" : "false", escaped ? "true" : "false");
-    return columns && end && columns < end && strstr(end, row);
-}
-
-static yyjson_val *dm_preview_metadata(yyjson_val *report, size_t sample, const char *field) {
-    yyjson_val *entries = yyjson_obj_get(report, "samples_preview");
-    for (size_t i = 0; i < yyjson_arr_size(entries); i++) {
-        yyjson_val *entry = yyjson_arr_get(entries, i);
-        const char *name = yyjson_get_str(yyjson_obj_get(entry, "field"));
-        yyjson_val *index = yyjson_obj_get(entry, "sample_index");
-        if (name && yyjson_is_uint(index) && yyjson_get_uint(index) == sample &&
-            strcmp(name, field) == 0) {
-            return entry;
-        }
-    }
-    return NULL;
-}
-
-static bool dm_preview_metadata_matches(yyjson_val *entry, size_t original, size_t included,
-                                        bool truncated, bool escaped) {
-    yyjson_val *orig = yyjson_obj_get(entry, "original_bytes");
-    yyjson_val *shown = yyjson_obj_get(entry, "included_source_bytes");
-    yyjson_val *cut = yyjson_obj_get(entry, "truncated");
-    yyjson_val *quoted = yyjson_obj_get(entry, "escaped");
-    return yyjson_is_uint(orig) && yyjson_get_uint(orig) == original && yyjson_is_uint(shown) &&
-           yyjson_get_uint(shown) == included && yyjson_is_bool(cut) &&
-           yyjson_get_bool(cut) == truncated && yyjson_is_bool(quoted) &&
-           yyjson_get_bool(quoted) == escaped;
-}
-
-static bool dm_preview_full_row(cbm_store_t *store, const char *project,
-                                const cbm_doc_link_row_t *expected) {
-    cbm_doc_link_row_t *rows = NULL;
-    int count = 0;
-    bool present = false;
-    bool correct =
-        cbm_store_doc_links_get(store, project, &rows, &count, &present) == CBM_STORE_OK &&
-        present && count == 1;
-    if (correct) {
-        correct = rows[0].line == expected->line &&
-                  strcmp(rows[0].rel_path, expected->rel_path) == 0 &&
-                  strcmp(rows[0].syntax, expected->syntax) == 0 &&
-                  strcmp(rows[0].raw, expected->raw) == 0 &&
-                  strcmp(rows[0].reason, expected->reason) == 0;
-    }
-    cbm_store_free_doc_links(rows, count);
-    return correct;
-}
-
-static int dm_preview_bounds_checks(const char *db, const char *project) {
-    cbm_store_t *store = cbm_store_open_path(db);
-    if (!store) {
-        return 1;
-    }
-    const char *fields[] = {"rel_path", "syntax", "raw", "reason"};
-    const size_t limits[] = {1024, 128, 1024, 128};
-    const cbm_doc_link_row_t ordinary = {.rel_path = "src/Normal.cs",
-                                         .line = 7,
-                                         .syntax = "see",
-                                         .raw = "Gone",
-                                         .reason = "missing"};
-    bool shape = cbm_store_doc_links_replace(store, project, &ordinary, 1) == CBM_STORE_OK;
-    for (int format = 0; format < 2; format++) {
-        yyjson_doc *env = dm_preview_status(project, format != 0);
-        const char *text = dm_preview_text(env);
-        if (format) {
-            yyjson_val *report = dm_preview_report(env);
-            yyjson_val *samples = yyjson_obj_get(report, "samples");
-            shape = dm_preview_status_is(env, "ok") && dm_preview_json_consistent(env) &&
-                    yyjson_arr_size(samples) == 1 &&
-                    yyjson_obj_size(yyjson_arr_get(samples, 0)) == 5 &&
-                    !yyjson_obj_get(report, "samples_preview") &&
-                    !yyjson_obj_get(report, "samples_preview_note") && shape;
-        } else {
-            shape = text &&
-                    strstr(text, "samples: 1  (cols: rel_path line syntax raw reason)\n"
-                                 "    src/Normal.cs 7 see Gone missing\n") &&
-                    !strstr(text, "samples_preview") && shape;
-        }
-        yyjson_doc_free(env);
-    }
-    bool bounded = true, copies = true, preserved = true;
-    for (int size = 0; size < 3; size++) {
-        size_t length = size == 1 ? 65536 : 8192;
-        bool escaped = size == 2;
-        char *values[4] = {0};
-        bool allocated = true;
-        for (int field = 0; field < 4; field++) {
-            values[field] = malloc(length + 1);
-            if (!values[field]) {
-                allocated = false;
-                break;
-            }
-            memset(values[field], escaped ? '\\' : 'a' + field, length);
-            values[field][length] = '\0';
-        }
-        if (!allocated) {
-            for (int field = 0; field < 4; field++) {
-                free(values[field]);
-            }
-            cbm_store_close(store);
-            return 1;
-        }
-        cbm_doc_link_row_t row = {.rel_path = values[0],
-                                  .line = 42,
-                                  .syntax = values[1],
-                                  .raw = values[2],
-                                  .reason = values[3]};
-        preserved =
-            cbm_store_doc_links_replace(store, project, &row, 1) == CBM_STORE_OK && preserved;
-        for (int format = 0; format < 2; format++) {
-            cbm_store_doc_links_test_sample_stats_reset();
-            yyjson_doc *env = dm_preview_status(project, format != 0);
-            cbm_doc_links_sample_test_stats_t stats = {0};
-            cbm_store_doc_links_test_sample_stats(&stats);
-            copies = stats.field_copies == 4 && stats.copied_bytes <= 2320 &&
-                     stats.requested_bytes == stats.copied_bytes &&
-                     stats.max_request_bytes <= 1028 && copies;
-            const char *text = dm_preview_text(env);
-            if (format) {
-                yyjson_val *report = dm_preview_report(env);
-                yyjson_val *samples = yyjson_obj_get(report, "samples");
-                yyjson_val *sample = yyjson_arr_get(samples, 0);
-                yyjson_val *metadata = yyjson_obj_get(report, "samples_preview");
-                const char *note = yyjson_get_str(yyjson_obj_get(report, "samples_preview_note"));
-                /* the row's reason is no reason this layer writes: the
-                 * status is error (S12); its sample is still shown bounded */
-                bounded = dm_preview_status_is(env, "error") && dm_preview_json_consistent(env) &&
-                          yyjson_arr_size(samples) == 1 && yyjson_obj_size(sample) == 5 &&
-                          yyjson_arr_size(metadata) == 4 && note &&
-                          strstr(note, "doc_link_unresolved") && bounded;
-                for (int field = 0; field < 4; field++) {
-                    yyjson_val *value = yyjson_obj_get(sample, fields[field]);
-                    const char *actual = yyjson_get_str(value);
-                    bounded = actual && yyjson_get_len(value) == limits[field] &&
-                              memcmp(actual, values[field], limits[field]) == 0 &&
-                              dm_preview_metadata_matches(
-                                  dm_preview_metadata(report, 0, fields[field]), length,
-                                  limits[field] / (escaped ? 2 : 1), true, escaped) &&
-                              bounded;
-                }
-                char *encoded = samples ? yyjson_val_write(samples, 0, NULL) : NULL;
-                bounded = encoded && strlen(encoded) <= 5000 && bounded;
-                free(encoded);
-            } else {
-                const char *table = text ? strstr(text, "\n  samples:") : NULL;
-                const char *metadata = table ? strstr(table, "\n  samples_preview:") : NULL;
-                size_t bytes = table ? (metadata ? (size_t)(metadata - table) : strlen(table)) : 0;
-                bounded = table && metadata && bytes <= 5000 &&
-                          dm_preview_compact_status(env, "error") &&
-                          strstr(metadata, "\n  samples_preview_note:") &&
-                          strstr(table, "(cols: rel_path line syntax raw reason)") && bounded;
-                for (int field = 0; field < 4; field++) {
-                    bounded = dm_preview_compact_metadata(env, 0, fields[field], length,
-                                                          limits[field] / (escaped ? 2 : 1), true,
-                                                          escaped) &&
-                              bounded;
-                }
-            }
-            fprintf(stderr,
-                    "doc preview bounds source=%llu escaped=%d json=%d copies=%llu copied=%llu "
-                    "requested=%llu "
-                    "max_request=%llu bounded=%d copy_bound=%d\n",
-                    (unsigned long long)length, escaped, format,
-                    (unsigned long long)stats.field_copies, (unsigned long long)stats.copied_bytes,
-                    (unsigned long long)stats.requested_bytes,
-                    (unsigned long long)stats.max_request_bytes, bounded, copies);
-            yyjson_doc_free(env);
-        }
-        preserved = dm_preview_full_row(store, project, &row) && preserved;
-        for (int field = 0; field < 4; field++) {
-            free(values[field]);
-        }
-    }
-    cbm_store_close(store);
-    fprintf(stderr, "doc preview shape=%d full_rows_preserved=%d\n", shape, preserved);
-    return !(shape && bounded && copies && preserved);
-}
-
-TEST(doc_mentions_index_status_preview_bounds) {
-    int result = dm_preview_fixture(dm_preview_bounds_checks);
-    ASSERT_EQ(result, 0);
-    PASS();
-}
-
-/* Check binary storage through SQLite, without asking the legacy C-string
- * getter to promise NUL support. All non-NUL cases also exercise that getter. */
-static bool dm_preview_raw_bytes(const char *db, const char *project, const void *bytes,
-                                 size_t length, bool write) {
-    sqlite3 *sql = NULL;
-    sqlite3_stmt *stmt = NULL;
-    bool correct = sqlite3_open_v2(db, &sql, write ? SQLITE_OPEN_READWRITE : SQLITE_OPEN_READONLY,
-                                   NULL) == SQLITE_OK;
-    const char *query = write
-                            ? "UPDATE doc_link_unresolved SET raw=?2 WHERE project=?1;"
-                            : "SELECT CAST(raw AS BLOB) FROM doc_link_unresolved WHERE project=?1;";
-    correct = correct && sqlite3_prepare_v2(sql, query, -1, &stmt, NULL) == SQLITE_OK &&
-              sqlite3_bind_text(stmt, 1, project, -1, SQLITE_TRANSIENT) == SQLITE_OK;
-    if (correct && write) {
-        correct = sqlite3_bind_text(stmt, 2, bytes, (int)length, SQLITE_TRANSIENT) == SQLITE_OK &&
-                  sqlite3_step(stmt) == SQLITE_DONE && sqlite3_changes(sql) == 1;
-    } else if (correct) {
-        correct = sqlite3_step(stmt) == SQLITE_ROW &&
-                  sqlite3_column_bytes(stmt, 0) == (int)length &&
-                  (length == 0 || memcmp(sqlite3_column_blob(stmt, 0), bytes, length) == 0) &&
-                  sqlite3_step(stmt) == SQLITE_DONE;
-    }
-    sqlite3_finalize(stmt);
-    sqlite3_close(sql);
-    return correct;
-}
-
-/* Expected preview strings are independent, literal test data. This helper
- * only applies the compact table's quote/backslash framing to an expectation. */
-static bool dm_preview_compact_raw(yyjson_doc *env, const char *expected) {
-    const char *text = dm_preview_text(env);
-    const char *table =
-        text ? strstr(text, "samples: 1  (cols: rel_path line syntax raw reason)\n") : NULL;
-    const char *row = table ? strchr(table, '\n') + 1 : NULL;
-    const char *end = row ? strchr(row, '\n') : NULL;
-    if (!row || !end || (size_t)(end - row) > 2200) {
-        return false;
-    }
-    char unquoted[2200], quoted[2200];
-    snprintf(unquoted, sizeof(unquoted), "    src/Text.cs 9 see %s missing", expected);
-    size_t used = (size_t)snprintf(quoted, sizeof(quoted), "    src/Text.cs 9 see \"");
-    for (const unsigned char *p = (const unsigned char *)expected; *p; p++) {
-        if (*p == '\\' || *p == '"') {
-            quoted[used++] = '\\';
-        }
-        quoted[used++] = (char)*p;
-    }
-    snprintf(quoted + used, sizeof(quoted) - used, "\" missing");
-    size_t n = (size_t)(end - row);
-    return (strlen(unquoted) == n && memcmp(row, unquoted, n) == 0) ||
-           (strlen(quoted) == n && memcmp(row, quoted, n) == 0);
-}
-
-static bool dm_preview_text_case(cbm_store_t *store, const char *db, const char *project,
-                                 const char *name, const char *source, size_t length,
-                                 const char *expected, size_t included, bool escaped) {
-    cbm_doc_link_row_t row = {
-        .rel_path = "src/Text.cs", .line = 9, .syntax = "see", .raw = source, .reason = "missing"};
-    bool correct = cbm_store_doc_links_replace(store, project, &row, 1) == CBM_STORE_OK &&
-                   dm_preview_raw_bytes(db, project, source, length, true);
-    bool truncated = included < length;
-    for (int format = 0; format < 2; format++) {
-        yyjson_doc *env = dm_preview_status(project, format != 0);
-        bool rendered;
-        if (format) {
-            yyjson_val *report = dm_preview_report(env);
-            yyjson_val *samples = yyjson_obj_get(report, "samples");
-            yyjson_val *sample = yyjson_arr_get(samples, 0);
-            yyjson_val *raw = yyjson_obj_get(sample, "raw");
-            const char *actual = yyjson_get_str(raw);
-            yyjson_val *metadata = yyjson_obj_get(report, "samples_preview");
-            rendered = dm_preview_status_is(env, "ok") && dm_preview_json_consistent(env) &&
-                       yyjson_arr_size(samples) == 1 && yyjson_obj_size(sample) == 5 && actual &&
-                       yyjson_get_len(raw) == strlen(expected) && strcmp(actual, expected) == 0;
-            if (truncated || escaped) {
-                const char *note = yyjson_get_str(yyjson_obj_get(report, "samples_preview_note"));
-                rendered = rendered && yyjson_arr_size(metadata) == 1 && note &&
-                           strstr(note, "doc_link_unresolved") &&
-                           dm_preview_metadata_matches(dm_preview_metadata(report, 0, "raw"),
-                                                       length, included, truncated, escaped);
-            } else {
-                rendered = rendered && !metadata && !yyjson_obj_get(report, "samples_preview_note");
-            }
-        } else {
-            rendered =
-                dm_preview_compact_raw(env, expected) && dm_preview_compact_status(env, "ok");
-            const char *text = dm_preview_text(env);
-            if (truncated || escaped) {
-                rendered = dm_preview_compact_metadata(env, 0, "raw", length, included, truncated,
-                                                       escaped) &&
-                           text && strstr(text, "\n  samples_preview_note:") && rendered;
-            } else {
-                rendered = text && !strstr(text, "samples_preview") && rendered;
-            }
-        }
-        correct = rendered && correct;
-        fprintf(stderr, "doc preview text case=%s json=%d rendered=%d\n", name, format, rendered);
-        yyjson_doc_free(env);
-    }
-    correct = dm_preview_raw_bytes(db, project, source, length, false) && correct;
-    if (!memchr(source, 0, length)) {
-        correct = dm_preview_full_row(store, project, &row) && correct;
-    }
-    return correct;
-}
-
-static int dm_preview_text_checks(const char *db, const char *project) {
-    cbm_store_t *store = cbm_store_open_path(db);
-    if (!store) {
-        return 1;
-    }
-    const struct {
-        const char *name;
-        const char *source;
-        size_t length;
-        const char *expected;
-        bool escaped;
-    } cases[] = {
-        {"ordinary_utf8", "A\xC3\xA9\xE2\x82\xAC\xF0\x9F\x99\x82Z", 11,
-         "A\xC3\xA9\xE2\x82\xAC\xF0\x9F\x99\x82Z", false},
-        {"c0_del", "A\x01\t\n\r\x1F\x7FZ", 8,
-         "A\\u{0001}\\u{0009}\\u{000A}\\u{000D}\\u{001F}\\u{007F}Z", true},
-        {"nul", "A\0B", 3, "A\\u{0000}B", true},
-        {"literal_escapes", "\\u{000A}\\xFF", 12, "\\\\u{000A}\\\\xFF", true},
-        {"reserved_bytes", "@bytes:AA", 9, "\\u{0040}bytes:AA", true},
-        {"reserved_utf8", "@utf8:AA", 8, "\\u{0040}utf8:AA", true},
-        {"middle_prefix", "A@utf8:AA", 9, "A@utf8:AA", false},
-        {"malformed", "\xC0\xAF\xED\xA0\x80\xF4\x90\x80\x80\x80\xC2", 11,
-         "\\xC0\\xAF\\xED\\xA0\\x80\\xF4\\x90\\x80\\x80\\x80\\xC2", true},
-        {"format_controls",
-         "\xE2\x80\x8B\xE2\x80\x8F\xE2\x80\xAA\xE2\x80\xAE"
-         "\xE2\x81\xA6\xE2\x81\xA9\xF3\xA0\x80\x80\xF3\xA0\x81\xBF",
-         26, "\\u{200B}\\u{200F}\\u{202A}\\u{202E}\\u{2066}\\u{2069}\\u{E0000}\\u{E007F}", true},
-        {"adjacent_unicode",
-         "\xE2\x80\x8A\xE2\x80\x90\xE2\x80\xA9\xE2\x80\xAF"
-         "\xE2\x81\xA5\xE2\x81\xAA\xF3\x9F\xBF\xBF\xF3\xA0\x82\x80",
-         26,
-         "\xE2\x80\x8A\xE2\x80\x90\xE2\x80\xA9\xE2\x80\xAF"
-         "\xE2\x81\xA5\xE2\x81\xAA\xF3\x9F\xBF\xBF\xF3\xA0\x82\x80",
-         false},
-    };
-    bool correct = true;
-    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
-        correct = dm_preview_text_case(store, db, project, cases[i].name, cases[i].source,
-                                       cases[i].length, cases[i].expected, cases[i].length,
-                                       cases[i].escaped) &&
-                  correct;
-    }
-    /* One expected token must either fit entirely or contribute no source
-     * bytes. The suffix guarantees truncation even for the exactly-fit case. */
-    const struct {
-        const char *name, *source, *expected;
-        size_t source_bytes, display_bytes;
-        bool escape;
-    } tokens[] = {
-        {"utf8_2", "\xC3\xA9", "\xC3\xA9", 2, 2, false},
-        {"utf8_3", "\xE2\x82\xAC", "\xE2\x82\xAC", 3, 3, false},
-        {"utf8_4", "\xF0\x9F\x99\x82", "\xF0\x9F\x99\x82", 4, 4, false},
-        {"newline", "\n", "\\u{000A}", 1, 8, true},
-        {"backslash", "\\", "\\\\", 1, 2, true},
-        {"invalid", "\xFF", "\\xFF", 1, 4, true},
-        {"tag", "\xF3\xA0\x80\x81", "\\u{E0001}", 4, 9, true},
-    };
-    for (size_t i = 0; i < sizeof(tokens) / sizeof(tokens[0]); i++) {
-        for (int fit = 0; fit < 2; fit++) {
-            char source[1100], expected[1100], name[60];
-            size_t prefix = fit ? 1024 - tokens[i].display_bytes : 1023;
-            memset(source, 'p', prefix);
-            memcpy(source + prefix, tokens[i].source, tokens[i].source_bytes);
-            memcpy(source + prefix + tokens[i].source_bytes, "TAIL", 5);
-            memset(expected, 'p', prefix);
-            size_t shown = prefix;
-            if (fit) {
-                memcpy(expected + shown, tokens[i].expected, tokens[i].display_bytes);
-                shown += tokens[i].display_bytes;
-            }
-            expected[shown] = '\0';
-            snprintf(name, sizeof(name), "%s_%s", tokens[i].name, fit ? "fits" : "stops");
-            correct = dm_preview_text_case(store, db, project, name, source,
-                                           prefix + tokens[i].source_bytes + 4, expected,
-                                           prefix + (fit ? tokens[i].source_bytes : 0),
-                                           fit && tokens[i].escape) &&
-                      correct;
-        }
-    }
-    cbm_store_close(store);
-    return !correct;
-}
-
-TEST(doc_mentions_index_status_preview_text) {
-    int result = dm_preview_fixture(dm_preview_text_checks);
-    ASSERT_EQ(result, 0);
-    PASS();
-}
-
-static int dm_preview_order_checks(const char *db, const char *project) {
-    cbm_store_t *store = cbm_store_open_path(db);
-    if (!store) {
-        return 1;
-    }
-    cbm_doc_link_row_t rows[52] = {0};
-    char paths[51][40], raw[1026];
-    memset(raw, 'r', sizeof(raw) - 1);
-    raw[sizeof(raw) - 1] = '\0';
-    /* The marker sorts first and consumes one of the original SQL LIMIT 50.
-     * Insert references backwards, so a storage-order accident cannot pass. */
-    rows[0] =
-        (cbm_doc_link_row_t){.rel_path = "", .line = 0, .syntax = "", .raw = "", .reason = "error"};
-    for (int i = 0; i < 51; i++) {
-        snprintf(paths[i], sizeof(paths[i]), "src/Case%03d.cs", 50 - i);
-        rows[i + 1] = (cbm_doc_link_row_t){
-            .rel_path = paths[i], .line = 5, .syntax = "see", .raw = raw, .reason = "missing"};
-    }
-    bool correct = cbm_store_doc_links_replace(store, project, rows, 52) == CBM_STORE_OK;
-    for (int format = 0; format < 2; format++) {
-        cbm_store_doc_links_test_sample_stats_reset();
-        yyjson_doc *env = dm_preview_status(project, format != 0);
-        cbm_doc_links_sample_test_stats_t stats = {0};
-        cbm_store_doc_links_test_sample_stats(&stats);
-        bool ordered = stats.field_copies >= 196 && stats.field_copies <= 200 &&
-                       stats.copied_bytes <= 116000 &&
-                       stats.requested_bytes == stats.copied_bytes &&
-                       stats.max_request_bytes <= 1028;
-        if (format) {
-            yyjson_val *report = dm_preview_report(env);
-            yyjson_val *samples = yyjson_obj_get(report, "samples");
-            ordered = dm_preview_status_is(env, "error") && dm_preview_json_consistent(env) &&
-                      yyjson_arr_size(samples) == 49 &&
-                      yyjson_arr_size(yyjson_obj_get(report, "samples_preview")) == 49 && ordered;
-            for (int i = 0; i < 49; i++) {
-                char path[40];
-                snprintf(path, sizeof(path), "src/Case%03d.cs", i);
-                yyjson_val *sample = yyjson_arr_get(samples, (size_t)i);
-                const char *actual = yyjson_get_str(yyjson_obj_get(sample, "rel_path"));
-                ordered = actual && strcmp(actual, path) == 0 && yyjson_obj_size(sample) == 5 &&
-                          yyjson_get_len(yyjson_obj_get(sample, "raw")) == 1024 &&
-                          dm_preview_metadata_matches(dm_preview_metadata(report, (size_t)i, "raw"),
-                                                      1025, 1024, true, false) &&
-                          ordered;
-            }
-        } else {
-            const char *text = dm_preview_text(env);
-            const char *cursor =
-                text ? strstr(text, "samples: 49  (cols: rel_path line syntax raw reason)\n")
-                     : NULL;
-            ordered = cursor && ordered;
-            for (int i = 0; i < 49; i++) {
-                char prefix[60];
-                snprintf(prefix, sizeof(prefix), "\n    src/Case%03d.cs 5 see ", i);
-                const char *next = cursor ? strstr(cursor, prefix) : NULL;
-                ordered = next && ordered;
-                cursor = next ? next + strlen(prefix) : NULL;
-            }
-            ordered = cursor && !strstr(cursor, "src/Case049.cs") &&
-                      !strstr(cursor, "src/Case050.cs") && ordered;
-        }
-        fprintf(stderr, "doc preview order json=%d copies=%llu copied=%llu ordered=%d\n", format,
-                (unsigned long long)stats.field_copies, (unsigned long long)stats.copied_bytes,
-                ordered);
-        correct = ordered && correct;
-        yyjson_doc_free(env);
-    }
-    cbm_doc_link_row_t *full = NULL;
-    int count = 0;
-    bool present = false;
-    correct = cbm_store_doc_links_get(store, project, &full, &count, &present) == CBM_STORE_OK &&
-              present && count == 52 && correct;
-    for (int i = 0; i < count; i++) {
-        if (full[i].rel_path && full[i].rel_path[0]) {
-            correct = strcmp(full[i].raw, raw) == 0 && correct;
-        }
-    }
-    cbm_store_free_doc_links(full, count);
-    /* Sort the complete source before projection. These two rows have the same
-     * displayed raw prefix, but the longer original sorts first (aa before z). */
-    char first[1030], second[1029];
-    memset(first, 't', 1027);
-    memcpy(first + 1027, "aa", 3);
-    memset(second, 't', 1027);
-    memcpy(second + 1027, "z", 2);
-    cbm_doc_link_row_t ties[] = {
-        {.rel_path = "src/Tie.cs", .line = 2, .syntax = "see", .raw = second, .reason = "missing"},
-        {.rel_path = "src/Tie.cs", .line = 2, .syntax = "see", .raw = first, .reason = "missing"},
-        {.rel_path = "src/Tie.cs", .line = 1, .syntax = "see", .raw = second, .reason = "missing"},
-        {.rel_path = "src/Z.cs", .line = 3, .syntax = "see", .raw = first, .reason = "ambiguous"},
-    };
-    correct = cbm_store_doc_links_replace(store, project, ties, 4) == CBM_STORE_OK && correct;
-    yyjson_doc *env = dm_preview_status(project, true);
-    yyjson_val *report = dm_preview_report(env);
-    yyjson_val *ordered = yyjson_obj_get(report, "samples");
-    const size_t original[] = {1029, 1028, 1029, 1028};
-    const int lines[] = {3, 1, 2, 2};
-    bool ties_correct = dm_preview_status_is(env, "ok") && dm_preview_json_consistent(env) &&
-                        yyjson_arr_size(ordered) == 4;
-    for (size_t i = 0; i < 4; i++) {
-        yyjson_val *sample = yyjson_arr_get(ordered, i);
-        const char *path = yyjson_get_str(yyjson_obj_get(sample, "rel_path"));
-        ties_correct = path && strcmp(path, i ? "src/Tie.cs" : "src/Z.cs") == 0 &&
-                       yyjson_get_int(yyjson_obj_get(sample, "line")) == lines[i] &&
-                       dm_preview_metadata_matches(dm_preview_metadata(report, i, "raw"),
-                                                   original[i], 1024, true, false) &&
-                       ties_correct;
-    }
-    fprintf(stderr, "doc preview full_source_order=%d\n", ties_correct);
-    correct = ties_correct && correct;
-    yyjson_doc_free(env);
-    cbm_store_close(store);
-    return !correct;
-}
-
-TEST(doc_mentions_index_status_preview_order) {
-    int result = dm_preview_fixture(dm_preview_order_checks);
-    ASSERT_EQ(result, 0);
-    PASS();
-}
-
-static bool dm_preview_error_result(yyjson_doc *env, bool json) {
-    if (json) {
-        yyjson_val *report = dm_preview_report(env);
-        return dm_preview_status_is(env, "error") && dm_preview_json_consistent(env) &&
-               yyjson_arr_size(yyjson_obj_get(report, "samples")) == 0 &&
-               yyjson_arr_size(yyjson_obj_get(report, "samples_preview")) == 0 &&
-               !yyjson_obj_get(report, "samples_preview_note");
-    }
-    const char *text = dm_preview_text(env);
-    const char *report = text ? strstr(text, "doc_links:\n") : NULL;
-    return report && strstr(report, "\n  status: error\n") && !strstr(report, "src/Failure") &&
-           !strstr(report, "samples_preview");
-}
-
-static bool dm_preview_retry_result(yyjson_doc *env, bool json) {
-    if (json) {
-        yyjson_val *samples = yyjson_obj_get(dm_preview_report(env), "samples");
-        if (!dm_preview_status_is(env, "ok") || !dm_preview_json_consistent(env) ||
-            yyjson_arr_size(samples) != 2) {
-            return false;
-        }
-        for (size_t i = 0; i < 2; i++) {
-            yyjson_val *row = yyjson_arr_get(samples, i);
-            const char *raw = yyjson_get_str(yyjson_obj_get(row, "raw"));
-            const char *path = yyjson_get_str(yyjson_obj_get(row, "rel_path"));
-            if (yyjson_obj_size(row) != 5 || !raw ||
-                strcmp(raw, i ? "Second" : "First\\u{000A}") != 0 || !path ||
-                strcmp(path, i ? "src/FailureB.cs" : "src/FailureA.cs") != 0) {
-                return false;
-            }
-        }
-        yyjson_val *report = dm_preview_report(env);
-        return yyjson_arr_size(yyjson_obj_get(report, "samples_preview")) == 1 &&
-               dm_preview_metadata_matches(dm_preview_metadata(report, 0, "raw"), 6, 6, false,
-                                           true) &&
-               yyjson_get_str(yyjson_obj_get(report, "samples_preview_note"));
-    }
-    const char *text = dm_preview_text(env);
-    return text && dm_preview_compact_status(env, "ok") &&
-           dm_preview_compact_metadata(env, 0, "raw", 6, 6, false, true) &&
-           strstr(text, "\n  samples_preview_note:") &&
-           strstr(text, "samples: 2  (cols: rel_path line syntax raw reason)\n"
-                        "    src/FailureA.cs 3 see First\\u{000A} missing\n"
-                        "    src/FailureB.cs 4 see Second missing\n");
-}
-
-static int dm_preview_failure_checks(const char *db, const char *project) {
-    cbm_store_t *store = cbm_store_open_path(db);
-    if (!store) {
-        return 1;
-    }
-    cbm_doc_link_row_t rows[] = {
-        {.rel_path = "src/FailureA.cs",
-         .line = 3,
-         .syntax = "see",
-         .raw = "First\n",
-         .reason = "missing"},
-        {.rel_path = "src/FailureB.cs",
-         .line = 4,
-         .syntax = "see",
-         .raw = "Second",
-         .reason = "missing"},
-    };
-    bool correct = cbm_store_doc_links_replace(store, project, rows, 2) == CBM_STORE_OK;
-    for (int format = 0; format < 2; format++) {
-        yyjson_doc *warm = dm_preview_status(project, format != 0);
-        correct = dm_preview_retry_result(warm, format != 0) && correct;
-        yyjson_doc_free(warm);
-    }
-
-    /* Full getters and summary-only callers must not consume sample faults or
-     * record projected sample bytes. This also protects incremental callers. */
-    cbm_store_doc_links_test_sample_stats_reset();
-    cbm_store_doc_links_test_fail_sample_alloc_after(0);
-    cbm_mcp_doc_links_test_fail_sample_alloc_after(0);
-    cbm_doc_link_row_t *full = NULL, *samples = NULL;
-    cbm_doc_link_reason_count_t *reasons = NULL;
-    int count = 0, nsamples = 0, nreasons = 0;
-    bool present = false;
-    bool bypass =
-        cbm_store_doc_links_get(store, project, &full, &count, &present) == CBM_STORE_OK &&
-        present && count == 2;
-    cbm_store_free_doc_links(full, count);
-    bypass = cbm_store_doc_links_summary(store, project, &reasons, &nreasons, &samples, &nsamples,
-                                         0, &present) == CBM_STORE_OK &&
-             present && nsamples == 0 && nreasons == 1 && bypass;
-    cbm_store_free_doc_links(samples, nsamples);
-    cbm_store_free_doc_link_reasons(reasons, nreasons);
-    char *summary = dm_index_status(project, false);
-    bypass = summary && !strstr(summary, "src/Failure") && bypass;
-    free(summary);
-    cbm_doc_links_sample_test_stats_t stats = {0};
-    cbm_store_doc_links_test_sample_stats(&stats);
-    bypass = stats.field_copies == 0 && stats.copied_bytes == 0 && stats.requested_bytes == 0 &&
-             !cbm_store_doc_links_test_sample_alloc_failed() &&
-             !cbm_mcp_doc_links_test_sample_alloc_failed() && bypass;
-    cbm_store_doc_links_test_fail_sample_alloc_after(-1);
-    cbm_mcp_doc_links_test_fail_sample_alloc_after(-1);
-    fprintf(stderr, "doc preview sample_only=%d\n", bypass);
-    correct = bypass && correct;
-
-    for (int stage = 0; stage < 2; stage++) {
-        for (int nth = 0; nth < 2; nth++) {
-            for (int format = 0; format < 2; format++) {
-                uint64_t before = cbm_mem_tracked_live_bytes();
-                if (stage == 0) {
-                    cbm_store_doc_links_test_fail_sample_alloc_after(nth ? 4 : 0);
-                } else {
-                    cbm_mcp_doc_links_test_fail_sample_alloc_after(nth ? 4 : 0);
-                }
-                yyjson_doc *failed = dm_preview_status(project, format != 0);
-                bool consumed = stage == 0 ? cbm_store_doc_links_test_sample_alloc_failed()
-                                           : cbm_mcp_doc_links_test_sample_alloc_failed();
-                bool error = dm_preview_error_result(failed, format != 0);
-                yyjson_doc_free(failed);
-                cbm_store_doc_links_test_fail_sample_alloc_after(-1);
-                cbm_mcp_doc_links_test_fail_sample_alloc_after(-1);
-                uint64_t after_failure = cbm_mem_tracked_live_bytes();
-                yyjson_doc *retried = dm_preview_status(project, format != 0);
-                bool retry = dm_preview_retry_result(retried, format != 0);
-                yyjson_doc_free(retried);
-                uint64_t after_retry = cbm_mem_tracked_live_bytes();
-                bool clean = before == after_failure && before == after_retry;
-                bool round_ok = consumed && error && retry && clean;
-                correct = round_ok && correct;
-                if (!round_ok) {
-                    /* only for a round that fails; no "<n> failed" text, which
-                     * the VM leg's log guard counts as failed tests */
-                    fprintf(stderr,
-                            "doc preview fault stage=%d nth=%d json=%d consumed=%d error=%d "
-                            "retry=%d live_before=%llu live_after_fault=%llu "
-                            "live_after_retry=%llu\n",
-                            stage, nth ? 5 : 1, format, consumed, error, retry,
-                            (unsigned long long)before, (unsigned long long)after_failure,
-                            (unsigned long long)after_retry);
-                }
-            }
-        }
-    }
-    cbm_store_close(store);
-    return !correct;
-}
-
-TEST(doc_mentions_index_status_preview_failure) {
-    int result = dm_preview_fixture(dm_preview_failure_checks);
-    ASSERT_EQ(result, 0);
-    PASS();
 }
 
 TEST(doc_mentions_index_status_and_delete) {
@@ -9779,41 +8956,6 @@ TEST(doc_mentions_cs_stored_scope_nesting) {
     PASS();
 }
 
-/* One row whose reason this layer never writes, then index_status in both
- * forms: no key carries that text, the row is counted under one fixed key,
- * and the status is error. 0 when all of that holds. */
-static int dm_unknown_reason_checks(const char *db, const char *project) {
-    if (dm_exec(db, "INSERT INTO doc_link_unresolved(project, rel_path, line, syntax, raw, reason) "
-                    "SELECT project, 'src/Injected.cs', 1, 'see', 'X', 'injected_reason_text' "
-                    "FROM doc_link_unresolved LIMIT 1") != 1) {
-        return 1;
-    }
-    int bad = 0;
-    char *text = dm_index_status(project, false);
-    const char *block = text ? strstr(text, "doc_links:\n") : NULL;
-    if (!block || strstr(text, "injected_reason_text") ||
-        !strstr(block, "\n    unrecognized_reason: 1\n") || !strstr(block, "\n  status: error\n")) {
-        printf("  index_status text: %s\n", block ? block : "(no doc_links block)");
-        bad = 1;
-    }
-    free(text);
-    yyjson_doc *env = dm_preview_status(project, true);
-    yyjson_val *unresolved = yyjson_obj_get(dm_preview_report(env), "unresolved");
-    if (!unresolved || yyjson_obj_get(unresolved, "injected_reason_text") ||
-        yyjson_get_int(yyjson_obj_get(unresolved, "unrecognized_reason")) != 1 ||
-        !dm_preview_status_is(env, "error")) {
-        printf("  index_status json: unknown reason shown, or status not error\n");
-        bad = 1;
-    }
-    yyjson_doc_free(env);
-    return bad;
-}
-
-TEST(doc_mentions_index_status_unknown_reason) {
-    ASSERT_EQ(dm_preview_fixture(dm_unknown_reason_checks), 0);
-    PASS();
-}
-
 enum { DM_HUGE_PROJECT = 1100000 }; /* past CSX_MAX_PROJECT_BYTES */
 
 /* A project file the scan does not read -- larger than a project file is,
@@ -10504,10 +9646,6 @@ SUITE(doc_mentions) {
     RUN_TEST(doc_mentions_ship_gate);
     RUN_TEST(doc_mentions_file_node_lookup);
     RUN_TEST(doc_mentions_index_status_and_delete);
-    RUN_TEST(doc_mentions_index_status_preview_bounds);
-    RUN_TEST(doc_mentions_index_status_preview_text);
-    RUN_TEST(doc_mentions_index_status_preview_order);
-    RUN_TEST(doc_mentions_index_status_preview_failure);
     RUN_TEST(doc_mentions_scope_delta_rules);
     RUN_TEST(doc_mentions_incremental_equals_full);
     RUN_TEST(doc_mentions_parallel_equals_sequential);
@@ -10552,7 +9690,6 @@ SUITE(doc_mentions) {
     RUN_TEST(doc_mentions_cs_portable_scope_bound);
     RUN_TEST(doc_mentions_cs_unbalanced_brackets);
     RUN_TEST(doc_mentions_cs_stored_scope_nesting);
-    RUN_TEST(doc_mentions_index_status_unknown_reason);
     RUN_TEST(doc_mentions_incremental_non_ascii_name);
     RUN_TEST(doc_mentions_alloc_failure_status);
     RUN_TEST(doc_mentions_directives_only_failure);

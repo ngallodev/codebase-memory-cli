@@ -289,22 +289,22 @@ static cbm_daemon_process_role_t classify(int argc, char **argv) {
     return cbm_daemon_process_role(argc, argv);
 }
 
-TEST(daemon_bootstrap_classifies_default_and_ui_as_mcp_clients) {
-    char *plain[] = {"codebase-memory-mcp", NULL};
-    char *ui[] = {"codebase-memory-mcp", "--ui=true", "--port=9750", NULL};
-    ASSERT_EQ(classify(1, plain), CBM_DAEMON_PROCESS_HOOK_CLIENT);
-    ASSERT_EQ(classify(3, ui), CBM_DAEMON_PROCESS_HOOK_CLIENT);
-    ASSERT_TRUE(cbm_daemon_process_role_requires_client(CBM_DAEMON_PROCESS_HOOK_CLIENT));
+TEST(daemon_bootstrap_classifies_default_and_ui_as_stateless) {
+    char *plain[] = {"codebase-memory-cli", NULL};
+    char *ui[] = {"codebase-memory-cli", "--ui=true", "--port=9750", NULL};
+    ASSERT_EQ(classify(1, plain), CBM_DAEMON_PROCESS_STATELESS);
+    ASSERT_EQ(classify(3, ui), CBM_DAEMON_PROCESS_STATELESS);
+    ASSERT_TRUE(cbm_daemon_process_role_requires_client(CBM_DAEMON_PROCESS_BOOTSTRAP_CLIENT));
     PASS();
 }
 
 TEST(daemon_bootstrap_classifies_stateless_commands_without_client) {
-    char *version[] = {"codebase-memory-mcp", "--version", NULL};
-    char *help[] = {"codebase-memory-mcp", "--profile", "--help", NULL};
-    char *install[] = {"codebase-memory-mcp", "install", "--dry-run", NULL};
-    char *uninstall[] = {"codebase-memory-mcp", "uninstall", NULL};
-    char *update[] = {"codebase-memory-mcp", "update", "-n", NULL};
-    char *test_impact[] = {"codebase-memory-mcp", "test-impact", "select", NULL};
+    char *version[] = {"codebase-memory-cli", "--version", NULL};
+    char *help[] = {"codebase-memory-cli", "--profile", "--help", NULL};
+    char *install[] = {"codebase-memory-cli", "install", "--dry-run", NULL};
+    char *uninstall[] = {"codebase-memory-cli", "uninstall", NULL};
+    char *update[] = {"codebase-memory-cli", "update", "-n", NULL};
+    char *test_impact[] = {"codebase-memory-cli", "test-impact", "select", NULL};
     ASSERT_EQ(classify(3, test_impact), CBM_DAEMON_PROCESS_STATELESS);
     ASSERT_EQ(classify(2, version), CBM_DAEMON_PROCESS_STATELESS);
     ASSERT_EQ(classify(3, help), CBM_DAEMON_PROCESS_STATELESS);
@@ -316,9 +316,9 @@ TEST(daemon_bootstrap_classifies_stateless_commands_without_client) {
 }
 
 TEST(daemon_bootstrap_classifies_config_as_coordinated_local_cli) {
-    char *list[] = {"codebase-memory-mcp", "config", "list", NULL};
-    char *set[] = {"codebase-memory-mcp", "config", "set", "auto_watch", "false", NULL};
-    char *help[] = {"codebase-memory-mcp", "config", "--help", NULL};
+    char *list[] = {"codebase-memory-cli", "config", "list", NULL};
+    char *set[] = {"codebase-memory-cli", "config", "set", "auto_watch", "false", NULL};
+    char *help[] = {"codebase-memory-cli", "config", "--help", NULL};
     ASSERT_EQ(classify(3, list), CBM_DAEMON_PROCESS_LOCAL_CLI);
     ASSERT_EQ(classify(5, set), CBM_DAEMON_PROCESS_LOCAL_CLI);
     ASSERT_EQ(classify(3, help), CBM_DAEMON_PROCESS_STATELESS);
@@ -327,8 +327,8 @@ TEST(daemon_bootstrap_classifies_config_as_coordinated_local_cli) {
 }
 
 TEST(daemon_bootstrap_cli_help_is_stateless_but_tool_calls_are_local) {
-    char *tool_help[] = {"codebase-memory-mcp", "cli", "search_graph", "--help", NULL};
-    char *tool_call[] = {"codebase-memory-mcp", "cli", "search_graph", "{}", NULL};
+    char *tool_help[] = {"codebase-memory-cli", "cli", "search_graph", "--help", NULL};
+    char *tool_call[] = {"codebase-memory-cli", "cli", "search_graph", "{}", NULL};
     ASSERT_EQ(classify(4, tool_help), CBM_DAEMON_PROCESS_STATELESS);
     ASSERT_EQ(classify(4, tool_call), CBM_DAEMON_PROCESS_LOCAL_CLI);
     ASSERT_FALSE(cbm_daemon_process_role_requires_client(CBM_DAEMON_PROCESS_LOCAL_CLI));
@@ -337,8 +337,8 @@ TEST(daemon_bootstrap_cli_help_is_stateless_but_tool_calls_are_local) {
 
 TEST(daemon_bootstrap_cli_arguments_cannot_reclassify_the_process) {
     char *install_value[] = {
-        "codebase-memory-mcp", "cli", "search_code", "--query", "install", NULL};
-    char *version_value[] = {"codebase-memory-mcp", "cli", "search_code", "--query",
+        "codebase-memory-cli", "cli", "search_code", "--query", "install", NULL};
+    char *version_value[] = {"codebase-memory-cli", "cli", "search_code", "--query",
                              "--version",           NULL};
     ASSERT_EQ(classify(5, install_value), CBM_DAEMON_PROCESS_LOCAL_CLI);
     ASSERT_EQ(classify(5, version_value), CBM_DAEMON_PROCESS_LOCAL_CLI);
@@ -347,14 +347,14 @@ TEST(daemon_bootstrap_cli_arguments_cannot_reclassify_the_process) {
 
 TEST(daemon_bootstrap_internal_roles_never_take_client_leases) {
     static char build[] = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-    char *daemon[] = {"codebase-memory-mcp", CBM_DAEMON_INTERNAL_ARG, NULL};
-    char *worker[] = {"codebase-memory-mcp", "cli", "--index-worker", "--index-worker-build", build,
+    char *daemon[] = {"codebase-memory-cli", CBM_DAEMON_INTERNAL_ARG, NULL};
+    char *worker[] = {"codebase-memory-cli", "cli", "--index-worker", "--index-worker-build", build,
                       "index_repository",    "{}",  "--response-out", "/tmp/response",        NULL};
-    char *malformed_worker[] = {"codebase-memory-mcp", "cli", "--index-worker",
+    char *malformed_worker[] = {"codebase-memory-cli", "cli", "--index-worker",
                                 "index_repository",    "{}",  NULL};
-    char *reserved_user_value[] = {"codebase-memory-mcp", "cli", "search_code", "--query",
+    char *reserved_user_value[] = {"codebase-memory-cli", "cli", "search_code", "--query",
                                    "--index-worker",      NULL};
-    char *hook[] = {"codebase-memory-mcp", "hook-augment", NULL};
+    char *hook[] = {"codebase-memory-cli", "hook-augment", NULL};
     ASSERT_EQ(classify(2, daemon), CBM_DAEMON_PROCESS_DAEMON);
     ASSERT_EQ(classify(9, worker), CBM_DAEMON_PROCESS_WORKER);
     ASSERT_EQ(classify(5, malformed_worker), CBM_DAEMON_PROCESS_INVALID);
@@ -368,7 +368,7 @@ TEST(daemon_bootstrap_internal_roles_never_take_client_leases) {
 
 TEST(daemon_bootstrap_rejects_ambiguous_internal_daemon_argv) {
     char *missing[] = {NULL};
-    char *mixed[] = {"codebase-memory-mcp", CBM_DAEMON_INTERNAL_ARG, "cli", NULL};
+    char *mixed[] = {"codebase-memory-cli", CBM_DAEMON_INTERNAL_ARG, "cli", NULL};
     ASSERT_EQ(classify(0, missing), CBM_DAEMON_PROCESS_INVALID);
     ASSERT_EQ(classify(3, mixed), CBM_DAEMON_PROCESS_INVALID);
     ASSERT_FALSE(cbm_daemon_process_role_requires_client(CBM_DAEMON_PROCESS_INVALID));
@@ -391,17 +391,20 @@ TEST(daemon_bootstrap_uses_one_stable_per_account_endpoint) {
  * the default ancestry (%LOCALAPPDATA%, /private/tmp) cannot pass the
  * private-directory walk — otherwise every command fails, `config list`
  * included, and the operator cannot reconfigure their way out. CBM_RUNTIME_DIR
- * moves WHERE the rendezvous lives; it never relaxes HOW it is checked, so a
- * value that cannot be a private runtime parent must be refused rather than
- * silently replaced by the default. An explicit parent — the compile-time test
- * seam, the lifecycle guards' isolated namespace — keeps precedence over it. */
+ * moves WHERE the rendezvous lives; it never relaxes HOW it is checked. A
+ * missing explicit override is provisioned owner-private, while an unsafe
+ * existing parent is still refused rather than replaced by the default. An
+ * explicit parent — the compile-time test seam, the lifecycle guards' isolated
+ * namespace — keeps precedence over it. */
 TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous) {
     char override_parent[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char canonical_override[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char canonical_explicit[BOOTSTRAP_TEST_PATH_CAP] = {0};
+    char canonical_missing[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char relocated_runtime[BOOTSTRAP_TEST_PATH_CAP] = {0};
     char explicit_runtime[BOOTSTRAP_TEST_PATH_CAP] = {0};
-    char unusable[BOOTSTRAP_TEST_PATH_CAP] = {0};
+    char missing_parent[BOOTSTRAP_TEST_PATH_CAP] = {0};
+    char created_runtime[BOOTSTRAP_TEST_PATH_CAP] = {0};
     /* The runner isolates the rendezvous for the whole run through this same
      * variable, so the test must hand back exactly what it found. */
     char previous_value[BOOTSTRAP_TEST_PATH_CAP] = {0};
@@ -412,13 +415,13 @@ TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous) {
     if (written <= 0 || written >= (int)sizeof(override_parent) || !cbm_mkdtemp(override_parent)) {
         FAIL("could not create the override runtime parent");
     }
-    written = snprintf(unusable, sizeof(unusable), "%s/absent/nested", override_parent);
+    written = snprintf(missing_parent, sizeof(missing_parent), "%s/absent/nested", override_parent);
     bool prepared =
-        written > 0 && written < (int)sizeof(unusable) &&
+        written > 0 && written < (int)sizeof(missing_parent) &&
         cbm_canonical_path(override_parent, canonical_override, sizeof(canonical_override)) != 0 &&
         cbm_setenv("CBM_RUNTIME_DIR", override_parent, 1) == 0;
 
-    /* NULL parent == every product call site: daemon, MCP client, local CLI,
+    /* NULL parent == every product call site: daemon, bootstrap client, local CLI,
      * index worker, activation. */
     cbm_daemon_ipc_endpoint_t *relocated =
         prepared ? cbm_daemon_bootstrap_endpoint_new(NULL) : NULL;
@@ -437,20 +440,37 @@ TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous) {
         (void)snprintf(explicit_runtime, sizeof(explicit_runtime), "%s", fixture.runtime_dir);
     }
 
-    /* A named parent that cannot pass validation is refused, never ignored. */
-    bool unusable_set = prepared && cbm_setenv("CBM_RUNTIME_DIR", unusable, 1) == 0;
-    cbm_daemon_ipc_endpoint_t *refused =
-        unusable_set ? cbm_daemon_bootstrap_endpoint_new(NULL) : NULL;
+    /* A missing named parent is created owner-private before endpoint setup. */
+    bool missing_set = prepared && cbm_setenv("CBM_RUNTIME_DIR", missing_parent, 1) == 0;
+    cbm_daemon_ipc_endpoint_t *created =
+        missing_set ? cbm_daemon_bootstrap_endpoint_new(NULL) : NULL;
+    if (created) {
+        (void)snprintf(created_runtime, sizeof(created_runtime), "%s",
+                       cbm_daemon_ipc_endpoint_runtime_dir(created));
+        /* The endpoint reports the canonical path; on macOS the temp root is
+         * under /var, which resolves to /private/var. */
+        (void)cbm_canonical_path(missing_parent, canonical_missing, sizeof(canonical_missing));
+    }
 
     /* Restore before asserting: a failed assertion returns immediately, and a
      * leaked override, or a dropped run value, would follow every later suite
      * in this process. */
     bool restored = previous ? cbm_setenv("CBM_RUNTIME_DIR", previous_value, 1) == 0
                              : cbm_unsetenv("CBM_RUNTIME_DIR") == 0;
-    cbm_daemon_ipc_endpoint_free(refused);
+    cbm_daemon_ipc_endpoint_free(created);
     cbm_daemon_ipc_endpoint_free(relocated);
     if (relocated_runtime[0] != '\0') {
         (void)cbm_rmdir(relocated_runtime);
+    }
+    if (created_runtime[0] != '\0') {
+        (void)cbm_rmdir(created_runtime);
+    }
+    (void)cbm_rmdir(missing_parent);
+    {
+        char absent_parent[BOOTSTRAP_TEST_PATH_CAP];
+        if (snprintf(absent_parent, sizeof(absent_parent), "%s/absent", override_parent) > 0) {
+            (void)cbm_rmdir(absent_parent);
+        }
     }
     if (explicit_started) {
         bootstrap_endpoint_fixture_finish(&fixture);
@@ -461,12 +481,13 @@ TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous) {
     ASSERT_TRUE(prepared);
     ASSERT_TRUE(explicit_started);
     ASSERT_TRUE(explicit_canonical);
-    ASSERT_TRUE(unusable_set);
+    ASSERT_TRUE(missing_set);
     ASSERT_NOT_NULL(relocated);
     ASSERT_TRUE(bootstrap_path_has_parent(relocated_runtime, canonical_override));
     ASSERT_TRUE(bootstrap_path_has_parent(explicit_runtime, canonical_explicit));
     ASSERT_FALSE(bootstrap_path_has_parent(explicit_runtime, canonical_override));
-    ASSERT_NULL(refused);
+    ASSERT_NOT_NULL(created);
+    ASSERT_TRUE(bootstrap_path_has_parent(created_runtime, canonical_missing));
     PASS();
 }
 
@@ -485,15 +506,15 @@ TEST(daemon_bootstrap_launches_only_exact_detached_hidden_role) {
 }
 
 TEST(daemon_bootstrap_permanent_daemon_argv_is_byte_exact) {
-    char *permanent[] = {"codebase-memory-mcp", CBM_DAEMON_INTERNAL_ARG, CBM_DAEMON_PERMANENT_ARG,
+    char *permanent[] = {"codebase-memory-cli", CBM_DAEMON_INTERNAL_ARG, CBM_DAEMON_PERMANENT_ARG,
                          NULL};
-    char *reordered[] = {"codebase-memory-mcp", CBM_DAEMON_PERMANENT_ARG, CBM_DAEMON_INTERNAL_ARG,
+    char *reordered[] = {"codebase-memory-cli", CBM_DAEMON_PERMANENT_ARG, CBM_DAEMON_INTERNAL_ARG,
                          NULL};
-    char *repeated[] = {"codebase-memory-mcp", CBM_DAEMON_INTERNAL_ARG, CBM_DAEMON_INTERNAL_ARG,
+    char *repeated[] = {"codebase-memory-cli", CBM_DAEMON_INTERNAL_ARG, CBM_DAEMON_INTERNAL_ARG,
                         NULL};
-    char *extended[] = {"codebase-memory-mcp", CBM_DAEMON_INTERNAL_ARG, CBM_DAEMON_PERMANENT_ARG,
+    char *extended[] = {"codebase-memory-cli", CBM_DAEMON_INTERNAL_ARG, CBM_DAEMON_PERMANENT_ARG,
                         "extra", NULL};
-    char *wrong_flag[] = {"codebase-memory-mcp", CBM_DAEMON_INTERNAL_ARG, "--permanent", NULL};
+    char *wrong_flag[] = {"codebase-memory-cli", CBM_DAEMON_INTERNAL_ARG, "--permanent", NULL};
     ASSERT_EQ(classify(3, permanent), CBM_DAEMON_PROCESS_DAEMON);
     ASSERT_EQ(classify(3, reordered), CBM_DAEMON_PROCESS_INVALID);
     ASSERT_EQ(classify(3, repeated), CBM_DAEMON_PROCESS_INVALID);
@@ -503,12 +524,12 @@ TEST(daemon_bootstrap_permanent_daemon_argv_is_byte_exact) {
 }
 
 TEST(daemon_bootstrap_daemon_ctl_token_routes_after_cli) {
-    char *start[] = {"codebase-memory-mcp", "daemon", "start", NULL};
-    char *stop[] = {"codebase-memory-mcp", "daemon", "stop", NULL};
-    char *status[] = {"codebase-memory-mcp", "daemon", "status", NULL};
-    char *help[] = {"codebase-memory-mcp", "daemon", "--help", NULL};
+    char *start[] = {"codebase-memory-cli", "daemon", "start", NULL};
+    char *stop[] = {"codebase-memory-cli", "daemon", "stop", NULL};
+    char *status[] = {"codebase-memory-cli", "daemon", "status", NULL};
+    char *help[] = {"codebase-memory-cli", "daemon", "--help", NULL};
     /* `daemon` after `cli` is opaque tool input, never a control command. */
-    char *opaque[] = {"codebase-memory-mcp", "cli", "search_code", "daemon", "start", NULL};
+    char *opaque[] = {"codebase-memory-cli", "cli", "search_code", "daemon", "start", NULL};
     ASSERT_EQ(classify(3, start), CBM_DAEMON_PROCESS_DAEMON_CTL);
     ASSERT_EQ(classify(3, stop), CBM_DAEMON_PROCESS_DAEMON_CTL);
     ASSERT_EQ(classify(3, status), CBM_DAEMON_PROCESS_DAEMON_CTL);
@@ -557,7 +578,7 @@ TEST(daemon_bootstrap_cohort_conflict_is_visible_before_probe_or_spawn) {
     cbm_daemon_bootstrap_ops_t ops = bootstrap_fake_callbacks(&fake);
     cbm_daemon_build_identity_t identity = bootstrap_identity("2.4.0", BOOTSTRAP_BUILD_B);
     cbm_daemon_bootstrap_config_t config = {
-        .role = CBM_DAEMON_PROCESS_HOOK_CLIENT,
+        .role = CBM_DAEMON_PROCESS_BOOTSTRAP_CLIENT,
         .endpoint = fixture.endpoint,
         .identity = &identity,
         .executable_path = "/tmp/cbm",
@@ -588,7 +609,7 @@ TEST(daemon_bootstrap_existing_exact_daemon_connects_without_spawn) {
     cbm_daemon_bootstrap_ops_t ops = bootstrap_fake_callbacks(&fake);
     cbm_daemon_build_identity_t identity = bootstrap_identity("2.4.0", BOOTSTRAP_BUILD_A);
     cbm_daemon_bootstrap_config_t config = {
-        .role = CBM_DAEMON_PROCESS_HOOK_CLIENT,
+        .role = CBM_DAEMON_PROCESS_BOOTSTRAP_CLIENT,
         .endpoint = fixture.endpoint,
         .identity = &identity,
         .executable_path = "/tmp/cbm",
@@ -614,7 +635,7 @@ TEST(daemon_bootstrap_conflict_is_visible_and_never_spawns) {
     cbm_daemon_bootstrap_ops_t ops = bootstrap_fake_callbacks(&fake);
     cbm_daemon_build_identity_t identity = bootstrap_identity("2.4.0", BOOTSTRAP_BUILD_B);
     cbm_daemon_bootstrap_config_t config = {
-        .role = CBM_DAEMON_PROCESS_HOOK_CLIENT,
+        .role = CBM_DAEMON_PROCESS_BOOTSTRAP_CLIENT,
         .endpoint = fixture.endpoint,
         .identity = &identity,
         .executable_path = "/tmp/cbm",
@@ -660,7 +681,7 @@ TEST(daemon_bootstrap_terminal_generation_that_never_exits_is_not_replaced) {
 /* RED for final-session/new-session overlap: STOPPING is a temporary state of
  * the previous same-build generation. Once that generation disappears, the
  * already-running bootstrap attempt must serialize and become the new first
- * client instead of forcing the coding agent to restart its MCP process. */
+ * client instead of forcing the calling CLI process to restart. */
 TEST(daemon_bootstrap_terminal_then_absent_spawns_replacement) {
     bootstrap_endpoint_fixture_t fixture;
     ASSERT_TRUE(bootstrap_endpoint_fixture_start(&fixture, "terminal-absent"));
@@ -669,7 +690,7 @@ TEST(daemon_bootstrap_terminal_then_absent_spawns_replacement) {
     cbm_daemon_bootstrap_ops_t ops = bootstrap_fake_callbacks(&fake);
     cbm_daemon_build_identity_t identity = bootstrap_identity("2.4.0", BOOTSTRAP_BUILD_A);
     cbm_daemon_bootstrap_config_t config = {
-        .role = CBM_DAEMON_PROCESS_HOOK_CLIENT,
+        .role = CBM_DAEMON_PROCESS_BOOTSTRAP_CLIENT,
         .endpoint = fixture.endpoint,
         .identity = &identity,
         .executable_path = "/tmp/cbm",
@@ -695,7 +716,7 @@ TEST(daemon_bootstrap_reserved_generation_becomes_connectable_without_spawn) {
     cbm_daemon_bootstrap_ops_t ops = bootstrap_fake_callbacks(&fake);
     cbm_daemon_build_identity_t identity = bootstrap_identity("2.4.0", BOOTSTRAP_BUILD_A);
     cbm_daemon_bootstrap_config_t config = {
-        .role = CBM_DAEMON_PROCESS_HOOK_CLIENT,
+        .role = CBM_DAEMON_PROCESS_BOOTSTRAP_CLIENT,
         .endpoint = fixture.endpoint,
         .identity = &identity,
         .executable_path = "/tmp/cbm",
@@ -725,7 +746,7 @@ TEST(daemon_bootstrap_reserved_then_absent_spawns_replacement) {
     cbm_daemon_bootstrap_ops_t ops = bootstrap_fake_callbacks(&fake);
     cbm_daemon_build_identity_t identity = bootstrap_identity("2.4.0", BOOTSTRAP_BUILD_A);
     cbm_daemon_bootstrap_config_t config = {
-        .role = CBM_DAEMON_PROCESS_HOOK_CLIENT,
+        .role = CBM_DAEMON_PROCESS_BOOTSTRAP_CLIENT,
         .endpoint = fixture.endpoint,
         .identity = &identity,
         .executable_path = "/tmp/cbm",
@@ -756,7 +777,7 @@ TEST(daemon_bootstrap_releases_handoff_when_spawned_generation_is_reserved) {
     cbm_daemon_bootstrap_ops_t ops = bootstrap_fake_callbacks(&fake);
     cbm_daemon_build_identity_t identity = bootstrap_identity("2.4.0", BOOTSTRAP_BUILD_A);
     cbm_daemon_bootstrap_config_t config = {
-        .role = CBM_DAEMON_PROCESS_HOOK_CLIENT,
+        .role = CBM_DAEMON_PROCESS_BOOTSTRAP_CLIENT,
         .endpoint = fixture.endpoint,
         .identity = &identity,
         .executable_path = "/tmp/cbm",
@@ -835,7 +856,7 @@ TEST(daemon_bootstrap_concurrent_first_clients_spawn_one_daemon) {
     cbm_daemon_bootstrap_ops_t ops = bootstrap_fake_callbacks(&fake);
     cbm_daemon_build_identity_t identity = bootstrap_identity("2.4.0", BOOTSTRAP_BUILD_A);
     cbm_daemon_bootstrap_config_t config = {
-        .role = CBM_DAEMON_PROCESS_HOOK_CLIENT,
+        .role = CBM_DAEMON_PROCESS_BOOTSTRAP_CLIENT,
         .endpoint = fixture.endpoint,
         .identity = &identity,
         .executable_path = "/tmp/cbm",
@@ -878,7 +899,7 @@ TEST(daemon_bootstrap_darwin_launch_failure_is_synchronous) {
     int written = snprintf(missing, sizeof(missing), "%s/definitely-missing-cbm", fixture.parent);
     ASSERT(written > 0 && written < (int)sizeof(missing));
     cbm_daemon_bootstrap_config_t config = {
-        .role = CBM_DAEMON_PROCESS_HOOK_CLIENT,
+        .role = CBM_DAEMON_PROCESS_BOOTSTRAP_CLIENT,
         .endpoint = fixture.endpoint,
         .identity = &identity,
         .executable_path = missing,
@@ -896,6 +917,57 @@ TEST(daemon_bootstrap_darwin_launch_failure_is_synchronous) {
 }
 #endif
 
+#ifndef _WIN32
+static int test_daemon_bootstrap_start_failure_record_round_trip(void);
+static int test_daemon_bootstrap_fails_fast_when_daemon_dies_at_publication(void);
+#endif
+
+SUITE(daemon_bootstrap) {
+    RUN_TEST(daemon_bootstrap_classifies_default_and_ui_as_stateless);
+    RUN_TEST(daemon_bootstrap_classifies_stateless_commands_without_client);
+    RUN_TEST(daemon_bootstrap_classifies_config_as_coordinated_local_cli);
+    RUN_TEST(daemon_bootstrap_cli_help_is_stateless_but_tool_calls_are_local);
+    RUN_TEST(daemon_bootstrap_cli_arguments_cannot_reclassify_the_process);
+    RUN_TEST(daemon_bootstrap_internal_roles_never_take_client_leases);
+    RUN_TEST(daemon_bootstrap_rejects_ambiguous_internal_daemon_argv);
+    RUN_TEST(daemon_bootstrap_uses_one_stable_per_account_endpoint);
+    RUN_TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous);
+    RUN_TEST(daemon_bootstrap_launches_only_exact_detached_hidden_role);
+    RUN_TEST(daemon_bootstrap_permanent_daemon_argv_is_byte_exact);
+    RUN_TEST(daemon_bootstrap_daemon_ctl_token_routes_after_cli);
+    RUN_TEST(daemon_bootstrap_permanent_launch_spec_is_exact);
+    RUN_TEST(daemon_bootstrap_stateless_roles_bypass_every_daemon_operation);
+    RUN_TEST(daemon_bootstrap_cohort_conflict_is_visible_before_probe_or_spawn);
+    RUN_TEST(daemon_bootstrap_existing_exact_daemon_connects_without_spawn);
+    RUN_TEST(daemon_bootstrap_conflict_is_visible_and_never_spawns);
+    RUN_TEST(daemon_bootstrap_terminal_generation_that_never_exits_is_not_replaced);
+    RUN_TEST(daemon_bootstrap_terminal_then_absent_spawns_replacement);
+    RUN_TEST(daemon_bootstrap_reserved_generation_becomes_connectable_without_spawn);
+    RUN_TEST(daemon_bootstrap_reserved_then_absent_spawns_replacement);
+    RUN_TEST(daemon_bootstrap_releases_handoff_when_spawned_generation_is_reserved);
+    RUN_TEST(daemon_bootstrap_rejected_connect_is_reserved_and_never_unavailable);
+    RUN_TEST(daemon_bootstrap_mute_endpoint_holder_is_reserved_and_never_unavailable);
+    RUN_TEST(daemon_bootstrap_concurrent_first_clients_spawn_one_daemon);
+#ifndef _WIN32
+    RUN_TEST(daemon_bootstrap_start_failure_record_round_trip);
+    RUN_TEST(daemon_bootstrap_fails_fast_when_daemon_dies_at_publication);
+#endif
+#ifdef __APPLE__
+    RUN_TEST(daemon_bootstrap_darwin_launch_failure_is_synchronous);
+#endif
+}
+#include "test_helpers.h"
+#include "daemon/host.h"
+#include "daemon/ipc_internal.h"
+#include "daemon/runtime.h"
+#include <errno.h>
+#include <stdlib.h>
+#include <time.h>
+#ifndef _WIN32
+#include <signal.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
 #ifndef _WIN32
 enum { BOOTSTRAP_ENOSPC_MAX_CHILDREN = 16, BOOTSTRAP_ENOSPC_LOG_CAP = 65536 };
 
@@ -1165,38 +1237,3 @@ TEST(daemon_bootstrap_fails_fast_when_daemon_dies_at_publication) {
     PASS();
 }
 #endif
-
-SUITE(daemon_bootstrap) {
-    RUN_TEST(daemon_bootstrap_classifies_default_and_ui_as_mcp_clients);
-    RUN_TEST(daemon_bootstrap_classifies_stateless_commands_without_client);
-    RUN_TEST(daemon_bootstrap_classifies_config_as_coordinated_local_cli);
-    RUN_TEST(daemon_bootstrap_cli_help_is_stateless_but_tool_calls_are_local);
-    RUN_TEST(daemon_bootstrap_cli_arguments_cannot_reclassify_the_process);
-    RUN_TEST(daemon_bootstrap_internal_roles_never_take_client_leases);
-    RUN_TEST(daemon_bootstrap_rejects_ambiguous_internal_daemon_argv);
-    RUN_TEST(daemon_bootstrap_uses_one_stable_per_account_endpoint);
-    RUN_TEST(daemon_bootstrap_runtime_dir_env_relocates_rendezvous);
-    RUN_TEST(daemon_bootstrap_launches_only_exact_detached_hidden_role);
-    RUN_TEST(daemon_bootstrap_permanent_daemon_argv_is_byte_exact);
-    RUN_TEST(daemon_bootstrap_daemon_ctl_token_routes_after_cli);
-    RUN_TEST(daemon_bootstrap_permanent_launch_spec_is_exact);
-    RUN_TEST(daemon_bootstrap_stateless_roles_bypass_every_daemon_operation);
-    RUN_TEST(daemon_bootstrap_cohort_conflict_is_visible_before_probe_or_spawn);
-    RUN_TEST(daemon_bootstrap_existing_exact_daemon_connects_without_spawn);
-    RUN_TEST(daemon_bootstrap_conflict_is_visible_and_never_spawns);
-    RUN_TEST(daemon_bootstrap_terminal_generation_that_never_exits_is_not_replaced);
-    RUN_TEST(daemon_bootstrap_terminal_then_absent_spawns_replacement);
-    RUN_TEST(daemon_bootstrap_reserved_generation_becomes_connectable_without_spawn);
-    RUN_TEST(daemon_bootstrap_reserved_then_absent_spawns_replacement);
-    RUN_TEST(daemon_bootstrap_releases_handoff_when_spawned_generation_is_reserved);
-    RUN_TEST(daemon_bootstrap_rejected_connect_is_reserved_and_never_unavailable);
-    RUN_TEST(daemon_bootstrap_mute_endpoint_holder_is_reserved_and_never_unavailable);
-    RUN_TEST(daemon_bootstrap_concurrent_first_clients_spawn_one_daemon);
-#ifdef __APPLE__
-    RUN_TEST(daemon_bootstrap_darwin_launch_failure_is_synchronous);
-#endif
-#ifndef _WIN32
-    RUN_TEST(daemon_bootstrap_start_failure_record_round_trip);
-    RUN_TEST(daemon_bootstrap_fails_fast_when_daemon_dies_at_publication);
-#endif
-}

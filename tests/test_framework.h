@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 #include <unistd.h>
 
 /* ── Global counters (defined in test_main.c) ──────────────────── */
@@ -250,24 +251,30 @@ static inline const char *tf_reset(void) {
 
 /* ── Test runner ───────────────────────────────────────────────── */
 
-#define RUN_TEST(name)                                    \
-    do {                                                  \
-        if (!tf_test_selected(#name)) {                   \
-            break;                                        \
-        }                                                 \
-        printf("  %-55s", #name);                         \
-        fflush(stdout);                                   \
-        TF_COVERAGE_TEST_BEGIN(#name);                    \
-        int _result = test_##name();                      \
-        TF_COVERAGE_TEST_END(#name);                      \
-        if (_result == 0) {                               \
-            printf("%sPASS%s\n", tf_green(), tf_reset()); \
-            tf_pass_count++;                              \
-        } else if (_result == -1) {                       \
-            /* skip — already printed */                  \
-        } else {                                          \
-            tf_fail_count++;                              \
-        }                                                 \
+#define RUN_TEST(name)                                     \
+    do {                                                   \
+        if (!tf_test_selected(#name)) {                    \
+            break;                                         \
+        }                                                  \
+        time_t _test_started = time(NULL);                 \
+        printf("  %-55s", #name);                          \
+        fflush(stdout);                                    \
+        TF_COVERAGE_TEST_BEGIN(#name);                     \
+        int _result = test_##name();                       \
+        time_t _test_elapsed = time(NULL) - _test_started; \
+        TF_COVERAGE_TEST_END(#name);                       \
+        if (_result == 0) {                                \
+            printf("%sPASS%s", tf_green(), tf_reset());    \
+            tf_pass_count++;                               \
+        } else if (_result == -1) {                        \
+            /* skip — already printed */                   \
+        } else {                                           \
+            tf_fail_count++;                               \
+        }                                                  \
+        if (getenv("CBM_TEST_TIMINGS") != NULL)            \
+            printf(" [%llds]", (long long)_test_elapsed);  \
+        if (_result != -1)                                 \
+            printf("\n");                                  \
     } while (0)
 
 /* ── Suite grouping ────────────────────────────────────────────── */

@@ -8,7 +8,7 @@
  *      query-param decoding, route pattern matching.
  *   2. Live-socket integration tests against the full UI server
  *      (http_server.c) on an ephemeral port: routing, CORS policy,
- *      RPC dispatch, transport limits, receive deadline, clean shutdown.
+ *      native read APIs, transport limits, receive deadline, clean shutdown.
  */
 #include "../src/foundation/compat.h"
 #if defined(__APPLE__)
@@ -165,9 +165,7 @@ static char *th_request_with_ui_headers(int port, const char *request) {
 
     const char *target = strchr(request, ' ');
     target = target ? target + 1 : NULL;
-    bool protected_route =
-        target && (strncmp(target, "/api/", 5) == 0 || strncmp(target, "/rpc ", 5) == 0 ||
-                   strncmp(target, "/rpc?", 5) == 0);
+    bool protected_route = target && strncmp(target, "/api/", 5) == 0;
     bool mutation = strncmp(request, "POST ", 5) == 0;
     bool have_host = strstr(request, "\r\nHost:") != NULL;
     bool have_content_type = strstr(request, "\r\nContent-Type:") != NULL;
@@ -228,7 +226,7 @@ TEST(httpd_parse_simple_get) {
 }
 
 TEST(httpd_parse_security_headers_and_rejects_duplicates) {
-    const char *raw = "POST /rpc HTTP/1.1\r\n"
+    const char *raw = "POST /api/index HTTP/1.1\r\n"
                       "Host: 127.0.0.1:9749\r\n"
                       "Content-Type: application/json\r\n"
                       "Origin: http://127.0.0.1:9749\r\n"
@@ -254,7 +252,7 @@ TEST(httpd_parse_security_headers_and_rejects_duplicates) {
 }
 
 TEST(httpd_parse_post_with_body_offset) {
-    const char *raw = "POST /rpc HTTP/1.1\r\n"
+    const char *raw = "POST /api/index HTTP/1.1\r\n"
                       "Content-Length: 7\r\n"
                       "Content-Type: application/json\r\n"
                       "\r\n"
@@ -264,7 +262,7 @@ TEST(httpd_parse_post_with_body_offset) {
     int rc = cbm_http_parse_head(raw, strlen(raw), &req, &body_off, &clen);
     ASSERT_EQ(rc, 0);
     ASSERT_STR_EQ(req.method, "POST");
-    ASSERT_STR_EQ(req.path, "/rpc");
+    ASSERT_STR_EQ(req.path, "/api/index");
     ASSERT_STR_EQ(req.query, "");
     ASSERT_EQ((int)clen, 7);
     ASSERT_STR_EQ(raw + body_off, "{\"a\":1}");
@@ -291,7 +289,7 @@ TEST(httpd_parse_rejects_bare_lf) {
 }
 
 TEST(httpd_parse_rejects_chunked) {
-    const char *raw = "POST /rpc HTTP/1.1\r\n"
+    const char *raw = "POST /api/index HTTP/1.1\r\n"
                       "Transfer-Encoding: chunked\r\n"
                       "\r\n";
     cbm_http_req_t req;
@@ -302,7 +300,7 @@ TEST(httpd_parse_rejects_chunked) {
 
 TEST(httpd_parse_rejects_oversized_content_length) {
     char raw[256];
-    snprintf(raw, sizeof(raw), "POST /rpc HTTP/1.1\r\nContent-Length: %d\r\n\r\n",
+    snprintf(raw, sizeof(raw), "POST /api/index HTTP/1.1\r\nContent-Length: %d\r\n\r\n",
              CBM_HTTP_MAX_BODY + 1);
     cbm_http_req_t req;
     size_t body_off = 0, clen = 0;
@@ -311,12 +309,12 @@ TEST(httpd_parse_rejects_oversized_content_length) {
 }
 
 TEST(httpd_parse_rejects_garbage_content_length) {
-    const char *raw = "POST /rpc HTTP/1.1\r\nContent-Length: abc\r\n\r\n";
+    const char *raw = "POST /api/index HTTP/1.1\r\nContent-Length: abc\r\n\r\n";
     cbm_http_req_t req;
     size_t body_off = 0, clen = 0;
     ASSERT_EQ(cbm_http_parse_head(raw, strlen(raw), &req, &body_off, &clen), 400);
 
-    const char *neg = "POST /rpc HTTP/1.1\r\nContent-Length: -5\r\n\r\n";
+    const char *neg = "POST /api/index HTTP/1.1\r\nContent-Length: -5\r\n\r\n";
     ASSERT_EQ(cbm_http_parse_head(neg, strlen(neg), &req, &body_off, &clen), 400);
     PASS();
 }
@@ -413,8 +411,8 @@ TEST(httpd_path_match_matrix) {
     /* exact */
     ASSERT_TRUE(cbm_http_path_match("/", "/"));
     ASSERT_FALSE(cbm_http_path_match("/x", "/"));
-    ASSERT_TRUE(cbm_http_path_match("/rpc", "/rpc"));
-    ASSERT_FALSE(cbm_http_path_match("/rpc2", "/rpc"));
+    ASSERT_TRUE(cbm_http_path_match("/api/index", "/api/index"));
+    ASSERT_FALSE(cbm_http_path_match("/api/index2", "/api/index"));
     /* trailing-* prefix */
     ASSERT_TRUE(cbm_http_path_match("/api/layout", "/api/layout*"));
     ASSERT_TRUE(cbm_http_path_match("/assets/index-abc.js", "/assets/*"));
@@ -865,6 +863,156 @@ static bool ui_adr_equals(const ui_delete_fixture_t *fx, const char *project,
         cbm_store_adr_free(&adr);
     cbm_store_close(store);
     return equal;
+}
+
+/* Real project stores, source files, and HTTP sockets: native routes must
+ * preserve the operation payloads and their continuation metadata. */
+TEST(ui_server_native_read_endpoints) {
+    ui_delete_fixture_t fx;
+    ASSERT_EQ(ui_delete_fixture_init(&fx), 0);
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/code.c", fx.root_dir);
+    ASSERT_EQ(th_write_file(path, "first\nsecond\nthird\nfourth\n"), 0);
+    for (int i = 0; i < 2; i++) {
+        const char *project = i == 0 ? "alpha" : "beta";
+        ui_delete_db_path(&fx, project, path, sizeof(path));
+        cbm_store_t *store = cbm_store_open_path(path);
+        ASSERT_NOT_NULL(store);
+        ASSERT_EQ(cbm_store_upsert_project(store, project, fx.root_dir), CBM_STORE_OK);
+        cbm_node_t node = {.project = project,
+                           .label = "Function",
+                           .name = "demo",
+                           .qualified_name = "app::demo & more",
+                           .file_path = "code.c",
+                           .start_line = 1,
+                           .end_line = 4};
+        int64_t function = cbm_store_upsert_node(store, &node);
+        ASSERT_GT(function, 0);
+        node.label = "Class";
+        node.name = "Container";
+        node.qualified_name = "app::Container";
+        int64_t container = cbm_store_upsert_node(store, &node);
+        ASSERT_GT(container, 0);
+        cbm_edge_t edge = {
+            .project = project, .source_id = function, .target_id = container, .type = "CALLS"};
+        ASSERT_GT(cbm_store_insert_edge(store, &edge), 0);
+        cbm_store_close(store);
+    }
+    th_server_t ts;
+    ASSERT_EQ(th_server_start(&ts), 0);
+    int port = cbm_http_server_port(ts.srv);
+    bool projects_ok = true, schema_ok = true, snippet_ok = true, errors_ok = true;
+    for (int kind = 0; kind < 3; kind++) {
+        int offset = 0;
+        int pages = kind == 1 ? 3 : 2;
+        for (int page = 0; page < pages; page++) {
+            char request[512], response[16384], pool[32768];
+            if (kind == 0) {
+                snprintf(request, sizeof(request),
+                         "GET /api/projects?limit=1&offset=%d HTTP/1.1\r\n\r\n", offset);
+            } else if (kind == 1) {
+                snprintf(request, sizeof(request),
+                         "GET /api/schema?project=alpha&limit=1&offset=%d HTTP/1.1\r\n\r\n",
+                         offset);
+            } else {
+                snprintf(
+                    request, sizeof(request),
+                    "GET /api/snippet?project=alpha&qualified_name=app%%3A%%3Ademo%%20%%26%%20more"
+                    "&source_mode=full&max_lines=2&start_line=%d HTTP/1.1\r\n\r\n",
+                    offset + 1);
+            }
+            int n = th_http(port, request, response, sizeof(response));
+            char *body = n > 0 ? strstr(response, "\r\n\r\n") : NULL;
+            body = body ? body + 4 : NULL;
+            yyjson_alc alc;
+            yyjson_alc_pool_init(&alc, pool, sizeof(pool));
+            yyjson_doc *doc = body ? yyjson_read_opts(body, strlen(body), 0, &alc, NULL) : NULL;
+            yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
+            bool ok = n > 0 && th_status(response) == 200 && yyjson_is_obj(root) &&
+                      strstr(response, "Content-Type: application/json") != NULL;
+            bool more = page + 1 < pages;
+            if (kind == 0) {
+                yyjson_val *rows = yyjson_obj_get(root, "projects");
+                const char *name = yyjson_get_str(yyjson_obj_get(yyjson_arr_get(rows, 0), "name"));
+                ok = ok && yyjson_get_int(yyjson_obj_get(root, "total")) == 2 &&
+                     yyjson_arr_size(rows) == 1 && name &&
+                     strcmp(name, page == 0 ? "alpha" : "beta") == 0;
+            } else if (kind == 1) {
+                yyjson_val *rows = yyjson_obj_get(root, page < 2 ? "node_labels" : "edge_types");
+                const char *name = yyjson_get_str(
+                    yyjson_obj_get(yyjson_arr_get(rows, 0), page < 2 ? "label" : "type"));
+                const char *expected = page == 0 ? "Class" : page == 1 ? "Function" : "CALLS";
+                ok = ok && name && strcmp(name, expected) == 0 &&
+                     yyjson_get_int(yyjson_obj_get(root, "total")) == 3 &&
+                     yyjson_get_int(yyjson_obj_get(root, "returned")) == 1 &&
+                     yyjson_arr_size(yyjson_obj_get(root, "node_labels")) +
+                             yyjson_arr_size(yyjson_obj_get(root, "edge_types")) ==
+                         1;
+            } else {
+                const char *source = yyjson_get_str(yyjson_obj_get(root, "source"));
+                ok = ok && source &&
+                     strcmp(source, page == 0 ? "first\nsecond\n" : "third\nfourth\n") == 0 &&
+                     yyjson_get_int(yyjson_obj_get(root, "start_line")) == offset + 1;
+            }
+            const char *more_key = kind == 2 ? "source_truncated" : "has_more";
+            const char *next_key = kind == 2 ? "next_start_line" : "next_offset";
+            ok = ok && yyjson_get_bool(yyjson_obj_get(root, more_key)) == more;
+            if (more) {
+                int next = (int)yyjson_get_int(yyjson_obj_get(root, next_key));
+                ok = ok && next == (kind == 2 ? 3 : offset + 1);
+                offset = kind == 2 ? next - 1 : next;
+            }
+            if (kind == 0)
+                projects_ok = projects_ok && ok;
+            else if (kind == 1)
+                schema_ok = schema_ok && ok;
+            else
+                snippet_ok = snippet_ok && ok;
+            if (doc)
+                yyjson_doc_free(doc);
+        }
+    }
+    static const char *const invalid[] = {
+        "/api/projects?limit=no",
+        "/api/projects?offset=-1",
+        "/api/projects?limit=2147483648",
+        "/api/projects?limit=1&limit=2",
+        "/api/schema",
+        "/api/schema?project=missing",
+        "/api/schema?project=alpha&offset=%XX",
+        "/api/snippet?project=alpha",
+        "/api/snippet?project=alpha&qualified_name=missing",
+        "/api/snippet?project=alpha&qualified_name=demo&include_neighbors=yes",
+    };
+    for (size_t i = 0; i < sizeof(invalid) / sizeof(invalid[0]); i++) {
+        char request[512], response[4096];
+        snprintf(request, sizeof(request), "GET %s HTTP/1.1\r\n\r\n", invalid[i]);
+        int n = th_http(port, request, response, sizeof(response));
+        errors_ok = errors_ok && n > 0 && th_status(response) == 400 &&
+                    strstr(response, "\"error\"") != NULL;
+    }
+    static const char *const routes[] = {"projects", "schema", "snippet"};
+    for (size_t i = 0; i < sizeof(routes) / sizeof(routes[0]); i++) {
+        char request[512], response[4096];
+        snprintf(request, sizeof(request),
+                 "GET /api/%s HTTP/1.1\r\nOrigin: https://foreign.invalid\r\n\r\n", routes[i]);
+        int n = th_http(port, request, response, sizeof(response));
+        errors_ok = errors_ok && n > 0 && th_status(response) == 403 &&
+                    strstr(response, "Access-Control-Allow-Origin: *") == NULL;
+        snprintf(request, sizeof(request),
+                 "POST /api/%s HTTP/1.1\r\nContent-Type: application/json\r\n"
+                 "Content-Length: 2\r\n\r\n{}",
+                 routes[i]);
+        n = th_http(port, request, response, sizeof(response));
+        errors_ok = errors_ok && n > 0 && th_status(response) == 404;
+    }
+    th_server_stop(&ts);
+    ui_delete_fixture_cleanup(&fx);
+    ASSERT_TRUE(projects_ok);
+    ASSERT_TRUE(schema_ok);
+    ASSERT_TRUE(snippet_ok);
+    ASSERT_TRUE(errors_ok);
+    PASS();
 }
 
 TEST(ui_server_readiness_proof_is_exact_and_generation_bound) {
@@ -1358,7 +1506,7 @@ TEST(ui_server_same_origin_request_is_allowed) {
     int port = cbm_http_server_port(ts.srv);
     char req[512];
     snprintf(req, sizeof(req),
-             "OPTIONS /rpc HTTP/1.1\r\n"
+             "OPTIONS /api/index HTTP/1.1\r\n"
              "Host: 127.0.0.1:%d\r\n"
              "Origin: http://127.0.0.1:%d\r\n\r\n",
              port, port);
@@ -1381,7 +1529,7 @@ TEST(ui_server_rejects_foreign_and_null_origins) {
     char resp[4096];
     char req[768];
     snprintf(req, sizeof(req),
-             "OPTIONS /rpc HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
+             "OPTIONS /api/index HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
              "Origin: http://evil.example.com\r\n\r\n",
              port);
     int n = th_http_raw(port, req, resp, sizeof(resp));
@@ -1420,13 +1568,12 @@ TEST(ui_server_mutations_require_json_content_type) {
     th_server_t ts;
     ASSERT_EQ(th_server_start(&ts), 0);
     int port = cbm_http_server_port(ts.srv);
-    const char *body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\","
-                       "\"params\":{\"name\":\"list_projects\",\"arguments\":{}}}";
+    const char *body = "{}";
     char req[1024];
     char resp[8192];
 
     snprintf(req, sizeof(req),
-             "POST /rpc HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
+             "POST /api/index HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
              "Content-Type: text/plain\r\n"
              "Content-Length: %zu\r\n\r\n%s",
              port, strlen(body), body);
@@ -1435,7 +1582,7 @@ TEST(ui_server_mutations_require_json_content_type) {
     ASSERT_EQ(th_status(resp), 415);
 
     snprintf(req, sizeof(req),
-             "POST /rpc HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
+             "POST /api/index HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
              "Content-Length: %zu\r\n\r\n%s",
              port, strlen(body), body);
     n = th_http_raw(port, req, resp, sizeof(resp));
@@ -1443,79 +1590,16 @@ TEST(ui_server_mutations_require_json_content_type) {
     ASSERT_EQ(th_status(resp), 415);
 
     snprintf(req, sizeof(req),
-             "POST /rpc HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
+             "POST /api/index HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
              "Content-Type: application/json; charset=utf-8\r\n"
              "Content-Length: %zu\r\n\r\n%s",
              port, strlen(body), body);
     n = th_http_raw(port, req, resp, sizeof(resp));
     ASSERT_GT(n, 0);
-    ASSERT_EQ(th_status(resp), 200);
-
-    th_server_stop(&ts);
-    PASS();
-}
-
-TEST(ui_server_rpc_allows_only_ui_read_tools) {
-    th_server_t ts;
-    ASSERT_EQ(th_server_start(&ts), 0);
-    char req[1024];
-    char resp[8192];
-    int n = 0;
-    static const char *allowed_tools[] = {"list_projects", "get_graph_schema", "get_code_snippet"};
-    for (size_t i = 0; i < sizeof(allowed_tools) / sizeof(allowed_tools[0]); i++) {
-        char body[512];
-        snprintf(body, sizeof(body),
-                 "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\","
-                 "\"params\":{\"name\":\"%s\",\"arguments\":{}}}",
-                 allowed_tools[i]);
-        snprintf(req, sizeof(req),
-                 "POST /rpc HTTP/1.1\r\n"
-                 "Content-Type: application/json\r\n"
-                 "Content-Length: %zu\r\n\r\n%s",
-                 strlen(body), body);
-        n = th_http(cbm_http_server_port(ts.srv), req, resp, sizeof(resp));
-        ASSERT_GT(n, 0);
-        ASSERT_EQ(th_status(resp), 200);
-        ASSERT_NOT_NULL(strstr(resp, "\"jsonrpc\""));
-    }
-
-    static const char *blocked_tools[] = {"delete_project", "manage_adr", "ingest_traces",
-                                          "index_repository"};
-    for (size_t i = 0; i < sizeof(blocked_tools) / sizeof(blocked_tools[0]); i++) {
-        char blocked_body[512];
-        snprintf(blocked_body, sizeof(blocked_body),
-                 "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\","
-                 "\"params\":{\"name\":\"%s\",\"arguments\":{}}}",
-                 blocked_tools[i]);
-        snprintf(req, sizeof(req),
-                 "POST /rpc HTTP/1.1\r\nContent-Type: application/json\r\n"
-                 "Content-Length: %zu\r\n\r\n%s",
-                 strlen(blocked_body), blocked_body);
-        n = th_http(cbm_http_server_port(ts.srv), req, resp, sizeof(resp));
-        ASSERT_GT(n, 0);
-        ASSERT_EQ(th_status(resp), 403);
-    }
-
-    const char *initialize = "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"initialize\","
-                             "\"params\":{}}";
-    snprintf(req, sizeof(req),
-             "POST /rpc HTTP/1.1\r\nContent-Type: application/json\r\n"
-             "Content-Length: %zu\r\n\r\n%s",
-             strlen(initialize), initialize);
-    n = th_http(cbm_http_server_port(ts.srv), req, resp, sizeof(resp));
-    ASSERT_GT(n, 0);
-    ASSERT_EQ(th_status(resp), 403);
-
-    const char *ambiguous = "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\","
-                            "\"params\":{\"name\":\"list_projects\",\"name\":\"delete_project\","
-                            "\"arguments\":{}}}";
-    snprintf(req, sizeof(req),
-             "POST /rpc HTTP/1.1\r\nContent-Type: application/json\r\n"
-             "Content-Length: %zu\r\n\r\n%s",
-             strlen(ambiguous), ambiguous);
-    n = th_http(cbm_http_server_port(ts.srv), req, resp, sizeof(resp));
-    ASSERT_GT(n, 0);
-    ASSERT_EQ(th_status(resp), 403);
+    /* A JSON media type with charset is accepted. With no daemon admission
+     * available in this fixture, the request reaches the operation boundary
+     * and returns service-unavailable rather than a content-type error. */
+    ASSERT_EQ(th_status(resp), 503);
 
     th_server_stop(&ts);
     PASS();
@@ -1525,7 +1609,7 @@ TEST(ui_server_oversized_body_rejected) {
     th_server_t ts;
     ASSERT_EQ(th_server_start(&ts), 0);
     char req[256];
-    snprintf(req, sizeof(req), "POST /rpc HTTP/1.1\r\nContent-Length: %d\r\n\r\n",
+    snprintf(req, sizeof(req), "POST /api/index HTTP/1.1\r\nContent-Length: %d\r\n\r\n",
              CBM_HTTP_MAX_BODY + 1);
     char resp[4096];
     int n = th_http(cbm_http_server_port(ts.srv), req, resp, sizeof(resp));
@@ -2283,27 +2367,17 @@ static int th_http_deadline(int port, const char *request, char *resp, size_t re
     return n;
 }
 
-/* #798 was a single-threaded-server wedge: list_projects never returned and the
- * whole UI stopped answering. Assert the running server answers list_projects
- * within a hard deadline while it holds live listening sockets. The client
- * receive-timeout is the watchdog: a wedge → no 200 → FAIL, never a CI hang. */
-TEST(ui_server_list_projects_responds_under_watchdog) {
+/* #798 was a single-threaded-server wedge. Assert the running server answers a
+ * supported neutral API read within a hard deadline while it holds live sockets. */
+TEST(ui_server_index_status_responds_under_watchdog) {
     th_server_t ts;
     ASSERT_EQ(th_server_start(&ts), 0);
-    const char *body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\","
-                       "\"params\":{\"name\":\"list_projects\",\"arguments\":{}}}";
-    char req[512];
-    snprintf(req, sizeof(req),
-             "POST /rpc HTTP/1.1\r\n"
-             "Content-Type: application/json\r\n"
-             "Content-Length: %d\r\n\r\n%s",
-             (int)strlen(body), body);
     char resp[8192];
-    int n = th_http_deadline(cbm_http_server_port(ts.srv), req, resp, sizeof(resp), 15000);
+    int n = th_http_deadline(cbm_http_server_port(ts.srv), "GET /api/index-status HTTP/1.1\r\n\r\n",
+                             resp, sizeof(resp), 15000);
     th_server_stop(&ts);
-    ASSERT_GT(n, 0); /* a response arrived before the watchdog fired */
+    ASSERT_GT(n, 0);
     ASSERT_EQ(th_status(resp), 200);
-    ASSERT_NOT_NULL(strstr(resp, "\"jsonrpc\""));
     PASS();
 }
 
@@ -2908,6 +2982,7 @@ SUITE(httpd) {
     /* Full UI server */
     RUN_TEST(ui_server_readiness_proof_is_exact_and_generation_bound);
     RUN_TEST(ui_server_rejects_non_loopback_host);
+    RUN_TEST(ui_server_native_read_endpoints);
     RUN_TEST(ui_server_unknown_path_404);
     RUN_TEST(ui_server_process_kill_route_is_unavailable);
     RUN_TEST(ui_server_routes_indexing_through_joinable_daemon_executor);
@@ -2920,7 +2995,6 @@ SUITE(httpd) {
     RUN_TEST(ui_server_same_origin_request_is_allowed);
     RUN_TEST(ui_server_rejects_foreign_and_null_origins);
     RUN_TEST(ui_server_mutations_require_json_content_type);
-    RUN_TEST(ui_server_rpc_allows_only_ui_read_tools);
     RUN_TEST(ui_server_oversized_body_rejected);
     RUN_TEST(ui_server_encoded_slash_not_routed);
     RUN_TEST(ui_server_nul_in_target_rejected);
@@ -2948,6 +3022,6 @@ SUITE(httpd) {
     RUN_TEST(httpd_nonreading_large_response_hits_send_deadline_without_interrupt);
     RUN_TEST(ui_server_stop_interrupts_partial_request_within_one_second);
     /* #798 follow-up: full UI-mode hang repro under live sockets */
-    RUN_TEST(ui_server_list_projects_responds_under_watchdog);
+    RUN_TEST(ui_server_index_status_responds_under_watchdog);
     RUN_TEST(git_context_resolve_no_hang_under_live_ui_sockets);
 }

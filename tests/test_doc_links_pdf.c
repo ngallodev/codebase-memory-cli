@@ -17,7 +17,6 @@
 #include "cbm.h"
 #include "doclink.h"
 #include "foundation/compat_thread.h"
-#include "mcp/mcp.h"
 #include "pdf/pdf.h"
 #include "pipeline/pipeline.h"
 #include "pipeline/pipeline_internal.h"
@@ -1221,48 +1220,6 @@ TEST(pdf_page_doc_bounded) {
     PASS();
 }
 
-TEST(pdf_snippet_is_page_text) {
-    char tmp[256] = "/tmp/cbm_dlpdf_snip_XXXXXX";
-    ASSERT_NOT_NULL(cbm_mkdtemp(tmp));
-    char repo[400];
-    char cache[400];
-    char db[1024];
-    snprintf(repo, sizeof(repo), "%s/repo", tmp);
-    snprintf(cache, sizeof(cache), "%s/cache", tmp);
-    tp_write_repo(repo, DESIGN_P2);
-    cbm_mkdir_p(cache, 0700);
-    char *project = cbm_project_name_from_path(repo);
-    ASSERT_NOT_NULL(project);
-    const char *saved = getenv("CBM_CACHE_DIR");
-    char *saved_copy = saved ? strdup(saved) : NULL;
-    snprintf(db, sizeof(db), "%s/%s.db", cache, project);
-    cbm_setenv("CBM_CACHE_DIR", cache, 1);
-    ASSERT_EQ(dm_index(repo, db, NULL), 0);
-    cbm_mcp_server_t *srv = cbm_mcp_server_new(NULL);
-    ASSERT_NOT_NULL(srv);
-    char args[1024];
-    snprintf(args, sizeof(args),
-             "{\"project\":\"%s\",\"qualified_name\":\"%s.docs.design.page_2\"}", project, project);
-    char *resp = cbm_mcp_handle_tool(srv, "get_code_snippet", args);
-    char *text = dm_tool_text(resp);
-    ASSERT_NOT_NULL(text);
-    ASSERT_NOT_NULL(
-        strstr(text, "Factory server.NewHandler and models.py build it; app.models holds it."));
-    ASSERT_NULL(strstr(text, "%PDF"));
-    free(text);
-    free(resp);
-    cbm_mcp_server_free(srv);
-    if (saved_copy) {
-        cbm_setenv("CBM_CACHE_DIR", saved_copy, 1);
-    } else {
-        cbm_unsetenv("CBM_CACHE_DIR");
-    }
-    free(saved_copy);
-    free(project);
-    th_cleanup(tmp);
-    PASS();
-}
-
 TEST(pdf_links_incremental) {
     char tmp[256];
     snprintf(tmp, sizeof(tmp), "/tmp/cbm_dlpdf_inc_XXXXXX");
@@ -1312,6 +1269,5 @@ SUITE(doc_links_pdf) {
     RUN_TEST(pdf_links_pipeline);
     RUN_TEST(pdf_qn_method_through_owner);
     RUN_TEST(pdf_page_doc_bounded);
-    RUN_TEST(pdf_snippet_is_page_text);
     RUN_TEST(pdf_links_incremental);
 }
