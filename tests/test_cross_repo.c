@@ -6,7 +6,9 @@
 #include "test_helpers.h"
 
 #include "foundation/compat.h"
+#include "operations/cross_repo.h"
 #include "pipeline/pass_cross_repo.h"
+#include "operations/operation.h"
 #include "pipeline/pipeline_internal.h"
 
 #include <sqlite3/sqlite3.h>
@@ -462,6 +464,51 @@ TEST(cross_repo_status_distinguishes_never_run_from_ran_without_links) {
     ASSERT_FALSE(result.failed);
     ASSERT_TRUE(before_never);
     ASSERT_TRUE(after_ran);
+    PASS();
+}
+
+static bool cross_repo_op_mutation_begin(void *context, const char *project) {
+    (void)context;
+    (void)project;
+    return true;
+}
+
+static void cross_repo_op_mutation_end(void *context, const char *project) {
+    (void)context;
+    (void)project;
+}
+
+/* #2346 (cross-repo-status) operation surface: a ["*"] run names every store
+ * it skipped -- with the reindex hint -- in its own JSON, so a partial fleet
+ * is visible to the caller instead of silently smaller. */
+TEST(cross_repo_operation_reports_skipped_pre768_store) {
+    cross_repo_fixture_t fixture;
+    bool setup =
+        cross_repo_fixture_begin(&fixture) &&
+        cross_repo_seed_http_pair(&fixture, "op-skip-src", "op-skip-api", "/orders", "o") &&
+        cross_repo_create_pre768_project(&fixture, "aa-op-pre768");
+    if (!setup) {
+        cross_repo_fixture_end(&fixture);
+        FAIL("failed to seed skipped-store fixture");
+    }
+
+    cbm_operation_runtime_t runtime = {0};
+    runtime.mutation_begin = cross_repo_op_mutation_begin;
+    runtime.mutation_try_begin = cross_repo_op_mutation_begin;
+    runtime.mutation_end = cross_repo_op_mutation_end;
+
+    cbm_operation_result_t result = cbm_cross_repo_operation_execute(
+        fixture.cache, "{\"name\":\"op-skip-src\",\"target_projects\":[\"*\"]}", &runtime);
+    cross_repo_fixture_end(&fixture);
+
+    bool ok = result.payload && !result.is_error &&
+              strstr(result.payload,
+                     "\"skipped_projects\":[{\"name\":\"aa-op-pre768\","
+                     "\"reason\":\"pre_768_schema\",\"hint\":\"reindex this project\"}]") != NULL &&
+              strstr(result.payload, "\"total_cross_edges\":1") != NULL;
+    cbm_operation_result_dispose(&result);
+
+    ASSERT_TRUE(ok);
     PASS();
 }
 
@@ -952,6 +999,7 @@ SUITE(cross_repo) {
     RUN_TEST(cross_repo_named_pre768_target_fails_before_cleanup_issue2133);
     RUN_TEST(cross_repo_status_distinguishes_never_run_from_ran_without_links);
     RUN_TEST(cross_repo_wildcard_reports_skipped_pre768_store);
+    RUN_TEST(cross_repo_operation_reports_skipped_pre768_store);
     RUN_TEST(cross_repo_scan_bound_counts_examined_rows_not_matches);
     RUN_TEST(cross_repo_propagates_delete_failure);
     RUN_TEST(cross_repo_failed_bidirectional_insert_is_not_counted);

@@ -5,7 +5,9 @@
 #include "operations/store_host.h"
 
 #include "foundation/compat_fs.h"
+#include "foundation/constants.h"
 #include "foundation/workspace.h"
+#include "cbm.h"
 #include "store/store.h"
 #include "yyjson/yyjson.h"
 
@@ -90,6 +92,17 @@ static long resolution_score(const cbm_node_t *node) {
         } else if (strcmp(node->label, "Module") != 0 && strcmp(node->label, "File") != 0) {
             rank = SNIPPET_RES_RANK_OTHER;
         }
+    }
+    /* Tie rule (CBM_MACRO_QN_SUFFIX): a name that is both a definition and a C
+     * macro -- a typedef or enumerator next to its rename macro -- resolves to
+     * the definition. The macro scores just under every other definition, and
+     * still above Module/File; without this a one-line typedef and its macro
+     * tie on span and the name reads as ambiguous. */
+    size_t qn_len = node->qualified_name ? strlen(node->qualified_name) : 0;
+    size_t fence_len = sizeof(CBM_MACRO_QN_SUFFIX) - 1U;
+    if (rank == SNIPPET_RES_RANK_OTHER && qn_len > fence_len &&
+        strcmp(node->qualified_name + qn_len - fence_len, CBM_MACRO_QN_SUFFIX) == 0) {
+        return SNIPPET_RES_RANK_OTHER * (long)SNIPPET_RES_LABEL_WEIGHT - 1;
     }
     long span = (long)node->end_line - (long)node->start_line;
     if (span < 0)
@@ -615,6 +628,21 @@ cbm_operation_result_t cbm_snippet_operation_execute(const char *args) {
         matches = NULL;
         method = "base_suffix";
         cbm_store_find_nodes_by_qn_base(store, project, qualified_name, true, &matches, &count);
+    }
+    /* Tier 3: the C-macro namespace. A macro's QN is `<module>.<NAME>#macro`
+     * (CBM_MACRO_QN_SUFFIX), out of reach of '%.X'. Tried only when no
+     * definition answered to the name above (tie rule), for a short name, a
+     * partial QN, or the macro's plain QN. */
+    if (count == 0) {
+        cbm_store_free_nodes(matches, count);
+        matches = NULL;
+        char macro_qn[CBM_SZ_512];
+        int macro_len =
+            snprintf(macro_qn, sizeof(macro_qn), "%s" CBM_MACRO_QN_SUFFIX, qualified_name);
+        if (macro_len > 0 && (size_t)macro_len < sizeof(macro_qn)) {
+            method = "suffix";
+            cbm_store_find_nodes_by_qn_suffix(store, project, macro_qn, &matches, &count);
+        }
     }
     if (count > 0) {
         bool ambiguous = false;
