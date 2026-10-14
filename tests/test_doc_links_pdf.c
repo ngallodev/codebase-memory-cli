@@ -17,7 +17,7 @@
 #include "cbm.h"
 #include "doclink.h"
 #include "foundation/compat_thread.h"
-#include "mcp/mcp.h"
+#include "test_operation_host.h"
 #include "pdf/pdf.h"
 #include "pipeline/pipeline.h"
 #include "pipeline/pipeline_internal.h"
@@ -1238,20 +1238,18 @@ TEST(pdf_snippet_is_page_text) {
     snprintf(db, sizeof(db), "%s/%s.db", cache, project);
     cbm_setenv("CBM_CACHE_DIR", cache, 1);
     ASSERT_EQ(dm_index(repo, db, NULL), 0);
-    cbm_mcp_server_t *srv = cbm_mcp_server_new(NULL);
+    cbm_test_operation_host_t *srv = cbm_test_operation_host_new(NULL);
     ASSERT_NOT_NULL(srv);
     char args[1024];
     snprintf(args, sizeof(args),
              "{\"project\":\"%s\",\"qualified_name\":\"%s.docs.design.page_2\"}", project, project);
-    char *resp = cbm_mcp_handle_tool(srv, "get_code_snippet", args);
-    char *text = dm_tool_text(resp);
+    char *text = cbm_test_operation_execute(srv, "snippet", args);
     ASSERT_NOT_NULL(text);
     ASSERT_NOT_NULL(
         strstr(text, "Factory server.NewHandler and models.py build it; app.models holds it."));
     ASSERT_NULL(strstr(text, "%PDF"));
     free(text);
-    free(resp);
-    cbm_mcp_server_free(srv);
+    cbm_test_operation_host_free(srv);
     if (saved_copy) {
         cbm_setenv("CBM_CACHE_DIR", saved_copy, 1);
     } else {

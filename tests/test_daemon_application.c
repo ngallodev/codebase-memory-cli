@@ -969,11 +969,10 @@ static void app_test_unlink_project_db(const char *db_path) {
     (void)cbm_unlink(sidecar);
 }
 
-/* The tool result embeds the JSON document as escaped text: match
- * \"key\":value inside it. */
+/* The operation payload is the JSON document: match "key":value in it. */
 static bool app_test_response_has(const char *response, const char *key, const char *value) {
     char needle[APP_TEST_PATH_CAP];
-    snprintf(needle, sizeof(needle), "\\\"%s\\\":%s", key, value);
+    snprintf(needle, sizeof(needle), "\"%s\":%s", key, value);
     return response && strstr(response, needle) != NULL;
 }
 
@@ -981,19 +980,26 @@ static char *app_test_index_status(const cbm_daemon_runtime_application_callback
                                    cbm_daemon_runtime_application_session_t *session,
                                    const char *project) {
     char args[APP_TEST_PATH_CAP];
-    snprintf(args, sizeof(args), "{\"project\":\"%s\",\"format\":\"json\"}", project);
+    snprintf(args, sizeof(args), "{\"project\":\"%s\"}", project);
     uint8_t *tool = NULL;
     uint32_t tool_length = 0;
     uint8_t *response = NULL;
     uint32_t response_length = 0;
-    if (!app_test_tool_request("index_status", args, &tool, &tool_length) ||
-        app_test_request(callbacks, session, tool, tool_length, &response, &response_length) !=
-            CBM_DAEMON_RUNTIME_APPLICATION_OK) {
-        free(response);
-        response = NULL;
+    char *payload = NULL;
+    if (app_test_tool_request("status", args, &tool, &tool_length) &&
+        app_test_request(callbacks, session, tool, tool_length, &response, &response_length) ==
+            CBM_DAEMON_RUNTIME_APPLICATION_OK &&
+        response && response_length > 1U && response[0] == 0U) {
+        /* byte 0 is the error flag; the rest is the JSON payload */
+        payload = malloc((size_t)response_length);
+        if (payload) {
+            memcpy(payload, response + 1, (size_t)response_length - 1U);
+            payload[response_length - 1U] = '\0';
+        }
     }
+    free(response);
     free(tool);
-    return (char *)response;
+    return payload;
 }
 
 TEST(daemon_application_index_status_reports_watch_issue2167) {
@@ -1030,11 +1036,9 @@ TEST(daemon_application_index_status_reports_watch_issue2167) {
     uint32_t ping_length = 0;
     uint8_t *response = NULL;
     uint32_t response_length = 0;
-    /* Context + one MCP request registers the session root's watch. */
+    /* Context + one operation request registers the session root's watch. */
     bool registered = seeded && app_test_context_request(root, root, &context, &context_length) &&
-                      app_test_text_request(CBM_DAEMON_APPLICATION_REQUEST_OPERATION,
-                                            "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"ping\"}",
-                                            &ping, &ping_length) &&
+                      app_test_tool_request("projects", "{}", &ping, &ping_length) &&
                       app_test_request(&callbacks, session, context, context_length, &response,
                                        &response_length) == CBM_DAEMON_RUNTIME_APPLICATION_OK;
     free(response);
@@ -1049,10 +1053,10 @@ TEST(daemon_application_index_status_reports_watch_issue2167) {
     char *own = registered ? app_test_index_status(&callbacks, session, project) : NULL;
     char *other = registered ? app_test_index_status(&callbacks, session, other_project) : NULL;
     bool own_watched = app_test_response_has(own, "watched", "true") &&
-                       app_test_response_has(own, "strategy", "\\\"pending\\\"") &&
+                       app_test_response_has(own, "strategy", "\"pending\"") &&
                        app_test_response_has(own, "poll_interval_ms", "5000");
     bool other_unwatched = app_test_response_has(other, "watched", "false") &&
-                           app_test_response_has(other, "reason", "\\\"not_session_project\\\"");
+                           app_test_response_has(other, "reason", "\"not_session_project\"");
 
     callbacks.session_cancel(callbacks.context, session);
     callbacks.session_close(callbacks.context, session);
@@ -1117,7 +1121,7 @@ TEST(daemon_application_index_status_watcher_disabled_issue2167) {
     free(response);
     char *status = context_ok ? app_test_index_status(&callbacks, session, project) : NULL;
     bool disabled = app_test_response_has(status, "watched", "false") &&
-                    app_test_response_has(status, "reason", "\\\"watcher_disabled\\\"");
+                    app_test_response_has(status, "reason", "\"watcher_disabled\"");
 
     callbacks.session_cancel(callbacks.context, session);
     callbacks.session_close(callbacks.context, session);
@@ -1173,11 +1177,9 @@ TEST(daemon_application_index_status_reports_tree_strategy_issue2167) {
     uint32_t ping_length = 0;
     uint8_t *response = NULL;
     uint32_t response_length = 0;
-    /* Context + one MCP request registers the session root's watch. */
+    /* Context + one operation request registers the session root's watch. */
     bool registered = seeded && app_test_context_request(root, root, &context, &context_length) &&
-                      app_test_text_request(CBM_DAEMON_APPLICATION_REQUEST_OPERATION,
-                                            "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"ping\"}",
-                                            &ping, &ping_length) &&
+                      app_test_tool_request("projects", "{}", &ping, &ping_length) &&
                       app_test_request(&callbacks, session, context, context_length, &response,
                                        &response_length) == CBM_DAEMON_RUNTIME_APPLICATION_OK;
     free(response);
@@ -1196,7 +1198,7 @@ TEST(daemon_application_index_status_reports_tree_strategy_issue2167) {
 
     char *status = registered ? app_test_index_status(&callbacks, session, project) : NULL;
     bool tree = app_test_response_has(status, "watched", "true") &&
-                app_test_response_has(status, "strategy", "\\\"tree\\\"");
+                app_test_response_has(status, "strategy", "\"tree\"");
 
     callbacks.session_cancel(callbacks.context, session);
     callbacks.session_close(callbacks.context, session);

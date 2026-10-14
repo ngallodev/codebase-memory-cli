@@ -360,7 +360,10 @@ static const tool_def_t TOOLS[] = {
      "signal only marks what the indexer can detect. For structural queries over the misses use "
      "query_graph(graph=\"missed\"). The report also carries 'not_indexed' — files/dirs excluded "
      "BY DESIGN (gitignore/.cbmignore/skip-lists): deliberate and deterministic, not failures; "
-     "change the ignore rules and re-index to include them.",
+     "change the ignore rules and re-index to include them. 'doc_links' reports doc-comment "
+     "references: MENTIONS edges and unresolved rows by reason (diagnostics=full adds bounded "
+     "samples). 'watch' says whether the background watcher keeps this project fresh and, if "
+     "not, why.",
      "{\"type\":\"object\",\"properties\":{\"project\":{\"type\":\"string\"},"
      "\"verbose\":{\"type\":\"boolean\",\"default\":false,\"description\":\"Include the git "
      "context block (worktree/shadow path variants). Only needed when debugging where an index "
