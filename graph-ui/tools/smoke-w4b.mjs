@@ -69,7 +69,7 @@ import { startStaticProxy } from './lib/static-proxy.mjs';
 const execFileAsync = promisify(execFile);
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BINARY = join(ROOT, 'cbm', 'build', 'c', 'codebase-memory-mcp');
+const BINARY = resolve(ROOT, '..', 'build', 'c', 'codebase-memory-cli');
 const DIST = join(ROOT, 'dist');
 const FIXTURE = join(ROOT, 'fixtures', 'atlas-sample');
 const PROJECT = 'codeatlasweb-w4b';
@@ -446,7 +446,7 @@ async function main() {
             && before.noTraces.present
             && before.noTraces.message.length > 20
             && before.noTraces.how.length > 20
-            && before.noTraces.command.includes('codebase-memory-mcp cli ingest_traces')
+            && before.noTraces.command.includes('codebase-memory-cli cli ingest_traces')
             && before.noTraces.command.includes(PROJECT)
             && before.noTraces.format.includes('caller')
             && before.noTraces.where.length > 20
@@ -563,7 +563,7 @@ async function main() {
 
         // Ein kaputter Ref darf nichts auf den Draht schicken. Gezaehlt wird am
         // Proxy, also an dem, was wirklich gesendet wurde.
-        const callsBefore = proxy.log.rpcTools['detect_changes'] ?? 0;
+        const callsBefore = proxy.log.toolCalls['detect_changes'] ?? 0;
         await page.click('[data-testid="atlas-impact-mode-since-ref"]');
         await page.waitForSelector('[data-testid="atlas-impact-ref-input"]', { timeout: 10000 });
         await page.fill('[data-testid="atlas-impact-ref-input"]', BROKEN_REF);
@@ -572,7 +572,7 @@ async function main() {
         // Grosszuegig warten: haette der Klick doch eine Anfrage ausgeloest,
         // waere sie bis hierher laengst durch den Proxy gegangen.
         await page.waitForTimeout(1500);
-        const callsAfter = proxy.log.rpcTools['detect_changes'] ?? 0;
+        const callsAfter = proxy.log.toolCalls['detect_changes'] ?? 0;
         const refError = await page.evaluate(
             () => document.querySelector('[data-testid="atlas-impact-ref-error"]')?.textContent?.trim() ?? '',
         );
@@ -587,7 +587,7 @@ async function main() {
         log(`kaputter Ref: detect_changes ${callsBefore} -> ${callsAfter}, Satz: ${refError.slice(0, 80)}`);
 
         extras.apiRoutes = { ...proxy.log.apiRoutes };
-        extras.rpcTools = { ...proxy.log.rpcTools };
+        extras.toolCalls = { ...proxy.log.toolCalls };
 
         await context.close();
     } catch (err) {

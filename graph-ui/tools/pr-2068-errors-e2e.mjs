@@ -22,7 +22,7 @@ const report = { startedAt: new Date().toISOString(), origin: ORIGIN, fixture: F
     actions: [], directRequests: [], browserRequests: [], blockedExternalRequests: [], screenshots: [], checks: {}, cleanup: [] };
 let browser;
 let ownsFixture = false;
-let rpcId = 0;
+let toolCallCount = 0;
 const delay = (ms) => new Promise((done) => setTimeout(done, ms));
 const saveReport = () => writeFile(join(OUT, `${proofPrefix}errors-e2e.json`), JSON.stringify(report, null, 2) + '\n');
 
@@ -37,9 +37,9 @@ async function json(path, body) {
 }
 
 async function rpc(name, args) {
-    const response = await json('/rpc', { jsonrpc: '2.0', id: ++rpcId, method: 'tools/call', params: { name, arguments: { ...args, format: 'json' } } });
-    if (response.error || response.result?.isError) throw new Error(JSON.stringify(response));
-    return JSON.parse(response.result.content[0].text);
+    const response = await json('/api/tool', { name, arguments: { ...args, format: 'json' } });
+    if (response.error || response.isError) throw new Error(JSON.stringify(response));
+    return JSON.parse(response.content[0].text);
 }
 
 async function index(project) {
@@ -145,7 +145,7 @@ async function main() {
     const context = await browser.newContext({ viewport: { width: 1560, height: 1100 }, reducedMotion: 'reduce' });
     await context.route('**/*', async (route) => {
         const req = route.request(); const url = req.url();
-        report.browserRequests.push({ at: new Date().toISOString(), method: req.method(), url, ...(url === `${ORIGIN}/rpc` ? { tool: req.postDataJSON()?.params?.name } : {}) });
+        report.browserRequests.push({ at: new Date().toISOString(), method: req.method(), url, ...(url === `${ORIGIN}/api/tool` ? { tool: req.postDataJSON()?.name } : {}) });
         if (url.startsWith(ORIGIN + '/') || url.startsWith('data:') || url.startsWith('blob:')) return route.continue();
         report.blockedExternalRequests.push(url); return route.abort();
     });

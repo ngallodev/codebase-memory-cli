@@ -13,7 +13,7 @@
  * das, was es zeigt, auffuehrt. Gegen einen Stand ohne die Korrekturen
  * gefahren, sollen die Pruefungen fehlschlagen; das ist der Vorher-Beweis.
  *
- * Es startet keinen Server. Gebraucht wird ein Ursprung mit UI und /rpc, etwa
+ * Es startet keinen Server. Gebraucht wird ein Ursprung mit UI und /api/tool, etwa
  * tools/lib/static-proxy.mjs vor einem laufenden Server.
  *
  * Nach dem Review der Korrekturen kamen dazu: die Auswahl bleibt bei Zurueck
@@ -62,14 +62,13 @@ const wait = (ms) => new Promise((done) => setTimeout(done, ms));
 /* ------------------------------------------------------------------ */
 /* Server                                                             */
 
-let rpcId = 1;
 async function tool(name, args) {
-    const res = await fetch(`${ORIGIN}/rpc`, {
+    const res = await fetch(`${ORIGIN}/api/tool`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: rpcId++, method: 'tools/call', params: { name, arguments: args } }),
+        body: JSON.stringify({ name, arguments: args }),
     });
     const body = await res.json();
-    const text = body?.result?.content?.[0]?.text ?? '';
+    const text = body?.content?.[0]?.text ?? '';
     try { return JSON.parse(text); } catch { return { raw: text }; }
 }
 
@@ -99,10 +98,10 @@ function pageProbe() {
     const nativeFetch = window.fetch.bind(window);
     window.fetch = async (input, init) => {
         const url = typeof input === 'string' ? input : input?.url ?? '';
-        if (url.endsWith('/rpc') && init?.body) {
+        if (url.endsWith('/api/tool') && init?.body) {
             try {
                 const body = JSON.parse(String(init.body));
-                window.__probeRpc.push({ t: Math.round(performance.now()), tool: body?.params?.name, cursor: Boolean(body?.params?.arguments?.cursor), maxRows: body?.params?.arguments?.max_rows ?? null });
+                window.__probeRpc.push({ t: Math.round(performance.now()), tool: body?.name, cursor: Boolean(body?.arguments?.cursor), maxRows: body?.arguments?.max_rows ?? null });
             } catch { /* nur Beobachtung */ }
         }
         return nativeFetch(input, init);

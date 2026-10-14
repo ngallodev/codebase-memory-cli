@@ -102,7 +102,7 @@ import { EVAL_BOUNDS, boundViolations } from './lib/eval-bounds.mjs';
 import { EVAL_PORT_FLOOR, llamaProps, startLlama, stopLlama } from './lib/llama.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BINARY = join(ROOT, 'cbm', 'build', 'c', 'codebase-memory-mcp');
+const BINARY = resolve(ROOT, '..', 'build', 'c', 'codebase-memory-cli');
 const FIXTURE = join(ROOT, 'fixtures', 'atlas-sample');
 const QUESTIONS = join(ROOT, 'eval', 'questions.json');
 const OUT_DIR = join(ROOT, 'verification', 'w5');

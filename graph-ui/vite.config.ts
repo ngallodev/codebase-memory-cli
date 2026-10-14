@@ -44,7 +44,7 @@ function atlasVersion(): string {
 
 /**
  * Dev-Betrieb nach dem Vorbild des PR-Frontends (cbm/graph-ui/vite.config.ts):
- * /rpc und /api werden auf den C-Server geproxyt, der nur seine eigene
+ * /api wird auf den C-Server geproxyt, der nur seine eigene
  * Loopback-Authority akzeptiert. Fremde Browser-Origins werden vor dem
  * Rewrite abgewiesen, damit der Proxy kein Loch in den Origin-Check reisst.
  *

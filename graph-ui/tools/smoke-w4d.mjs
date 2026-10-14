@@ -66,7 +66,7 @@ import {
 import { startStaticProxy } from './lib/static-proxy.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BINARY = join(ROOT, 'cbm', 'build', 'c', 'codebase-memory-mcp');
+const BINARY = resolve(ROOT, '..', 'build', 'c', 'codebase-memory-cli');
 const DIST = join(ROOT, 'dist');
 const FIXTURE = join(ROOT, 'fixtures', 'atlas-sample');
 const PROJECT = 'codeatlasweb-w4d';
@@ -189,30 +189,25 @@ async function prepareCopy(scratch) {
     return copy;
 }
 
-/** Ein Werkzeug ueber POST /rpc rufen, direkt am Server und ohne Origin. */
+/** Ein Tool ueber POST /api/tool rufen, direkt am Server und ohne Origin. */
 async function rpc(port, tool, args) {
-    const response = await fetch(`http://127.0.0.1:${port}/rpc`, {
+    const response = await fetch(`http://127.0.0.1:${port}/api/tool`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: Date.now() % 100000,
-            method: 'tools/call',
-            params: { name: tool, arguments: { ...args, format: 'json' } },
-        }),
+        body: JSON.stringify({ name: tool, arguments: { ...args, format: 'json' } }),
     });
     const body = await response.json();
-    const text = body?.result?.content?.[0]?.text;
+    const text = body?.content?.[0]?.text;
     if (typeof text !== 'string') {
-        throw new Error(`/rpc ${tool}: Antwort ohne result.content[0].text: ${JSON.stringify(body).slice(0, 300)}`);
+        throw new Error(`/api/tool ${tool}: Antwort ohne content[0].text: ${JSON.stringify(body).slice(0, 300)}`);
     }
-    if (body.result.isError === true) {
-        throw new Error(`/rpc ${tool}: ${text.slice(0, 300)}`);
+    if (body.isError === true) {
+        throw new Error(`/api/tool ${tool}: ${text.slice(0, 300)}`);
     }
     try {
         return JSON.parse(text);
     } catch {
-        throw new Error(`/rpc ${tool}: Antworttext war kein JSON: ${text.slice(0, 300)}`);
+        throw new Error(`/api/tool ${tool}: Antworttext war kein JSON: ${text.slice(0, 300)}`);
     }
 }
 
@@ -801,7 +796,7 @@ async function main() {
         log('undiscoveredGap:', result.undiscoveredGap.slice(0, 160));
 
         extras.apiRoutes = { ...proxy.log.apiRoutes };
-        extras.rpcTools = { ...proxy.log.rpcTools };
+        extras.toolCalls = { ...proxy.log.toolCalls };
 
         await context.close();
     } catch (err) {

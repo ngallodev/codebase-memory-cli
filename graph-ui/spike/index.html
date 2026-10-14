@@ -6,7 +6,7 @@
 <!--
   W0-Spike. Wegwerf-Beweiscode, NICHT die Produktarchitektur.
   Zweck: zeigen, dass der gebaute C-Server (PR 1860) echten Quelltext über
-  /rpc get_code_snippet liefert und Monaco ihn read-only mit genau einer
+  POST /api/tool mit get_code_snippet liefert und Monaco ihn read-only mit genau einer
   Decoration an der Call-Site rendert. Kein CDN: Monaco kommt aus
   /node_modules/monaco-editor/min/vs.
 -->
@@ -97,7 +97,7 @@
 <body>
   <header>
     <span class="brand">CODEATLAS W0 SPIKE</span>
-    <span class="meta">quelle <b id="hdr-source">/rpc get_code_snippet</b></span>
+    <span class="meta">quelle <b id="hdr-source">POST /api/tool · get_code_snippet</b></span>
     <span class="meta">symbol <b id="hdr-qn">...</b></span>
     <span class="meta">datei <b id="hdr-file">...</b></span>
     <span class="meta">modus <b id="hdr-mode">read-only</b></span>

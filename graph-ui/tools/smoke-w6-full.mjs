@@ -84,7 +84,7 @@ import {
 const execFileAsync = promisify(execFile);
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BINARY = join(ROOT, 'cbm', 'build', 'c', 'codebase-memory-mcp');
+const BINARY = resolve(ROOT, '..', 'build', 'c', 'codebase-memory-cli');
 const DIST = join(ROOT, 'dist');
 const FIXTURE = join(ROOT, 'fixtures', 'atlas-sample');
 const FIXTURE_LARGE = join(ROOT, 'fixtures', 'atlas-sample-large');
@@ -1247,7 +1247,7 @@ async function main() {
         await halt('sidecar-off-again', { shot: '28-sidecar-off-again.png' });
 
         extras.apiRoutes = { ...proxy.log.apiRoutes };
-        extras.rpcTools = { ...proxy.log.rpcTools };
+        extras.toolCalls = { ...proxy.log.toolCalls };
         await context.close();
     } catch (err) {
         failure = err;
@@ -1360,7 +1360,7 @@ async function main() {
                 warm:
                     'Zehn verschiedene Symbole, nacheinander ueber die Bedeutungssuche geoeffnet. '
                     + 'Gemessen vom Klick auf den Treffer bis der Twin das neue Subjekt fertig zeigt '
-                    + '(Aufloesung und IR-Bau ueber /rpc, dann das Bild). Das Tippen und die '
+                    + '(Aufloesung und IR-Bau ueber /api/tool, dann das Bild). Das Tippen und die '
                     + 'Entprellung davor stehen als searchOverlayMs getrennt. Zehn VERSCHIEDENE '
                     + 'Symbole, weil dasselbe zweimal den Cache in src/twin/ir-cache.ts messen '
                     + 'wuerde und nicht den Server.',
