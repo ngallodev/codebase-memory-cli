@@ -137,7 +137,7 @@ if [ "$GOOS" = "windows" ]; then
     test -s "$EXTRACT_DIR/codebase-memory-cli.exe"
     # ONE binary per platform: a payload sibling means the AV-flagged launcher
     # stub came back.
-    test ! -e "$EXTRACT_DIR/codebase-memory-mcp.payload.exe"
+    test ! -e "$EXTRACT_DIR/codebase-memory-cli.payload.exe"
     echo "=== smoke-artifact: smoking EXTRACTED $NAME.zip via vm-smoke.sh ==="
     SMOKE_ARCH="$GOARCH" \
         CBM_SMOKE_ARTIFACT_DIR="$EXTRACT_DIR" \

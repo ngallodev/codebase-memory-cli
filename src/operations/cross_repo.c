@@ -223,6 +223,7 @@ cbm_operation_result_t cbm_cross_repo_operation_execute(const char *repo_path,
     yyjson_doc_free(jdoc);
 
     if (result.failed) {
+        cbm_cross_repo_result_free(&result);
         free(project);
         return cross_repo_error(
             result.no_targets
@@ -264,8 +265,22 @@ cbm_operation_result_t cbm_cross_repo_operation_execute(const char *repo_path,
     yyjson_mut_obj_add_int(doc, root, "cross_trpc_calls", result.trpc_edges);
     yyjson_mut_obj_add_int(doc, root, "total_cross_edges", total);
     yyjson_mut_obj_add_real(doc, root, "elapsed_ms", result.elapsed_ms);
+    /* ["*"] skips stores it cannot link (#2133); name them so a partial fleet
+     * is visible instead of silently smaller. Only emitted when non-empty. */
+    if (result.skipped_count > 0) {
+        yyjson_mut_val *skipped = yyjson_mut_arr(doc);
+        for (int i = 0; i < result.skipped_count; i++) {
+            yyjson_mut_val *item = yyjson_mut_obj(doc);
+            yyjson_mut_obj_add_strcpy(doc, item, "name", result.skipped_projects[i].project);
+            yyjson_mut_obj_add_str(doc, item, "reason", result.skipped_projects[i].reason);
+            yyjson_mut_obj_add_str(doc, item, "hint", "reindex this project");
+            yyjson_mut_arr_append(skipped, item);
+        }
+        yyjson_mut_obj_add_val(doc, root, "skipped_projects", skipped);
+    }
     char *payload = cbm_operation_json_write(doc);
     yyjson_mut_doc_free(doc);
+    cbm_cross_repo_result_free(&result);
     free(project);
     if (!payload)
         return cross_repo_error("result encoding failed");

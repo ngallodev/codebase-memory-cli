@@ -50,7 +50,8 @@ static bool test_cancelled(void *context) {
 
 cbm_test_operation_host_t *cbm_test_operation_host_new(const char *store_path) {
     cbm_test_operation_host_t *host = calloc(1, sizeof(*host));
-    if (!host) return NULL;
+    if (!host)
+        return NULL;
     host->stores = store_path ? cbm_store_host_new(store_path) : cbm_store_host_new_deferred();
     host->session = cbm_operation_session_state_new();
     if (!host->stores || !host->session) {
@@ -76,23 +77,45 @@ cbm_test_operation_host_t *cbm_test_operation_host_new(const char *store_path) {
 }
 
 void cbm_test_operation_host_free(cbm_test_operation_host_t *host) {
-    if (!host) return;
+    if (!host)
+        return;
     cbm_store_host_free(host->stores);
     cbm_operation_session_state_free(host->session);
     free(host);
 }
 
-char *cbm_test_operation_execute(cbm_test_operation_host_t *host, const char *operation,
-                                 const char *args_json) {
-    if (!host || !operation) return NULL;
+char *cbm_test_operation_execute_ex(cbm_test_operation_host_t *host, const char *operation,
+                                    const char *args_json, bool *is_error_out) {
+    if (is_error_out)
+        *is_error_out = false;
+    if (!host || !operation)
+        return NULL;
     const cbm_operation_descriptor_t *descriptor = cbm_operation_find(operation);
-    if (!descriptor) return NULL;
-    cbm_operation_result_t result = cbm_operation_execute(&host->context, descriptor->id,
-                                                          args_json ? args_json : "{}");
+    if (!descriptor)
+        return NULL;
+    cbm_operation_result_t result =
+        cbm_operation_execute(&host->context, descriptor->id, args_json ? args_json : "{}");
+    if (is_error_out)
+        *is_error_out = result.is_error;
     char *payload = result.payload;
     result.payload = NULL;
     cbm_operation_result_dispose(&result);
     return payload;
+}
+
+char *cbm_test_operation_execute(cbm_test_operation_host_t *host, const char *operation,
+                                 const char *args_json) {
+    return cbm_test_operation_execute_ex(host, operation, args_json, NULL);
+}
+
+void cbm_test_operation_host_set_index_execute(cbm_test_operation_host_t *host,
+                                               cbm_operation_index_execute_fn execute,
+                                               void *context) {
+    if (!host) {
+        return;
+    }
+    host->runtime.index_execute = execute;
+    host->runtime.index_execute_context = context;
 }
 
 cbm_store_t *cbm_test_operation_host_store(cbm_test_operation_host_t *host) {
@@ -100,7 +123,8 @@ cbm_store_t *cbm_test_operation_host_store(cbm_test_operation_host_t *host) {
 }
 
 void cbm_test_operation_host_set_project(cbm_test_operation_host_t *host, const char *project) {
-    if (host) cbm_store_host_set_project(host->stores, project);
+    if (host)
+        cbm_store_host_set_project(host->stores, project);
 }
 
 const char *cbm_test_operation_host_session_root(const cbm_test_operation_host_t *host) {
@@ -108,11 +132,11 @@ const char *cbm_test_operation_host_session_root(const cbm_test_operation_host_t
 }
 
 bool cbm_test_operation_host_set_session_context(cbm_test_operation_host_t *host,
-                                                 const char *session_root,
-                                                 const char *allowed_root,
+                                                 const char *session_root, const char *allowed_root,
                                                  bool allowed_root_policy_set) {
     if (!host || !cbm_operation_session_state_set_context(host->session, session_root, allowed_root,
-                                                          allowed_root_policy_set)) return false;
+                                                          allowed_root_policy_set))
+        return false;
     host->runtime.session_root = cbm_operation_session_root(host->session);
     host->runtime.allowed_root = cbm_operation_session_allowed_root(host->session);
     host->runtime.allowed_root_policy_set =
@@ -121,5 +145,6 @@ bool cbm_test_operation_host_set_session_context(cbm_test_operation_host_t *host
 }
 
 void cbm_test_operation_host_evict_idle(cbm_test_operation_host_t *host, int timeout_s) {
-    if (host) cbm_store_host_evict_idle(host->stores, timeout_s);
+    if (host)
+        cbm_store_host_evict_idle(host->stores, timeout_s);
 }

@@ -28,7 +28,7 @@ static const cbm_operation_descriptor_t k_operations[] = {
      true, false},
     {CBM_OPERATION_INDEX, "index", "index_repository", "Index a repository", false, false},
     {CBM_OPERATION_INGEST_TRACES, "ingest-traces", "ingest_traces",
-     "Accept runtime trace observations", false, true},
+     "Record observed runtime calls against indexed symbols", true, false},
     {CBM_OPERATION_MANAGE_ADR, "manage-adr", "manage_adr",
      "Read or update the project architecture decision record", true, false},
 };

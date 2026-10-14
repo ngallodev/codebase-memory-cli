@@ -20,6 +20,8 @@
 #include <yyjson/yyjson.h>
 #include <store/store.h>
 #include <pipeline/pipeline.h>
+#include <sqlite3/sqlite3.h>
+#include "cli/cli.h"
 #include <foundation/log.h>
 #include <foundation/compat_fs.h>
 #include <foundation/constants.h>
@@ -1894,6 +1896,1279 @@ TEST(integ_step5_detect_default_branch_and_explicit_base) {
     PASS();
 }
 
+/* ══════════════════════════════════════════════════════════════════
+ *  STEP-6 PORT BEHAVIOURS (upstream src/mcp/mcp.c → CLI operations)
+ *
+ *  Self-contained projects so each ported behaviour runs against a real
+ *  store without disturbing the suite-wide fixture. `port_cache_begin`
+ *  swaps CBM_CACHE_DIR to a private temporary cache and restores it.
+ * ══════════════════════════════════════════════════════════════════ */
+
+typedef struct {
+    char cache[CBM_SZ_512];
+    char *saved_cache;
+} port_cache_fixture_t;
+
+static bool port_cache_begin(port_cache_fixture_t *fx) {
+    memset(fx, 0, sizeof(*fx));
+    const char *saved = getenv("CBM_CACHE_DIR");
+    if (saved) {
+        size_t len = strlen(saved);
+        fx->saved_cache = malloc(len + 1U);
+        if (!fx->saved_cache) {
+            return false;
+        }
+        memcpy(fx->saved_cache, saved, len + 1U);
+    }
+    snprintf(fx->cache, sizeof(fx->cache), "%s/cbm_port_cache_XXXXXX", cbm_tmpdir());
+    return cbm_mkdtemp(fx->cache) != NULL && cbm_setenv("CBM_CACHE_DIR", fx->cache, 1) == 0;
+}
+
+static void port_cache_end(port_cache_fixture_t *fx) {
+    if (fx->saved_cache) {
+        (void)cbm_setenv("CBM_CACHE_DIR", fx->saved_cache, 1);
+    } else {
+        (void)cbm_unsetenv("CBM_CACHE_DIR");
+    }
+    if (fx->cache[0]) {
+        th_rmtree(fx->cache);
+    }
+    free(fx->saved_cache);
+    memset(fx, 0, sizeof(*fx));
+}
+
+/* Create (or open) <cache>/<project>.db and register the project. */
+static bool port_create_project(const char *cache, const char *project, const char *root_path) {
+    char path[CBM_SZ_1K];
+    int written = snprintf(path, sizeof(path), "%s/%s.db", cache, project);
+    if (written <= 0 || (size_t)written >= sizeof(path)) {
+        return false;
+    }
+    cbm_store_t *store = cbm_store_open_path(path);
+    if (!store) {
+        return false;
+    }
+    bool ok = cbm_store_upsert_project(store, project, root_path) == CBM_STORE_OK;
+    cbm_store_close(store);
+    return ok;
+}
+
+static bool port_mutation_begin(void *context, const char *project) {
+    (void)context;
+    (void)project;
+    return true;
+}
+
+static void port_mutation_end(void *context, const char *project) {
+    (void)context;
+    (void)project;
+}
+
+/* Execute an operation through the neutral boundary with a caller-supplied
+ * runtime (the shared test host's runtime is private, and the search-root
+ * walker case needs command_override). Caller frees the payload. */
+static char *port_operation_execute(const char *operation, const char *args,
+                                    const cbm_operation_runtime_t *runtime) {
+    const cbm_operation_descriptor_t *descriptor = cbm_operation_find(operation);
+    if (!descriptor) {
+        return NULL;
+    }
+    cbm_operation_context_t context = {0};
+    context.runtime = runtime;
+    cbm_operation_result_t result = cbm_operation_execute(&context, descriptor->id, args);
+    char *payload = result.payload;
+    result.payload = NULL;
+    cbm_operation_result_dispose(&result);
+    return payload;
+}
+
+/* #2493 (list-projects-empty-sort): an empty cache directory is the first-run
+ * state. `projects` must answer it with a well-formed empty page in both
+ * encodings, and the empty record array is never handed to qsort. */
+TEST(port_projects_empty_cache_returns_wellformed_empty_page) {
+    port_cache_fixture_t fx;
+    ASSERT_TRUE(port_cache_begin(&fx));
+
+    char *json = port_operation_execute("projects", "{\"format\":\"json\"}", NULL);
+    char *tree = port_operation_execute("projects", "{}", NULL);
+    port_cache_end(&fx);
+
+    ASSERT_NOT_NULL(json);
+    ASSERT_NOT_NULL(strstr(json, "\"projects\":[]"));
+    ASSERT_NOT_NULL(strstr(json, "\"total\":0"));
+    ASSERT_NOT_NULL(strstr(json, "\"returned\":0"));
+    ASSERT_NOT_NULL(strstr(json, "\"has_more\":false"));
+    ASSERT_NULL(strstr(json, "next_offset"));
+    ASSERT_NOT_NULL(strstr(json, "No projects indexed"));
+    free(json);
+
+    ASSERT_NOT_NULL(tree);
+    ASSERT_NULL(strstr(tree, "next_offset"));
+    ASSERT_NOT_NULL(strstr(tree, "No projects indexed"));
+    free(tree);
+    PASS();
+}
+
+/* A page past the end of a non-empty cache is empty, but projects exist, so the
+ * "No projects indexed" hint must not appear (hint gates on the total). */
+TEST(port_projects_past_end_page_has_no_empty_hint) {
+    port_cache_fixture_t fx;
+    ASSERT_TRUE(port_cache_begin(&fx));
+    char root[CBM_SZ_512];
+    snprintf(root, sizeof(root), "%s/proj", fx.cache);
+    ASSERT_TRUE(port_create_project(fx.cache, "port-page-a", root));
+    ASSERT_TRUE(port_create_project(fx.cache, "port-page-b", root));
+
+    char *json = port_operation_execute("projects", "{\"format\":\"json\",\"offset\":100}", NULL);
+    char *tree = port_operation_execute("projects", "{\"offset\":100}", NULL);
+    port_cache_end(&fx);
+
+    ASSERT_NOT_NULL(json);
+    ASSERT_NOT_NULL(strstr(json, "\"total\":2"));
+    ASSERT_NOT_NULL(strstr(json, "\"returned\":0"));
+    ASSERT_NULL(strstr(json, "No projects indexed"));
+    free(json);
+    ASSERT_NOT_NULL(tree);
+    ASSERT_NULL(strstr(tree, "No projects indexed"));
+    free(tree);
+    PASS();
+}
+
+/* #2543 (c-typedefs-macros-enumerators): a C macro's QN ends in "#macro",
+ * which no caller spells. get_code_snippet still returns the macro for its
+ * short name, a dotted suffix and the QN it had before the fence
+ * (`<module>.<NAME>`); a definition that owns the plain QN or the name wins. */
+TEST(port_snippet_c_macro_namespace) {
+    port_cache_fixture_t fx;
+    ASSERT_TRUE(port_cache_begin(&fx));
+    const char *project = "port-macro";
+    char root[CBM_SZ_512];
+    snprintf(root, sizeof(root), "%s/proj", fx.cache);
+    ASSERT_TRUE(port_create_project(fx.cache, project, root));
+
+    /* node_result reads the source file, so it must exist and cover the
+     * spans below. */
+    char source_path[CBM_SZ_1K];
+    snprintf(source_path, sizeof(source_path), "%s/main.go", root);
+    ASSERT_EQ(th_write_file(source_path, "package m\n\nvar state_t int\n\n\nfunc a() {}\n\n\n"
+                                         "var x int\n\n\nfunc b() {}\n\n\nfunc c() {}\n"),
+              0);
+
+    cbm_store_t *store = NULL;
+    char db_path[CBM_SZ_1K];
+    snprintf(db_path, sizeof(db_path), "%s/%s.db", fx.cache, project);
+    store = cbm_store_open_path(db_path);
+    ASSERT_NOT_NULL(store);
+    cbm_node_t only_macro = {.project = project,
+                             .label = "Macro",
+                             .name = "MAX_LEN",
+                             .qualified_name = "port-macro.lib.cfg.MAX_LEN#macro",
+                             .file_path = "main.go",
+                             .start_line = 7,
+                             .end_line = 8};
+    cbm_node_t type = {.project = project,
+                       .label = "Type",
+                       .name = "state_t",
+                       .qualified_name = "port-macro.lib.xx.state_t",
+                       .file_path = "main.go",
+                       .start_line = 3,
+                       .end_line = 3};
+    cbm_node_t shadowed_macro = {.project = project,
+                                 .label = "Macro",
+                                 .name = "state_t",
+                                 .qualified_name = "port-macro.lib.xx.state_t#macro",
+                                 .file_path = "main.go",
+                                 .start_line = 11,
+                                 .end_line = 12};
+    ASSERT_GT(cbm_store_upsert_node(store, &only_macro), 0);
+    ASSERT_GT(cbm_store_upsert_node(store, &type), 0);
+    ASSERT_GT(cbm_store_upsert_node(store, &shadowed_macro), 0);
+    cbm_store_close(store);
+
+    static const char *const macro_inputs[] = {
+        "{\"qualified_name\":\"MAX_LEN\",\"project\":\"port-macro\"}",
+        "{\"qualified_name\":\"cfg.MAX_LEN\",\"project\":\"port-macro\"}",
+        "{\"qualified_name\":\"port-macro.lib.cfg.MAX_LEN\",\"project\":\"port-macro\"}",
+        "{\"qualified_name\":\"port-macro.lib.cfg.MAX_LEN#macro\",\"project\":\"port-macro\"}"};
+    for (size_t i = 0; i < sizeof(macro_inputs) / sizeof(macro_inputs[0]); i++) {
+        char *resp = port_operation_execute("get_code_snippet", macro_inputs[i], NULL);
+        ASSERT_NOT_NULL(resp);
+        ASSERT_NOT_NULL(strstr(resp, "\"qualified_name\":\"port-macro.lib.cfg.MAX_LEN#macro\""));
+        ASSERT_NOT_NULL(strstr(resp, "\"label\":\"Macro\""));
+        free(resp);
+    }
+
+    static const char *const definition_inputs[] = {
+        "{\"qualified_name\":\"port-macro.lib.xx.state_t\",\"project\":\"port-macro\"}",
+        "{\"qualified_name\":\"xx.state_t\",\"project\":\"port-macro\"}",
+        "{\"qualified_name\":\"state_t\",\"project\":\"port-macro\"}"};
+    for (size_t i = 0; i < sizeof(definition_inputs) / sizeof(definition_inputs[0]); i++) {
+        char *resp = port_operation_execute("get_code_snippet", definition_inputs[i], NULL);
+        ASSERT_NOT_NULL(resp);
+        ASSERT_NOT_NULL(strstr(resp, "\"qualified_name\":\"port-macro.lib.xx.state_t\""));
+        ASSERT_NOT_NULL(strstr(resp, "\"label\":\"Type\""));
+        free(resp);
+    }
+
+    port_cache_end(&fx);
+    PASS();
+}
+
+/* #2543 tie rule, shared by snippet and trace_path: a name that is both a
+ * definition and a C macro -- equal spans here -- resolves to the definition
+ * instead of reading as ambiguous. */
+TEST(port_trace_path_definition_beats_c_macro) {
+    port_cache_fixture_t fx;
+    ASSERT_TRUE(port_cache_begin(&fx));
+    const char *project = "port-tie";
+    char root[CBM_SZ_512];
+    snprintf(root, sizeof(root), "%s/proj", fx.cache);
+    ASSERT_TRUE(port_create_project(fx.cache, project, root));
+
+    char db_path[CBM_SZ_1K];
+    snprintf(db_path, sizeof(db_path), "%s/%s.db", fx.cache, project);
+    cbm_store_t *store = cbm_store_open_path(db_path);
+    ASSERT_NOT_NULL(store);
+    cbm_node_t type = {.project = project,
+                       .label = "Type",
+                       .name = "state_t",
+                       .qualified_name = "port-tie.xxhash.state_t",
+                       .file_path = "xxhash.h",
+                       .start_line = 653,
+                       .end_line = 654};
+    cbm_node_t macro = {.project = project,
+                        .label = "Macro",
+                        .name = "state_t",
+                        .qualified_name = "port-tie.xxhash.state_t#macro",
+                        .file_path = "xxhash.h",
+                        .start_line = 429,
+                        .end_line = 430};
+    ASSERT_GT(cbm_store_upsert_node(store, &type), 0);
+    ASSERT_GT(cbm_store_upsert_node(store, &macro), 0);
+    cbm_store_close(store);
+
+    char *resp = port_operation_execute(
+        "trace_path",
+        "{\"function_name\":\"state_t\",\"project\":\"port-tie\",\"direction\":\"both\"}", NULL);
+    port_cache_end(&fx);
+
+    ASSERT_NOT_NULL(resp);
+    ASSERT_NULL(strstr(resp, "ambiguous"));
+    ASSERT_NULL(strstr(resp, "suggestions"));
+    ASSERT_NULL(strstr(resp, "function not found"));
+    free(resp);
+    PASS();
+}
+
+#if !defined(_WIN32)
+typedef struct {
+    char root[CBM_SZ_512];
+    char outside[CBM_SZ_512];
+} port_srch_fixture_t;
+
+/* Layout (every line that matters carries ROOTCHECK_NEEDLE):
+ *   <root>/main.c                     Variable INSIDE_SYMBOL
+ *   <root>/inner/same.c               reached only through the links
+ *   <root>/alias  -> inner            directory link that stays inside
+ *   <root>/mirror.c -> inner/same.c   file link that stays inside
+ *   <root>/link.c -> <outside>/far.c  file link that leaves the root
+ *   <root>/lib    -> <outside>/dir    directory link that leaves the root
+ *   <outside>/dir/deep.c              raw hit through the directory link
+ *   <outside>/dir/sym.c               graph hit (Variable FAR_DIR_SYMBOL) */
+static bool port_srch_fixture_paths(port_srch_fixture_t *fx) {
+    snprintf(fx->root, sizeof(fx->root), "%s/cbm_port_root_XXXXXX", cbm_tmpdir());
+    snprintf(fx->outside, sizeof(fx->outside), "%s/cbm_port_outside_XXXXXX", cbm_tmpdir());
+    return cbm_mkdtemp(fx->root) != NULL && cbm_mkdtemp(fx->outside) != NULL;
+}
+
+static bool port_srch_fixture_create(port_srch_fixture_t *fx) {
+    if (!port_srch_fixture_paths(fx)) {
+        return false;
+    }
+    char path[CBM_SZ_1K];
+    char target[CBM_SZ_1K];
+    snprintf(path, sizeof(path), "%s/main.c", fx->root);
+    if (th_write_file(path, "int ROOTCHECK_NEEDLE_INSIDE = 1;\n") != 0) {
+        return false;
+    }
+    snprintf(path, sizeof(path), "%s/inner/same.c", fx->root);
+    if (th_write_file(path, "int ROOTCHECK_NEEDLE_INNER = 4;\n") != 0) {
+        return false;
+    }
+    snprintf(path, sizeof(path), "%s/far.c", fx->outside);
+    if (th_write_file(path, "int ROOTCHECK_NEEDLE_FAR_FILE = 2;\n") != 0) {
+        return false;
+    }
+    snprintf(path, sizeof(path), "%s/dir/deep.c", fx->outside);
+    if (th_write_file(path, "int ROOTCHECK_NEEDLE_FAR_DIR = 3;\n") != 0) {
+        return false;
+    }
+    snprintf(path, sizeof(path), "%s/dir/sym.c", fx->outside);
+    if (th_write_file(path, "int ROOTCHECK_NEEDLE_FAR_SYM = 5;\n") != 0) {
+        return false;
+    }
+    snprintf(path, sizeof(path), "%s/alias", fx->root);
+    if (symlink("inner", path) != 0) {
+        return false;
+    }
+    snprintf(path, sizeof(path), "%s/mirror.c", fx->root);
+    if (symlink("inner/same.c", path) != 0) {
+        return false;
+    }
+    snprintf(target, sizeof(target), "%s/far.c", fx->outside);
+    snprintf(path, sizeof(path), "%s/link.c", fx->root);
+    if (symlink(target, path) != 0) {
+        return false;
+    }
+    snprintf(target, sizeof(target), "%s/dir", fx->outside);
+    snprintf(path, sizeof(path), "%s/lib", fx->root);
+    return symlink(target, path) == 0;
+}
+
+static void port_srch_fixture_destroy(port_srch_fixture_t *fx) {
+    /* Unlink the links first so the tree removal never descends through one. */
+    static const char *const links[] = {"alias", "mirror.c", "link.c", "lib"};
+    for (size_t i = 0; i < sizeof(links) / sizeof(links[0]); i++) {
+        char path[CBM_SZ_1K];
+        snprintf(path, sizeof(path), "%s/%s", fx->root, links[i]);
+        (void)unlink(path);
+    }
+    (void)th_rmtree(fx->root);
+    (void)th_rmtree(fx->outside);
+}
+
+/* File nodes as a stale index holds them: the link targets were ordinary
+ * directories and files when indexed (discovery never follows a link).
+ * inner/same.c is deliberately absent so its line is reachable only through
+ * alias/ or mirror.c. */
+static bool port_srch_fixture_index(cbm_store_t *store, const char *project) {
+    static const char *const files[] = {"main.c", "alias/same.c", "mirror.c",
+                                        "link.c", "lib/deep.c",   "lib/sym.c"};
+    for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
+        const char *base = strrchr(files[i], '/');
+        base = base ? base + 1 : files[i];
+        char qualified_name[CBM_SZ_256];
+        snprintf(qualified_name, sizeof(qualified_name), "%s.%s", project, files[i]);
+        cbm_node_t file = {.project = project,
+                           .label = "File",
+                           .name = base,
+                           .qualified_name = qualified_name,
+                           .file_path = files[i]};
+        if (cbm_store_upsert_node(store, &file) <= 0) {
+            return false;
+        }
+    }
+    cbm_node_t inside = {.project = project,
+                         .label = "Variable",
+                         .name = "INSIDE_SYMBOL",
+                         .qualified_name = "port-search-root.INSIDE_SYMBOL",
+                         .file_path = "main.c",
+                         .start_line = 1,
+                         .end_line = 1};
+    cbm_node_t far_symbol = {.project = project,
+                             .label = "Variable",
+                             .name = "FAR_DIR_SYMBOL",
+                             .qualified_name = "port-search-root.lib.FAR_DIR_SYMBOL",
+                             .file_path = "lib/sym.c",
+                             .start_line = 1,
+                             .end_line = 1};
+    return cbm_store_upsert_node(store, &inside) > 0 &&
+           cbm_store_upsert_node(store, &far_symbol) > 0;
+}
+
+typedef struct {
+    bool ok;               /* a non-empty, non-error response */
+    bool inside_file;      /* main.c reported */
+    bool inside_dir_link;  /* alias/same.c reported (directory link inside) */
+    bool inside_file_link; /* mirror.c reported (file link inside) */
+    bool outside;          /* any line or path from beyond the root */
+} port_srch_probe_t;
+
+static port_srch_probe_t port_srch_probe(const char *response) {
+    port_srch_probe_t probe = {0};
+    probe.ok = response != NULL;
+    if (probe.ok) {
+        probe.inside_file = strstr(response, "main.c") != NULL;
+        probe.inside_dir_link = strstr(response, "alias/same.c") != NULL;
+        probe.inside_file_link = strstr(response, "mirror.c") != NULL;
+        static const char *const outside_markers[] = {"ROOTCHECK_NEEDLE_FAR", "FAR_DIR_SYMBOL",
+                                                      "deep.c", "sym.c", "link.c"};
+        for (size_t i = 0; i < sizeof(outside_markers) / sizeof(outside_markers[0]); i++) {
+            if (strstr(response, outside_markers[i])) {
+                probe.outside = true;
+            }
+        }
+    }
+    return probe;
+}
+
+/* #2491 (search-code-match-root-check), scoped route: the index lists
+ * lib/deep.c and lib/sym.c; lstat follows the lib -> <outside>/dir link and
+ * calls both regular, so grep reads the targets. Every output mode must leave
+ * those lines out while main.c and alias/same.c (a directory link that stays
+ * inside) stay in. mirror.c and link.c are links as their last path
+ * component; the scoped list writer already leaves those out. */
+TEST(port_source_search_matches_stay_inside_project_root) {
+    port_cache_fixture_t cache;
+    ASSERT_TRUE(port_cache_begin(&cache));
+    port_srch_fixture_t fx;
+    bool fixture_ok = port_srch_fixture_create(&fx);
+    ASSERT_TRUE(fixture_ok);
+
+    const char *project = "port-search-root";
+    ASSERT_TRUE(port_create_project(cache.cache, project, fx.root));
+    char db_path[CBM_SZ_1K];
+    snprintf(db_path, sizeof(db_path), "%s/%s.db", cache.cache, project);
+    cbm_store_t *store = cbm_store_open_path(db_path);
+    ASSERT_NOT_NULL(store);
+    bool indexed = port_srch_fixture_index(store, project);
+    cbm_store_close(store);
+    ASSERT_TRUE(indexed);
+
+    static const char *const args[] = {
+        "{\"pattern\":\"ROOTCHECK_NEEDLE\",\"project\":\"port-search-root\"}",
+        "{\"pattern\":\"ROOTCHECK_NEEDLE\",\"project\":\"port-search-root\",\"format\":\"json\"}",
+        "{\"pattern\":\"ROOTCHECK_NEEDLE\",\"project\":\"port-search-root\",\"mode\":\"full\"}",
+        "{\"pattern\":\"ROOTCHECK_NEEDLE\",\"project\":\"port-search-root\",\"mode\":\"full\","
+        "\"format\":\"json\"}",
+        "{\"pattern\":\"ROOTCHECK_NEEDLE\",\"project\":\"port-search-root\",\"mode\":\"files\"}",
+        "{\"pattern\":\"ROOTCHECK_NEEDLE\",\"project\":\"port-search-root\",\"context\":2}",
+        "{\"pattern\":\"ROOTCHECK_NEEDLE_[A-Z]+\",\"project\":\"port-search-root\","
+        "\"regex\":true}"};
+    enum { PROBES = sizeof(args) / sizeof(args[0]) };
+    port_srch_probe_t probes[PROBES];
+    for (size_t i = 0; i < PROBES; i++) {
+        char *response = port_operation_execute("search_code", args[i], NULL);
+        probes[i] = port_srch_probe(response);
+        free(response);
+    }
+    /* Dropped files are not counted either: the exact total is the two lines
+     * inside the root, as it would be after a fresh index. */
+    char *json = port_operation_execute(
+        "search_code",
+        "{\"pattern\":\"ROOTCHECK_NEEDLE\",\"project\":\"port-search-root\",\"format\":\"json\"}",
+        NULL);
+    bool total_counts_inside_only = json && strstr(json, "\"total_grep_matches\":2") != NULL;
+    free(json);
+
+    port_srch_fixture_destroy(&fx);
+    port_cache_end(&cache);
+
+    for (size_t i = 0; i < PROBES; i++) {
+        ASSERT_TRUE(probes[i].ok);
+        ASSERT_FALSE(probes[i].outside);
+        ASSERT_TRUE(probes[i].inside_file);
+        ASSERT_TRUE(probes[i].inside_dir_link);
+        ASSERT_FALSE(probes[i].inside_file_link);
+    }
+    ASSERT_TRUE(total_counts_inside_only);
+    PASS();
+}
+
+/* #2491 (search-code-match-root-check), walker route: with no indexed files
+ * the scan walks the tree. The replaced scan command hands grep the links,
+ * the hits a walker that follows links would deliver. Lines from link.c and
+ * lib/ resolve outside the root and must be dropped; mirror.c and
+ * alias/same.c resolve inside and must be kept. */
+TEST(port_source_search_drops_walker_hits_that_resolve_outside_root) {
+    port_cache_fixture_t cache;
+    ASSERT_TRUE(port_cache_begin(&cache));
+    port_srch_fixture_t fx;
+    bool fixture_ok = port_srch_fixture_create(&fx);
+    ASSERT_TRUE(fixture_ok);
+
+    const char *project = "port-search-walk";
+    ASSERT_TRUE(port_create_project(cache.cache, project, fx.root));
+
+    char scan_command[CBM_SZ_4K];
+    int command_length =
+        snprintf(scan_command, sizeof(scan_command),
+                 "grep -Hn -F ROOTCHECK_NEEDLE -- '%s/main.c' '%s/mirror.c' '%s/link.c' "
+                 "'%s/lib/deep.c' '%s/lib/sym.c' '%s/alias/same.c'",
+                 fx.root, fx.root, fx.root, fx.root, fx.root, fx.root);
+    ASSERT_TRUE(command_length > 0 && (size_t)command_length < sizeof(scan_command));
+
+    cbm_operation_runtime_t runtime = {0};
+    runtime.mutation_begin = port_mutation_begin;
+    runtime.mutation_end = port_mutation_end;
+    runtime.command_override = scan_command;
+
+    static const char *const args[] = {
+        "{\"pattern\":\"ROOTCHECK_NEEDLE\",\"project\":\"port-search-walk\",\"raw_limit\":10}",
+        "{\"pattern\":\"ROOTCHECK_NEEDLE\",\"project\":\"port-search-walk\",\"raw_limit\":10,"
+        "\"format\":\"json\"}",
+        "{\"pattern\":\"ROOTCHECK_NEEDLE\",\"project\":\"port-search-walk\",\"raw_limit\":10,"
+        "\"mode\":\"full\"}",
+        "{\"pattern\":\"ROOTCHECK_NEEDLE\",\"project\":\"port-search-walk\",\"raw_limit\":10,"
+        "\"mode\":\"files\"}"};
+    enum { PROBES = sizeof(args) / sizeof(args[0]) };
+    port_srch_probe_t probes[PROBES];
+    for (size_t i = 0; i < PROBES; i++) {
+        char *response = port_operation_execute("search_code", args[i], &runtime);
+        probes[i] = port_srch_probe(response);
+        free(response);
+    }
+    char *json = port_operation_execute(
+        "search_code",
+        "{\"pattern\":\"ROOTCHECK_NEEDLE\",\"project\":\"port-search-walk\",\"raw_limit\":10,"
+        "\"format\":\"json\"}",
+        &runtime);
+    bool total_counts_inside_only = json && strstr(json, "\"total_grep_matches\":3") != NULL;
+    free(json);
+
+    port_srch_fixture_destroy(&fx);
+    port_cache_end(&cache);
+
+    for (size_t i = 0; i < PROBES; i++) {
+        ASSERT_TRUE(probes[i].ok);
+        ASSERT_FALSE(probes[i].outside);
+        ASSERT_TRUE(probes[i].inside_file);
+        ASSERT_TRUE(probes[i].inside_dir_link);
+        ASSERT_TRUE(probes[i].inside_file_link);
+    }
+    ASSERT_TRUE(total_counts_inside_only);
+    PASS();
+}
+#endif /* !_WIN32 */
+
+/* #2346 (cross-repo-status): every index_status answer carries a read-only
+ * `cross_repo` object, so an empty CROSS_* set is not mistaken for "never
+ * linked". A project that never ran a cross-repo pass reports never_run. */
+TEST(port_status_reports_cross_repo_never_run) {
+    port_cache_fixture_t fx;
+    ASSERT_TRUE(port_cache_begin(&fx));
+    const char *project = "port-status";
+    char root[CBM_SZ_512];
+    snprintf(root, sizeof(root), "%s/proj", fx.cache);
+    ASSERT_TRUE(port_create_project(fx.cache, project, root));
+
+    char *resp = port_operation_execute("index_status",
+                                        "{\"project\":\"port-status\",\"format\":\"json\"}", NULL);
+    port_cache_end(&fx);
+
+    ASSERT_NOT_NULL(resp);
+    ASSERT_NOT_NULL(strstr(resp, "\"cross_repo\":{\"status\":\"never_run\"}"));
+    free(resp);
+    PASS();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+ *  Doc -> code candidates (port of upstream #2574 get_code_snippet /
+ *  get_file_outline candidate fields, and #2551 PDF text-layer snippet)
+ * ══════════════════════════════════════════════════════════════════ */
+
+/* Open a project db in the caller's cache dir and register the project, so an
+ * operation resolves it exactly as it resolves an indexed project. The node set
+ * and the doc_link_candidates rows are written by the test itself, so every
+ * asserted value is known. */
+static cbm_store_t *integ_doc_cand_store(const char *cache, const char *repo, const char *project) {
+    char db_path[512];
+    snprintf(db_path, sizeof(db_path), "%s/%s.db", cache, project);
+    cbm_store_t *store = cbm_store_open_path(db_path);
+    if (!store)
+        return NULL;
+    if (cbm_store_upsert_project(store, project, repo) != CBM_STORE_OK) {
+        cbm_store_close(store);
+        return NULL;
+    }
+    return store;
+}
+
+/* A Section lists the functions it is possibly about (highest p first, evidence
+ * included); a function lists the sections that possibly describe it; a row
+ * whose other end no longer exists is skipped; a node without rows gets no
+ * candidate keys at all. */
+TEST(integ_doc_candidates_snippet_both_directions) {
+    char *base = th_mktempdir("cbm_doc_cand_snippet");
+    ASSERT_NOT_NULL(base);
+    char repo[512];
+    char cache[512];
+    snprintf(repo, sizeof(repo), "%s/repo", base);
+    snprintf(cache, sizeof(cache), "%s/cache", base);
+    ASSERT_EQ(th_mkdir_p(repo), 0);
+    ASSERT_EQ(th_mkdir_p(cache), 0);
+    ASSERT_EQ(th_write_file(TH_PATH(repo, "README.md"), "Orders\none\ntwo\nthree\n"), 0);
+    ASSERT_EQ(th_write_file(TH_PATH(repo, "src/server.c"),
+                            "1\n2\n3\n4\n5\n6\nprocess()\n8\n9\n10\n11\n12\n13\n14\n15\n"),
+              0);
+
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? strdup(saved) : NULL;
+    (void)cbm_setenv("CBM_CACHE_DIR", cache, 1);
+
+    const char *project = "doc-cand-snippet";
+    cbm_store_t *store = integ_doc_cand_store(cache, repo, project);
+    ASSERT_NOT_NULL(store);
+
+    char section_qn[128];
+    char first_qn[128];
+    char second_qn[128];
+    char orphan_qn[128];
+    snprintf(section_qn, sizeof(section_qn), "%s.README.Orders", project);
+    snprintf(first_qn, sizeof(first_qn), "%s.src.server.ProcessOrder", project);
+    snprintf(second_qn, sizeof(second_qn), "%s.src.server.HandleRequest", project);
+    snprintf(orphan_qn, sizeof(orphan_qn), "%s.src.server.Run", project);
+    cbm_node_t nodes[] = {
+        {.project = project,
+         .label = "Section",
+         .name = "Orders",
+         .qualified_name = section_qn,
+         .file_path = "README.md",
+         .start_line = 1,
+         .end_line = 4},
+        {.project = project,
+         .label = "Function",
+         .name = "ProcessOrder",
+         .qualified_name = first_qn,
+         .file_path = "src/server.c",
+         .start_line = 7,
+         .end_line = 9},
+        {.project = project,
+         .label = "Function",
+         .name = "HandleRequest",
+         .qualified_name = second_qn,
+         .file_path = "src/server.c",
+         .start_line = 11,
+         .end_line = 13},
+        {.project = project,
+         .label = "Function",
+         .name = "Run",
+         .qualified_name = orphan_qn,
+         .file_path = "src/server.c",
+         .start_line = 15,
+         .end_line = 17},
+    };
+    for (size_t i = 0; i < sizeof(nodes) / sizeof(nodes[0]); i++)
+        ASSERT_GT(cbm_store_upsert_node(store, &nodes[i]), 0);
+
+    const cbm_doc_candidate_t rows[] = {
+        {.section_qn = section_qn,
+         .target_qn = second_qn,
+         .rank = 2,
+         .score = 0.25,
+         .p = 0.36,
+         .evidence = "{\"shared_terms\":2,\"name_tokens\":0}"},
+        {.section_qn = section_qn,
+         .target_qn = first_qn,
+         .rank = 1,
+         .score = 0.45,
+         .p = 0.548,
+         .evidence = "{\"shared_terms\":5,\"name_tokens\":2,\"kind\":\"function\","
+                     "\"position\":\"local\"}"},
+        {.section_qn = section_qn,
+         .target_qn = "doc-cand-snippet.gone.Missing",
+         .rank = 3,
+         .score = 0.31,
+         .p = 0.42,
+         .evidence = "{\"shared_terms\":1,\"name_tokens\":0}"},
+    };
+    ASSERT_EQ(cbm_store_doc_candidates_replace(store, project, rows, 3), CBM_STORE_OK);
+    cbm_store_close(store);
+
+    char args[512];
+    snprintf(args, sizeof(args), "{\"project\":\"%s\",\"qualified_name\":\"%s\"}", project,
+             section_qn);
+    char *resp = call_tool("get_code_snippet", args);
+    ASSERT_NOT_NULL(resp);
+    yyjson_doc *doc = yyjson_read(resp, strlen(resp), 0);
+    ASSERT_NOT_NULL(doc);
+    yyjson_val *about = yyjson_obj_get(yyjson_doc_get_root(doc), "possibly_about");
+    /* The unresolvable target is skipped, not emitted as an empty row. */
+    ASSERT_EQ((int)yyjson_arr_size(about), 2);
+    yyjson_val *first = yyjson_arr_get(about, 0);
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(first, "qualified_name")), first_qn);
+    ASSERT_FLOAT_EQ(yyjson_get_num(yyjson_obj_get(first, "p")), 0.548, 1e-9);
+    ASSERT_EQ((int)yyjson_get_int(yyjson_obj_get(first, "shared_terms")), 5);
+    ASSERT_EQ((int)yyjson_get_int(yyjson_obj_get(first, "start_line")), 7);
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(first, "label")), "Function");
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(first, "kind")), "function");
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(first, "position")), "local");
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(yyjson_arr_get(about, 1), "qualified_name")),
+                  second_qn);
+    ASSERT_NOT_NULL(yyjson_obj_get(yyjson_doc_get_root(doc), "candidates_note"));
+    yyjson_doc_free(doc);
+    free(resp);
+
+    snprintf(args, sizeof(args), "{\"project\":\"%s\",\"qualified_name\":\"%s\"}", project,
+             first_qn);
+    resp = call_tool("get_code_snippet", args);
+    ASSERT_NOT_NULL(resp);
+    doc = yyjson_read(resp, strlen(resp), 0);
+    ASSERT_NOT_NULL(doc);
+    yyjson_val *described = yyjson_obj_get(yyjson_doc_get_root(doc), "possibly_described_in");
+    ASSERT_NOT_NULL(described);
+    ASSERT_EQ((int)yyjson_arr_size(described), 1);
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(yyjson_arr_get(described, 0), "section")),
+                  section_qn);
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(yyjson_arr_get(described, 0), "file_path")),
+                  "README.md");
+    yyjson_doc_free(doc);
+    free(resp);
+
+    snprintf(args, sizeof(args), "{\"project\":\"%s\",\"qualified_name\":\"%s\"}", project,
+             orphan_qn);
+    resp = call_tool("get_code_snippet", args);
+    ASSERT_NOT_NULL(resp);
+    ASSERT_NULL(strstr(resp, "possibly_"));
+    ASSERT_NULL(strstr(resp, "candidates_note"));
+    free(resp);
+
+    integ_restore_cache_dir(saved_copy);
+    free(saved_copy);
+    th_cleanup(base);
+    PASS();
+}
+
+/* get_file_outline shows the sections possibly about the file as a whole or
+ * about a folder holding it (highest p first, kind shown), in both formats, on
+ * the first page only; a candidate for a function in the file is not one of
+ * them. */
+TEST(integ_doc_candidates_file_outline) {
+    char *base = th_mktempdir("cbm_doc_cand_outline");
+    ASSERT_NOT_NULL(base);
+    char cache[512];
+    snprintf(cache, sizeof(cache), "%s/cache", base);
+    ASSERT_EQ(th_mkdir_p(cache), 0);
+
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? strdup(saved) : NULL;
+    (void)cbm_setenv("CBM_CACHE_DIR", cache, 1);
+
+    const char *project = "doc-cand-outline";
+    cbm_store_t *store = integ_doc_cand_store(cache, base, project);
+    ASSERT_NOT_NULL(store);
+
+    struct {
+        const char *label, *qn, *path;
+        int start;
+    } spec[] = {
+        {"File", "doc-cand-outline.pkg.mail.parse.__file__", "pkg/mail/parse.py", 0},
+        {"Function", "doc-cand-outline.pkg.mail.parse.parse_mail", "pkg/mail/parse.py", 3},
+        {"Folder", "doc-cand-outline.pkg.mail", "pkg/mail", 0},
+        {"Section", "doc-cand-outline.pkg.mail.README.Mail", "pkg/mail/README.md", 1},
+        {"Section", "doc-cand-outline.docs.parsing.Parsing", "docs/parsing.md", 5},
+    };
+    for (size_t i = 0; i < sizeof(spec) / sizeof(spec[0]); i++) {
+        cbm_node_t node = {.project = project,
+                           .label = spec[i].label,
+                           .name = spec[i].qn,
+                           .qualified_name = spec[i].qn,
+                           .file_path = spec[i].path,
+                           .start_line = spec[i].start,
+                           .end_line = spec[i].start + 2};
+        ASSERT_GT(cbm_store_upsert_node(store, &node), 0);
+    }
+    const cbm_doc_candidate_t rows[] = {
+        {.section_qn = "doc-cand-outline.docs.parsing.Parsing",
+         .target_qn = "doc-cand-outline.pkg.mail.parse.__file__",
+         .rank = 1,
+         .score = 0.41,
+         .p = 0.5,
+         .evidence = "{\"shared_terms\":4,\"name_tokens\":0,\"kind\":\"file\","
+                     "\"position\":\"global\"}"},
+        {.section_qn = "doc-cand-outline.pkg.mail.README.Mail",
+         .target_qn = "doc-cand-outline.pkg.mail",
+         .rank = 1,
+         .p = 0.8,
+         .evidence = "{\"shared_terms\":0,\"name_tokens\":0,\"kind\":\"folder\","
+                     "\"position\":\"local\"}"},
+        {.section_qn = "doc-cand-outline.docs.parsing.Parsing",
+         .target_qn = "doc-cand-outline.pkg.mail.parse.parse_mail",
+         .rank = 1,
+         .score = 0.5,
+         .p = 0.9,
+         .evidence = "{\"shared_terms\":5,\"name_tokens\":1,\"kind\":\"function\","
+                     "\"position\":\"global\"}"},
+    };
+    ASSERT_EQ(cbm_store_doc_candidates_replace(store, project, rows, 3), CBM_STORE_OK);
+    cbm_store_close(store);
+
+    char *raw =
+        call_tool("get_file_outline", "{\"project\":\"doc-cand-outline\","
+                                      "\"file_path\":\"pkg/mail/parse.py\",\"format\":\"json\"}");
+    ASSERT_NOT_NULL(raw);
+    yyjson_doc *doc = yyjson_read(raw, strlen(raw), 0);
+    ASSERT_NOT_NULL(doc);
+    yyjson_val *in = yyjson_obj_get(yyjson_doc_get_root(doc), "possibly_described_in");
+    /* The section targeting a function in this file is not a file candidate. */
+    ASSERT_EQ((int)yyjson_arr_size(in), 2);
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(yyjson_arr_get(in, 0), "section")),
+                  "doc-cand-outline.pkg.mail.README.Mail");
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(yyjson_arr_get(in, 0), "kind")), "folder");
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(yyjson_arr_get(in, 1), "kind")), "file");
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(yyjson_arr_get(in, 1), "file_path")),
+                  "docs/parsing.md");
+    ASSERT_NOT_NULL(yyjson_obj_get(yyjson_doc_get_root(doc), "candidates_note"));
+    yyjson_doc_free(doc);
+    free(raw);
+
+    raw = call_tool("get_file_outline",
+                    "{\"project\":\"doc-cand-outline\",\"file_path\":\"pkg/mail/parse.py\"}");
+    ASSERT_NOT_NULL(raw);
+    ASSERT_NOT_NULL(strstr(raw, "possibly_described_in: 2  (cols: section file_path line p kind)"));
+    ASSERT_NOT_NULL(strstr(raw, "doc-cand-outline.pkg.mail.README.Mail"));
+    ASSERT_NOT_NULL(strstr(raw, "docs/parsing.md"));
+    free(raw);
+
+    /* Candidates describe the file as a whole: a later page repeats only rows. */
+    raw = call_tool("get_file_outline",
+                    "{\"project\":\"doc-cand-outline\",\"file_path\":\"pkg/mail/parse.py\","
+                    "\"offset\":1}");
+    ASSERT_NOT_NULL(raw);
+    ASSERT_NULL(strstr(raw, "possibly_described_in"));
+    free(raw);
+
+    integ_restore_cache_dir(saved_copy);
+    free(saved_copy);
+    th_cleanup(base);
+    PASS();
+}
+
+/* A PDF page Section answers with its text-layer docstring, never the file's
+ * bytes (which are not source text). */
+TEST(integ_doc_candidates_pdf_snippet_uses_text_layer) {
+    char *base = th_mktempdir("cbm_doc_cand_pdf");
+    ASSERT_NOT_NULL(base);
+    char repo[512];
+    char cache[512];
+    snprintf(repo, sizeof(repo), "%s/repo", base);
+    snprintf(cache, sizeof(cache), "%s/cache", base);
+    ASSERT_EQ(th_mkdir_p(repo), 0);
+    ASSERT_EQ(th_mkdir_p(cache), 0);
+    ASSERT_EQ(th_write_file(TH_PATH(repo, "docs/manual.pdf"), "%PDF-1.4 binary bytes\n"), 0);
+
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? strdup(saved) : NULL;
+    (void)cbm_setenv("CBM_CACHE_DIR", cache, 1);
+
+    const char *project = "doc-cand-pdf";
+    cbm_store_t *store = integ_doc_cand_store(cache, repo, project);
+    ASSERT_NOT_NULL(store);
+    char page_qn[128];
+    snprintf(page_qn, sizeof(page_qn), "%s.docs.manual.page1", project);
+    cbm_node_t page = {.project = project,
+                       .label = "Section",
+                       .name = "page1",
+                       .qualified_name = page_qn,
+                       .file_path = "docs/manual.pdf",
+                       .start_line = 1,
+                       .end_line = 1,
+                       .properties_json = "{\"docstring\":\"Page one: install steps.\"}"};
+    ASSERT_GT(cbm_store_upsert_node(store, &page), 0);
+    cbm_store_close(store);
+
+    char args[512];
+    snprintf(args, sizeof(args), "{\"project\":\"%s\",\"qualified_name\":\"%s\"}", project,
+             page_qn);
+    char *resp = call_tool("get_code_snippet", args);
+    ASSERT_NOT_NULL(resp);
+    yyjson_doc *doc = yyjson_read(resp, strlen(resp), 0);
+    ASSERT_NOT_NULL(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(root, "source")), "Page one: install steps.");
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(root, "source_mode")), "full");
+    yyjson_doc_free(doc);
+    free(resp);
+
+    integ_restore_cache_dir(saved_copy);
+    free(saved_copy);
+    th_cleanup(base);
+    PASS();
+}
+
+/* #2597: search_graph's kind/namespace filters narrow the structural path AND
+ * the ranked query path, and the ranked query's reported total mirrors the
+ * rows it returns (the fork's count query is hand-mirrored). */
+TEST(port_search_graph_infra_filters_pin_the_bm25_mirror) {
+    port_cache_fixture_t fx;
+    ASSERT_TRUE(port_cache_begin(&fx));
+    const char *project = "port-infra";
+    char root[CBM_SZ_512];
+    snprintf(root, sizeof(root), "%s/proj", fx.cache);
+    ASSERT_TRUE(port_create_project(fx.cache, project, root));
+
+    char db_path[CBM_SZ_1K];
+    snprintf(db_path, sizeof(db_path), "%s/%s.db", fx.cache, project);
+    cbm_store_t *store = cbm_store_open_path(db_path);
+    ASSERT_NOT_NULL(store);
+    static const struct {
+        const char *qn;
+        const char *name;
+        const char *properties;
+    } nodes[] = {
+        {"apps/Deployment/team-a/web", "web",
+         "{\"kind\":\"Deployment\",\"obj_key\":\"apps/Deployment/team-a/web\"}"},
+        {"Service/team-a/web", "web", "{\"kind\":\"Service\",\"obj_key\":\"/Service/team-a/web\"}"},
+        {"apps/Deployment/team-b/api", "api",
+         "{\"kind\":\"Deployment\",\"obj_key\":\"apps/Deployment/team-b/api\"}"},
+    };
+    for (size_t i = 0; i < sizeof(nodes) / sizeof(nodes[0]); i++) {
+        cbm_node_t node = {.project = project,
+                           .label = "Resource",
+                           .name = nodes[i].name,
+                           .qualified_name = nodes[i].qn,
+                           .file_path = "k8s/app.yaml",
+                           .properties_json = nodes[i].properties};
+        ASSERT_GT(cbm_store_upsert_node(store, &node), 0);
+    }
+    /* Upserting nodes does not feed the FTS index; the ranked (query) path
+     * needs it, exactly as the index-time publish block leaves it. */
+    ASSERT_EQ(cbm_store_fts_rebuild(store, NULL, 0), CBM_STORE_OK);
+    cbm_store_close(store);
+
+    bool structural_kind_two = false;
+    bool structural_namespace_one = false;
+    bool bm25_mirror = false;
+    char args[CBM_SZ_1K];
+    char *r = NULL;
+
+    /* Structural: kind narrows to the two Deployments. */
+    snprintf(args, sizeof(args),
+             "{\"project\":\"%s\",\"label\":\"Resource\",\"kind\":\"Deployment\","
+             "\"format\":\"json\"}",
+             project);
+    r = port_operation_execute("search_graph", args, NULL);
+    structural_kind_two = r && strstr(r, "\"total\":2") != NULL;
+    free(r);
+
+    /* Structural: the namespace segment, so team-b keeps only its Deployment. */
+    snprintf(args, sizeof(args),
+             "{\"project\":\"%s\",\"label\":\"Resource\",\"namespace\":\"team-b\","
+             "\"format\":\"json\"}",
+             project);
+    r = port_operation_execute("search_graph", args, NULL);
+    structural_namespace_one = r && strstr(r, "\"total\":1") != NULL;
+    free(r);
+
+    /* Ranked query: "web" names two Resources; the kind filter keeps one, in
+     * the rows AND in the mirrored total (an unmirrored count would say 2 and
+     * has_more:true). */
+    snprintf(args, sizeof(args),
+             "{\"project\":\"%s\",\"query\":\"web\",\"kind\":\"Service\","
+             "\"format\":\"json\"}",
+             project);
+    r = port_operation_execute("search_graph", args, NULL);
+    bm25_mirror = r && strstr(r, "\"search_mode\":\"bm25\"") != NULL &&
+                  strstr(r, "\"total\":1") != NULL && strstr(r, "\"has_more\":false") != NULL;
+    free(r);
+
+    port_cache_end(&fx);
+    ASSERT_TRUE(structural_kind_two);
+    ASSERT_TRUE(structural_namespace_one);
+    ASSERT_TRUE(bm25_mirror);
+    PASS();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+ *  doc_candidates index switch (port of upstream #2610 / #2628)
+ * ══════════════════════════════════════════════════════════════════ */
+
+/* A Go config family per subject (parse / load / validate) and a README
+ * section about the Mail one: enough for doc -> code candidates. */
+static void doccand_fixture(const char *repo) {
+    static const char *const subjects[] = {"User", "Server", "Cache", "Mail"};
+    for (size_t i = 0; i < sizeof(subjects) / sizeof(subjects[0]); i++) {
+        const char *s = subjects[i];
+        char path[512];
+        snprintf(path, sizeof(path), "%s/%s_config.go", repo, s);
+        char body[2048];
+        snprintf(body, sizeof(body),
+                 "package main\n\n"
+                 "// Parse%sConfig reads the %s config file and returns the parsed %s config.\n"
+                 "func Parse%sConfig(path string) (*%sConfig, error) {\n"
+                 "\treturn Load%sConfig(path)\n}\n\n"
+                 "// Load%sConfig loads the %s config from disk and validates it.\n"
+                 "func Load%sConfig(path string) (*%sConfig, error) {\n"
+                 "\tcfg := &%sConfig{}\n\tValidate%sConfig(cfg)\n\treturn cfg, nil\n}\n\n"
+                 "// Validate%sConfig checks the %s config for missing fields.\n"
+                 "func Validate%sConfig(cfg *%sConfig) bool {\n\treturn cfg != nil\n}\n\n"
+                 "type %sConfig struct{ Name string }\n",
+                 s, s, s, s, s, s, s, s, s, s, s, s, s, s, s, s, s);
+        (void)th_write_file(path, body);
+    }
+    char readme[512];
+    snprintf(readme, sizeof(readme), "%s/README.md", repo);
+    (void)th_write_file(readme, "# Mail configuration\n\n"
+                                "The mail config file is parsed by ParseMailConfig, which loads "
+                                "the mail config from disk and validates the mail config fields "
+                                "before anything reads them. Missing fields fail the validation, "
+                                "and the parsed mail config can be written back to disk "
+                                "afterwards.\n");
+}
+
+/* The one project DB in a private cache (not _config.db): the test does not
+ * depend on how the operation canonicalized the repo path. */
+static bool doccand_project_db(const char *cache, char *out, size_t out_size) {
+    cbm_dir_t *d = cbm_opendir(cache);
+    if (!d) {
+        return false;
+    }
+    bool found = false;
+    cbm_dirent_t *e;
+    while (!found && (e = cbm_readdir(d)) != NULL) {
+        size_t len = strlen(e->name);
+        if (!e->is_dir && len > 3 && strcmp(e->name + len - 3, ".db") == 0 &&
+            strcmp(e->name, "_config.db") != 0) {
+            snprintf(out, out_size, "%s/%s", cache, e->name);
+            found = true;
+        }
+    }
+    cbm_closedir(d);
+    return found;
+}
+
+/* Remove the project DB (and its WAL/SHM) so the next index is a full one. */
+static void doccand_clear(const char *cache) {
+    char path[CBM_SZ_4K];
+    if (!doccand_project_db(cache, path, sizeof(path))) {
+        return;
+    }
+    char side[CBM_SZ_4K + 8];
+    snprintf(side, sizeof(side), "%s-wal", path);
+    cbm_unlink(side);
+    snprintf(side, sizeof(side), "%s-shm", path);
+    cbm_unlink(side);
+    cbm_unlink(path);
+}
+
+/* The project's doc_link_candidates rows (0 without the table); -1 on an
+ * error. */
+static int doccand_rows(const char *cache) {
+    char path[CBM_SZ_4K];
+    if (!doccand_project_db(cache, path, sizeof(path))) {
+        return -1;
+    }
+    cbm_store_t *s = cbm_store_open_path(path);
+    if (!s) {
+        return -1;
+    }
+    sqlite3 *db = cbm_store_get_db(s);
+    sqlite3_stmt *st = NULL;
+    int n = -1;
+    if (sqlite3_prepare_v2(db,
+                           "SELECT count(*) FROM sqlite_master WHERE type='table' AND "
+                           "name='doc_link_candidates'",
+                           -1, &st, NULL) == SQLITE_OK) {
+        bool has_table = sqlite3_step(st) == SQLITE_ROW && sqlite3_column_int(st, 0) > 0;
+        sqlite3_finalize(st);
+        st = NULL;
+        n = 0;
+        if (has_table && sqlite3_prepare_v2(db, "SELECT count(*) FROM doc_link_candidates", -1, &st,
+                                            NULL) == SQLITE_OK) {
+            n = sqlite3_step(st) == SQLITE_ROW ? sqlite3_column_int(st, 0) : -1;
+            sqlite3_finalize(st);
+        }
+    }
+    cbm_store_close(s);
+    return n;
+}
+
+/* One fresh full index (the project DB removed first, so no incremental route
+ * can keep earlier rows); returns the candidate rows, -1 on an index error. */
+static int doccand_index(cbm_test_operation_host_t *host, const char *cache, const char *repo,
+                         const char *extra) {
+    doccand_clear(cache);
+    char args[1024];
+    snprintf(args, sizeof(args), "{\"repo_path\":\"%s\"%s}", repo, extra);
+    char *resp = cbm_test_operation_execute(host, "index_repository", args);
+    bool ok = resp && strstr(resp, "\"status\":\"indexed\"") != NULL;
+    free(resp);
+    return ok ? doccand_rows(cache) : -1;
+}
+
+/* index doc_candidates (full mode): an explicit false stores no candidate
+ * rows; without the argument a set doc_candidates setting decides (unset: the
+ * mode decides, on in full; off stores none); an explicit true wins over the
+ * setting. */
+TEST(integ_index_doc_candidates_switch) {
+    char repo[256];
+    snprintf(repo, sizeof(repo), "/tmp/cbm-doccand-repo-XXXXXX");
+    ASSERT_NOT_NULL(cbm_mkdtemp(repo));
+    char cache[256];
+    snprintf(cache, sizeof(cache), "/tmp/cbm-doccand-cache-XXXXXX");
+    ASSERT_NOT_NULL(cbm_mkdtemp(cache));
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? strdup(saved) : NULL;
+    (void)cbm_setenv("CBM_CACHE_DIR", cache, 1);
+    doccand_fixture(repo);
+    cbm_config_t *cfg = cbm_config_open(cache);
+    ASSERT_NOT_NULL(cfg);
+    cbm_test_operation_host_t *host = cbm_test_operation_host_new(NULL);
+    ASSERT_NOT_NULL(host);
+
+    int explicit_off = doccand_index(host, cache, repo, ",\"doc_candidates\":false");
+    int setting_default = doccand_index(host, cache, repo, "");
+    (void)cbm_config_set(cfg, CBM_CONFIG_DOC_CANDIDATES, "false");
+    int setting_off = doccand_index(host, cache, repo, "");
+    int explicit_on = doccand_index(host, cache, repo, ",\"doc_candidates\":true");
+
+    cbm_test_operation_host_free(host);
+    cbm_config_close(cfg);
+    integ_restore_cache_dir(saved_copy);
+    free(saved_copy);
+    th_rmtree(cache);
+    th_rmtree(repo);
+    ASSERT_EQ(explicit_off, 0);
+    ASSERT_GT(setting_default, 0);
+    ASSERT_EQ(setting_off, 0);
+    ASSERT_GT(explicit_on, 0);
+    PASS();
+}
+
+/* Moderate mode: without an argument or a set doc_candidates setting the mode
+ * decides (off: no rows); an explicit true and a setting set to true each turn
+ * it on; an unparseable setting is not a choice and leaves the mode default. */
+TEST(integ_index_doc_candidates_follow_mode) {
+    char repo[256];
+    snprintf(repo, sizeof(repo), "/tmp/cbm-doccand-mrepo-XXXXXX");
+    ASSERT_NOT_NULL(cbm_mkdtemp(repo));
+    char cache[256];
+    snprintf(cache, sizeof(cache), "/tmp/cbm-doccand-mcache-XXXXXX");
+    ASSERT_NOT_NULL(cbm_mkdtemp(cache));
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? strdup(saved) : NULL;
+    (void)cbm_setenv("CBM_CACHE_DIR", cache, 1);
+    doccand_fixture(repo);
+    cbm_config_t *cfg = cbm_config_open(cache);
+    ASSERT_NOT_NULL(cfg);
+    cbm_test_operation_host_t *host = cbm_test_operation_host_new(NULL);
+    ASSERT_NOT_NULL(host);
+
+    int moderate_default = doccand_index(host, cache, repo, ",\"mode\":\"moderate\"");
+    int moderate_on =
+        doccand_index(host, cache, repo, ",\"mode\":\"moderate\",\"doc_candidates\":true");
+    (void)cbm_config_set(cfg, CBM_CONFIG_DOC_CANDIDATES, "true");
+    int moderate_setting_on = doccand_index(host, cache, repo, ",\"mode\":\"moderate\"");
+    (void)cbm_config_set(cfg, CBM_CONFIG_DOC_CANDIDATES, "maybe");
+    int moderate_setting_garbage = doccand_index(host, cache, repo, ",\"mode\":\"moderate\"");
+    int full_setting_garbage = doccand_index(host, cache, repo, "");
+
+    cbm_test_operation_host_free(host);
+    cbm_config_close(cfg);
+    integ_restore_cache_dir(saved_copy);
+    free(saved_copy);
+    th_rmtree(cache);
+    th_rmtree(repo);
+    ASSERT_EQ(moderate_default, 0);
+    ASSERT_GT(moderate_on, 0);
+    ASSERT_GT(moderate_setting_on, 0);
+    ASSERT_EQ(moderate_setting_garbage, 0);
+    ASSERT_GT(full_setting_garbage, 0);
+    PASS();
+}
+
+/* The worker arguments a daemon session hands its index executor. */
+typedef struct {
+    char *args;
+    int calls;
+} doccand_executor_capture_t;
+
+static cbm_operation_result_t doccand_capture_executor(void *context, const char *repo_path,
+                                                       const char *args_json, bool async) {
+    (void)repo_path;
+    (void)async;
+    doccand_executor_capture_t *capture = context;
+    free(capture->args);
+    capture->args = args_json ? strdup(args_json) : NULL;
+    capture->calls++;
+    return cbm_operation_result_copy("{\"status\":\"indexed\"}", false);
+}
+
+/* The doc_candidates key of captured worker args: 1 true, 0 false, -1 absent,
+ * -2 not a single boolean (or unparseable args). */
+static int doccand_forwarded(const doccand_executor_capture_t *capture) {
+    yyjson_doc *doc = capture->args ? yyjson_read(capture->args, strlen(capture->args), 0) : NULL;
+    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
+    if (!root || !yyjson_is_obj(root)) {
+        yyjson_doc_free(doc);
+        return -2;
+    }
+    int keys = 0;
+    int value = -1;
+    size_t idx;
+    size_t max;
+    yyjson_val *key;
+    yyjson_val *val;
+    yyjson_obj_foreach(root, idx, max, key, val) {
+        if (strcmp(yyjson_get_str(key), "doc_candidates") == 0) {
+            keys++;
+            value = yyjson_is_bool(val) ? (yyjson_get_bool(val) ? 1 : 0) : -2;
+        }
+    }
+    yyjson_doc_free(doc);
+    return keys > 1 ? -2 : value;
+}
+
+static int doccand_forward_call(cbm_test_operation_host_t *host,
+                                doccand_executor_capture_t *capture, const char *repo,
+                                const char *extra) {
+    char args[1024];
+    snprintf(args, sizeof(args), "{\"repo_path\":\"%s\"%s}", repo, extra);
+    free(capture->args);
+    capture->args = NULL;
+    int before = capture->calls;
+    char *resp = cbm_test_operation_execute(host, "index_repository", args);
+    free(resp);
+    return capture->calls == before + 1 ? doccand_forwarded(capture) : -3;
+}
+
+/* A daemon session forwards doc_candidates only when it is explicit: an
+ * argument (caller duplicates replaced by the one resolved value) or a setting
+ * the user set to a boolean. Otherwise no key reaches the worker and the
+ * worker's pipeline lets the index mode decide. */
+TEST(integ_index_doc_candidates_forwarded_only_when_explicit) {
+    char repo[256];
+    snprintf(repo, sizeof(repo), "/tmp/cbm-doccand-frepo-XXXXXX");
+    ASSERT_NOT_NULL(cbm_mkdtemp(repo));
+    char cache[256];
+    snprintf(cache, sizeof(cache), "/tmp/cbm-doccand-fcache-XXXXXX");
+    ASSERT_NOT_NULL(cbm_mkdtemp(cache));
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? strdup(saved) : NULL;
+    (void)cbm_setenv("CBM_CACHE_DIR", cache, 1);
+    cbm_config_t *cfg = cbm_config_open(cache);
+    ASSERT_NOT_NULL(cfg);
+    cbm_test_operation_host_t *host = cbm_test_operation_host_new(NULL);
+    ASSERT_NOT_NULL(host);
+    doccand_executor_capture_t capture = {0};
+    cbm_test_operation_host_set_index_execute(host, doccand_capture_executor, &capture);
+
+    int unset = doccand_forward_call(host, &capture, repo, "");
+    int unset_moderate = doccand_forward_call(host, &capture, repo, ",\"mode\":\"moderate\"");
+    int arg_off = doccand_forward_call(host, &capture, repo, ",\"doc_candidates\":false");
+    int arg_on_fast =
+        doccand_forward_call(host, &capture, repo, ",\"mode\":\"fast\",\"doc_candidates\":true");
+    int arg_not_bool = doccand_forward_call(host, &capture, repo, ",\"doc_candidates\":\"yes\"");
+    (void)cbm_config_set(cfg, CBM_CONFIG_DOC_CANDIDATES, "true");
+    int setting_on = doccand_forward_call(host, &capture, repo, ",\"mode\":\"fast\"");
+    int arg_over_setting = doccand_forward_call(host, &capture, repo, ",\"doc_candidates\":false");
+    (void)cbm_config_set(cfg, CBM_CONFIG_DOC_CANDIDATES, "off");
+    int setting_off = doccand_forward_call(host, &capture, repo, "");
+    (void)cbm_config_set(cfg, CBM_CONFIG_DOC_CANDIDATES, "maybe");
+    int setting_garbage = doccand_forward_call(host, &capture, repo, "");
+    (void)cbm_config_delete(cfg, CBM_CONFIG_DOC_CANDIDATES);
+    int setting_reset = doccand_forward_call(host, &capture, repo, "");
+
+    cbm_test_operation_host_free(host);
+    free(capture.args);
+    cbm_config_close(cfg);
+    integ_restore_cache_dir(saved_copy);
+    free(saved_copy);
+    th_rmtree(cache);
+    th_rmtree(repo);
+    ASSERT_EQ(unset, -1);
+    ASSERT_EQ(unset_moderate, -1);
+    ASSERT_EQ(arg_off, 0);
+    ASSERT_EQ(arg_on_fast, 1);
+    ASSERT_EQ(arg_not_bool, -1);
+    ASSERT_EQ(setting_on, 1);
+    ASSERT_EQ(arg_over_setting, 0);
+    ASSERT_EQ(setting_off, 0);
+    ASSERT_EQ(setting_garbage, -1);
+    ASSERT_EQ(setting_reset, -1);
+    PASS();
+}
+
 SUITE(integration) {
     RUN_TEST(index_reports_excluded_subtrees_issue411);
     /* Set up: create temp project and index it */
@@ -1944,6 +3219,12 @@ SUITE(integration) {
     RUN_TEST(integ_js_path_module_default_client);
     RUN_TEST(integ_mcp_index_status);
     RUN_TEST(integ_mcp_adr_outline_fence_status);
+    RUN_TEST(integ_doc_candidates_snippet_both_directions);
+    RUN_TEST(integ_doc_candidates_file_outline);
+    RUN_TEST(integ_doc_candidates_pdf_snippet_uses_text_layer);
+    RUN_TEST(integ_index_doc_candidates_switch);
+    RUN_TEST(integ_index_doc_candidates_follow_mode);
+    RUN_TEST(integ_index_doc_candidates_forwarded_only_when_explicit);
 
     /* Store query validation */
     RUN_TEST(integ_store_search_by_degree);
@@ -1958,6 +3239,18 @@ SUITE(integration) {
     RUN_TEST(integ_pipeline_fqn_module);
     RUN_TEST(integ_pipeline_project_name);
     RUN_TEST(integ_pipeline_cancel);
+
+    /* Step-6 ports from upstream src/mcp/mcp.c (self-contained stores) */
+    RUN_TEST(port_projects_empty_cache_returns_wellformed_empty_page);
+    RUN_TEST(port_projects_past_end_page_has_no_empty_hint);
+    RUN_TEST(port_snippet_c_macro_namespace);
+    RUN_TEST(port_trace_path_definition_beats_c_macro);
+#if !defined(_WIN32)
+    RUN_TEST(port_source_search_matches_stay_inside_project_root);
+    RUN_TEST(port_source_search_drops_walker_hits_that_resolve_outside_root);
+#endif
+    RUN_TEST(port_status_reports_cross_repo_never_run);
+    RUN_TEST(port_search_graph_infra_filters_pin_the_bm25_mirror);
 
     /* Destructive tests (run last!) */
     RUN_TEST(integ_mcp_delete_project);

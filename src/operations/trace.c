@@ -6,6 +6,7 @@
 #include "operations/store_host.h"
 
 #include "foundation/limits.h"
+#include "cbm.h"
 #include "store/store.h"
 #include "yyjson/yyjson.h"
 
@@ -140,6 +141,17 @@ static long resolution_score(const cbm_node_t *node) {
         } else if (strcmp(node->label, "Module") != 0 && strcmp(node->label, "File") != 0) {
             rank = TRACE_RES_OTHER;
         }
+    }
+    /* Tie rule (CBM_MACRO_QN_SUFFIX): a name that is both a definition and a C
+     * macro -- a typedef or enumerator next to its rename macro -- resolves to
+     * the definition. The macro scores just under every other definition, and
+     * still above Module/File; without this a one-line typedef and its macro
+     * tie on span and the name reads as ambiguous. */
+    size_t qn_len = node->qualified_name ? strlen(node->qualified_name) : 0;
+    size_t fence_len = sizeof(CBM_MACRO_QN_SUFFIX) - 1U;
+    if (rank == TRACE_RES_OTHER && qn_len > fence_len &&
+        strcmp(node->qualified_name + qn_len - fence_len, CBM_MACRO_QN_SUFFIX) == 0) {
+        return TRACE_RES_OTHER * (long)TRACE_RES_WEIGHT - 1;
     }
     long span = (long)node->end_line - (long)node->start_line;
     if (span < 0)
@@ -343,6 +355,23 @@ static yyjson_doc *resolve_edge_types(const char *args, const char *mode, const 
         "HTTP_CALLS",          "ASYNC_CALLS",       "DATA_FLOWS",    "CALLS",
         "CROSS_HTTP_CALLS",    "CROSS_ASYNC_CALLS", "CROSS_CHANNEL", "CROSS_GRPC_CALLS",
         "CROSS_GRAPHQL_CALLS", "CROSS_TRPC_CALLS"};
+    /* topology (#2597): traffic (INFRA_MAPS), object references (USAGE),
+     * ordering (DEPENDS_ON), controllers (HANDLES), what an object declares
+     * (DEFINES: an Ingress's routes) and what it deploys (DEPLOYS: a Flux
+     * Kustomization's path, a HelmRelease's chart). */
+    static const char *mode_topology[] = {"INFRA_MAPS", "USAGE",   "DEPENDS_ON",
+                                          "HANDLES",    "DEFINES", "DEPLOYS"};
+    /* deploy (#2597): what a CI job, script or Make rule starts (SPAWNS:
+     * scripts, make targets, programs), calls (CALLS: shell functions) and
+     * puts on a cluster (DEPLOYS) — outbound from the job, inbound from a
+     * chart. */
+    static const char *mode_deploy[] = {"DEPLOYS", "SPAWNS", "CALLS"};
+    /* run (#2597): what a Service or workload runs — traffic to the workload
+     * (INFRA_MAPS), the Image its container runs (USAGE), the Dockerfile that
+     * builds it and what that builds on (DEPENDS_ON), the program the
+     * ENTRYPOINT starts (SPAWNS) and the environment each container is given
+     * (CONFIGURES). */
+    static const char *mode_run[] = {"INFRA_MAPS", "USAGE", "DEPENDS_ON", "SPAWNS", "CONFIGURES"};
     *count = 0;
     yyjson_doc *doc = args_doc(args);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
@@ -367,6 +396,15 @@ static yyjson_doc *resolve_edge_types(const char *args, const char *mode, const 
     } else if (mode && strcmp(mode, "cross_service") == 0) {
         defaults = cross_service;
         n = (int)(sizeof(cross_service) / sizeof(cross_service[0]));
+    } else if (mode && strcmp(mode, "topology") == 0) {
+        defaults = mode_topology;
+        n = (int)(sizeof(mode_topology) / sizeof(mode_topology[0]));
+    } else if (mode && strcmp(mode, "deploy") == 0) {
+        defaults = mode_deploy;
+        n = (int)(sizeof(mode_deploy) / sizeof(mode_deploy[0]));
+    } else if (mode && strcmp(mode, "run") == 0) {
+        defaults = mode_run;
+        n = (int)(sizeof(mode_run) / sizeof(mode_run[0]));
     }
     for (int i = 0; i < n; ++i)
         types[i] = defaults[i];

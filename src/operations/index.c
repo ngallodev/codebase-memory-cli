@@ -290,8 +290,69 @@ static bool index_load_policy(const char *args_json, cbm_index_resource_policy_t
     return loaded;
 }
 
+/* doc_candidates for one index, explicit or unset: an explicit boolean
+ * argument wins, else a doc_candidates setting the user set to a boolean.
+ * Neither: unset, and the pipeline's index mode decides (on for full, off for
+ * moderate and fast). The parent resolves an explicit value once and passes it
+ * on, so a daemon job or supervised worker gets it as an argument instead of
+ * reading a config of its own; an unset one is not passed. */
+typedef enum {
+    INDEX_DOC_CANDIDATES_BY_MODE = 0,
+    INDEX_DOC_CANDIDATES_ON,
+    INDEX_DOC_CANDIDATES_OFF,
+} index_doc_candidates_t;
+
+/* The explicit boolean in args_json, or BY_MODE when absent. Reads no config:
+ * a worker's parent already resolved the setting into the arguments. */
+static index_doc_candidates_t index_doc_candidates_from_args(const char *args_json) {
+    yyjson_doc *doc = args_json ? yyjson_read(args_json, strlen(args_json), 0) : NULL;
+    yyjson_val *val = doc ? yyjson_obj_get(yyjson_doc_get_root(doc), "doc_candidates") : NULL;
+    bool present = val && yyjson_is_bool(val);
+    bool enabled = present && yyjson_get_bool(val);
+    yyjson_doc_free(doc);
+    if (!present) {
+        return INDEX_DOC_CANDIDATES_BY_MODE;
+    }
+    return enabled ? INDEX_DOC_CANDIDATES_ON : INDEX_DOC_CANDIDATES_OFF;
+}
+
+/* The explicit argument if there is one, else the operator's setting, else
+ * BY_MODE. Only a value a user actually set counts: an unparseable setting is
+ * not a choice and leaves the mode default. */
+static index_doc_candidates_t index_doc_candidates_choice(const char *args_json) {
+    index_doc_candidates_t choice = index_doc_candidates_from_args(args_json);
+    if (choice != INDEX_DOC_CANDIDATES_BY_MODE) {
+        return choice;
+    }
+    cbm_config_t *config = cbm_config_open(cbm_resolve_cache_dir());
+    bool enabled = false;
+    bool set = cbm_config_get_bool_set(config, CBM_CONFIG_DOC_CANDIDATES, &enabled);
+    cbm_config_close(config);
+    if (!set) {
+        return INDEX_DOC_CANDIDATES_BY_MODE;
+    }
+    return enabled ? INDEX_DOC_CANDIDATES_ON : INDEX_DOC_CANDIDATES_OFF;
+}
+
+/* An explicit choice is set on the pipeline; unset leaves the mode default. */
+static void index_doc_candidates_apply(cbm_pipeline_t *pipeline, index_doc_candidates_t choice) {
+    if (choice != INDEX_DOC_CANDIDATES_BY_MODE) {
+        cbm_pipeline_set_doc_candidates_enabled(pipeline, choice == INDEX_DOC_CANDIDATES_ON);
+    }
+}
+
+bool cbm_index_doc_candidates_add_to_args(yyjson_mut_doc *doc, yyjson_mut_val *root,
+                                          struct cbm_config *config) {
+    bool enabled = false;
+    if (!cbm_config_get_bool_set(config, CBM_CONFIG_DOC_CANDIDATES, &enabled)) {
+        return true; /* unset: the worker's index mode decides */
+    }
+    return yyjson_mut_obj_add_bool(doc, root, "doc_candidates", enabled);
+}
+
 static char *index_args_with_repo_path(const char *args_json, const char *repo_path,
-                                       const cbm_index_resource_policy_t *policy) {
+                                       const cbm_index_resource_policy_t *policy,
+                                       index_doc_candidates_t doc_candidates) {
     const char *json = args_json ? args_json : "{}";
     yyjson_doc *source = yyjson_read(json, strlen(json), 0);
     yyjson_val *source_root = source ? yyjson_doc_get_root(source) : NULL;
@@ -318,8 +379,17 @@ static char *index_args_with_repo_path(const char *args_json, const char *repo_p
     while (yyjson_mut_obj_get(root, INDEX_WORKER_POLICY_KEY)) {
         (void)yyjson_mut_obj_remove_key(root, INDEX_WORKER_POLICY_KEY);
     }
+    /* Every caller doc_candidates is replaced by the explicit value the parent
+     * resolved, or dropped when it is unset, so the worker's index mode
+     * decides. */
+    while (yyjson_mut_obj_get(root, "doc_candidates")) {
+        (void)yyjson_mut_obj_remove_key(root, "doc_candidates");
+    }
     if (!yyjson_mut_obj_add_strcpy(copy, root, "repo_path", repo_path) ||
-        !cbm_index_operation_policy_add_to_args(copy, root, policy)) {
+        !cbm_index_operation_policy_add_to_args(copy, root, policy) ||
+        (doc_candidates != INDEX_DOC_CANDIDATES_BY_MODE &&
+         !yyjson_mut_obj_add_bool(copy, root, "doc_candidates",
+                                  doc_candidates == INDEX_DOC_CANDIDATES_ON))) {
         yyjson_mut_doc_free(copy);
         return NULL;
     }
@@ -906,6 +976,7 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
         return index_text_error(policy_error);
     }
     cbm_pipeline_set_resource_policy(pipeline, &resource_policy);
+    index_doc_candidates_apply(pipeline, index_doc_candidates_from_args(args_json));
     char *project = index_strdup(cbm_pipeline_project_name(pipeline));
     index_try_artifact_bootstrap(project, repo_path);
     char serving_db_path[CBM_SZ_1K] = {0};
@@ -1236,7 +1307,8 @@ cbm_operation_result_t cbm_index_operation_execute(const char *args_json,
         free(repo_path);
         return index_text_error(policy_error);
     }
-    char *worker_args = index_args_with_repo_path(named_args, repo_path, &resource_policy);
+    char *worker_args = index_args_with_repo_path(named_args, repo_path, &resource_policy,
+                                                  index_doc_candidates_choice(json));
     free(named_args);
     if (!worker_args) {
         free(repo_path);

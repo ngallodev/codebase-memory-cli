@@ -323,6 +323,11 @@ void cbm_httpd_set_send_deadline_for_test(cbm_httpd_t *d, int ms) {
     d->send_deadline_for_test_ms = ms;
 }
 
+void cbm_http_conn_set_send_deadline_ms(cbm_http_conn_t *c, int ms) {
+    if (c && ms > 0 && ms <= 5000)
+        c->send_deadline_ms = ms;
+}
+
 void cbm_httpd_set_send_buffer_for_test(cbm_httpd_t *d, int bytes) {
     if (!d)
         return;

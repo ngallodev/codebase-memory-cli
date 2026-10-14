@@ -304,6 +304,8 @@ TEST(daemon_bootstrap_classifies_stateless_commands_without_client) {
     char *install[] = {"codebase-memory-cli", "install", "--dry-run", NULL};
     char *uninstall[] = {"codebase-memory-cli", "uninstall", NULL};
     char *update[] = {"codebase-memory-cli", "update", "-n", NULL};
+    char *test_impact[] = {"codebase-memory-cli", "test-impact", "select", NULL};
+    ASSERT_EQ(classify(3, test_impact), CBM_DAEMON_PROCESS_STATELESS);
     ASSERT_EQ(classify(2, version), CBM_DAEMON_PROCESS_STATELESS);
     ASSERT_EQ(classify(3, help), CBM_DAEMON_PROCESS_STATELESS);
     ASSERT_EQ(classify(3, install), CBM_DAEMON_PROCESS_STATELESS);

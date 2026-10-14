@@ -78,6 +78,20 @@ typedef cbm_operation_result_t (*cbm_operation_index_execute_fn)(void *context,
 typedef cbm_operation_result_t (*cbm_operation_index_status_fn)(void *context, const char *project);
 typedef void (*cbm_operation_project_invalidate_fn)(void *context, const char *project);
 
+/* Watch visibility for the status operation (#2167). The daemon, which owns the
+ * one background watcher, answers whether `project` is currently watched. All
+ * strings are static. A runtime without a provider has no watcher and reports
+ * watched=false with reason "no_watcher". */
+typedef struct cbm_operation_watch_status {
+    bool watched;
+    const char *reason;       /* why not watched (set when !watched) */
+    const char *strategy;     /* "pending" | "git" | "tree" | "none" (set when watched) */
+    int poll_interval_ms;     /* current adaptive cadence (when watched) */
+    int64_t last_scan_unix_s; /* last completed scan, wall clock; 0 = none yet */
+} cbm_operation_watch_status_t;
+typedef void (*cbm_operation_watch_status_fn)(void *context, const char *project,
+                                              cbm_operation_watch_status_t *out);
+
 typedef struct cbm_operation_runtime {
     const char *search_scratch_dir; /* optional private parent; NULL uses cbm_tmpdir() */
     cbm_operation_cancelled_fn cancelled;
@@ -118,6 +132,10 @@ typedef struct cbm_operation_runtime {
      * and status modes. */
     cbm_operation_index_status_fn index_status;
     void *index_status_context;
+
+    /* Optional daemon-owned watcher visibility for status and coverage. */
+    cbm_operation_watch_status_fn watch_status;
+    void *watch_status_context;
 
     /* Host/session policy required by the physical index worker. These values
      * are borrowed for the synchronous operation call. */

@@ -6,10 +6,11 @@
 #include "operations/compact_out.h"
 #include "foundation/mem_core.h"
 #include "operations/coverage.h"
+#include "operations/doc_links_report.h"
+#include "operations/watch_status.h"
 #include "operations/snippet.h"
 #include "operations/search.h"
 #include "operations/trace.h"
-#include "operations/trace_ingest.h"
 #include "operations/schema.h"
 #include "operations/query.h"
 #include "operations/architecture.h"
@@ -18,6 +19,7 @@
 #include "operations/file_outline.h"
 #include "operations/compare.h"
 #include "operations/store_host.h"
+#include "pipeline/pass_cross_repo.h"
 
 #include "foundation/platform.h"
 #include "foundation/compat_fs.h"
@@ -379,7 +381,7 @@ static cbm_operation_result_t execute_projects(const char *args_json) {
     if (end < count) {
         yyjson_mut_obj_add_uint(doc, root, "next_offset", end);
     }
-    if (yyjson_mut_arr_size(projects) == 0) {
+    if (count == 0) {
         yyjson_mut_obj_add_str(doc, root, "hint",
                                "No projects indexed. Run 'codebase-memory-cli index .' first.");
     }
@@ -538,7 +540,8 @@ static void add_status_coverage(yyjson_mut_doc *doc, yyjson_mut_val *root, cbm_s
     }
 }
 
-static cbm_operation_result_t execute_status(const char *args_json) {
+static cbm_operation_result_t execute_status(const char *args_json,
+                                             const cbm_operation_runtime_t *runtime) {
     char *project = json_string_arg(args_json, "project");
     if (!project || !project[0]) {
         cbm_operation_arg_free(project);
@@ -637,13 +640,23 @@ static cbm_operation_result_t execute_status(const char *args_json) {
     }
     add_status_coverage(doc, root, store, project, have_info ? info.indexed_at : NULL,
                         coverage_samples);
+    (void)cbm_cross_repo_add_status_json(doc, root, store, project);
+    bool doc_links_built = cbm_op_add_doc_links_report(doc, root, store, project,
+                                                       coverage_samples == OP_COVERAGE_FILE_CAP);
     if (have_info)
         cbm_project_free_fields(&info);
+    if (!doc_links_built) {
+        yyjson_mut_doc_free(doc);
+        cbm_store_close(store);
+        cbm_operation_arg_free(project);
+        return json_error("result allocation failed", NULL);
+    }
     if (nodes == 0) {
         yyjson_mut_obj_add_str(
             doc, root, "hint",
             "Project is empty. Re-run 'codebase-memory-cli index .' to populate.");
     }
+    cbm_op_add_watch_status_json(doc, root, runtime, project);
     cbm_store_close(store);
     cbm_operation_arg_free(project);
     return json_doc_result(doc, false);
@@ -656,18 +669,17 @@ bool cbm_read_operation_supported(cbm_operation_id_t operation) {
            operation == CBM_OPERATION_SCHEMA || operation == CBM_OPERATION_QUERY ||
            operation == CBM_OPERATION_ARCHITECTURE || operation == CBM_OPERATION_CHANGES ||
            operation == CBM_OPERATION_SOURCE_SEARCH || operation == CBM_OPERATION_FILE_OUTLINE ||
-           operation == CBM_OPERATION_COMPARE || operation == CBM_OPERATION_INGEST_TRACES;
+           operation == CBM_OPERATION_COMPARE;
 }
 
 static cbm_operation_result_t read_operation_execute(cbm_operation_id_t operation,
                                                      const char *args_json,
                                                      const cbm_operation_runtime_t *runtime) {
-    (void)runtime;
     if (operation == CBM_OPERATION_PROJECTS) {
         return execute_projects(args_json);
     }
     if (operation == CBM_OPERATION_STATUS) {
-        return execute_status(args_json);
+        return execute_status(args_json, runtime);
     }
     if (operation == CBM_OPERATION_COVERAGE) {
         return cbm_coverage_operation_execute(args_json);
@@ -701,9 +713,6 @@ static cbm_operation_result_t read_operation_execute(cbm_operation_id_t operatio
     }
     if (operation == CBM_OPERATION_COMPARE) {
         return cbm_compare_operation_execute(args_json, runtime);
-    }
-    if (operation == CBM_OPERATION_INGEST_TRACES) {
-        return cbm_trace_ingest_operation_execute(args_json);
     }
     return cbm_operation_result_copy("native read operation not implemented", true);
 }
