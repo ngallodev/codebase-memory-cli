@@ -12,22 +12,22 @@ int tf_deselected_count = 0;
 #include "test_framework.h"
 #include "test_helpers.h"
 #include "test_daemon_runtime_contract.h"
-#include "foundation/compat.h"         /* cbm_setenv — #845 supervisor kill switch */
-#include "foundation/compat_fs.h"      /* cbm_fopen — worker response file */
-#include "foundation/constants.h"      /* CBM_SZ_4K — forced stderr buffer */
-#include "foundation/log.h"            /* crash-durable worker log probe */
-#include "foundation/mem.h"            /* cbm_mem_init — worker budget */
-#include "foundation/log.h"            /* worker liveness heartbeat probe */
-#include "foundation/platform.h"       /* cbm_file_exists — blocking-git marker */
-#include "foundation/test_selection.h" /* shared executable selection token bound */
-#include "daemon/bootstrap.h"          /* runner rendezvous isolation */
-#include "daemon/runtime.h"            /* bounded worker response probe */
-#include "daemon/ipc.h"                /* Windows private-lock re-exec probe */
-#include "daemon/version_cohort.h"     /* Windows crash-turnover re-exec probe */
-#include "mcp/index_supervisor.h"      /* cbm_index_set_worker_role */
-#include "mcp/mcp.h"                   /* cbm_mcp_handle_tool — act as a real worker */
-#include "ui/http_server.h"            /* deleted-self executable probe */
-#include "result_spill.h"              /* pinned free disk: spill verdicts ignore the host disk */
+#include "foundation/compat.h"           /* cbm_setenv — #845 supervisor kill switch */
+#include "foundation/compat_fs.h"        /* cbm_fopen — worker response file */
+#include "foundation/constants.h"        /* CBM_SZ_4K — forced stderr buffer */
+#include "foundation/log.h"              /* crash-durable worker log probe */
+#include "foundation/mem.h"              /* cbm_mem_init — worker budget */
+#include "foundation/platform.h"         /* cbm_file_exists — blocking-git marker */
+#include "foundation/test_selection.h"   /* shared executable selection token bound */
+#include "daemon/bootstrap.h"            /* runner rendezvous isolation */
+#include "daemon/runtime.h"              /* bounded worker response probe */
+#include "daemon/ipc.h"                  /* Windows private-lock re-exec probe */
+#include "daemon/version_cohort.h"       /* Windows crash-turnover re-exec probe */
+#include "operations/index_supervisor.h" /* cbm_index_set_worker_role */
+#include "operations/json_args.h"
+#include "test_operation_host.h"
+#include "ui/http_server.h" /* deleted-self executable probe */
+#include "result_spill.h"   /* pinned free disk: spill verdicts ignore the host disk */
 #include <sqlite3.h>
 #include <ctype.h>
 #include <errno.h>
@@ -389,13 +389,18 @@ static void tf_index_worker_probe(const char *args_json, const char *response_ou
         fflush(NULL);
         _Exit(response ? 0 : 1);
     }
-    if (strstr(args_json, "\"silent-exit\"")) {
+    if (strstr(args_json, "\"silent-exit\"") || strstr(args_json, "\"unreadable-response\"")) {
         /* #1300: reach a phase, then exit 0 without writing the response. The
          * trailing plain-text line must not be mistaken for a phase. */
+        bool readable = true;
+        if (strstr(args_json, "\"unreadable-response\"")) {
+            /* A real missing file exercises fopen failure in the supervisor. */
+            readable = response_out && cbm_unlink(response_out) == 0;
+        }
         cbm_log_info("incremental.edge_snapshot", "captured", "3");
         (void)fprintf(stderr, "async worker silent-exit probe\n");
         fflush(NULL);
-        _Exit(0);
+        _Exit(readable ? 0 : 1);
     }
     if (strstr(args_json, "\"crash\"")) {
         (void)fprintf(stderr, "async worker crash probe\n");
@@ -472,7 +477,7 @@ static void tf_index_worker_probe(const char *args_json, const char *response_ou
  * exact build-bound worker grammar produced by cbm_index_worker_start(), act
  * as a faithful in-process index worker instead of re-running the test suites.
  * This lets the deterministic
- * gating guard (test_mcp.c) spawn a REAL worker child that indexes the fixture and
+ * gating guard spawn a REAL worker child that indexes the fixture and
  * writes its response back, using only public APIs — no production test seam.
  * Returns an exit code (>=0) when it handled a worker invocation, else -1. */
 static int tf_maybe_run_index_worker(int argc, char **argv) {
@@ -502,7 +507,7 @@ static int tf_maybe_run_index_worker(int argc, char **argv) {
     }
     /* Mirror the production worker entry (run_cli's caller in main.c): the log
      * header is the first thing a worker records. */
-    char *worker_repo_path = cbm_mcp_get_string_arg(invocation.args_json, "repo_path");
+    char *worker_repo_path = cbm_json_string_arg(invocation.args_json, "repo_path");
     cbm_index_worker_log_begin(invocation.args_json, worker_repo_path);
     free(worker_repo_path);
     cbm_index_set_worker_role_options(true, invocation.response_out, invocation.single_thread,
@@ -511,11 +516,11 @@ static int tf_maybe_run_index_worker(int argc, char **argv) {
     cbm_mem_init_with_cap(0.5, invocation.memory_budget_bytes);
     cbm_log_init_for_process(false, true);
     tf_index_worker_probe(invocation.args_json, invocation.response_out);
-    cbm_mcp_server_t *srv = cbm_mcp_server_new(NULL);
+    cbm_test_operation_host_t *srv = cbm_test_operation_host_new(NULL);
     if (!srv) {
         return 1;
     }
-    char *result = cbm_mcp_handle_tool(srv, "index_repository", invocation.args_json);
+    char *result = cbm_test_operation_execute(srv, "index_repository", invocation.args_json);
     if (result) {
         const char *ro = cbm_index_worker_response_out();
         if (ro) {
@@ -769,22 +774,6 @@ static int tf_maybe_run_runtime_mapped_hello_client(int argc, char **argv) {
         return 28;
     }
     return result >= 0 ? result : 28;
-#else
-    (void)argc;
-    (void)argv;
-    return -1;
-#endif
-}
-
-static int tf_maybe_run_mcp_idxfailclosed_probe(int argc, char **argv) {
-#ifndef _WIN32
-    if (argc != 4 || strcmp(argv[1], "__cbm_mcp_idxfailclosed_probe") != 0) {
-        return -1;
-    }
-    extern int mcp_test_idxfailclosed_supervisor_start_check(const char *repo_dir,
-                                                             const char *cache_dir);
-    alarm(20);
-    return mcp_test_idxfailclosed_supervisor_start_check(argv[2], argv[3]);
 #else
     (void)argc;
     (void)argv;
@@ -1748,8 +1737,6 @@ extern void suite_test_impact_artifact(void);
 extern void suite_test_impact_runner_filter(void);
 extern void suite_store_search(void);
 extern void suite_cypher(void);
-extern void suite_mcp(void);
-extern void suite_mcp_mutation_guard(void);
 extern void suite_index_supervisor(void);
 extern void suite_changes_operation(void);
 extern void suite_daemon(void);
@@ -1758,7 +1745,6 @@ extern void suite_version_cohort(void);
 extern void suite_daemon_version(void);
 extern void suite_daemon_runtime(void);
 extern void suite_daemon_application(void);
-extern void suite_daemon_frontend(void);
 extern void suite_daemon_bootstrap(void);
 extern void suite_daemon_ipc(void);
 extern void suite_language(void);
@@ -1838,7 +1824,7 @@ extern void suite_openapi(void);
 extern void suite_infrascan(void);
 extern void suite_cli(void);
 extern void suite_agent_clients(void);
-extern void suite_agent_profiles(void);
+extern void suite_legacy_agent_profiles(void);
 extern void suite_config_json_like(void);
 extern void suite_config_toml_edit(void);
 extern void suite_config_yaml_edit(void);
@@ -1964,7 +1950,7 @@ int main(int argc, char **argv) {
     /* Installation tests use this executable as a structurally real candidate.
      * Mirror the production binary's minimal verification contract. */
     if (argc == 2 && strcmp(argv[1], "--version") == 0) {
-        (void)puts("codebase-memory-mcp test-runner");
+        (void)puts("codebase-memory-cli test-runner");
         return 0;
     }
     if (argc == 2 && strcmp(argv[1], "--build-config") == 0) {
@@ -2026,10 +2012,6 @@ int main(int argc, char **argv) {
         _exit(cbm_daemon_ipc_private_directory_secure(argv[2]) ? 0 : 1);
     }
 #endif
-    int mcp_idxfailclosed_rc = tf_maybe_run_mcp_idxfailclosed_probe(argc, argv);
-    if (mcp_idxfailclosed_rc >= 0) {
-        return mcp_idxfailclosed_rc;
-    }
     int runtime_image_rc = tf_maybe_run_runtime_image_holder(argc, argv);
     if (runtime_image_rc >= 0) {
         return runtime_image_rc;
@@ -2068,7 +2050,7 @@ int main(int argc, char **argv) {
 
     /* Capture once so the parent tests and any re-exec'd worker bind to this
      * executable image. A worker with an unavailable/mismatched identity is
-     * rejected by the exact parser below before any suite or MCP state exists. */
+     * rejected by the exact parser below before any suite or operation state exists. */
     (void)cbm_index_supervisor_capture_build_fingerprint();
 
     /* #832: if spawned as a supervised index worker, do the real work and exit
@@ -2078,7 +2060,7 @@ int main(int argc, char **argv) {
         return worker_rc;
     }
 
-    /* #845 belt-and-suspenders: this binary EMBEDS cbm_mcp_handle_tool. The
+    /* #845 belt-and-suspenders: this binary can execute the neutral index operation. The
      * supervisor gate already ignores unmarked hosts, but pin the kill switch
      * too so even a future supervisor-marked test host can never resolve THIS
      * binary as `<self> cli --index-worker …` and recursively re-run suites.
@@ -2127,7 +2109,7 @@ int main(int argc, char **argv) {
         }
     }
     if (!g_list_only) {
-        printf("\n  codebase-memory-mcp  C test suite\n");
+        printf("\n  codebase-memory-cli  C test suite\n");
     }
 
     /* Runner isolation first: nothing below may reach the developer's daemon. */
@@ -2191,20 +2173,17 @@ int main(int argc, char **argv) {
     /* Cypher (M6) */
     RUN_SELECTED_SUITE(cypher);
 
-    /* MCP Server (M9) */
-    RUN_SELECTED_SUITE(mcp);
-    RUN_SELECTED_SUITE(mcp_mutation_guard);
+    /* Neutral index supervision and daemon coordination. */
     RUN_SELECTED_SUITE(index_supervisor);
     RUN_SELECTED_SUITE(changes_operation);
 
-    /* Shared MCP daemon coordination + private framing */
+    /* Daemon coordination + private framing */
     RUN_SELECTED_SUITE(daemon);
     RUN_SELECTED_SUITE(project_lock);
     RUN_SELECTED_SUITE(version_cohort);
     RUN_SELECTED_SUITE(daemon_version);
     RUN_SELECTED_SUITE(daemon_runtime);
     RUN_SELECTED_SUITE(daemon_application);
-    RUN_SELECTED_SUITE(daemon_frontend);
     RUN_SELECTED_SUITE(daemon_bootstrap);
     RUN_SELECTED_SUITE(daemon_ipc);
 
@@ -2323,7 +2302,7 @@ int main(int argc, char **argv) {
     /* CLI (install, update, config) */
     RUN_SELECTED_SUITE(cli);
     RUN_SELECTED_SUITE(agent_clients);
-    RUN_SELECTED_SUITE(agent_profiles);
+    RUN_SELECTED_SUITE(legacy_agent_profiles);
     RUN_SELECTED_SUITE(config_json_like);
     RUN_SELECTED_SUITE(config_toml_edit);
     RUN_SELECTED_SUITE(config_yaml_edit);
@@ -2391,7 +2370,10 @@ int main(int argc, char **argv) {
     RUN_SELECTED_SUITE(grammar_probe_f);
     RUN_SELECTED_SUITE(grammar_probe_g);
 
-    RUN_SELECTED_SUITE_PERF(incremental);
+    /* Incremental indexing contains correctness coverage as well as timing
+     * checks; keep it in the default gate. The standalone LSP ratio/scale
+     * suites above are the only pure performance suites. */
+    RUN_SELECTED_SUITE(incremental);
 
     if (g_list_only) {
         fflush(stdout);

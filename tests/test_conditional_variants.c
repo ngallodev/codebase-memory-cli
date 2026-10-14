@@ -23,7 +23,6 @@
 #include "test_framework.h"
 #include "test_helpers.h"
 #include <foundation/compat_fs.h>
-#include <mcp/mcp.h>
 #include <pipeline/pipeline.h>
 #include <pipeline/pipeline_internal.h>
 #include <store/store.h>
@@ -43,7 +42,6 @@ typedef struct {
     char tmpdir[256];
     char dbpath[1024];
     char *project;
-    cbm_mcp_server_t *srv;
     cbm_store_t *store;
 } cv_proj_t;
 
@@ -79,7 +77,7 @@ static bool cv_index(cv_proj_t *p, const cv_file_t *files, int count) {
     if (!p->project) {
         return false;
     }
-    /* Where the MCP server writes the project DB: CBM_CACHE_DIR, else the
+    /* Where the project DB lives: CBM_CACHE_DIR, else the
      * per-user cache (same resolution as test_lang_contract.c). */
     char cache[700];
     const char *configured = getenv("CBM_CACHE_DIR");
@@ -87,18 +85,20 @@ static bool cv_index(cv_proj_t *p, const cv_file_t *files, int count) {
     if (configured && configured[0]) {
         snprintf(cache, sizeof(cache), "%s", configured);
     } else {
-        snprintf(cache, sizeof(cache), "%s/.cache/codebase-memory-mcp", home ? home : "/tmp");
+        snprintf(cache, sizeof(cache), "%s/.cache/codebase-memory-cli", home ? home : "/tmp");
     }
     cbm_mkdir_p(cache, 0755);
     snprintf(p->dbpath, sizeof(p->dbpath), "%s/%s.db", cache, p->project);
     unlink(p->dbpath);
-    p->srv = cbm_mcp_server_new(NULL);
-    if (!p->srv) {
+    cbm_pipeline_t *pipeline = cbm_pipeline_new(p->tmpdir, p->dbpath, CBM_MODE_FULL);
+    if (!pipeline) {
         return false;
     }
-    char args[800];
-    snprintf(args, sizeof(args), "{\"repo_path\":\"%s\"}", p->tmpdir);
-    free(cbm_mcp_handle_tool(p->srv, "index_repository", args));
+    int rc = cbm_pipeline_run(pipeline);
+    cbm_pipeline_free(pipeline);
+    if (rc != 0) {
+        return false;
+    }
     p->store = cbm_store_open_path(p->dbpath);
     return p->store != NULL;
 }
@@ -106,9 +106,6 @@ static bool cv_index(cv_proj_t *p, const cv_file_t *files, int count) {
 static void cv_cleanup(cv_proj_t *p) {
     if (p->store) {
         cbm_store_close(p->store);
-    }
-    if (p->srv) {
-        cbm_mcp_server_free(p->srv);
     }
     if (p->dbpath[0]) {
         char side[1100];

@@ -13,7 +13,6 @@
 #include "test_framework.h"
 #include "test_helpers.h"
 #include <foundation/compat_fs.h>
-#include <mcp/mcp.h>
 #include <pipeline/pipeline.h>
 #include <store/store.h>
 #include <sqlite3.h>
@@ -156,7 +155,6 @@ typedef struct {
     char tmpdir[256];
     char dbpath[1024];
     char *project;
-    cbm_mcp_server_t *srv;
     cbm_store_t *store;
 } sp_proj_t;
 
@@ -209,18 +207,20 @@ static bool sp_index(sp_proj_t *p, const sp_file_t *files, int count, int pad) {
     if (configured && configured[0]) {
         snprintf(cache, sizeof(cache), "%s", configured);
     } else {
-        snprintf(cache, sizeof(cache), "%s/.cache/codebase-memory-mcp", home ? home : "/tmp");
+        snprintf(cache, sizeof(cache), "%s/.cache/codebase-memory-cli", home ? home : "/tmp");
     }
     cbm_mkdir_p(cache, 0755);
     snprintf(p->dbpath, sizeof(p->dbpath), "%s/%s.db", cache, p->project);
     unlink(p->dbpath);
-    p->srv = cbm_mcp_server_new(NULL);
-    if (!p->srv) {
+    cbm_pipeline_t *pipeline = cbm_pipeline_new(p->tmpdir, p->dbpath, CBM_MODE_FULL);
+    if (!pipeline) {
         return false;
     }
-    char args[800];
-    snprintf(args, sizeof(args), "{\"repo_path\":\"%s\"}", p->tmpdir);
-    free(cbm_mcp_handle_tool(p->srv, "index_repository", args));
+    int rc = cbm_pipeline_run(pipeline);
+    cbm_pipeline_free(pipeline);
+    if (rc != 0) {
+        return false;
+    }
     p->store = cbm_store_open_path(p->dbpath);
     return p->store != NULL;
 }
@@ -228,9 +228,6 @@ static bool sp_index(sp_proj_t *p, const sp_file_t *files, int count, int pad) {
 static void sp_cleanup(sp_proj_t *p) {
     if (p->store) {
         cbm_store_close(p->store);
-    }
-    if (p->srv) {
-        cbm_mcp_server_free(p->srv);
     }
     if (p->dbpath[0]) {
         char side[1100];
