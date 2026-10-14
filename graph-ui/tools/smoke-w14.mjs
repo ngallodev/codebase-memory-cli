@@ -20,7 +20,7 @@ import { READABILITY_EXCLUSIONS, measureReadability } from './lib/readability.mj
 import { startStaticProxy } from './lib/static-proxy.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BINARY = join(ROOT, 'cbm', 'build', 'c', 'codebase-memory-mcp');
+const BINARY = resolve(ROOT, '..', 'build', 'c', 'codebase-memory-cli');
 const DIST = join(ROOT, 'dist');
 const FIXTURE = join(ROOT, 'fixtures', 'atlas-sample');
 const PROJECT = 'codeatlasweb-w14';

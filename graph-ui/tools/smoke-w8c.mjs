@@ -95,7 +95,7 @@ import {
 import { startStaticProxy } from './lib/static-proxy.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BINARY = join(ROOT, 'cbm', 'build', 'c', 'codebase-memory-mcp');
+const BINARY = resolve(ROOT, '..', 'build', 'c', 'codebase-memory-cli');
 const DIST = join(ROOT, 'dist');
 const FIXTURE = join(ROOT, 'fixtures', 'atlas-sample');
 const PROJECT = 'codeatlasweb-w8c';
@@ -486,20 +486,20 @@ async function main() {
          */
         const before = {
             api: { ...proxy.log.apiRoutes },
-            rpc: { ...proxy.log.rpcTools },
+            toolCalls: { ...proxy.log.toolCalls },
         };
         await page.click('[data-testid="atlas-pseudocode-toggle"]');
         await page.waitForSelector('[data-testid="atlas-pseudocode"]', { timeout: 20000 });
         await page.waitForTimeout(900);
         const after = {
             api: { ...proxy.log.apiRoutes },
-            rpc: { ...proxy.log.rpcTools },
+            toolCalls: { ...proxy.log.toolCalls },
         };
         const grew = (left, right) => Object.keys(right)
             .filter((key) => (right[key] ?? 0) > (left[key] ?? 0))
             .map((key) => ({ key, before: left[key] ?? 0, after: right[key] }));
         const newApi = grew(before.api, after.api);
-        const newRpc = grew(before.rpc, after.rpc);
+        const newToolCalls = grew(before.toolCalls, after.toolCalls);
         extras.requestsAroundTab = { before, after, newApi, newRpc };
         report.noExtraServerRequest = newApi.length === 0 && newRpc.length === 0;
         log(`Umschalten auf den Block: ${newApi.length} neue Routen, ${newRpc.length} neue Werkzeuge`);
@@ -762,7 +762,7 @@ async function main() {
         report.screenshotsAtRest =
             extras.shots.length === 2 && extras.shots.every((shot) => shot.atRest === true);
         extras.apiRoutes = { ...proxy.log.apiRoutes };
-        extras.rpcTools = { ...proxy.log.rpcTools };
+        extras.toolCalls = { ...proxy.log.toolCalls };
         await context.close();
     } catch (err) {
         failure = err;

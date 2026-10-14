@@ -6,7 +6,7 @@ import { chromium } from 'playwright';
 const origin='http://127.0.0.1:9749';
 const out='verification/pr-2068';
 await mkdir(out,{recursive:true});
-const report={origin,project:'cbm-pr2068',startedAt:new Date().toISOString(),screenshots:[],checks:{},pageErrors:[],externalRequests:[],rpc:[]};
+const report={origin,project:'cbm-pr2068',startedAt:new Date().toISOString(),screenshots:[],checks:{},pageErrors:[],externalRequests:[],toolCalls:[]};
 const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:1600,height:1060}});
 await context.addInitScript(()=>{localStorage.setItem('cbm.workspace.setup','done');localStorage.setItem('cbm.workspace','architecture');});
@@ -14,7 +14,7 @@ const page=await context.newPage();
 page.on('pageerror',error=>report.pageErrors.push(error.message));
 page.on('request',request=>{
  const url=request.url(); if(/^https?:/.test(url)&&!url.startsWith(origin+'/')) report.externalRequests.push(url);
- if(url===origin+'/rpc') {try{const body=request.postDataJSON();report.rpc.push({method:body.method,tool:body.params?.name,arguments:body.params?.arguments});}catch{}}
+ if(url===origin+'/api/tool') {try{const body=request.postDataJSON();report.toolCalls.push({tool:body.name,arguments:body.arguments});}catch{}}
 });
 const capture=async(name,locator)=>{
  if(locator) await locator.scrollIntoViewIfNeeded();
@@ -71,7 +71,7 @@ try {
  await page.waitForTimeout(1500);
  report.checks.reader=await page.getByTestId('selected-code-panel').innerText();
  assert.ok(report.checks.reader.includes(subject));
- assert.ok(report.rpc.some(call=>call.tool==='get_code_snippet'));
+ assert.ok(report.toolCalls.some(call=>call.tool==='get_code_snippet'));
  await capture('after-source-evidence.png');
  // Selection stays available when returning to the map.
  await page.locator('[data-workspace-tab="architecture"]').click();

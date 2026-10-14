@@ -23,6 +23,7 @@
 #include "../src/cli/cli.h"
 #include "../src/daemon/host_internal.h"
 #include "../src/git/git_context.h" /* #798 follow-up: live-socket git-resolve repro */
+#include "../src/operations/operation.h"
 #include "../src/ui/http_server.h"
 #include "test_framework.h"
 #include "test_helpers.h"
@@ -2466,6 +2467,11 @@ TEST(ui_server_tool_offers_only_read_tools) {
         "query_graph",   "detect_changes",   "check_index_coverage", "index_status",
     };
     for (size_t i = 0; i < sizeof(allowed_tools) / sizeof(allowed_tools[0]); i++) {
+        const char *operation_name =
+            strcmp(allowed_tools[i], "trace_call_path") == 0 ? "trace_path" : allowed_tools[i];
+        const cbm_operation_descriptor_t *operation = cbm_operation_find(operation_name);
+        ASSERT_NOT_NULL(operation);
+        ASSERT_TRUE(operation->read_only);
         snprintf(body, sizeof(body), "{\"name\":\"%s\",\"arguments\":{}}", allowed_tools[i]);
         int n = ui_tool_post(port, body, resp, sizeof(resp));
         ASSERT_GT(n, 0);

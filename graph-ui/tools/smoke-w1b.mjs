@@ -4,7 +4,7 @@
  *
  * Was hier bewiesen wird, ist genau das, was Unit-Tests nicht beweisen
  * koennen: dass CbmRpcProvider, rpc-client, der Parser und der IR-Builder
- * zusammen an einem laufenden cbm/build/c/codebase-memory-mcp dieselben
+ * zusammen an einem laufenden build/c/codebase-memory-cli dieselben
  * Fakten herausholen, die das Fixture wirklich hergibt. Gemockt ist hier
  * nichts. Der Provider bekommt einen base-Ursprung und Node-18-fetch, sonst
  * ist es dieselbe Klasse, die spaeter im Browser laeuft.
@@ -12,7 +12,7 @@
  * Ablauf:
  *   1. Binary und Fixture pruefen
  *   2. isoliertes HOME anlegen (persistierte Einstellungen nie ins echte HOME)
- *   3. fixtures/atlas-sample ueber die CLI indizieren; ueber /rpc geht das
+ *   3. fixtures/atlas-sample ueber die CLI indizieren; ueber /api/tool geht das
  *      nicht, weil die Read-only-Allowlist index_repository nicht anbietet
  *   4. Server auf freiem Port >= 4220 starten
  *   5. src/** mit esbuild zu einem ESM-Bundle machen und importieren. Das ist
@@ -41,7 +41,7 @@ import {
 } from './lib/cbm-server.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BINARY = join(ROOT, 'cbm', 'build', 'c', 'codebase-memory-mcp');
+const BINARY = resolve(ROOT, '..', 'build', 'c', 'codebase-memory-cli');
 const FIXTURE = join(ROOT, 'fixtures', 'atlas-sample');
 const PROJECT = 'codeatlasweb-w1b';
 const SERVICE_FILE = 'src/services/userService.ts';
@@ -91,7 +91,7 @@ async function bundleProvider(outDir) {
     stdin: {
       contents: [
         "export { CbmRpcProvider } from '../src/provider/cbm-rpc-provider';",
-        "export { RpcIntelligenceClient } from '../src/provider/rpc-client';",
+        "export { RpcIntelligenceClient } from '../src/provider/api/tool-client';",
         "export { buildIr } from '../src/ir/semantic-ir-builder';",
         '',
       ].join('\n'),

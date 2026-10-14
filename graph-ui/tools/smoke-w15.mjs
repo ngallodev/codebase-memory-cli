@@ -13,7 +13,7 @@ import { startStaticProxy } from './lib/static-proxy.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'verification', 'w15');
-const BINARY = join(ROOT, 'cbm', 'build', 'c', 'codebase-memory-mcp');
+const BINARY = resolve(ROOT, '..', 'build', 'c', 'codebase-memory-cli');
 const FIXTURE = join(ROOT, 'fixtures', 'atlas-sample');
 const SIDECAR = 'http://127.0.0.1:4141';
 const MIN_PORT = 4680;

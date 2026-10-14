@@ -1,6 +1,6 @@
 # CBM Lens Beta
 
-CBM Lens is the local exploration frontend served by `codebase-memory-mcp --ui=true`.
+CBM Lens is the local exploration frontend served by `codebase-memory-cli daemon start`.
 It combines source, the indexed graph and optional browser inference. Source files
 are read-only; project architecture decisions can be edited in the ADR workspace.
 The frontend was contributed by Bernhard Jackiewicz as CodeAtlasWeb.
@@ -61,8 +61,10 @@ make -f Makefile.cbm cbm-with-ui
 
 This installs the locked frontend dependencies, builds `dist/` and embeds it in the
 native binary. For frontend development, run `npm ci` and `npm run dev` in this
-directory. Vite listens on 5173 and proxies `/api` and `/rpc` to the local server on
-9749. `npm run build` creates a production bundle.
+directory. Vite listens on 5173 and proxies `/api` to the local server on 9749.
+Tool reads use `POST /api/tool` with `{ "name": "...", "arguments": {} }`;
+the response contains `content` and `isError` directly. `npm run build` creates a
+production bundle.
 
 The standalone test preview in `tools/lib/static-proxy.mjs` snapshots `dist/` when
 it starts. Restart that preview after building and compare the served `index.html`

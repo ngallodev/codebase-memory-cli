@@ -16,7 +16,7 @@
  *   1. `npm run build`
  *   2. isoliertes HOME, fixtures/atlas-sample ueber die CLI indizieren
  *   3. C-Server auf einem freien Port >= 4250 starten
- *   4. dist/ auf einem zweiten Port ausliefern, /rpc und /api dorthin proxen
+ *   4. dist/ auf einem zweiten Port ausliefern, /api/tool und /api dorthin proxen
  *      (auch /api/layout: die Galaxie holt ihr Layout ueber genau diese Route)
  *   5. Chromium ohne Aussenwelt, plus Route-Sperre
  *   6. Klickstrecke: Layout abwarten, "createUser" tippen, Enter, dann einen
@@ -55,7 +55,7 @@ import {
 import { startStaticProxy } from './lib/static-proxy.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BINARY = join(ROOT, 'cbm', 'build', 'c', 'codebase-memory-mcp');
+const BINARY = resolve(ROOT, '..', 'build', 'c', 'codebase-memory-cli');
 const DIST = join(ROOT, 'dist');
 const FIXTURE = join(ROOT, 'fixtures', 'atlas-sample');
 const PROJECT = 'codeatlasweb-w3';
@@ -245,7 +245,7 @@ async function main() {
         proxy = await startStaticProxy({ distDir: DIST, upstreamPort: serverPort, port: uiPort });
         report.port = uiPort;
         extras.serverPort = serverPort;
-        log(`dist/ liegt auf ${uiPort}, /rpc und /api gehen nach ${serverPort}`);
+        log(`dist/ liegt auf ${uiPort}, /api/tool und /api gehen nach ${serverPort}`);
 
         // ------------------------------------------------------- 5. Browser
         const { chromium } = await import('playwright');
@@ -505,7 +505,7 @@ async function main() {
             () => document.querySelector('[data-testid="atlas-galaxy-note"]')?.textContent?.trim() ?? '',
         );
         extras.apiRoutes = { ...proxy.log.apiRoutes };
-        extras.rpcTools = { ...proxy.log.rpcTools };
+        extras.toolCalls = { ...proxy.log.toolCalls };
         /*
          * Was die Entprellung gekostet hat, in Anfragen.
          *
@@ -515,7 +515,7 @@ async function main() {
          */
         extras.debounce = {
             typedChars: SEARCH_TERM.length,
-            searchGraphCalls: proxy.log.rpcTools['search_graph'] ?? 0,
+            searchGraphCalls: proxy.log.toolCalls['search_graph'] ?? 0,
         };
 
         await context.close();

@@ -71,7 +71,7 @@ import {
 import { startStaticProxy } from './lib/static-proxy.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BINARY = join(ROOT, 'cbm', 'build', 'c', 'codebase-memory-mcp');
+const BINARY = resolve(ROOT, '..', 'build', 'c', 'codebase-memory-cli');
 const DIST = join(ROOT, 'dist');
 const FIXTURE = join(ROOT, 'fixtures', 'atlas-sample');
 const PROJECT = 'codeatlasweb-w5a';
@@ -445,7 +445,7 @@ async function main() {
         log(`nach dem Beenden: "${afterStop.message.slice(0, 60)}" (Chip "${afterStop.chipText}")`);
 
         extras.apiRoutes = { ...proxy.log.apiRoutes };
-        extras.rpcTools = { ...proxy.log.rpcTools };
+        extras.toolCalls = { ...proxy.log.toolCalls };
         await context.close();
 
         // ------------------------------- 6e. Das Projekt mit der Policy
@@ -505,16 +505,13 @@ async function main() {
          */
         extras.policyReadPath = await policyPage.evaluate(async (project) => {
             const call = async (name, args) => {
-                const response = await fetch('/rpc', {
+                const response = await fetch('/api/tool', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        jsonrpc: '2.0', id: 1, method: 'tools/call',
-                        params: { name, arguments: args },
-                    }),
+                    body: JSON.stringify({ name, arguments: args }),
                 });
                 const payload = await response.json();
-                return payload?.result?.content?.[0]?.text ?? '';
+                return payload?.content?.[0]?.text ?? '';
             };
             return {
                 tool: 'get_code_snippet',

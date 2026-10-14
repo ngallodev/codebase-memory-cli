@@ -56,14 +56,13 @@ const since = () => (Date.now() - started) / 1000;
 /* ------------------------------------------------------------------ */
 /* Server                                                             */
 
-let rpcId = 1;
 async function tool(name, args) {
-    const res = await fetch(`${ORIGIN}/rpc`, {
+    const res = await fetch(`${ORIGIN}/api/tool`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: rpcId++, method: 'tools/call', params: { name, arguments: args } }),
+        body: JSON.stringify({ name, arguments: args }),
     });
     const body = await res.json();
-    const text = body?.result?.content?.[0]?.text ?? '';
+    const text = body?.content?.[0]?.text ?? '';
     try { return JSON.parse(text); } catch { return { raw: text }; }
 }
 
