@@ -78,8 +78,13 @@ codebase-memory-cli config get auto_index
 codebase-memory-cli config set auto_index true
 codebase-memory-cli config set auto_index_limit 50000
 codebase-memory-cli config set watcher_enabled false
-codebase-memory-cli config reset auto_index
+codebase-memory-cli config set doc_candidates false
+codebase-memory-cli config reset doc_candidates
 ```
+
+`doc_candidates` is `auto` by default: unset, the index mode decides. A single
+`codebase-memory-cli index --doc-candidates true|false` also overrides it for
+that index only.
 
 Current keys:
 
@@ -88,7 +93,7 @@ Current keys:
 | `auto_index` | `false` | Permit the retained warm runtime to auto-index newly encountered projects. Canonical CLI usage can always index explicitly with `codebase-memory-cli index`. |
 | `auto_index_limit` | `50000` | Maximum file count allowed for automatic indexing of a new project. |
 | `auto_watch` | `true` | Register an active project with the retained background watcher when a warm runtime/hook integration supplies project context. The ordinary one-shot CLI does not require this. |
-| `doc_candidates` | `auto` | Score documentation sections against code to store doc<->code candidates (the possible targets of a section, and the sections that may describe a function or file, each with a judged probability). Unset (`auto`), the index mode decides: on for `full` indexes (the default mode), off for `moderate` and `fast`. Set `true` or `false` to choose for every mode; `config reset doc_candidates` returns to `auto`. The scoring grows with sections x functions: under a second up to ~100k functions, ~15 s at ~400k, ~3 minutes on the Linux kernel. Off stores no candidates and leaves the rest of the graph unchanged; on in `fast` mode stores candidates without adding `fast`'s skipped `SIMILAR_TO` / `SEMANTICALLY_RELATED` edges. `codebase-memory-cli index` also takes `doc_candidates` for a single index, which wins over this setting. Applies from the next index. |
+| `doc_candidates` | `auto` | Score documentation sections against code to store doc<->code candidates (the possible targets of a section, and the sections that may describe a function or file, each with a judged probability). Unset (`auto`), the index mode decides: on for `full` indexes (the default mode), off for `moderate` and `fast`. Set `true` or `false` to choose for every mode; `config reset doc_candidates` returns to `auto`. The scoring grows with sections x functions: under a second up to ~100k functions, ~15 s at ~400k, ~3 minutes on the Linux kernel. Off stores no candidates and leaves the rest of the graph unchanged; on in `fast` mode stores candidates without adding `fast`'s skipped `SIMILAR_TO` / `SEMANTICALLY_RELATED` edges. `codebase-memory-cli index --doc-candidates true|false` sets it for a single index and wins over this setting. Applies from the next index. |
 | `watch_non_git` | `false` | Poll non-Git roots with the indexer discovery rules and an adaptive file-tree scan. Skipped paths, including `.codebase-memory/`, do not trigger indexing. The first poll after daemon startup reindexes once; later changes trigger one reindex. This walks the whole tree each poll and is read when the daemon starts. |
 | `watcher_enabled` | `true` | Master switch for the retained background watcher subsystem. Set `false` to stop its poll thread/project registration. Reindex manually with `codebase-memory-cli index` when disabled. |
 | `index_max_files` | `off` | Optional maximum number of accepted source files in one discovery run. |
