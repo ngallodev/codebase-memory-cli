@@ -2,6 +2,7 @@
 #include "operations/result_wire.h"
 #include "operations/operation.h"
 #include "operations/store_host.h"
+#include "operations/watch_status.h"
 
 #include "foundation/compat_fs.h"
 #include "foundation/platform.h"
@@ -282,7 +283,8 @@ static const char *recommended_action(const char *status, const char *freshness)
     return "read_source_and_reindex";
 }
 
-cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
+cbm_operation_result_t cbm_coverage_operation_execute(const char *args,
+                                                      const cbm_operation_runtime_t *runtime) {
     char *project = op_string_arg(args, "project");
     if (!project || !project[0]) {
         cbm_operation_arg_free(project);
@@ -518,6 +520,7 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
         doc, root, "caveat",
         "Best-effort signal only. No recorded issue does not prove graph or source completeness; "
         "read flagged source and qualify claims when metadata is changed or unavailable.");
+    cbm_op_add_watch_status_json(doc, root, runtime, project);
 
     yyjson_doc_free(adoc);
     if (have_meta)

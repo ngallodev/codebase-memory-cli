@@ -18,8 +18,7 @@
 #include "lang_specs.h"
 #include "foundation/compat_thread.h"
 #include "foundation/mem_core.h"
-#include "mcp/mcp.h"
-#include "mcp/mcp_internal.h"
+#include "operations/doc_links_report.h"
 #include "pipeline/doc_links.h"
 #include "pipeline/doc_links_msbuild.h"
 #include "pipeline/lsp_surface.h"
@@ -4378,6 +4377,12 @@ static int dm_index_status_checks(const char *tmp, const char *repo, const char 
     ASSERT_NOT_NULL(strstr(block, "src/Lib/Widgets.cs"));
     free(text);
 
+    /* a host without a watcher says so, instead of looking watched (#2167) */
+    char *payload = dm_status_payload(project, false);
+    ASSERT_NOT_NULL(payload);
+    ASSERT_NOT_NULL(strstr(payload, "\"watch\":{\"watched\":false,\"reason\":\"no_watcher\""));
+    free(payload);
+
     /* A doc-link layer that fails does not fail the index, and is not
      * published as "no references" either: the generation carries the error,
      * index_status reports it with what to do, and doing it rebuilds. */
@@ -4393,7 +4398,7 @@ static int dm_index_status_checks(const char *tmp, const char *repo, const char 
     ASSERT_NOT_NULL(block);
     ASSERT_NOT_NULL(strstr(block, "\n  mentions: 0\n"));
     ASSERT_NOT_NULL(strstr(block, "\n  status: error"));
-    ASSERT_NOT_NULL(strstr(block, "index_repository"));
+    ASSERT_NOT_NULL(strstr(block, "codebase-memory-cli index"));
     ASSERT_NULL(strstr(block, "\n    error: "));
     free(text);
     ASSERT_EQ(dm_index(repo, db, NULL), 0); /* no file changed */
@@ -4547,20 +4552,34 @@ static int dm_preview_fixture(int (*check)(const char *db, const char *project))
     return rc;
 }
 
-/* Return the actual MCP envelope, including structuredContent for JSON, so a
- * test exercises both transport boundaries instead of a formatter in isolation. */
+/* The status operation's payload in the two shapes the CLI offers, wrapped as
+ * {"content":[{"text":...}],"structuredContent":...} so the checks below read
+ * the rendered text and the structured report side by side. json=true renders
+ * the JSON payload itself, json=false the compact tree text. */
 static yyjson_doc *dm_preview_status(const char *project, bool json) {
-    cbm_mcp_server_t *srv = cbm_mcp_server_new(NULL);
-    if (!srv) {
-        return NULL;
+    char *payload = dm_status_payload(project, true);
+    char *tree = payload && !json ? cbm_json_to_tree(payload) : NULL;
+    yyjson_doc *parsed = payload ? yyjson_read(payload, strlen(payload), 0) : NULL;
+    yyjson_mut_doc *envelope = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *root = envelope ? yyjson_mut_obj(envelope) : NULL;
+    yyjson_mut_val *content = envelope ? yyjson_mut_arr(envelope) : NULL;
+    yyjson_mut_val *item = envelope ? yyjson_mut_obj(envelope) : NULL;
+    yyjson_doc *out = NULL;
+    if (parsed && root && content && item && (json || tree)) {
+        yyjson_mut_doc_set_root(envelope, root);
+        yyjson_mut_obj_add_strcpy(envelope, item, "text", json ? payload : tree);
+        yyjson_mut_arr_add_val(content, item);
+        yyjson_mut_obj_add_val(envelope, root, "content", content);
+        yyjson_mut_obj_add_val(envelope, root, "structuredContent",
+                               yyjson_val_mut_copy(envelope, yyjson_doc_get_root(parsed)));
+        char *text = yyjson_mut_write(envelope, 0, NULL);
+        out = text ? yyjson_read(text, strlen(text), 0) : NULL;
+        free(text);
     }
-    char args[1200];
-    snprintf(args, sizeof(args), "{\"project\":\"%s\",\"diagnostics\":\"full\"%s}", project,
-             json ? ",\"format\":\"json\"" : "");
-    char *response = cbm_mcp_handle_tool(srv, "index_status", args);
-    yyjson_doc *out = response ? yyjson_read(response, strlen(response), 0) : NULL;
-    free(response);
-    cbm_mcp_server_free(srv);
+    yyjson_doc_free(parsed);
+    yyjson_mut_doc_free(envelope);
+    free(payload);
+    free(tree);
     return out;
 }
 
@@ -5188,7 +5207,7 @@ static int dm_preview_failure_checks(const char *db, const char *project) {
      * record projected sample bytes. This also protects incremental callers. */
     cbm_store_doc_links_test_sample_stats_reset();
     cbm_store_doc_links_test_fail_sample_alloc_after(0);
-    cbm_mcp_doc_links_test_fail_sample_alloc_after(0);
+    cbm_op_doc_links_test_fail_sample_alloc_after(0);
     cbm_doc_link_row_t *full = NULL, *samples = NULL;
     cbm_doc_link_reason_count_t *reasons = NULL;
     int count = 0, nsamples = 0, nreasons = 0;
@@ -5209,9 +5228,9 @@ static int dm_preview_failure_checks(const char *db, const char *project) {
     cbm_store_doc_links_test_sample_stats(&stats);
     bypass = stats.field_copies == 0 && stats.copied_bytes == 0 && stats.requested_bytes == 0 &&
              !cbm_store_doc_links_test_sample_alloc_failed() &&
-             !cbm_mcp_doc_links_test_sample_alloc_failed() && bypass;
+             !cbm_op_doc_links_test_sample_alloc_failed() && bypass;
     cbm_store_doc_links_test_fail_sample_alloc_after(-1);
-    cbm_mcp_doc_links_test_fail_sample_alloc_after(-1);
+    cbm_op_doc_links_test_fail_sample_alloc_after(-1);
     fprintf(stderr, "doc preview sample_only=%d\n", bypass);
     correct = bypass && correct;
 
@@ -5222,15 +5241,15 @@ static int dm_preview_failure_checks(const char *db, const char *project) {
                 if (stage == 0) {
                     cbm_store_doc_links_test_fail_sample_alloc_after(nth ? 4 : 0);
                 } else {
-                    cbm_mcp_doc_links_test_fail_sample_alloc_after(nth ? 4 : 0);
+                    cbm_op_doc_links_test_fail_sample_alloc_after(nth ? 4 : 0);
                 }
                 yyjson_doc *failed = dm_preview_status(project, format != 0);
                 bool consumed = stage == 0 ? cbm_store_doc_links_test_sample_alloc_failed()
-                                           : cbm_mcp_doc_links_test_sample_alloc_failed();
+                                           : cbm_op_doc_links_test_sample_alloc_failed();
                 bool error = dm_preview_error_result(failed, format != 0);
                 yyjson_doc_free(failed);
                 cbm_store_doc_links_test_fail_sample_alloc_after(-1);
-                cbm_mcp_doc_links_test_fail_sample_alloc_after(-1);
+                cbm_op_doc_links_test_fail_sample_alloc_after(-1);
                 uint64_t after_failure = cbm_mem_tracked_live_bytes();
                 yyjson_doc *retried = dm_preview_status(project, format != 0);
                 bool retry = dm_preview_retry_result(retried, format != 0);

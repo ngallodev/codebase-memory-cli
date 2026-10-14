@@ -18,7 +18,8 @@
 #include "cbm.h"
 #include "doclink.h"
 #include "foundation/mem_core.h"
-#include "mcp/mcp.h"
+#include "operations/compact_out.h"
+#include "test_operation_host.h"
 #include "pipeline/doc_links.h"
 #include "pipeline/pipeline.h"
 #include "pipeline/pipeline_internal.h"
@@ -351,34 +352,28 @@ static inline int dm_scope_delta(CBMLanguage lang, const char *rel_path, const c
 
 /* ── index_status ────────────────────────────────────────────────── */
 
-/* The text content of an MCP tool result (the report itself); the caller
+/* The status operation's JSON payload for the project, from a host of its own
+ * (nothing cached from an earlier call). The project's database is looked up
+ * in CBM_CACHE_DIR: point that at a private directory first. The caller
  * frees it. */
-static inline char *dm_tool_text(const char *mcp_result) {
-    yyjson_doc *doc = mcp_result ? yyjson_read(mcp_result, strlen(mcp_result), 0) : NULL;
-    yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
-    yyjson_val *content = root ? yyjson_obj_get(root, "content") : NULL;
-    yyjson_val *item = content ? yyjson_arr_get(content, 0) : NULL;
-    const char *text = item ? yyjson_get_str(yyjson_obj_get(item, "text")) : NULL;
-    char *out = text ? strdup(text) : NULL;
-    yyjson_doc_free(doc);
-    return out;
-}
-
-/* index_status of the project as text, from a server of its own (nothing
- * cached from an earlier call). The project's database is looked up in
- * CBM_CACHE_DIR: point that at a private directory first. */
-static inline char *dm_index_status(const char *project, bool full) {
-    cbm_mcp_server_t *srv = cbm_mcp_server_new(NULL);
-    if (!srv) {
+static inline char *dm_status_payload(const char *project, bool full) {
+    cbm_test_operation_host_t *host = cbm_test_operation_host_new(NULL);
+    if (!host) {
         return NULL;
     }
     char args[1200];
     snprintf(args, sizeof(args), "{\"project\":\"%s\"%s}", project,
              full ? ",\"diagnostics\":\"full\"" : "");
-    char *resp = cbm_mcp_handle_tool(srv, "index_status", args);
-    char *text = dm_tool_text(resp);
-    free(resp);
-    cbm_mcp_server_free(srv);
+    char *payload = cbm_test_operation_execute(host, "status", args);
+    cbm_test_operation_host_free(host);
+    return payload;
+}
+
+/* status of the project as the compact tree text the CLI prints. */
+static inline char *dm_index_status(const char *project, bool full) {
+    char *payload = dm_status_payload(project, full);
+    char *text = payload ? cbm_json_to_tree(payload) : NULL;
+    free(payload);
     return text;
 }
 
