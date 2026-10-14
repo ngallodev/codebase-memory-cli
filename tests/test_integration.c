@@ -2007,6 +2007,31 @@ TEST(port_projects_empty_cache_returns_wellformed_empty_page) {
     PASS();
 }
 
+/* A page past the end of a non-empty cache is empty, but projects exist, so the
+ * "No projects indexed" hint must not appear (hint gates on the total). */
+TEST(port_projects_past_end_page_has_no_empty_hint) {
+    port_cache_fixture_t fx;
+    ASSERT_TRUE(port_cache_begin(&fx));
+    char root[CBM_SZ_512];
+    snprintf(root, sizeof(root), "%s/proj", fx.cache);
+    ASSERT_TRUE(port_create_project(fx.cache, "port-page-a", root));
+    ASSERT_TRUE(port_create_project(fx.cache, "port-page-b", root));
+
+    char *json = port_operation_execute("projects", "{\"format\":\"json\",\"offset\":100}", NULL);
+    char *tree = port_operation_execute("projects", "{\"offset\":100}", NULL);
+    port_cache_end(&fx);
+
+    ASSERT_NOT_NULL(json);
+    ASSERT_NOT_NULL(strstr(json, "\"total\":2"));
+    ASSERT_NOT_NULL(strstr(json, "\"returned\":0"));
+    ASSERT_NULL(strstr(json, "No projects indexed"));
+    free(json);
+    ASSERT_NOT_NULL(tree);
+    ASSERT_NULL(strstr(tree, "No projects indexed"));
+    free(tree);
+    PASS();
+}
+
 /* #2543 (c-typedefs-macros-enumerators): a C macro's QN ends in "#macro",
  * which no caller spells. get_code_snippet still returns the macro for its
  * short name, a dotted suffix and the QN it had before the fence
@@ -2819,6 +2844,7 @@ SUITE(integration) {
 
     /* Step-6 ports from upstream src/mcp/mcp.c (self-contained stores) */
     RUN_TEST(port_projects_empty_cache_returns_wellformed_empty_page);
+    RUN_TEST(port_projects_past_end_page_has_no_empty_hint);
     RUN_TEST(port_snippet_c_macro_namespace);
     RUN_TEST(port_trace_path_definition_beats_c_macro);
 #if !defined(_WIN32)

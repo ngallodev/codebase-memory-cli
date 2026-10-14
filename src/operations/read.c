@@ -382,7 +382,7 @@ static cbm_operation_result_t execute_projects(const char *args_json) {
     if (end < count) {
         yyjson_mut_obj_add_uint(doc, root, "next_offset", end);
     }
-    if (yyjson_mut_arr_size(projects) == 0) {
+    if (count == 0) {
         yyjson_mut_obj_add_str(doc, root, "hint",
                                "No projects indexed. Run 'codebase-memory-cli index .' first.");
     }
@@ -683,7 +683,7 @@ static cbm_operation_result_t read_operation_execute(cbm_operation_id_t operatio
         return execute_status(args_json, runtime);
     }
     if (operation == CBM_OPERATION_COVERAGE) {
-        return cbm_coverage_operation_execute(args_json, runtime);
+        return cbm_coverage_operation_execute(args_json);
     }
     if (operation == CBM_OPERATION_SEARCH) {
         return cbm_search_operation_execute(args_json);
