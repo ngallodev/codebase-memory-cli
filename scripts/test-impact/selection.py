@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Turn a test-impact answer (`codebase-memory-mcp test-impact select`) into
+"""Turn a test-impact answer (`codebase-memory-cli test-impact select`) into
 what a CI consumer runs.
 
   selection.py suites ANSWER

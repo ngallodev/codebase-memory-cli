@@ -743,6 +743,7 @@ TEST_CYPHER_SRCS = \
 
 TEST_OPERATION_SRCS = \
     tests/test_index_supervisor.c \
+    tests/test_changes_operation.c \
     $(wildcard tests/test_test_impact*.c)
 
 TEST_DAEMON_SRCS = \

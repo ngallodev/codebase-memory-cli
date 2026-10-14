@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # test-impact-select.sh — the PR selection with the team artifact: what
-# `codebase-memory-mcp test-impact select` runs for this change.
+# `codebase-memory-cli test-impact select` runs for this change.
 #
 # Shadow (default): REPORT-ONLY; pr.yml's test-impact-shadow job runs it
 # continue-on-error and ci-ok does not need it.
