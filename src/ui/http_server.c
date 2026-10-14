@@ -3265,6 +3265,12 @@ static void handle_tool_call(cbm_http_conn_t *c, const cbm_http_req_t *req) {
         cbm_http_replyf(c, 403, g_cors_json, "{\"error\":\"tool not offered on /api/tool\"}");
         return;
     }
+    const cbm_operation_descriptor_t *operation = cbm_operation_descriptor(entry->operation);
+    if (!operation || !operation->read_only) {
+        yyjson_doc_free(document);
+        cbm_http_replyf(c, 403, g_cors_json, "{\"error\":\"tool not offered on /api/tool\"}");
+        return;
+    }
     char *args = arguments
                      ? yyjson_val_write_opts(arguments, 0, cbm_json_writer_allocator(), NULL, NULL)
                      : NULL;
