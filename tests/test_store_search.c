@@ -685,6 +685,86 @@ TEST(store_search_exclude_labels) {
     PASS();
 }
 
+/* ── Infra filters: Resource kind + Kubernetes namespace (#2597) ── */
+
+/* A Resource's `kind` property and the namespace segment of its obj_key
+ * (group/Kind/ns/name) narrow a structural search. Both predicates are
+ * guarded (json_valid) and the namespace value is escaped, so `_` in a
+ * namespace is a literal and the `/<ns>/` segment is exact. Returns the
+ * reported total, or -1 when the search failed. */
+static int store_search_total_with_filters(cbm_store_t *s, const char *kind,
+                                           const char *namespace_name) {
+    cbm_search_params_t params = {.project = "test",
+                                  .limit = 100,
+                                  .min_degree = -1,
+                                  .max_degree = -1,
+                                  .kind = kind,
+                                  .namespace_name = namespace_name};
+    cbm_search_output_t out = {0};
+    int rc = cbm_store_search(s, &params, &out);
+    int total = rc == CBM_STORE_OK ? out.total : -1;
+    cbm_store_search_free(&out);
+    return total;
+}
+
+TEST(store_search_kind_and_namespace_filters) {
+    cbm_store_t *s = cbm_store_open_memory();
+    cbm_store_upsert_project(s, "test", "/tmp/test");
+
+    static const struct {
+        const char *qn;
+        const char *name;
+        const char *properties;
+    } nodes[] = {
+        {"test.apps.Deployment.team-a.web", "web",
+         "{\"kind\":\"Deployment\",\"obj_key\":\"apps/Deployment/team-a/web\"}"},
+        {"test.Service.team-a.web", "web",
+         "{\"kind\":\"Service\",\"obj_key\":\"/Service/team-a/web\"}"},
+        {"test.apps.Deployment.team-b.api", "api",
+         "{\"kind\":\"Deployment\",\"obj_key\":\"apps/Deployment/team-b/api\"}"},
+        {"test.apps.Deployment.team-a2.legacy", "legacy",
+         "{\"kind\":\"Deployment\",\"obj_key\":\"apps/Deployment/team-a2/legacy\"}"},
+        {"test.apps.Deployment.team_a.underscore", "underscore",
+         "{\"kind\":\"Deployment\",\"obj_key\":\"apps/Deployment/team_a/underscore\"}"},
+    };
+    for (size_t i = 0; i < sizeof(nodes) / sizeof(nodes[0]); i++) {
+        cbm_node_t n = {.project = "test",
+                        .label = "Resource",
+                        .name = nodes[i].name,
+                        .qualified_name = nodes[i].qn,
+                        .file_path = "k8s/app.yaml",
+                        .properties_json = nodes[i].properties};
+        ASSERT_TRUE(cbm_store_upsert_node(s, &n) > 0);
+    }
+    /* A row whose properties do not parse is skipped by the filter, not an
+     * abort: json_extract RAISES on malformed JSON, so both predicates guard
+     * it with json_valid. */
+    cbm_node_t broken = {.project = "test",
+                         .label = "Resource",
+                         .name = "broken",
+                         .qualified_name = "test.apps.Deployment.team-c.broken",
+                         .file_path = "k8s/app.yaml",
+                         .properties_json = "{\"kind\":\"Deployment\""};
+    ASSERT_TRUE(cbm_store_upsert_node(s, &broken) > 0);
+
+    /* No filter: every Resource, the malformed row included. */
+    ASSERT_EQ(store_search_total_with_filters(s, NULL, NULL), 6);
+    /* kind only: the malformed row drops out with the non-Deployments. */
+    ASSERT_EQ(store_search_total_with_filters(s, "Deployment", NULL), 4);
+    /* namespace only: the exact segment team-a, not the team-a2 prefix. */
+    ASSERT_EQ(store_search_total_with_filters(s, NULL, "team-a"), 2);
+    /* `_` is a literal, not LIKE's single-character wildcard (team_a ≠ team-a). */
+    ASSERT_EQ(store_search_total_with_filters(s, NULL, "team_a"), 1);
+    /* both filters combine */
+    ASSERT_EQ(store_search_total_with_filters(s, "Deployment", "team-b"), 1);
+    ASSERT_EQ(store_search_total_with_filters(s, "Service", "team-a"), 1);
+    /* a namespace nothing is in */
+    ASSERT_EQ(store_search_total_with_filters(s, NULL, "team-z"), 0);
+
+    cbm_store_close(s);
+    PASS();
+}
+
 /* ── Dump to file ──────────────────────────────────────────────── */
 
 TEST(store_dump_to_file) {
@@ -1872,6 +1952,7 @@ SUITE(store_search) {
     RUN_TEST(store_search_isolated_node_zero_degree);
     RUN_TEST(store_search_all);
     RUN_TEST(store_search_exclude_labels);
+    RUN_TEST(store_search_kind_and_namespace_filters);
     RUN_TEST(store_search_case_insensitive);
     RUN_TEST(store_bfs_outbound);
     RUN_TEST(store_bfs_inbound);

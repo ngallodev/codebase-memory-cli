@@ -31,6 +31,10 @@ enum {
     BM25_COL_START = 5,
     BM25_COL_END = 6,
     BM25_COL_RANK = 7,
+    /* Infra filters (#2597): the kind/namespace predicates are the last two
+     * parameters of both the ranked query and its mirrored count. */
+    BM25_BIND_KIND = 9,
+    BM25_BIND_NS = 10,
     SEARCH_MAX_FIELDS = 12,
     SEARCH_MAX_SEMANTIC_KEYWORDS = 32,
     SEARCH_SEMANTIC_MAX_LIMIT = 500,
@@ -262,7 +266,8 @@ static char *ranked_tree(const char *json) {
 
 static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *project,
                                           const char *query, const char *file_pattern,
-                                          const char *label_filter, int limit, int offset,
+                                          const char *label_filter, const char *kind,
+                                          const char *namespace_name, int limit, int offset,
                                           const char *args) {
     sqlite3 *db = cbm_store_get_db(store);
     char match[BM25_QUERY_BUFFER];
@@ -289,7 +294,18 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
         "AND (?6 IS NULL OR n.file_path LIKE ?6) "
         /* The label filter applies in query mode exactly as in structural mode.
          * MIRRORED in the count query below. */
-        "AND (?7 IS NULL OR n.label=?7) ORDER BY rank,n.id LIMIT ?3 OFFSET ?4";
+        "AND (?7 IS NULL OR n.label=?7) "
+        /* Infra filters (#2597): a Resource's kind property and the namespace
+         * segment of its obj_key (group/Kind/ns/name). Guarded because
+         * json_extract raises on malformed JSON. MIRRORED in the count query
+         * below — the two must stay verbatim. */
+        "AND (?9 IS NULL OR (CASE WHEN json_valid(n.properties) THEN "
+        "json_extract(n.properties,'$.kind') END)=?9) "
+        "AND (?10 IS NULL OR (CASE WHEN json_valid(n.properties) THEN "
+        "json_extract(n.properties,'$.obj_key') END) LIKE ('%/%/' || "
+        "replace(replace(replace(?10,'\\','\\\\'),'%','\\%'),'_','\\_') || '/%') "
+        "ESCAPE '\\') "
+        "ORDER BY rank,n.id LIMIT ?3 OFFSET ?4";
     sqlite3_stmt *statement = NULL;
     if (sqlite3_prepare_v2(db, sql, -1, &statement, NULL) != SQLITE_OK) {
         cbm_free(CBM_MEM_CLASS_OTHER, file_like);
@@ -311,6 +327,14 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
     else
         sqlite3_bind_null(statement, 7);
     sqlite3_bind_text(statement, 8, query, -1, destructor);
+    if (kind && kind[0])
+        sqlite3_bind_text(statement, BM25_BIND_KIND, kind, -1, destructor);
+    else
+        sqlite3_bind_null(statement, BM25_BIND_KIND);
+    if (namespace_name && namespace_name[0])
+        sqlite3_bind_text(statement, BM25_BIND_NS, namespace_name, -1, destructor);
+    else
+        sqlite3_bind_null(statement, BM25_BIND_NS);
 
     int total = 0;
     const char *count_sql =
@@ -319,7 +343,14 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
         "JOIN nodes n ON n.id=fts.rowid WHERE n.project=?2 "
         "AND n.label NOT IN ('File','Folder','Variable','Project') "
         "AND (?6 IS NULL OR n.file_path LIKE ?6) "
-        "AND (?7 IS NULL OR n.label=?7))";
+        "AND (?7 IS NULL OR n.label=?7) "
+        /* MIRRORS the ranked query's infra filters verbatim (#2597). */
+        "AND (?9 IS NULL OR (CASE WHEN json_valid(n.properties) "
+        "THEN json_extract(n.properties,'$.kind') END)=?9) "
+        "AND (?10 IS NULL OR (CASE WHEN json_valid(n.properties) "
+        "THEN json_extract(n.properties,'$.obj_key') END) LIKE ('%/%/' || "
+        "replace(replace(replace(?10,'\\','\\\\'),'%','\\%'),'_','\\_') || '/%') "
+        "ESCAPE '\\'))";
     sqlite3_stmt *counter = NULL;
     if (sqlite3_prepare_v2(db, count_sql, -1, &counter, NULL) == SQLITE_OK) {
         sqlite3_bind_text(counter, 1, match, -1, destructor);
@@ -333,6 +364,14 @@ static cbm_operation_result_t bm25_search(cbm_store_t *store, const char *projec
             sqlite3_bind_text(counter, 7, label_filter, -1, destructor);
         else
             sqlite3_bind_null(counter, 7);
+        if (kind && kind[0])
+            sqlite3_bind_text(counter, BM25_BIND_KIND, kind, -1, destructor);
+        else
+            sqlite3_bind_null(counter, BM25_BIND_KIND);
+        if (namespace_name && namespace_name[0])
+            sqlite3_bind_text(counter, BM25_BIND_NS, namespace_name, -1, destructor);
+        else
+            sqlite3_bind_null(counter, BM25_BIND_NS);
         if (sqlite3_step(counter) == SQLITE_ROW)
             total = sqlite3_column_int(counter, 0);
         sqlite3_finalize(counter);
@@ -915,6 +954,9 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
     char *qn_pattern = string_arg(args, "qn_pattern");
     char *file_pattern = string_arg(args, "file_pattern");
     char *relationship = string_arg(args, "relationship");
+    /* Infra filters (#2597): a Resource's kind and Kubernetes namespace. */
+    char *kind = string_arg(args, "kind");
+    char *namespace_name = string_arg(args, "namespace");
     int limit = int_arg(args, "limit", SEARCH_DEFAULT_LIMIT);
     int offset = int_arg(args, "offset", 0);
     int min_degree = int_arg(args, "min_degree", -1);
@@ -976,7 +1018,8 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
     }
 
     if (query && query[0]) {
-        result = bm25_search(store, project, query, file_pattern, label, limit, offset, args);
+        result = bm25_search(store, project, query, file_pattern, label, kind, namespace_name,
+                             limit, offset, args);
         if (result.payload && result.payload[0])
             goto done;
         cbm_operation_result_dispose(&result);
@@ -1005,6 +1048,7 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
                                      .total_exact = vector_count < semantic_materialize_limit,
                                      .present = semantic_present};
     bool structural = label || name_pattern || qn_pattern || file_pattern || relationship ||
+                      (kind && kind[0]) || (namespace_name && namespace_name[0]) ||
                       exclude_entry_points || min_degree != -1 || max_degree != -1;
     bool semantic_only = semantic_present && !structural;
     cbm_search_params_t params = {.project = project,
@@ -1018,7 +1062,9 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
                                   .limit = limit,
                                   .offset = offset,
                                   .min_degree = min_degree,
-                                  .max_degree = max_degree};
+                                  .max_degree = max_degree,
+                                  .kind = kind,
+                                  .namespace_name = namespace_name};
     if (!semantic_only && cbm_store_search(store, &params, &output) != CBM_STORE_OK) {
         result = error_result(cbm_store_error(store), NULL);
         goto done;
@@ -1141,5 +1187,7 @@ done:
     cbm_operation_arg_free(qn_pattern);
     cbm_operation_arg_free(file_pattern);
     cbm_operation_arg_free(relationship);
+    cbm_operation_arg_free(kind);
+    cbm_operation_arg_free(namespace_name);
     return result;
 }

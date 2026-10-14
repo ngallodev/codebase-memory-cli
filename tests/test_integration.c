@@ -2774,6 +2774,89 @@ TEST(integ_doc_candidates_pdf_snippet_uses_text_layer) {
     PASS();
 }
 
+/* #2597: search_graph's kind/namespace filters narrow the structural path AND
+ * the ranked query path, and the ranked query's reported total mirrors the
+ * rows it returns (the fork's count query is hand-mirrored). */
+TEST(port_search_graph_infra_filters_pin_the_bm25_mirror) {
+    port_cache_fixture_t fx;
+    ASSERT_TRUE(port_cache_begin(&fx));
+    const char *project = "port-infra";
+    char root[CBM_SZ_512];
+    snprintf(root, sizeof(root), "%s/proj", fx.cache);
+    ASSERT_TRUE(port_create_project(fx.cache, project, root));
+
+    char db_path[CBM_SZ_1K];
+    snprintf(db_path, sizeof(db_path), "%s/%s.db", fx.cache, project);
+    cbm_store_t *store = cbm_store_open_path(db_path);
+    ASSERT_NOT_NULL(store);
+    static const struct {
+        const char *qn;
+        const char *name;
+        const char *properties;
+    } nodes[] = {
+        {"apps/Deployment/team-a/web", "web",
+         "{\"kind\":\"Deployment\",\"obj_key\":\"apps/Deployment/team-a/web\"}"},
+        {"Service/team-a/web", "web", "{\"kind\":\"Service\",\"obj_key\":\"/Service/team-a/web\"}"},
+        {"apps/Deployment/team-b/api", "api",
+         "{\"kind\":\"Deployment\",\"obj_key\":\"apps/Deployment/team-b/api\"}"},
+    };
+    for (size_t i = 0; i < sizeof(nodes) / sizeof(nodes[0]); i++) {
+        cbm_node_t node = {.project = project,
+                           .label = "Resource",
+                           .name = nodes[i].name,
+                           .qualified_name = nodes[i].qn,
+                           .file_path = "k8s/app.yaml",
+                           .properties_json = nodes[i].properties};
+        ASSERT_GT(cbm_store_upsert_node(store, &node), 0);
+    }
+    /* Upserting nodes does not feed the FTS index; the ranked (query) path
+     * needs it, exactly as the index-time publish block leaves it. */
+    ASSERT_EQ(cbm_store_fts_rebuild(store, NULL, 0), CBM_STORE_OK);
+    cbm_store_close(store);
+
+    bool structural_kind_two = false;
+    bool structural_namespace_one = false;
+    bool bm25_mirror = false;
+    char args[CBM_SZ_1K];
+    char *r = NULL;
+
+    /* Structural: kind narrows to the two Deployments. */
+    snprintf(args, sizeof(args),
+             "{\"project\":\"%s\",\"label\":\"Resource\",\"kind\":\"Deployment\","
+             "\"format\":\"json\"}",
+             project);
+    r = port_operation_execute("search_graph", args, NULL);
+    structural_kind_two = r && strstr(r, "\"total\":2") != NULL;
+    free(r);
+
+    /* Structural: the namespace segment, so team-b keeps only its Deployment. */
+    snprintf(args, sizeof(args),
+             "{\"project\":\"%s\",\"label\":\"Resource\",\"namespace\":\"team-b\","
+             "\"format\":\"json\"}",
+             project);
+    r = port_operation_execute("search_graph", args, NULL);
+    structural_namespace_one = r && strstr(r, "\"total\":1") != NULL;
+    free(r);
+
+    /* Ranked query: "web" names two Resources; the kind filter keeps one, in
+     * the rows AND in the mirrored total (an unmirrored count would say 2 and
+     * has_more:true). */
+    snprintf(args, sizeof(args),
+             "{\"project\":\"%s\",\"query\":\"web\",\"kind\":\"Service\","
+             "\"format\":\"json\"}",
+             project);
+    r = port_operation_execute("search_graph", args, NULL);
+    bm25_mirror = r && strstr(r, "\"search_mode\":\"bm25\"") != NULL &&
+                  strstr(r, "\"total\":1") != NULL && strstr(r, "\"has_more\":false") != NULL;
+    free(r);
+
+    port_cache_end(&fx);
+    ASSERT_TRUE(structural_kind_two);
+    ASSERT_TRUE(structural_namespace_one);
+    ASSERT_TRUE(bm25_mirror);
+    PASS();
+}
+
 SUITE(integration) {
     RUN_TEST(index_reports_excluded_subtrees_issue411);
     /* Set up: create temp project and index it */
@@ -2852,6 +2935,7 @@ SUITE(integration) {
     RUN_TEST(port_source_search_drops_walker_hits_that_resolve_outside_root);
 #endif
     RUN_TEST(port_status_reports_cross_repo_never_run);
+    RUN_TEST(port_search_graph_infra_filters_pin_the_bm25_mirror);
 
     /* Destructive tests (run last!) */
     RUN_TEST(integ_mcp_delete_project);

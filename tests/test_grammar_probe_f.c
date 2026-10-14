@@ -1562,6 +1562,20 @@ TEST(probe_mcp_search_filters_kind_and_namespace) {
     ASSERT_NOT_NULL(r);
     ASSERT_NOT_NULL(strstr(r, "Service/team-a/web"));
     ASSERT_NULL(strstr(r, "Deployment/team-a/web"));
+    /* The ranked query and its mirrored count must agree: "web" also names
+     * the Deployment, so a count that ignored the kind filter would report 2
+     * (and has_more:true). */
+    ASSERT_NOT_NULL(strstr(r, "\"total\":1"));
+    ASSERT_NOT_NULL(strstr(r, "\"has_more\":false"));
+    free(r);
+    /* Both "web" nodes are in team-a, so the same query narrowed to team-b is
+     * empty; a count that ignored the namespace filter would still report 2. */
+    r = gpf_tool_on(k_two_teams, 2, "search_graph",
+                    "{\"project\":\"%s\",\"query\":\"web\",\"namespace\":\"team-b\","
+                    "\"format\":\"json\"}");
+    ASSERT_NOT_NULL(r);
+    ASSERT_NOT_NULL(strstr(r, "\"total\":0"));
+    ASSERT_NOT_NULL(strstr(r, "\"has_more\":false"));
     free(r);
     PASS();
 }
@@ -4542,16 +4556,13 @@ SUITE(grammar_probe_f) {
     RUN_TEST(probe_k8s_pdb_and_networkpolicy_select_workloads);
     RUN_TEST(probe_k8s_selectors_pick_their_own_version);
     RUN_TEST(probe_k8s_ingress_and_httproute_expose_routes);
-    /* Pending the CLI port of upstream 2cd09565 (#2597): search --kind/--namespace and
-     * trace modes topology/deploy/run live in the deleted src/mcp/mcp.c. Re-enable with the port.
-     */
-    (void)test_probe_mcp_search_filters_kind_and_namespace; /* RUN_TEST(probe_mcp_search_filters_kind_and_namespace)
-                                                               after the port */
-    (void)test_probe_mcp_trace_topology; /* RUN_TEST(probe_mcp_trace_topology) after the port */
-    (void)test_probe_mcp_trace_topology_follows_deploys; /* RUN_TEST(probe_mcp_trace_topology_follows_deploys)
-                                                            after the port */
-    (void)test_probe_mcp_trace_run;    /* RUN_TEST(probe_mcp_trace_run) after the port */
-    (void)test_probe_mcp_trace_deploy; /* RUN_TEST(probe_mcp_trace_deploy) after the port */
+    /* search --kind/--namespace and the trace topology/deploy/run modes
+     * (upstream 2cd09565, #2597). */
+    RUN_TEST(probe_mcp_search_filters_kind_and_namespace);
+    RUN_TEST(probe_mcp_trace_topology);
+    RUN_TEST(probe_mcp_trace_topology_follows_deploys);
+    RUN_TEST(probe_mcp_trace_run);
+    RUN_TEST(probe_mcp_trace_deploy);
     RUN_TEST(probe_dockerfile_bases_are_images);
     RUN_TEST(probe_dockerfile_variants_are_dockerfiles);
     RUN_TEST(probe_dockerfile_entrypoint_runs);
