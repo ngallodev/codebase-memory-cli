@@ -21,6 +21,17 @@
 bool cbm_index_operation_policy_add_to_args(yyjson_mut_doc *doc, yyjson_mut_val *root,
                                             const cbm_index_resource_policy_t *policy);
 
+/* The fork's key-value config store (defined in cli/cli.h). Declared here so
+ * the encoder below can name it without pulling cli.h into every includer. */
+struct cbm_config;
+
+/* Encode a doc_candidates setting the user set to a boolean on an internal
+ * worker request. The worker reads no config, so the parent resolves the
+ * setting once and passes the decided value on; unset or unparseable adds no
+ * key, and the worker's index mode decides. False only when encoding fails. */
+bool cbm_index_doc_candidates_add_to_args(yyjson_mut_doc *doc, yyjson_mut_val *root,
+                                          struct cbm_config *config);
+
 cbm_operation_result_t cbm_index_operation_execute(const char *args_json,
                                                    const cbm_operation_runtime_t *runtime);
 

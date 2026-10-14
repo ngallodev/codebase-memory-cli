@@ -108,6 +108,16 @@ char *cbm_test_operation_execute(cbm_test_operation_host_t *host, const char *op
     return cbm_test_operation_execute_ex(host, operation, args_json, NULL);
 }
 
+void cbm_test_operation_host_set_index_execute(cbm_test_operation_host_t *host,
+                                               cbm_operation_index_execute_fn execute,
+                                               void *context) {
+    if (!host) {
+        return;
+    }
+    host->runtime.index_execute = execute;
+    host->runtime.index_execute_context = context;
+}
+
 cbm_store_t *cbm_test_operation_host_store(cbm_test_operation_host_t *host) {
     return host ? cbm_store_host_store(host->stores) : NULL;
 }
