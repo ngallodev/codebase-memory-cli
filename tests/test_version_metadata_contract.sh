@@ -2,7 +2,7 @@
 # Every packaging surface that states a product version must state a version we
 # actually released, and the registry-facing ones must state the newest one.
 #
-# Why this exists: pkg/npm/package.json and the Chocolatey nuspec
+# Why this exists: server.json, pkg/npm/package.json and the Chocolatey nuspec
 # sat at 0.8.1 while v0.10.8 was the shipped release — nine releases of drift in
 # metadata that is published to package registries. It was the third
 # version-metadata drift in one month. pkg/go additionally hardcodes its version
@@ -15,7 +15,8 @@
 # That absence is precisely why these files drifted — there was nothing to
 # check them against. The release workflow then institutionalised the drift for
 # three of them: publish-registries rewrites pkg/npm/package.json and
-# pkg/pypi/pyproject.toml from the dispatch input, and retired registry publication
+# pkg/pypi/pyproject.toml from the dispatch input, and publish-mcp-registry
+# rewrites server.json, each with a comment noting the repo copy "can lag". The
 # published artifact was therefore correct while the repo told everyone reading
 # it a false version, and no surface outside that sync path was corrected at
 # all.
@@ -99,14 +100,15 @@ fi
 # version that really shipped. Every pin needs a reason below (PIN_REASONS), so
 # a frozen surface can never become an unexplained exemption.
 SURFACES=(
+    "server.json|release"
     "pkg/npm/package.json|release"
     "pkg/pypi/pyproject.toml|release"
-    "pkg/pypi/src/codebase_memory_cli/_cli.py|release"
-    "pkg/go/cmd/codebase-memory-cli/main.go|release"
-    "pkg/chocolatey/codebase-memory-cli.nuspec|release"
+    "pkg/pypi/src/codebase_memory_mcp/_cli.py|release"
+    "pkg/go/cmd/codebase-memory-mcp/main.go|release"
+    "pkg/chocolatey/codebase-memory-mcp.nuspec|release"
     "pkg/chocolatey/tools/chocolateyInstall.ps1|release"
-    "pkg/homebrew/Formula/codebase-memory-cli.rb|pin:0.10.3"
-    "pkg/scoop/codebase-memory-cli.json|pin:0.8.1"
+    "pkg/scoop/codebase-memory-mcp.json|release"
+    "pkg/homebrew/Formula/codebase-memory-mcp.rb|pin:0.10.3"
     "pkg/aur/PKGBUILD|pin:0.8.1"
     "pkg/aur/.SRCINFO|pin:0.8.1"
 )
@@ -116,8 +118,7 @@ SURFACES=(
 # (gh release download v<X.Y.Z> --pattern checksums.txt), replace the version
 # AND every sha256 it pins, then move the entry to "release" above.
 PIN_REASONS=(
-    "pkg/homebrew/Formula/codebase-memory-cli.rb|pins 4 per-asset sha256 (darwin/linux x arm/intel); last re-pinned for v0.10.3"
-    "pkg/scoop/codebase-memory-cli.json|pins the windows-amd64.zip sha256; last re-pinned for v0.8.1"
+    "pkg/homebrew/Formula/codebase-memory-mcp.rb|pins 4 per-asset sha256 (darwin/linux x arm/intel); last re-pinned for v0.10.3"
     "pkg/aur/PKGBUILD|pins sha256sums_x86_64 + sha256sums_aarch64; last re-pinned for v0.8.1"
     "pkg/aur/.SRCINFO|generated from PKGBUILD, so it must move with it, not before it"
 )
@@ -255,7 +256,7 @@ for entry in "${SURFACES[@]}"; do
     [[ "${entry#*|}" == "release" ]] || continue
     [[ -f "$path" ]] || continue
     # `|| true` is load-bearing: versions_in ends in a pipeline and runs under
-    # pipefail, so a claim form absent from THIS file
+    # pipefail, so a claim form absent from THIS file (server.json has no bare
     # return form) makes it exit non-zero and set -e would kill the contract
     # mid-run — exiting 1 with no message, which reads exactly like a failure
     # that forgot to explain itself.
@@ -294,32 +295,8 @@ while IFS= read -r path; do
         "note saying what its number actually is."
 done < <(
     git grep -IlE '(version|pkgver|releases/(download|tag)/v)[^0-9]{0,16}[0-9]+\.[0-9]+\.[0-9]+|return "[0-9]+\.[0-9]+\.[0-9]+"' \
-        -- pkg tests/test_version_metadata_contract.sh 2>/dev/null || true
+        -- server.json pkg tests/test_version_metadata_contract.sh 2>/dev/null || true
 )
-
-# Dispatch-version grammar. Both release entry points must accept a hyphenated
-# semver prerelease such as the fork's v0.12.0-cli-rc.1 and keep refusing
-# unprefixed, partial and trailing-garbage versions. A bare version burns an
-# immutable release name (2026-08-18), so this is pinned from the workflow text
-# itself rather than a copy of the regex.
-for wf in release.yml promote-qualified-release.yml; do
-    wf_path=".github/workflows/$wf"
-    [[ -f "$wf_path" ]] || fail "$wf_path is missing"
-    pattern="$(grep -oE '\^v\[0-9\]\+[^"]*\$' "$wf_path" | head -n 1)"
-    [[ -n "$pattern" ]] || { fail "$wf_path has no version-grammar regex"; continue; }
-    [[ "$pattern" == '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$' ]] ||
-        fail "$wf_path version grammar changed unexpectedly: $pattern"
-    for good in v0.12.0 v0.12.0-rc.1 v0.12.0-cli-rc.1; do
-        [[ "$good" =~ $pattern ]] || fail "$wf_path rejects valid version $good"
-    done
-    for bad in 0.12.0 v0.12 v0.12.0- v0.12.0.4 "v0.12.0-rc 1" v0.12.0-rc.1/x v0.12.0-rc..1 v0.12.0-.rc v0.12.0-rc.; do
-        [[ "$bad" =~ $pattern ]] && fail "$wf_path accepts invalid version $bad"
-    done
-done
-# A hyphen is what marks a version as a prerelease in release.yml; the prerelease
-# publication job and the GitHub prerelease flag must both key off that.
-grep -q "prerelease: \${{ contains(inputs.version, '-') }}" .github/workflows/release.yml ||
-    fail "release.yml must mark hyphenated versions as GitHub prereleases"
 
 if ((failures > 0)); then
     echo "FAIL: $failures version-metadata contract violation(s)" >&2

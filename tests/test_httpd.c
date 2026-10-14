@@ -8,7 +8,7 @@
  *      query-param decoding, route pattern matching.
  *   2. Live-socket integration tests against the full UI server
  *      (http_server.c) on an ephemeral port: routing, CORS policy,
- *      native read APIs, transport limits, receive deadline, clean shutdown.
+ *      RPC dispatch, transport limits, receive deadline, clean shutdown.
  */
 #include "../src/foundation/compat.h"
 #if defined(__APPLE__)
@@ -18,6 +18,7 @@
 #include "../src/foundation/compat_thread.h"
 #include "../src/foundation/log.h"
 #include "../src/foundation/platform.h"
+#include "../src/foundation/str_util.h" /* cbm_json_escape: expected index-status fragment */
 #include "../src/cli/cli.h"
 #include "../src/daemon/host_internal.h"
 #include "../src/git/git_context.h" /* #798 follow-up: live-socket git-resolve repro */
@@ -28,8 +29,9 @@
 #include "ui/http_server.h"
 #include <store/store.h>
 #include <watcher/watcher.h>
-#include <yyjson/yyjson.h>
+#include <yyjson/yyjson.h> /* the index replies are asserted as parsed JSON */
 
+#include <limits.h> /* PATH_MAX: which platforms resolve a root past 1 KB */
 #include <stdio.h>
 #include <stdatomic.h>
 #include <stdlib.h>
@@ -163,7 +165,9 @@ static char *th_request_with_ui_headers(int port, const char *request) {
 
     const char *target = strchr(request, ' ');
     target = target ? target + 1 : NULL;
-    bool protected_route = target && strncmp(target, "/api/", 5) == 0;
+    bool protected_route =
+        target && (strncmp(target, "/api/", 5) == 0 || strncmp(target, "/rpc ", 5) == 0 ||
+                   strncmp(target, "/rpc?", 5) == 0);
     bool mutation = strncmp(request, "POST ", 5) == 0;
     bool have_host = strstr(request, "\r\nHost:") != NULL;
     bool have_content_type = strstr(request, "\r\nContent-Type:") != NULL;
@@ -224,7 +228,7 @@ TEST(httpd_parse_simple_get) {
 }
 
 TEST(httpd_parse_security_headers_and_rejects_duplicates) {
-    const char *raw = "POST /api/index HTTP/1.1\r\n"
+    const char *raw = "POST /rpc HTTP/1.1\r\n"
                       "Host: 127.0.0.1:9749\r\n"
                       "Content-Type: application/json\r\n"
                       "Origin: http://127.0.0.1:9749\r\n"
@@ -250,7 +254,7 @@ TEST(httpd_parse_security_headers_and_rejects_duplicates) {
 }
 
 TEST(httpd_parse_post_with_body_offset) {
-    const char *raw = "POST /api/index HTTP/1.1\r\n"
+    const char *raw = "POST /rpc HTTP/1.1\r\n"
                       "Content-Length: 7\r\n"
                       "Content-Type: application/json\r\n"
                       "\r\n"
@@ -260,7 +264,7 @@ TEST(httpd_parse_post_with_body_offset) {
     int rc = cbm_http_parse_head(raw, strlen(raw), &req, &body_off, &clen);
     ASSERT_EQ(rc, 0);
     ASSERT_STR_EQ(req.method, "POST");
-    ASSERT_STR_EQ(req.path, "/api/index");
+    ASSERT_STR_EQ(req.path, "/rpc");
     ASSERT_STR_EQ(req.query, "");
     ASSERT_EQ((int)clen, 7);
     ASSERT_STR_EQ(raw + body_off, "{\"a\":1}");
@@ -287,7 +291,7 @@ TEST(httpd_parse_rejects_bare_lf) {
 }
 
 TEST(httpd_parse_rejects_chunked) {
-    const char *raw = "POST /api/index HTTP/1.1\r\n"
+    const char *raw = "POST /rpc HTTP/1.1\r\n"
                       "Transfer-Encoding: chunked\r\n"
                       "\r\n";
     cbm_http_req_t req;
@@ -298,7 +302,7 @@ TEST(httpd_parse_rejects_chunked) {
 
 TEST(httpd_parse_rejects_oversized_content_length) {
     char raw[256];
-    snprintf(raw, sizeof(raw), "POST /api/index HTTP/1.1\r\nContent-Length: %d\r\n\r\n",
+    snprintf(raw, sizeof(raw), "POST /rpc HTTP/1.1\r\nContent-Length: %d\r\n\r\n",
              CBM_HTTP_MAX_BODY + 1);
     cbm_http_req_t req;
     size_t body_off = 0, clen = 0;
@@ -307,12 +311,12 @@ TEST(httpd_parse_rejects_oversized_content_length) {
 }
 
 TEST(httpd_parse_rejects_garbage_content_length) {
-    const char *raw = "POST /api/index HTTP/1.1\r\nContent-Length: abc\r\n\r\n";
+    const char *raw = "POST /rpc HTTP/1.1\r\nContent-Length: abc\r\n\r\n";
     cbm_http_req_t req;
     size_t body_off = 0, clen = 0;
     ASSERT_EQ(cbm_http_parse_head(raw, strlen(raw), &req, &body_off, &clen), 400);
 
-    const char *neg = "POST /api/index HTTP/1.1\r\nContent-Length: -5\r\n\r\n";
+    const char *neg = "POST /rpc HTTP/1.1\r\nContent-Length: -5\r\n\r\n";
     ASSERT_EQ(cbm_http_parse_head(neg, strlen(neg), &req, &body_off, &clen), 400);
     PASS();
 }
@@ -409,8 +413,8 @@ TEST(httpd_path_match_matrix) {
     /* exact */
     ASSERT_TRUE(cbm_http_path_match("/", "/"));
     ASSERT_FALSE(cbm_http_path_match("/x", "/"));
-    ASSERT_TRUE(cbm_http_path_match("/api/index", "/api/index"));
-    ASSERT_FALSE(cbm_http_path_match("/api/index2", "/api/index"));
+    ASSERT_TRUE(cbm_http_path_match("/rpc", "/rpc"));
+    ASSERT_FALSE(cbm_http_path_match("/rpc2", "/rpc"));
     /* trailing-* prefix */
     ASSERT_TRUE(cbm_http_path_match("/api/layout", "/api/layout*"));
     ASSERT_TRUE(cbm_http_path_match("/assets/index-abc.js", "/assets/*"));
@@ -626,7 +630,7 @@ static int th_server_start_with_watcher(th_server_t *ts, cbm_watcher_t *watcher)
 
 typedef struct {
     atomic_int calls;
-    char root_path[512];
+    char root_path[4096]; /* the route resolves into a 4 KB buffer; record it whole */
     char project_name[256];
 } th_ui_index_executor_t;
 
@@ -863,156 +867,6 @@ static bool ui_adr_equals(const ui_delete_fixture_t *fx, const char *project,
     return equal;
 }
 
-/* Real project stores, source files, and HTTP sockets: native routes must
- * preserve the operation payloads and their continuation metadata. */
-TEST(ui_server_native_read_endpoints) {
-    ui_delete_fixture_t fx;
-    ASSERT_EQ(ui_delete_fixture_init(&fx), 0);
-    char path[1024];
-    snprintf(path, sizeof(path), "%s/code.c", fx.root_dir);
-    ASSERT_EQ(th_write_file(path, "first\nsecond\nthird\nfourth\n"), 0);
-    for (int i = 0; i < 2; i++) {
-        const char *project = i == 0 ? "alpha" : "beta";
-        ui_delete_db_path(&fx, project, path, sizeof(path));
-        cbm_store_t *store = cbm_store_open_path(path);
-        ASSERT_NOT_NULL(store);
-        ASSERT_EQ(cbm_store_upsert_project(store, project, fx.root_dir), CBM_STORE_OK);
-        cbm_node_t node = {.project = project,
-                           .label = "Function",
-                           .name = "demo",
-                           .qualified_name = "app::demo & more",
-                           .file_path = "code.c",
-                           .start_line = 1,
-                           .end_line = 4};
-        int64_t function = cbm_store_upsert_node(store, &node);
-        ASSERT_GT(function, 0);
-        node.label = "Class";
-        node.name = "Container";
-        node.qualified_name = "app::Container";
-        int64_t container = cbm_store_upsert_node(store, &node);
-        ASSERT_GT(container, 0);
-        cbm_edge_t edge = {
-            .project = project, .source_id = function, .target_id = container, .type = "CALLS"};
-        ASSERT_GT(cbm_store_insert_edge(store, &edge), 0);
-        cbm_store_close(store);
-    }
-    th_server_t ts;
-    ASSERT_EQ(th_server_start(&ts), 0);
-    int port = cbm_http_server_port(ts.srv);
-    bool projects_ok = true, schema_ok = true, snippet_ok = true, errors_ok = true;
-    for (int kind = 0; kind < 3; kind++) {
-        int offset = 0;
-        int pages = kind == 1 ? 3 : 2;
-        for (int page = 0; page < pages; page++) {
-            char request[512], response[16384], pool[32768];
-            if (kind == 0) {
-                snprintf(request, sizeof(request),
-                         "GET /api/projects?limit=1&offset=%d HTTP/1.1\r\n\r\n", offset);
-            } else if (kind == 1) {
-                snprintf(request, sizeof(request),
-                         "GET /api/schema?project=alpha&limit=1&offset=%d HTTP/1.1\r\n\r\n",
-                         offset);
-            } else {
-                snprintf(
-                    request, sizeof(request),
-                    "GET /api/snippet?project=alpha&qualified_name=app%%3A%%3Ademo%%20%%26%%20more"
-                    "&source_mode=full&max_lines=2&start_line=%d HTTP/1.1\r\n\r\n",
-                    offset + 1);
-            }
-            int n = th_http(port, request, response, sizeof(response));
-            char *body = n > 0 ? strstr(response, "\r\n\r\n") : NULL;
-            body = body ? body + 4 : NULL;
-            yyjson_alc alc;
-            yyjson_alc_pool_init(&alc, pool, sizeof(pool));
-            yyjson_doc *doc = body ? yyjson_read_opts(body, strlen(body), 0, &alc, NULL) : NULL;
-            yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
-            bool ok = n > 0 && th_status(response) == 200 && yyjson_is_obj(root) &&
-                      strstr(response, "Content-Type: application/json") != NULL;
-            bool more = page + 1 < pages;
-            if (kind == 0) {
-                yyjson_val *rows = yyjson_obj_get(root, "projects");
-                const char *name = yyjson_get_str(yyjson_obj_get(yyjson_arr_get(rows, 0), "name"));
-                ok = ok && yyjson_get_int(yyjson_obj_get(root, "total")) == 2 &&
-                     yyjson_arr_size(rows) == 1 && name &&
-                     strcmp(name, page == 0 ? "alpha" : "beta") == 0;
-            } else if (kind == 1) {
-                yyjson_val *rows = yyjson_obj_get(root, page < 2 ? "node_labels" : "edge_types");
-                const char *name = yyjson_get_str(
-                    yyjson_obj_get(yyjson_arr_get(rows, 0), page < 2 ? "label" : "type"));
-                const char *expected = page == 0 ? "Class" : page == 1 ? "Function" : "CALLS";
-                ok = ok && name && strcmp(name, expected) == 0 &&
-                     yyjson_get_int(yyjson_obj_get(root, "total")) == 3 &&
-                     yyjson_get_int(yyjson_obj_get(root, "returned")) == 1 &&
-                     yyjson_arr_size(yyjson_obj_get(root, "node_labels")) +
-                             yyjson_arr_size(yyjson_obj_get(root, "edge_types")) ==
-                         1;
-            } else {
-                const char *source = yyjson_get_str(yyjson_obj_get(root, "source"));
-                ok = ok && source &&
-                     strcmp(source, page == 0 ? "first\nsecond\n" : "third\nfourth\n") == 0 &&
-                     yyjson_get_int(yyjson_obj_get(root, "start_line")) == offset + 1;
-            }
-            const char *more_key = kind == 2 ? "source_truncated" : "has_more";
-            const char *next_key = kind == 2 ? "next_start_line" : "next_offset";
-            ok = ok && yyjson_get_bool(yyjson_obj_get(root, more_key)) == more;
-            if (more) {
-                int next = (int)yyjson_get_int(yyjson_obj_get(root, next_key));
-                ok = ok && next == (kind == 2 ? 3 : offset + 1);
-                offset = kind == 2 ? next - 1 : next;
-            }
-            if (kind == 0)
-                projects_ok = projects_ok && ok;
-            else if (kind == 1)
-                schema_ok = schema_ok && ok;
-            else
-                snippet_ok = snippet_ok && ok;
-            if (doc)
-                yyjson_doc_free(doc);
-        }
-    }
-    static const char *const invalid[] = {
-        "/api/projects?limit=no",
-        "/api/projects?offset=-1",
-        "/api/projects?limit=2147483648",
-        "/api/projects?limit=1&limit=2",
-        "/api/schema",
-        "/api/schema?project=missing",
-        "/api/schema?project=alpha&offset=%XX",
-        "/api/snippet?project=alpha",
-        "/api/snippet?project=alpha&qualified_name=missing",
-        "/api/snippet?project=alpha&qualified_name=demo&include_neighbors=yes",
-    };
-    for (size_t i = 0; i < sizeof(invalid) / sizeof(invalid[0]); i++) {
-        char request[512], response[4096];
-        snprintf(request, sizeof(request), "GET %s HTTP/1.1\r\n\r\n", invalid[i]);
-        int n = th_http(port, request, response, sizeof(response));
-        errors_ok = errors_ok && n > 0 && th_status(response) == 400 &&
-                    strstr(response, "\"error\"") != NULL;
-    }
-    static const char *const routes[] = {"projects", "schema", "snippet"};
-    for (size_t i = 0; i < sizeof(routes) / sizeof(routes[0]); i++) {
-        char request[512], response[4096];
-        snprintf(request, sizeof(request),
-                 "GET /api/%s HTTP/1.1\r\nOrigin: https://foreign.invalid\r\n\r\n", routes[i]);
-        int n = th_http(port, request, response, sizeof(response));
-        errors_ok = errors_ok && n > 0 && th_status(response) == 403 &&
-                    strstr(response, "Access-Control-Allow-Origin: *") == NULL;
-        snprintf(request, sizeof(request),
-                 "POST /api/%s HTTP/1.1\r\nContent-Type: application/json\r\n"
-                 "Content-Length: 2\r\n\r\n{}",
-                 routes[i]);
-        n = th_http(port, request, response, sizeof(response));
-        errors_ok = errors_ok && n > 0 && th_status(response) == 404;
-    }
-    th_server_stop(&ts);
-    ui_delete_fixture_cleanup(&fx);
-    ASSERT_TRUE(projects_ok);
-    ASSERT_TRUE(schema_ok);
-    ASSERT_TRUE(snippet_ok);
-    ASSERT_TRUE(errors_ok);
-    PASS();
-}
-
 TEST(ui_server_readiness_proof_is_exact_and_generation_bound) {
     static const char challenge[] =
         "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f";
@@ -1123,6 +977,10 @@ TEST(ui_server_process_kill_route_is_unavailable) {
 TEST(ui_server_routes_indexing_through_joinable_daemon_executor) {
     char *root = th_mktempdir("cbm_httpd_daemon_index");
     ASSERT_NOT_NULL(root);
+    /* The executor receives the root in resolved form (the string the route
+     * checked), which on macOS differs from the /tmp spelling. */
+    char resolved_root[4096];
+    ASSERT_TRUE(cbm_canonical_path(root, resolved_root, sizeof(resolved_root)));
     th_ui_index_executor_t executor = {0};
     atomic_init(&executor.calls, 0);
     th_server_t ts;
@@ -1147,7 +1005,7 @@ TEST(ui_server_routes_indexing_through_joinable_daemon_executor) {
     ASSERT_GT(response_length, 0);
     ASSERT_EQ(th_status(response), 202);
     ASSERT_TRUE(called);
-    ASSERT_STR_EQ(executor.root_path, root);
+    ASSERT_STR_EQ(executor.root_path, resolved_root);
     ASSERT_STR_EQ(executor.project_name, "ui-project");
     th_cleanup(root);
     PASS();
@@ -1197,6 +1055,285 @@ TEST(ui_server_free_never_joins_active_index_worker) {
     PASS();
 }
 
+/* ── POST /api/index carries the resolved root ────────────────── */
+
+/* The route resolves the request's root_path, runs the workspace check on the
+ * resolved form, and the job must then carry exactly that string: what was
+ * checked is what the daemon receives. These cases drive the real endpoint
+ * with the recording executor and read every place the stored root surfaces
+ * (the executor argument, the 202 reply, /api/index-status). */
+
+typedef struct {
+    bool was_set;
+    char value[4096];
+} th_allowed_root_saved_t;
+
+/* Set (or, with NULL, clear) CBM_ALLOWED_ROOT and remember the previous value
+ * so the test can put it back before asserting — a failed assertion returns
+ * early, and a boundary left behind would leak into every later test. */
+static void th_allowed_root_set(th_allowed_root_saved_t *saved, const char *value) {
+    const char *current = getenv("CBM_ALLOWED_ROOT");
+    saved->was_set = current != NULL;
+    snprintf(saved->value, sizeof(saved->value), "%s", current ? current : "");
+    if (value) {
+        cbm_setenv("CBM_ALLOWED_ROOT", value, 1);
+    } else {
+        cbm_unsetenv("CBM_ALLOWED_ROOT");
+    }
+}
+
+static void th_allowed_root_restore(const th_allowed_root_saved_t *saved) {
+    if (saved->was_set) {
+        cbm_setenv("CBM_ALLOWED_ROOT", saved->value, 1);
+    } else {
+        cbm_unsetenv("CBM_ALLOWED_ROOT");
+    }
+}
+
+typedef struct {
+    th_ui_index_executor_t executor;
+    int status;               /* HTTP status of the POST, -1 when no reply came */
+    bool executor_called;     /* only waited for after a 202 */
+    char response[8192];      /* the raw POST reply */
+    char index_status[16384]; /* GET /api/index-status, read after the POST */
+} th_ui_index_probe_t;
+
+/* Response body: everything after the header block, or "" when absent. */
+static const char *th_response_body(const char *response) {
+    const char *body = strstr(response, "\r\n\r\n");
+    return body ? body + 4 : "";
+}
+
+/* Boot a server with the recording executor, POST one /api/index request,
+ * wait for the worker only when the route accepted the job, read
+ * /api/index-status and stop the server. Everything observed lands in the
+ * probe so the caller asserts after teardown. */
+static void th_ui_index_probe(th_ui_index_probe_t *probe, const char *root_path,
+                              const char *project_name) {
+    memset(probe, 0, sizeof(*probe));
+    atomic_init(&probe->executor.calls, 0);
+    probe->status = -1;
+    th_server_t ts;
+    ts.srv = cbm_http_server_new(0);
+    if (!ts.srv) {
+        return;
+    }
+    cbm_http_server_set_index_executor(ts.srv, th_ui_index_executor, &probe->executor);
+    if (th_server_thread_start(&ts.tid, ts.srv) != 0) {
+        (void)cbm_http_server_free(ts.srv);
+        return;
+    }
+    int port = cbm_http_server_port(ts.srv);
+    char body[8192];
+    snprintf(body, sizeof(body), "{\"root_path\":\"%s\",\"project_name\":\"%s\"}", root_path,
+             project_name);
+    char request[8192 + 256];
+    snprintf(request, sizeof(request),
+             "POST /api/index HTTP/1.1\r\nContent-Type: application/json\r\n"
+             "Content-Length: %zu\r\n\r\n%s",
+             strlen(body), body);
+    if (th_http(port, request, probe->response, sizeof(probe->response)) > 0) {
+        probe->status = th_status(probe->response);
+    }
+    if (probe->status == 202) {
+        probe->executor_called = th_wait_atomic_int(&probe->executor.calls, 1, 2000);
+    }
+    char status_request[128];
+    snprintf(status_request, sizeof(status_request),
+             "GET /api/index-status HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n\r\n", port);
+    (void)th_http(port, status_request, probe->index_status, sizeof(probe->index_status));
+    th_server_stop(&ts);
+}
+
+TEST(ui_server_index_start_refuses_root_outside_allowed) {
+    char *tmp = th_mktempdir("cbm_httpd_index_bound");
+    ASSERT_NOT_NULL(tmp);
+    char base[256];
+    snprintf(base, sizeof(base), "%s", tmp);
+    char allowed[512];
+    char outside[512];
+    snprintf(allowed, sizeof(allowed), "%s/allowed", base);
+    snprintf(outside, sizeof(outside), "%s/outside", base);
+    ASSERT_EQ(th_mkdir_p(allowed), 0);
+    ASSERT_EQ(th_mkdir_p(outside), 0);
+    /* The boundary is declared in resolved form, as allow-root records it. */
+    char canonical_base[4096];
+    ASSERT_TRUE(cbm_canonical_path(base, canonical_base, sizeof(canonical_base)));
+    char allowed_root[4096 + 16];
+    snprintf(allowed_root, sizeof(allowed_root), "%s/allowed", canonical_base);
+    /* Spelled under the allowed root, resolving beside it: the verdict has to
+     * come from the resolved form. */
+    char request_path[600];
+    snprintf(request_path, sizeof(request_path), "%s/allowed/../outside", base);
+
+    th_allowed_root_saved_t saved;
+    th_allowed_root_set(&saved, allowed_root);
+    th_ui_index_probe_t probe;
+    th_ui_index_probe(&probe, request_path, "bound");
+    th_allowed_root_restore(&saved);
+    th_cleanup(base);
+
+    ASSERT_EQ(probe.status, 403);
+    ASSERT_NOT_NULL(strstr(probe.response, "outside the allowed root"));
+    ASSERT_EQ(atomic_load(&probe.executor.calls), 0);
+    ASSERT_STR_EQ(th_response_body(probe.index_status), "[]");
+    PASS();
+}
+
+TEST(ui_server_index_start_stores_resolved_root) {
+    char *tmp = th_mktempdir("cbm_httpd_index_root");
+    ASSERT_NOT_NULL(tmp);
+    char base[256];
+    snprintf(base, sizeof(base), "%s", tmp);
+    char inner[512];
+    snprintf(inner, sizeof(inner), "%s/allowed/inner", base);
+    ASSERT_EQ(th_mkdir_p(inner), 0);
+    /* The resolved form of the allowed directory itself, as the server
+     * computes it. A "/allowed" suffix on a resolved parent is not that form
+     * on Windows, where the resolved path uses backslashes throughout. */
+    char allowed_dir[512];
+    snprintf(allowed_dir, sizeof(allowed_dir), "%s/allowed", base);
+    char allowed_root[4096];
+    ASSERT_TRUE(cbm_canonical_path(allowed_dir, allowed_root, sizeof(allowed_root)));
+    /* The request names the allowed root through a ".." segment, so its
+     * spelling is not the resolved form (on macOS /tmp is itself a link to
+     * /private/tmp, so the prefix differs as well). */
+    char request_path[600];
+    snprintf(request_path, sizeof(request_path), "%s/allowed/inner/..", base);
+    ASSERT_TRUE(strcmp(request_path, allowed_root) != 0);
+
+    th_allowed_root_saved_t saved;
+    th_allowed_root_set(&saved, allowed_root);
+    th_ui_index_probe_t probe;
+    th_ui_index_probe(&probe, request_path, "resolved");
+    th_allowed_root_restore(&saved);
+    th_cleanup(base);
+
+    ASSERT_EQ(probe.status, 202);
+    ASSERT_TRUE(probe.executor_called);
+    /* The daemon receives the string the check ran on, not the request
+     * spelling. */
+    ASSERT_STR_EQ(probe.executor.root_path, allowed_root);
+    ASSERT_STR_EQ(probe.executor.project_name, "resolved");
+    /* The 202 reply and the status listing report that same stored root,
+     * JSON-escaped (a Windows path carries backslashes). */
+    char escaped[8192];
+    cbm_json_escape(escaped, (int)sizeof(escaped), allowed_root);
+    char expected[8192 + 64];
+    snprintf(expected, sizeof(expected), "\"path\":\"%s\"}", escaped);
+    ASSERT_NOT_NULL(strstr(probe.response, expected));
+    snprintf(expected, sizeof(expected), "\"path\":\"%s\",\"error\"", escaped);
+    ASSERT_NOT_NULL(strstr(probe.index_status, expected));
+    PASS();
+}
+
+TEST(ui_server_index_start_long_root_not_truncated) {
+    char *tmp = th_mktempdir("cbm_httpd_index_long");
+    ASSERT_NOT_NULL(tmp);
+    char base[256];
+    snprintf(base, sizeof(base), "%s", tmp);
+    /* A root well past 1 KB, the capacity the job used to hold, and well
+     * inside the 4 KB the route resolves; 200-byte components keep every
+     * component under NAME_MAX. */
+    char component[201];
+    memset(component, 'd', sizeof(component) - 1);
+    component[sizeof(component) - 1] = '\0';
+    char deep[2048];
+    int n = snprintf(deep, sizeof(deep), "%s", base);
+    while (n < 1400) {
+        n += snprintf(deep + n, sizeof(deep) - (size_t)n, "/%s", component);
+    }
+    bool created = th_mkdir_p(deep) == 0;
+    char canonical[4096];
+    bool resolved = created && cbm_canonical_path(deep, canonical, sizeof(canonical)) != 0;
+
+    /* No boundary here: the question is the length the job keeps. */
+    th_allowed_root_saved_t saved;
+    th_allowed_root_set(&saved, NULL);
+    th_ui_index_probe_t probe;
+    th_ui_index_probe(&probe, deep, "long");
+    th_allowed_root_restore(&saved);
+    th_cleanup(base);
+
+    if (probe.status == 202) {
+        /* The platform resolved the path, so the worker has to receive it
+         * whole — the same string the route checked. */
+        ASSERT_TRUE(resolved);
+        ASSERT_TRUE(probe.executor_called);
+        ASSERT_TRUE(strlen(probe.executor.root_path) > 1023);
+        ASSERT_STR_EQ(probe.executor.root_path, canonical);
+    } else {
+        /* The platform cannot resolve a path this long (macOS: PATH_MAX is
+         * 1024, so mkdir and stat refuse it before the route sees it); the
+         * route answers 400 and keeps nothing. */
+        ASSERT_EQ(probe.status, 400);
+        ASSERT_EQ(atomic_load(&probe.executor.calls), 0);
+        ASSERT_STR_EQ(th_response_body(probe.index_status), "[]");
+    }
+#if defined(PATH_MAX) && PATH_MAX >= 2048
+    /* Linux resolves it (PATH_MAX 4096), and that is the one platform where a
+     * cut-off could reach the worker; the accepted branch is the only honest
+     * outcome there, so the refusal branch may not stand in for it. */
+    ASSERT_TRUE(created);
+    ASSERT_EQ(probe.status, 202);
+#endif
+    PASS();
+}
+
+/* The 202 reply names the stored root; a quote or backslash in it has to
+ * travel escaped or the reply is not JSON. */
+TEST(ui_server_index_start_reply_escapes_path) {
+    char *tmp = th_mktempdir("cbm_httpd_index_quote");
+    ASSERT_NOT_NULL(tmp);
+    char base[256];
+    snprintf(base, sizeof(base), "%s", tmp);
+    char root[512];
+#ifdef _WIN32
+    /* A quote is not a legal file-name byte on Windows; the separators of the
+     * resolved path already need escaping there. */
+    snprintf(root, sizeof(root), "%s\\plain", base);
+#else
+    snprintf(root, sizeof(root), "%s/q\"uote", base);
+#endif
+    ASSERT_EQ(th_mkdir_p(root), 0);
+    char canonical[4096];
+    ASSERT_TRUE(cbm_canonical_path(root, canonical, sizeof(canonical)));
+    /* The request body is JSON too, so the root goes in escaped. */
+    char request_path[1024];
+    cbm_json_escape(request_path, (int)sizeof(request_path), root);
+
+    th_ui_index_probe_t probe;
+    th_ui_index_probe(&probe, request_path, "quoted");
+    th_cleanup(base);
+
+    bool parsed = false;
+    int slot = -1;
+    char reply_path[4096] = "";
+    const char *body = th_response_body(probe.response);
+    yyjson_doc *doc = yyjson_read(body, strlen(body), 0);
+    if (doc) {
+        yyjson_val *obj = yyjson_doc_get_root(doc);
+        yyjson_val *path = yyjson_obj_get(obj, "path");
+        yyjson_val *slot_val = yyjson_obj_get(obj, "slot");
+        parsed = yyjson_is_obj(obj);
+        if (yyjson_is_str(path)) {
+            snprintf(reply_path, sizeof(reply_path), "%s", yyjson_get_str(path));
+        }
+        if (yyjson_is_int(slot_val)) {
+            slot = yyjson_get_int(slot_val);
+        }
+        yyjson_doc_free(doc);
+    }
+
+    ASSERT_EQ(probe.status, 202);
+    ASSERT_TRUE(probe.executor_called);
+    ASSERT_STR_EQ(probe.executor.root_path, canonical);
+    ASSERT_TRUE(parsed);
+    ASSERT_STR_EQ(reply_path, canonical);
+    ASSERT_TRUE(slot >= 0);
+    PASS();
+}
+
 TEST(ui_server_root_without_embedded_assets_is_not_found) {
     /* The frontend is linked into the image, so its availability is decided at
      * build time, not warmed at runtime: a binary built without --with-ui has
@@ -1221,7 +1358,7 @@ TEST(ui_server_same_origin_request_is_allowed) {
     int port = cbm_http_server_port(ts.srv);
     char req[512];
     snprintf(req, sizeof(req),
-             "OPTIONS /api/index HTTP/1.1\r\n"
+             "OPTIONS /rpc HTTP/1.1\r\n"
              "Host: 127.0.0.1:%d\r\n"
              "Origin: http://127.0.0.1:%d\r\n\r\n",
              port, port);
@@ -1244,7 +1381,7 @@ TEST(ui_server_rejects_foreign_and_null_origins) {
     char resp[4096];
     char req[768];
     snprintf(req, sizeof(req),
-             "OPTIONS /api/index HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
+             "OPTIONS /rpc HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
              "Origin: http://evil.example.com\r\n\r\n",
              port);
     int n = th_http_raw(port, req, resp, sizeof(resp));
@@ -1283,12 +1420,13 @@ TEST(ui_server_mutations_require_json_content_type) {
     th_server_t ts;
     ASSERT_EQ(th_server_start(&ts), 0);
     int port = cbm_http_server_port(ts.srv);
-    const char *body = "{}";
+    const char *body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\","
+                       "\"params\":{\"name\":\"list_projects\",\"arguments\":{}}}";
     char req[1024];
     char resp[8192];
 
     snprintf(req, sizeof(req),
-             "POST /api/index HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
+             "POST /rpc HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
              "Content-Type: text/plain\r\n"
              "Content-Length: %zu\r\n\r\n%s",
              port, strlen(body), body);
@@ -1297,7 +1435,7 @@ TEST(ui_server_mutations_require_json_content_type) {
     ASSERT_EQ(th_status(resp), 415);
 
     snprintf(req, sizeof(req),
-             "POST /api/index HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
+             "POST /rpc HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
              "Content-Length: %zu\r\n\r\n%s",
              port, strlen(body), body);
     n = th_http_raw(port, req, resp, sizeof(resp));
@@ -1305,16 +1443,79 @@ TEST(ui_server_mutations_require_json_content_type) {
     ASSERT_EQ(th_status(resp), 415);
 
     snprintf(req, sizeof(req),
-             "POST /api/index HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
+             "POST /rpc HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"
              "Content-Type: application/json; charset=utf-8\r\n"
              "Content-Length: %zu\r\n\r\n%s",
              port, strlen(body), body);
     n = th_http_raw(port, req, resp, sizeof(resp));
     ASSERT_GT(n, 0);
-    /* A JSON media type with charset is accepted. With no daemon admission
-     * available in this fixture, the request reaches the operation boundary
-     * and returns service-unavailable rather than a content-type error. */
-    ASSERT_EQ(th_status(resp), 503);
+    ASSERT_EQ(th_status(resp), 200);
+
+    th_server_stop(&ts);
+    PASS();
+}
+
+TEST(ui_server_rpc_allows_only_ui_read_tools) {
+    th_server_t ts;
+    ASSERT_EQ(th_server_start(&ts), 0);
+    char req[1024];
+    char resp[8192];
+    int n = 0;
+    static const char *allowed_tools[] = {"list_projects", "get_graph_schema", "get_code_snippet"};
+    for (size_t i = 0; i < sizeof(allowed_tools) / sizeof(allowed_tools[0]); i++) {
+        char body[512];
+        snprintf(body, sizeof(body),
+                 "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\","
+                 "\"params\":{\"name\":\"%s\",\"arguments\":{}}}",
+                 allowed_tools[i]);
+        snprintf(req, sizeof(req),
+                 "POST /rpc HTTP/1.1\r\n"
+                 "Content-Type: application/json\r\n"
+                 "Content-Length: %zu\r\n\r\n%s",
+                 strlen(body), body);
+        n = th_http(cbm_http_server_port(ts.srv), req, resp, sizeof(resp));
+        ASSERT_GT(n, 0);
+        ASSERT_EQ(th_status(resp), 200);
+        ASSERT_NOT_NULL(strstr(resp, "\"jsonrpc\""));
+    }
+
+    static const char *blocked_tools[] = {"delete_project", "manage_adr", "ingest_traces",
+                                          "index_repository"};
+    for (size_t i = 0; i < sizeof(blocked_tools) / sizeof(blocked_tools[0]); i++) {
+        char blocked_body[512];
+        snprintf(blocked_body, sizeof(blocked_body),
+                 "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\","
+                 "\"params\":{\"name\":\"%s\",\"arguments\":{}}}",
+                 blocked_tools[i]);
+        snprintf(req, sizeof(req),
+                 "POST /rpc HTTP/1.1\r\nContent-Type: application/json\r\n"
+                 "Content-Length: %zu\r\n\r\n%s",
+                 strlen(blocked_body), blocked_body);
+        n = th_http(cbm_http_server_port(ts.srv), req, resp, sizeof(resp));
+        ASSERT_GT(n, 0);
+        ASSERT_EQ(th_status(resp), 403);
+    }
+
+    const char *initialize = "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"initialize\","
+                             "\"params\":{}}";
+    snprintf(req, sizeof(req),
+             "POST /rpc HTTP/1.1\r\nContent-Type: application/json\r\n"
+             "Content-Length: %zu\r\n\r\n%s",
+             strlen(initialize), initialize);
+    n = th_http(cbm_http_server_port(ts.srv), req, resp, sizeof(resp));
+    ASSERT_GT(n, 0);
+    ASSERT_EQ(th_status(resp), 403);
+
+    const char *ambiguous = "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\","
+                            "\"params\":{\"name\":\"list_projects\",\"name\":\"delete_project\","
+                            "\"arguments\":{}}}";
+    snprintf(req, sizeof(req),
+             "POST /rpc HTTP/1.1\r\nContent-Type: application/json\r\n"
+             "Content-Length: %zu\r\n\r\n%s",
+             strlen(ambiguous), ambiguous);
+    n = th_http(cbm_http_server_port(ts.srv), req, resp, sizeof(resp));
+    ASSERT_GT(n, 0);
+    ASSERT_EQ(th_status(resp), 403);
 
     th_server_stop(&ts);
     PASS();
@@ -1324,7 +1525,7 @@ TEST(ui_server_oversized_body_rejected) {
     th_server_t ts;
     ASSERT_EQ(th_server_start(&ts), 0);
     char req[256];
-    snprintf(req, sizeof(req), "POST /api/index HTTP/1.1\r\nContent-Length: %d\r\n\r\n",
+    snprintf(req, sizeof(req), "POST /rpc HTTP/1.1\r\nContent-Length: %d\r\n\r\n",
              CBM_HTTP_MAX_BODY + 1);
     char resp[4096];
     int n = th_http(cbm_http_server_port(ts.srv), req, resp, sizeof(resp));
@@ -2082,17 +2283,27 @@ static int th_http_deadline(int port, const char *request, char *resp, size_t re
     return n;
 }
 
-/* #798 was a single-threaded-server wedge. Assert the running server answers a
- * supported neutral API read within a hard deadline while it holds live sockets. */
-TEST(ui_server_index_status_responds_under_watchdog) {
+/* #798 was a single-threaded-server wedge: list_projects never returned and the
+ * whole UI stopped answering. Assert the running server answers list_projects
+ * within a hard deadline while it holds live listening sockets. The client
+ * receive-timeout is the watchdog: a wedge → no 200 → FAIL, never a CI hang. */
+TEST(ui_server_list_projects_responds_under_watchdog) {
     th_server_t ts;
     ASSERT_EQ(th_server_start(&ts), 0);
+    const char *body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\","
+                       "\"params\":{\"name\":\"list_projects\",\"arguments\":{}}}";
+    char req[512];
+    snprintf(req, sizeof(req),
+             "POST /rpc HTTP/1.1\r\n"
+             "Content-Type: application/json\r\n"
+             "Content-Length: %d\r\n\r\n%s",
+             (int)strlen(body), body);
     char resp[8192];
-    int n = th_http_deadline(cbm_http_server_port(ts.srv), "GET /api/index-status HTTP/1.1\r\n\r\n",
-                             resp, sizeof(resp), 15000);
+    int n = th_http_deadline(cbm_http_server_port(ts.srv), req, resp, sizeof(resp), 15000);
     th_server_stop(&ts);
-    ASSERT_GT(n, 0);
+    ASSERT_GT(n, 0); /* a response arrived before the watchdog fired */
     ASSERT_EQ(th_status(resp), 200);
+    ASSERT_NOT_NULL(strstr(resp, "\"jsonrpc\""));
     PASS();
 }
 
@@ -2393,8 +2604,8 @@ TEST(ui_server_logs_escape_dense_no_overflow) {
 
 /* The index-status endpoint renders every active job into a fixed 2 KB stack
  * buffer. http_appendf clamps its own writes, but the separator and the closing
- * bracket were raw indexes, so two jobs holding ~1 KB root paths (the field is
- * 1024 bytes and the value comes straight from POST /api/index) pushed pos to
+ * bracket were raw indexes, so two jobs holding ~1 KB root paths (the field
+ * was 1024 bytes and now holds the 4 KB resolved root) pushed pos to
  * the clamp and the close then wrote past the buffer. Drive it through the real
  * endpoint with the index executor stubbed out, in a forked child so the
  * overflow surfaces as a killing signal. */
@@ -2492,6 +2703,173 @@ TEST(ui_server_index_status_long_paths_no_overflow) {
 #endif
 }
 
+/* Grow path in place to exactly target bytes with 'd' components, none
+ * longer than 200 so every component stays under NAME_MAX. */
+static void th_pad_path_to(char *path, size_t cap, int target) {
+    char fill[201];
+    memset(fill, 'd', sizeof(fill) - 1);
+    fill[sizeof(fill) - 1] = '\0';
+    int n = (int)strlen(path);
+    while (n < target && (size_t)n + 2 < cap) {
+        int room = target - n - 1; /* after the '/' */
+        int len = room > 200 ? 200 : room;
+        if (len <= 0) {
+            break;
+        }
+        n += snprintf(path + n, cap - (size_t)n, "/%.*s", len, fill);
+    }
+}
+
+/* Parse an index-status body and compare each entry's "path" with the root
+ * expected for its slot. Results go to out-params so the caller can tear
+ * down before asserting. */
+static void th_index_status_check(const char *body, int expected_count, char expected[][4096],
+                                  bool *parsed, int *count, bool *paths_whole) {
+    *parsed = false;
+    *count = 0;
+    *paths_whole = false;
+    yyjson_doc *doc = yyjson_read(body, strlen(body), 0);
+    if (!doc) {
+        return;
+    }
+    yyjson_val *arr = yyjson_doc_get_root(doc);
+    if (yyjson_is_arr(arr)) {
+        *parsed = true;
+        *count = (int)yyjson_arr_size(arr);
+        bool whole = *count == expected_count;
+        size_t idx;
+        size_t max_entries;
+        yyjson_val *entry;
+        yyjson_arr_foreach(arr, idx, max_entries, entry) {
+            yyjson_val *slot = yyjson_obj_get(entry, "slot");
+            yyjson_val *path = yyjson_obj_get(entry, "path");
+            int s = yyjson_is_int(slot) ? yyjson_get_int(slot) : -1;
+            whole = whole && s >= 0 && s < expected_count && yyjson_is_str(path) &&
+                    strcmp(yyjson_get_str(path), expected[s]) == 0;
+        }
+        *paths_whole = whole;
+    }
+    yyjson_doc_free(doc);
+}
+
+/* The listing is sized for what the job table holds. Every slot takes a root
+ * as long as the platform resolves; the body has to parse as JSON and carry
+ * each root whole, first with one job and then with the table full. Roots
+ * enter the table the way the clamp test's do: real directories through the
+ * route, held open by the blocking executor so every slot stays occupied. */
+TEST(ui_server_index_status_long_roots_render_whole) {
+    char *tmp = th_mktempdir("cbm_status_whole");
+    ASSERT_NOT_NULL(tmp);
+    char base[256];
+    snprintf(base, sizeof(base), "%s", tmp);
+    /* Linux: just under the 4 KB field; the 4 KB request body still wraps it. */
+    int target = 4096 - 160;
+#if defined(_WIN32)
+    /* MAX_PATH: long roots are not characterised there; the listing is still
+     * checked for shape and content with every slot occupied. */
+    target = 200;
+#elif defined(PATH_MAX) && PATH_MAX < 4096
+    /* macOS: the longest root the route can resolve; four still exceed 2 KB. */
+    target = PATH_MAX - 96;
+#endif
+    char deep[MAX_TEST_INDEX_JOBS][4096];
+    char expected[MAX_TEST_INDEX_JOBS][4096];
+    for (int j = 0; j < MAX_TEST_INDEX_JOBS; j++) {
+        snprintf(deep[j], sizeof(deep[j]), "%s/%d", base, j);
+        th_pad_path_to(deep[j], sizeof(deep[j]), target);
+        ASSERT_EQ((int)strlen(deep[j]), target);
+        ASSERT_EQ(th_mkdir_p(deep[j]), 0);
+        ASSERT_TRUE(cbm_canonical_path(deep[j], expected[j], sizeof(expected[j])));
+    }
+
+    th_ui_blocking_index_executor_t executor = {0};
+    atomic_init(&executor.calls, 0);
+    atomic_init(&executor.release, 0);
+    th_server_t ts;
+    ts.srv = cbm_http_server_new(0);
+    ASSERT_NOT_NULL(ts.srv);
+    cbm_http_server_set_index_executor(ts.srv, th_ui_blocking_index_executor, &executor);
+    ASSERT_EQ(th_server_thread_start(&ts.tid, ts.srv), 0);
+    int port = cbm_http_server_port(ts.srv);
+    char status_request[128];
+    snprintf(status_request, sizeof(status_request),
+             "GET /api/index-status HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n\r\n", port);
+
+    int accepted = 0;
+    bool started = true;
+    bool one_parsed = false;
+    bool one_whole = false;
+    bool all_parsed = false;
+    bool all_whole = false;
+    int one_count = 0;
+    int all_count = 0;
+    size_t one_body_len = 0;
+    size_t all_body_len = 0;
+    char listing[65536];
+    for (int j = 0; j < MAX_TEST_INDEX_JOBS; j++) {
+        char body[4600];
+        snprintf(body, sizeof(body), "{\"root_path\":\"%s\",\"project_name\":\"p%d\"}", deep[j], j);
+        char request[4900];
+        snprintf(request, sizeof(request),
+                 "POST /api/index HTTP/1.1\r\nContent-Type: application/json\r\n"
+                 "Content-Length: %zu\r\n\r\n%s",
+                 strlen(body), body);
+        char response[8192];
+        int rn = th_http(port, request, response, sizeof(response));
+        if (rn > 0 && th_status(response) == 202) {
+            accepted++;
+        }
+        /* Wait for the state the listing depends on: this job running. */
+        started = started && th_wait_atomic_int(&executor.calls, j + 1, 5000);
+        if (j == 0 || j == MAX_TEST_INDEX_JOBS - 1) {
+            int n = th_http(port, status_request, listing, sizeof(listing));
+            const char *status_body = n > 0 ? th_response_body(listing) : "";
+            if (j == 0) {
+                one_body_len = strlen(status_body);
+                th_index_status_check(status_body, 1, expected, &one_parsed, &one_count,
+                                      &one_whole);
+            } else {
+                all_body_len = strlen(status_body);
+                th_index_status_check(status_body, MAX_TEST_INDEX_JOBS, expected, &all_parsed,
+                                      &all_count, &all_whole);
+            }
+        }
+    }
+    /* Release the workers and tear down; free refuses until each worker has
+     * flagged completion, the same way the active-worker test waits. */
+    atomic_store(&executor.release, 1);
+    cbm_http_server_stop(ts.srv);
+    ASSERT_EQ(cbm_thread_join(&ts.tid), 0);
+    bool freed = false;
+    uint64_t deadline = cbm_now_ms() + 2000;
+    while (!freed && cbm_now_ms() < deadline) {
+        freed = cbm_http_server_free(ts.srv);
+        if (!freed)
+            cbm_usleep(1000);
+    }
+    th_cleanup(base);
+
+    ASSERT_TRUE(freed);
+    ASSERT_EQ(accepted, MAX_TEST_INDEX_JOBS);
+    ASSERT_TRUE(started);
+    if (!one_parsed) {
+        char m[128];
+        snprintf(m, sizeof(m), "one-job index-status body of %zu bytes is not JSON", one_body_len);
+        FAIL(m);
+    }
+    ASSERT_EQ(one_count, 1);
+    ASSERT_TRUE(one_whole);
+    if (!all_parsed) {
+        char m[128];
+        snprintf(m, sizeof(m), "full-table index-status body of %zu bytes is not JSON",
+                 all_body_len);
+        FAIL(m);
+    }
+    ASSERT_EQ(all_count, MAX_TEST_INDEX_JOBS);
+    ASSERT_TRUE(all_whole);
+    PASS();
+}
+
 /* ── Suite ────────────────────────────────────────────────────── */
 
 SUITE(httpd) {
@@ -2499,6 +2877,7 @@ SUITE(httpd) {
     RUN_TEST(ui_server_browse_wide_dir_no_overflow);
     RUN_TEST(ui_server_logs_escape_dense_no_overflow);
     RUN_TEST(ui_server_index_status_long_paths_no_overflow);
+    RUN_TEST(ui_server_index_status_long_roots_render_whole);
     /* Parser / helpers */
     RUN_TEST(httpd_parse_simple_get);
     RUN_TEST(httpd_parse_security_headers_and_rejects_duplicates);
@@ -2529,15 +2908,19 @@ SUITE(httpd) {
     /* Full UI server */
     RUN_TEST(ui_server_readiness_proof_is_exact_and_generation_bound);
     RUN_TEST(ui_server_rejects_non_loopback_host);
-    RUN_TEST(ui_server_native_read_endpoints);
     RUN_TEST(ui_server_unknown_path_404);
     RUN_TEST(ui_server_process_kill_route_is_unavailable);
     RUN_TEST(ui_server_routes_indexing_through_joinable_daemon_executor);
     RUN_TEST(ui_server_free_never_joins_active_index_worker);
+    RUN_TEST(ui_server_index_start_refuses_root_outside_allowed);
+    RUN_TEST(ui_server_index_start_stores_resolved_root);
+    RUN_TEST(ui_server_index_start_long_root_not_truncated);
+    RUN_TEST(ui_server_index_start_reply_escapes_path);
     RUN_TEST(ui_server_root_without_embedded_assets_is_not_found);
     RUN_TEST(ui_server_same_origin_request_is_allowed);
     RUN_TEST(ui_server_rejects_foreign_and_null_origins);
     RUN_TEST(ui_server_mutations_require_json_content_type);
+    RUN_TEST(ui_server_rpc_allows_only_ui_read_tools);
     RUN_TEST(ui_server_oversized_body_rejected);
     RUN_TEST(ui_server_encoded_slash_not_routed);
     RUN_TEST(ui_server_nul_in_target_rejected);
@@ -2565,6 +2948,6 @@ SUITE(httpd) {
     RUN_TEST(httpd_nonreading_large_response_hits_send_deadline_without_interrupt);
     RUN_TEST(ui_server_stop_interrupts_partial_request_within_one_second);
     /* #798 follow-up: full UI-mode hang repro under live sockets */
-    RUN_TEST(ui_server_index_status_responds_under_watchdog);
+    RUN_TEST(ui_server_list_projects_responds_under_watchdog);
     RUN_TEST(git_context_resolve_no_hang_under_live_ui_sockets);
 }

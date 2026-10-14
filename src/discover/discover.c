@@ -10,11 +10,13 @@
  *   5. Language detection for accepted files
  */
 #include "discover/discover.h"
+#include "discover/discover_policy_internal.h"
 #include "cbm.h" // CBMLanguage, CBM_LANG_COUNT, CBM_LANG_JSON
 
 #include "foundation/constants.h"
 #include "foundation/compat_fs.h"
 #include "foundation/limits.h"
+#include "foundation/mem_core.h"
 #include "foundation/workspace.h"
 #include "foundation/platform.h"
 #ifdef _WIN32
@@ -81,6 +83,9 @@ static const char *ALWAYS_IGNORED_SUFFIXES[] = {
     ".webp",   ".svg",     ".wasm", ".node",  ".exe", ".bin", ".dat", ".db",
     ".sqlite", ".sqlite3", ".woff", ".woff2", ".ttf", ".eot", ".otf", NULL};
 
+/* SVG files that carry a diagram (diagram.c): read, not ignored as images. */
+static const char *DIAGRAM_SVG_SUFFIXES[] = {".drawio.svg", ".excalidraw.svg", NULL};
+
 static const char *FAST_IGNORED_SUFFIXES[] = {
     ".zip", ".tar",  ".gz",       ".bz2",  ".xz",  ".rar",    ".7z",      ".jar",
     ".war", ".ear",  ".mp3",      ".mp4",  ".avi", ".mov",    ".wav",     ".flac",
@@ -107,20 +112,6 @@ static const char *FAST_PATTERNS[] = {".d.ts",      ".bundle.", ".chunk.", ".gen
                                       "_string.go", "mock_",    "_mock.",  "_test_helpers.",
                                       ".stories.",  ".spec.",   ".test.",  NULL};
 
-/* ── Ignored JSON filenames ──────────────────────── */
-
-static const char *IGNORED_JSON_FILES[] = {
-    "package.json",       "package-lock.json", "tsconfig.json",
-    "jsconfig.json",      "composer.json",     "composer.lock",
-    "yarn.lock",          "openapi.json",      "swagger.json",
-    "jest.config.json",   ".eslintrc.json",    ".prettierrc.json",
-    ".babelrc.json",      "tslint.json",       "angular.json",
-    "firebase.json",      "renovate.json",     "lerna.json",
-    "turbo.json",         ".stylelintrc.json", "pnpm-lock.json",
-    "deno.json",          "biome.json",        "devcontainer.json",
-    ".devcontainer.json", "launch.json",       "settings.json",
-    "extensions.json",    "tasks.json",        NULL};
-
 /* ── Helper: check if string is in NULL-terminated array ─────────── */
 
 static bool str_in_list(const char *s, const char *const *list) {
@@ -134,8 +125,7 @@ static bool str_in_list(const char *s, const char *const *list) {
 
 /* ── Helper: check if string ends with suffix ────────────── */
 
-static bool ends_with(const char *s, const char *suffix) {
-    size_t slen = strlen(s);
+static bool ends_with(const char *s, size_t slen, const char *suffix) {
     size_t sufflen = strlen(suffix);
     if (sufflen > slen) {
         return false;
@@ -349,7 +339,7 @@ static bool resolve_global_excludes_path(char *out, size_t out_sz) {
 }
 
 /* True when rel_path equals a suffix rule or ends with "/" + the rule. */
-static bool rel_path_has_skip_suffix(const char *rel_path) {
+bool cbm_discover_path_has_skip_suffix(const char *rel_path) {
     if (!rel_path) {
         return false;
     }
@@ -393,15 +383,21 @@ bool cbm_has_ignored_suffix(const char *filename, cbm_index_mode_t mode) {
         return false;
     }
 
+    size_t filename_length = strlen(filename);
+    for (int i = 0; DIAGRAM_SVG_SUFFIXES[i]; i++) {
+        if (ends_with(filename, filename_length, DIAGRAM_SVG_SUFFIXES[i])) {
+            return false;
+        }
+    }
     for (int i = 0; ALWAYS_IGNORED_SUFFIXES[i]; i++) {
-        if (ends_with(filename, ALWAYS_IGNORED_SUFFIXES[i])) {
+        if (ends_with(filename, filename_length, ALWAYS_IGNORED_SUFFIXES[i])) {
             return true;
         }
     }
 
     if (mode != CBM_MODE_FULL) {
         for (int i = 0; FAST_IGNORED_SUFFIXES[i]; i++) {
-            if (ends_with(filename, FAST_IGNORED_SUFFIXES[i])) {
+            if (ends_with(filename, filename_length, FAST_IGNORED_SUFFIXES[i])) {
                 return true;
             }
         }
@@ -725,7 +721,7 @@ static int gitignore_chain_result(const gitignore_link_t *link, const char *rel_
  * (.worktrees / .claude-worktrees, the worktree entries in ALWAYS_SKIP_DIRS)
  * contain parallel checkouts of the same repo whose indexing would duplicate
  * the whole codebase (#802). */
-static bool is_safety_core_dir(const char *name) {
+bool cbm_discover_is_safety_core_directory(const char *name) {
     static const char *const SAFETY_CORE_DIRS[] = {".git", "node_modules", ".worktrees",
                                                    ".claude-worktrees", NULL};
     return str_in_list(name, SAFETY_CORE_DIRS);
@@ -775,12 +771,12 @@ static bool should_skip_directory(const char *entry_name, const char *rel_path,
                                   const cbm_gitignore_t *global_gi,
                                   const cbm_gitignore_t *cbmignore) {
     if (cbm_should_skip_dir(entry_name, opts ? opts->mode : CBM_MODE_FULL) ||
-        rel_path_has_skip_suffix(rel_path)) {
+        cbm_discover_path_has_skip_suffix(rel_path)) {
         /* #500: a .cbmignore negation (e.g. "!obj/") whose rule is the last
          * match for this dir un-skips a built-in skip-list dir — except the
          * non-negatable safety core. Fall through so .gitignore/global/local
          * rules still apply to the un-skipped dir. */
-        bool unskipped = cbmignore && !is_safety_core_dir(entry_name) &&
+        bool unskipped = cbmignore && !cbm_discover_is_safety_core_directory(entry_name) &&
                          cbm_gitignore_match_result(cbmignore, rel_path, true) < 0;
         if (!unskipped) {
             return true;
@@ -841,60 +837,11 @@ static const char *file_skip_reason(const char *entry_name, const char *rel_path
     return global_ignored ? "gitignore" : NULL;
 }
 
-/* Detect language for a file, handling .m disambiguation and JSON filtering. */
+/* Detect language for a file: its name, and its first bytes where the name is
+ * not enough (cbm_language_classify; the pinned test-impact inventory uses the
+ * same rule on git blobs). */
 static CBMLanguage detect_file_language(const char *entry_name, const char *abs_path) {
-    CBMLanguage lang = cbm_language_for_filename(entry_name);
-    if (lang == CBM_LANG_COUNT) {
-        /* Filename/extension detection failed: fall back to a conservative
-         * shebang probe so extensionless scripts get indexed (#1199). Filename
-         * detection stays authoritative — this runs only when it returns
-         * unknown. */
-        return cbm_language_from_shebang(abs_path);
-    }
-    /* Special: .m files need content-based disambiguation */
-    const char *dot = strrchr(entry_name, '.');
-    if (dot && strcmp(dot, ".m") == 0) {
-        lang = cbm_disambiguate_m(abs_path);
-    }
-    /* Special: .cls is shared by ObjectScript UDL, Apex and VB6 class modules */
-    if (dot && strcmp(dot, ".cls") == 0) {
-        lang = cbm_disambiguate_cls(abs_path);
-    }
-    /* Special: .inc is shared by BitBake and ObjectScript include files */
-    if (dot && strcmp(dot, ".inc") == 0) {
-        lang = cbm_disambiguate_inc(abs_path);
-    }
-    /* Special: .cfc components may be script-dialect or tag-dialect (<cfcomponent>) */
-    if (dot && strcmp(dot, ".cfc") == 0) {
-        lang = cbm_disambiguate_cfc(abs_path);
-    }
-    /* Special: .frm is shared by FORM and VB6 forms (#721) */
-    if (dot && strcmp(dot, ".frm") == 0) {
-        lang = cbm_disambiguate_frm(abs_path);
-    }
-    /* Special: .res is also a binary Godot / Windows resource (#2176) */
-    if (dot && strcmp(dot, ".res") == 0) {
-        lang = cbm_disambiguate_res(abs_path);
-    }
-    /* Special: ObjectScript Studio Export XML (<Export generator="...">) is
-     * detected by content; otherwise .xml stays XML. */
-    if (lang == CBM_LANG_XML) {
-        FILE *xf = cbm_fopen(abs_path, "r");
-        if (xf) {
-            char xbuf[CBM_SZ_256];
-            size_t xn = fread(xbuf, SKIP_ONE, sizeof(xbuf) - SKIP_ONE, xf);
-            (void)fclose(xf);
-            xbuf[xn] = '\0';
-            if (strstr(xbuf, "<Export generator=")) {
-                return CBM_LANG_OBJECTSCRIPT_EXPORT;
-            }
-        }
-    }
-    /* Check ignored JSON files */
-    if (lang == CBM_LANG_JSON && str_in_list(entry_name, IGNORED_JSON_FILES)) {
-        return CBM_LANG_COUNT;
-    }
-    return lang;
+    return cbm_language_for_file(entry_name, abs_path);
 }
 
 /* UTF-8-safe stat: wide API on Windows, regular stat on POSIX. */
@@ -950,13 +897,159 @@ static int safe_stat(const char *abs_path, struct stat *st, bool *is_symlink) {
 #endif
 }
 
+/* ── Sphinx documentation sets ────────────────────────────────────
+ * A directory with a conf.py is a Sphinx documentation set, and its
+ * `source_suffix` says which file suffixes are reStructuredText (Django's
+ * docs are `.txt`). A file of such a suffix in the set's subtree, of no
+ * language by its name, is reST; a nested conf.py starts its own set. conf.py
+ * is read as text (the first SPHINX_CONF_READ bytes) and never run. */
+
+enum {
+    SPHINX_SUFFIXES = 4,    /* extra reST suffixes one set declares */
+    SPHINX_SUFFIX_LEN = 16, /* ".txt", ".rest": a longer one is no suffix */
+    SPHINX_CONF_READ = 65536,
+};
+
+typedef struct {
+    char ext[SPHINX_SUFFIXES][SPHINX_SUFFIX_LEN];
+    int count;
+} sphinx_suffixes_t;
+
+/* The quoted string at s[i] ('...' or "..."): its span; false otherwise. */
+static bool sphinx_quoted(const char *s, size_t n, size_t i, size_t *a, size_t *b) {
+    if (i >= n || (s[i] != '\'' && s[i] != '"')) {
+        return false;
+    }
+    const char *close = memchr(s + i + SKIP_ONE, s[i], n - i - SKIP_ONE);
+    if (!close) {
+        return false;
+    }
+    *a = i + SKIP_ONE;
+    *b = (size_t)(close - s);
+    return true;
+}
+
+static void sphinx_add(sphinx_suffixes_t *out, const char *s, size_t n) {
+    if (n < PAIR_LEN || n >= SPHINX_SUFFIX_LEN || s[0] != '.' || out->count >= SPHINX_SUFFIXES ||
+        (n == strlen(".rst") && memcmp(s, ".rst", n) == 0)) {
+        return;
+    }
+    for (size_t i = SKIP_ONE; i < n; i++) {
+        if (!isalnum((unsigned char)s[i]) && s[i] != '_' && s[i] != '-') {
+            return;
+        }
+    }
+    memcpy(out->ext[out->count], s, n);
+    out->ext[out->count][n] = '\0';
+    out->count++;
+}
+
+/* `source_suffix = '.txt'`, `= ['.rst', '.txt']` or
+ * `= {'.rst': 'restructuredtext', '.txt': 'restructuredtext'}` (a dict
+ * entry counts only when it maps to restructuredtext). */
+static void sphinx_parse(const char *s, size_t n, sphinx_suffixes_t *out) {
+    static const char key[] = "source_suffix";
+    size_t kl = strlen(key);
+    for (size_t line = 0; line < n;) {
+        const char *nl = memchr(s + line, '\n', n - line);
+        size_t end = nl ? (size_t)(nl - s) : n;
+        size_t i = line + kl;
+        if (end >= i && memcmp(s + line, key, kl) == 0) {
+            while (i < n && (s[i] == ' ' || s[i] == '\t')) {
+                i++;
+            }
+            if (i < n && s[i] == '=') {
+                i++;
+                while (i < n && (s[i] == ' ' || s[i] == '\t')) {
+                    i++;
+                }
+                char open = i < n ? s[i] : '\0';
+                char close = '\0';
+                if (open == '[' || open == '(' || open == '{') {
+                    close = open == '[' ? ']' : (open == '(' ? ')' : '}');
+                }
+                /* the value: up to its closing bracket, or this line */
+                size_t stop = end;
+                if (close) {
+                    const char *c = memchr(s + i, close, n - i);
+                    stop = c ? (size_t)(c - s) : end;
+                }
+                size_t k = i;
+                while (k < stop) {
+                    size_t a;
+                    size_t b;
+                    if (!sphinx_quoted(s, stop, k, &a, &b)) {
+                        k++;
+                        continue;
+                    }
+                    k = b + SKIP_ONE;
+                    if (open != '{') {
+                        sphinx_add(out, s + a, b - a);
+                        continue;
+                    }
+                    while (k < stop && (s[k] == ' ' || s[k] == ':')) {
+                        k++;
+                    }
+                    size_t va;
+                    size_t vb;
+                    if (sphinx_quoted(s, stop, k, &va, &vb)) {
+                        if (vb - va == strlen("restructuredtext") &&
+                            memcmp(s + va, "restructuredtext", vb - va) == 0) {
+                            sphinx_add(out, s + a, b - a);
+                        }
+                        k = vb + SKIP_ONE;
+                    }
+                }
+                return; /* the first assignment */
+            }
+        }
+        line = end + SKIP_ONE;
+    }
+}
+
+/* The documentation set this directory starts, if it has a conf.py. */
+static bool sphinx_load(const char *dir, sphinx_suffixes_t *out) {
+    char conf[CBM_SZ_4K];
+    if (snprintf(conf, sizeof(conf), "%s/conf.py", dir) >= (int)sizeof(conf)) {
+        return false;
+    }
+    struct stat st;
+    if (wide_stat(conf, &st) != 0 || !S_ISREG(st.st_mode)) {
+        return false;
+    }
+    FILE *f = cbm_fopen(conf, "rb");
+    if (!f) {
+        return false;
+    }
+    char *buf = (char *)cbm_alloc(CBM_MEM_CLASS_OTHER, SPHINX_CONF_READ);
+    size_t n = buf ? fread(buf, SKIP_ONE, SPHINX_CONF_READ, f) : 0;
+    (void)fclose(f);
+    memset(out, 0, sizeof(*out));
+    if (buf) {
+        sphinx_parse(buf, n, out);
+    }
+    cbm_free(CBM_MEM_CLASS_OTHER, buf);
+    return true;
+}
+
+static bool sphinx_is_rst(const sphinx_suffixes_t *set, const char *name) {
+    size_t nl = strlen(name);
+    for (int i = 0; set && i < set->count; i++) {
+        size_t el = strlen(set->ext[i]);
+        if (nl > el && strcmp(name + nl - el, set->ext[i]) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /* Process a single regular file entry during directory walk. */
 static void walk_dir_process_file(const char *abs_path, const char *rel_path, const char *name,
                                   const cbm_discover_opts_t *opts,
                                   const gitignore_link_t *ignore_chain,
                                   const cbm_gitignore_t *global_gi,
-                                  const cbm_gitignore_t *cbmignore, const struct stat *st,
-                                  file_list_t *out) {
+                                  const cbm_gitignore_t *cbmignore, const sphinx_suffixes_t *sphinx,
+                                  const struct stat *st, file_list_t *out) {
     const char *skip_reason =
         file_skip_reason(name, rel_path, opts, ignore_chain, global_gi, cbmignore, st->st_size);
     if (skip_reason) {
@@ -968,6 +1061,9 @@ static void walk_dir_process_file(const char *abs_path, const char *rel_path, co
         return;
     }
     CBMLanguage lang = detect_file_language(name, abs_path);
+    if (lang == CBM_LANG_COUNT && sphinx_is_rst(sphinx, name)) {
+        lang = CBM_LANG_RST; /* its documentation set's source_suffix */
+    }
     if (lang == CBM_LANG_COUNT) {
         return;
     }
@@ -978,6 +1074,7 @@ typedef struct {
     char dir[CBM_SZ_4K];
     char prefix[CBM_SZ_4K];
     const gitignore_link_t *ignore_chain; /* deepest .gitignore governing this dir */
+    sphinx_suffixes_t sphinx;             /* the documentation set's extra reST suffixes */
 } walk_frame_t;
 /* Initial capacity only — the stack grows on demand. A single directory can
  * hold more pending sibling frames than any fixed cap (dotnet/runtime has 855
@@ -1035,6 +1132,7 @@ static void walk_push_subdir(walk_stack_t *ws, const char *abs_path, const char 
         return;
     }
     slot->ignore_chain = parent->ignore_chain;
+    slot->sphinx = parent->sphinx;
     ws->top++;
 }
 
@@ -1083,7 +1181,7 @@ static void walk_dir_process_entry(cbm_dirent_t *entry, const walk_frame_t *fram
         }
     } else if (S_ISREG(st.st_mode)) {
         walk_dir_process_file(abs_path, rel_path, entry->name, opts, frame->ignore_chain, global_gi,
-                              cbmignore, &st, out);
+                              cbmignore, &frame->sphinx, &st, out);
     }
 }
 
@@ -1175,6 +1273,11 @@ static void walk_dir(const char *dir_path, const char *rel_prefix, const cbm_dis
                 break;
             }
             frame.ignore_chain = link;
+        }
+
+        sphinx_suffixes_t set;
+        if (sphinx_load(frame.dir, &set)) {
+            frame.sphinx = set; /* a (nested) documentation set starts here */
         }
 
         cbm_dir_t *d = cbm_opendir(frame.dir);

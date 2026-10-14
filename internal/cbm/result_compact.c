@@ -275,6 +275,9 @@ static void cr_walk_def(cr_ctx_t *c, CBMDefinition *d) {
     cr_str(c, &d->impl_trait);
     cr_str(c, &d->http_client);
     cr_str(c, &d->http_base_url);
+    cr_str(c, &d->variants);
+    cr_list(c, &d->extra_props);
+    cr_str(c, &d->decl_namespace);
 }
 
 static void cr_walk_call(cr_ctx_t *c, CBMCall *call) {
@@ -372,6 +375,14 @@ static void cr_walk(cr_ctx_t *c, CBMFileResult *r) {
         cr_str(c, &r->infra_bindings.items[i].target_url);
         cr_str(c, &r->infra_bindings.items[i].broker);
     }
+    cr_array(c, (void **)&r->diagram_arrows.items, r->diagram_arrows.count,
+             sizeof(CBMDiagramArrow));
+    for (int i = 0; i < r->diagram_arrows.count && r->diagram_arrows.items; i++) {
+        cr_str(c, &r->diagram_arrows.items[i].from_qn);
+        cr_str(c, &r->diagram_arrows.items[i].to_qn);
+        cr_str(c, &r->diagram_arrows.items[i].label);
+        cr_str(c, &r->diagram_arrows.items[i].style);
+    }
     cr_array(c, (void **)&r->channels.items, r->channels.count, sizeof(CBMChannel));
     for (int i = 0; i < r->channels.count && r->channels.items; i++) {
         cr_str(c, &r->channels.items[i].channel_name);
@@ -393,6 +404,12 @@ static void cr_walk(cr_ctx_t *c, CBMFileResult *r) {
     cr_str(c, &r->error_msg);
     cr_str(c, &r->error_ranges);
     cr_str(c, &r->module_doc);
+    cr_array(c, (void **)&r->doc_links.items, r->doc_links.count, sizeof(CBMDocLink));
+    for (int i = 0; i < r->doc_links.count && r->doc_links.items; i++) {
+        cr_str(c, &r->doc_links.items[i].source_qn);
+        cr_str(c, &r->doc_links.items[i].raw);
+    }
+    cr_str(c, &r->doc_scope);
     cr_blob(c, (const void **)&r->source, r->source ? (size_t)r->source_len + SKIP_ONE : 0);
 }
 
@@ -531,7 +548,9 @@ void cbm_result_compact(CBMFileResult *result) {
     tmp.string_refs.cap = tmp.string_refs.count;
     tmp.infra_bindings.cap = tmp.infra_bindings.count;
     tmp.channels.cap = tmp.channels.count;
+    tmp.diagram_arrows.cap = tmp.diagram_arrows.count;
     tmp.field_types.cap = tmp.field_types.count;
+    tmp.doc_links.cap = tmp.doc_links.count;
 
     /* A composite kept its per-unit results only so shallow-copied strings
      * stayed valid; every string is now a copy of its own. */

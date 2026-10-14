@@ -17,6 +17,7 @@
 /* ── Opaque handle ──────────────────────────────────────────────── */
 
 typedef struct cbm_store cbm_store_t;
+typedef struct cbm_store_read_scope cbm_store_read_scope_t;
 
 /* ── Result codes ───────────────────────────────────────────────── */
 
@@ -27,6 +28,8 @@ typedef struct cbm_store cbm_store_t;
 #define CBM_STORE_CANCELLED (-3)
 #define CBM_STORE_SCAN_LIMIT (-4)
 #define CBM_STORE_CALLBACK_ERR (-5)
+/* Read-scope cleanup could not restore the connection: close/discard it. */
+#define CBM_STORE_SCOPE_DISCARD (-6)
 
 #define CBM_STORE_FILE_OUTLINE_MAX_LIMIT 200
 #define CBM_STORE_FILE_OUTLINE_MAX_LABELS 16
@@ -95,6 +98,14 @@ typedef struct {
     int ref_bloom_len;
     const char *config_ctx; /* governing-config context hash ("" = none) */
 } cbm_lsp_surface_row_t;
+
+/* The definition variants that lie in a file (graph_buffer.c "Definition
+ * variants"): one row per variant span in `file_path`, as the node it
+ * belongs to with start_line/end_line set to that span. Covers the file's
+ * own nodes (their other #if branches) and nodes whose file_path names
+ * another file that the file writes a variant of. */
+int cbm_store_find_variant_spans_by_file(cbm_store_t *s, const char *project, const char *file_path,
+                                         cbm_node_t **out, int *count);
 
 /* Find nodes overlapping a line range in a file (excludes Module/Package). */
 int cbm_store_find_nodes_by_file_overlap(cbm_store_t *s, const char *project, const char *file_path,
@@ -166,6 +177,16 @@ int cbm_store_get_dependent_files(cbm_store_t *s, const char *project,
                                   const char *const *target_files, int target_count, char ***out,
                                   int *out_count);
 void cbm_store_free_dependent_files(char **files, int count);
+
+/* Variant partners for closure-repair routing: the files that write another
+ * variant of a definition written in any of `files` (one node for a
+ * definition's platform files, header declaration and source definition, Go
+ * build-tagged files; a DEFINES edge from each file's File node). Excludes
+ * `files` themselves; served by idx_nodes_file + the edge source/target
+ * indexes. Free with cbm_store_free_dependent_files. */
+int cbm_store_get_variant_partner_files(cbm_store_t *s, const char *project,
+                                        const char *const *files, int count, char ***out,
+                                        int *out_count);
 
 /* Find edges whose properties contain a url_path matching the keyword. */
 int cbm_store_find_edges_by_url_path(cbm_store_t *s, const char *project, const char *keyword,
@@ -364,6 +385,13 @@ cbm_store_t *cbm_store_open_path_existing(const char *db_path);
  * exist — never creates a new .db file. */
 cbm_store_t *cbm_store_open_path_query(const char *db_path);
 
+#ifdef CBM_ENABLE_TEST_SEAMS
+/* Every following query open calls `hook(ctx)` inside its first-access
+ * section (after the first read, the process-wide lock still held) until the
+ * hook is cleared with NULL. Test builds only. */
+void cbm_store_query_first_access_hook_for_testing(void (*hook)(void *ctx), void *ctx);
+#endif
+
 /* Validate and seal an existing DB for atomic replacement without creating or
  * migrating its schema. Returns OK when sealed, NOT_FOUND when the bytes are
  * definitely corrupt/incompatible and should be quarantined, or ERR when the
@@ -418,6 +446,16 @@ void cbm_store_close(cbm_store_t *s);
 /* Get the underlying sqlite3 handle (for testing only). */
 struct sqlite3 *cbm_store_get_db(cbm_store_t *s);
 
+/* The digest of a project's graph CONTENT (store_content_digest.c): rows keyed
+ * by what they say, never by row id, database identity, generation or mtime.
+ * Two graphs of the same tree, built incrementally or in full, are equal
+ * exactly when their content digests are. out: 32 raw SHA-256 bytes. */
+int cbm_store_graph_content_digest(cbm_store_t *s, const char *project, unsigned char out[32]);
+/* The part of the content test selection reads: node identity, every edge by
+ * endpoints and type without properties, except the corpus-statistical
+ * SIMILAR_TO / SEMANTICALLY_RELATED; file hashes; index coverage. */
+int cbm_store_graph_topology_digest(cbm_store_t *s, const char *project, unsigned char out[32]);
+
 /* Get the last error message (static string, valid until next call). */
 const char *cbm_store_error(cbm_store_t *s);
 
@@ -431,6 +469,28 @@ int cbm_store_commit(cbm_store_t *s);
 
 /* Rollback the current transaction. */
 int cbm_store_rollback(cbm_store_t *s);
+
+/* Stable request read scope. Borrows an exclusively owned, single-thread
+ * store and callback context. Refuses a transaction, busy statement or owned
+ * progress handler; idle cached statements are allowed. Saves query_only and
+ * busy_timeout, sets ON/0, begins DEFERRED and pins main.nodes before returning.
+ * The cancellation callback is a pure predicate: no SQLite/store/scope/walk
+ * calls. Do not replace connection handlers, transactions or close the store
+ * during the borrow. Close walks first, then the scope, then the store.
+ *
+ * Open clears *out. Any cleanup/restoration failure, including failed open,
+ * returns SCOPE_DISCARD: the caller MUST discard this connection. */
+int cbm_store_read_scope_open(cbm_store_t *s, cbm_store_cancel_fn cancel, void *context,
+                              cbm_store_read_scope_t **out);
+/* First cancellation/error is sticky. Check also rejects a lost transaction. */
+int cbm_store_read_scope_check(cbm_store_read_scope_t *scope);
+/* Consumer failure: accepts ERR or CANCELLED; other values latch ERR. */
+int cbm_store_read_scope_fail(cbm_store_read_scope_t *scope, int status);
+/* Borrowed store binding, not a health check or certification. */
+cbm_store_t *cbm_store_read_scope_store(const cbm_store_read_scope_t *scope);
+/* Disables its handler before cleanup. Returns latched status unless cleanup
+ * fails (SCOPE_DISCARD). NULL is OK. Frees scope on every non-NULL call. */
+int cbm_store_read_scope_close(cbm_store_read_scope_t *scope);
 
 /* ── Bulk write optimization ────────────────────────────────────── */
 
@@ -469,6 +529,17 @@ int cbm_store_generation_advance(cbm_store_t *s);
  * only when store_meta is genuinely absent; malformed or missing metadata is
  * an error. */
 int cbm_store_generation(cbm_store_t *s, char *buf, size_t bufsz);
+
+/* Per-store feature metadata in store_meta (key/value text). Keys are
+ * namespaced by the owning feature, e.g. "cross_repo_last_run:<project>".
+ * get: CBM_STORE_OK with *out owned by the caller (release with
+ * cbm_free(CBM_MEM_CLASS_STORE, *out)), or
+ * CBM_STORE_NOT_FOUND when the key -- or store_meta itself -- is absent.
+ * Read-only: safe on a store opened for query.
+ * put: upserts the key; seeds store_meta through the generation path when a
+ * legacy store lacks it. Atomic (savepoint); needs a read-write store. */
+int cbm_store_meta_get(cbm_store_t *s, const char *key, char **out);
+int cbm_store_meta_put(cbm_store_t *s, const char *key, const char *value);
 
 /* Seal a fully-written staging database before atomic publication.
  * Raises synchronous to FULL, requires an exclusive TRUNCATE checkpoint to
@@ -717,6 +788,99 @@ void cbm_store_coverage_shadow_project(char *dst, size_t dstsz, const char *proj
 
 void cbm_store_free_coverage(cbm_coverage_row_t *rows, int count);
 
+/* ── Doc-link unresolved references ─────────────────────────────── */
+
+/* One doc-comment reference that did not become a MENTIONS edge, stored in
+ * doc_link_unresolved (project, rel_path, line, syntax, raw, reason). The
+ * table is created at publish when missing, so databases written by older
+ * builds stay readable without an index-format change. `reason` is one of
+ * missing, ambiguous, external, test_only_target, not_indexed, graph_gap,
+ * unparseable, below_bar_tier (it resolved, but its link family does not
+ * ship); a row with rel_path "" and reason "error" records that the
+ * doc-link layer itself failed for the generation. Rows returned by the
+ * getters own their strings; rows and strings are memory-core blocks of
+ * CBM_MEM_CLASS_STORE, released only by cbm_store_free_doc_links. */
+typedef struct {
+    const char *rel_path;
+    int line;
+    const char *syntax;
+    const char *raw;
+    const char *reason;
+} cbm_doc_link_row_t;
+
+/* Replace the project's rows in one transaction, creating the table first
+ * when it does not exist. */
+int cbm_store_doc_links_replace(cbm_store_t *s, const char *project, const cbm_doc_link_row_t *rows,
+                                int count);
+
+/* All rows of the project ordered by (rel_path, line, raw). *table_present
+ * (optional) is false — with zero rows and CBM_STORE_OK — for a database that
+ * has no doc_link_unresolved table yet. */
+int cbm_store_doc_links_get(cbm_store_t *s, const char *project, cbm_doc_link_row_t **out,
+                            int *count, bool *table_present);
+
+/* Row count per reason (ordered by reason; reasons owned by the result) and
+ * up to `sample_limit` rows ordered by (reason, rel_path, line). Same
+ * table_present contract as above. */
+typedef struct {
+    const char *reason;
+    int count;
+} cbm_doc_link_reason_count_t;
+int cbm_store_doc_links_summary(cbm_store_t *s, const char *project,
+                                cbm_doc_link_reason_count_t **reasons, int *reason_count,
+                                cbm_doc_link_row_t **samples, int *sample_count, int sample_limit,
+                                bool *table_present);
+
+/* Diagnostic display budgets; the query copies three extra bytes per field
+ * so a formatter can inspect a complete UTF-8 scalar at the display boundary. */
+enum {
+    CBM_DOC_LINK_PREVIEW_ROWS = 50,
+    CBM_DOC_LINK_PREVIEW_LONG_BYTES = 1024,
+    CBM_DOC_LINK_PREVIEW_SHORT_BYTES = 128,
+    CBM_DOC_LINK_PREVIEW_LOOKAHEAD = 3,
+};
+typedef struct {
+    const char *text;
+    size_t length; /* copied prefix bytes, excluding the added NUL */
+    uint64_t original_bytes;
+} cbm_doc_link_preview_text_t;
+typedef struct {
+    cbm_doc_link_preview_text_t rel_path;
+    int line;
+    cbm_doc_link_preview_text_t syntax;
+    cbm_doc_link_preview_text_t raw;
+    cbm_doc_link_preview_text_t reason;
+} cbm_doc_link_preview_row_t;
+/* Up to fifty rows ordered by original (reason, rel_path, line, raw), before
+ * empty-path marker filtering. Text is an explicit-length byte prefix and may
+ * contain NUL or invalid UTF-8. Missing-table semantics match the full getter.
+ * On failure, no rows are returned. All allocations belong to STORE. */
+int cbm_store_doc_links_preview(cbm_store_t *s, const char *project,
+                                cbm_doc_link_preview_row_t **out, int *count, bool *table_present);
+void cbm_store_free_doc_link_previews(cbm_doc_link_preview_row_t *rows, int count);
+
+#ifdef CBM_ENABLE_TEST_SEAMS
+/* Sample-field copies only: exclude full getters, row arrays and reason keys.
+ * Byte counts include the trailing NUL. Requests include failed allocations;
+ * field_copies/copied_bytes count only successful copies. Reset leaves fault
+ * controls and their consumed flag unchanged. */
+typedef struct {
+    uint64_t field_copies;
+    uint64_t copied_bytes;
+    uint64_t requested_bytes;
+    uint64_t max_request_bytes;
+} cbm_doc_links_sample_test_stats_t;
+void cbm_store_doc_links_test_sample_stats_reset(void);
+void cbm_store_doc_links_test_sample_stats(cbm_doc_links_sample_test_stats_t *out);
+/* One-shot field-copy allocation failure: 0 is next, 4 is fifth, -1 disables.
+ * Setting the control clears its consumed flag. */
+void cbm_store_doc_links_test_fail_sample_alloc_after(int successful_copies);
+bool cbm_store_doc_links_test_sample_alloc_failed(void);
+#endif
+
+void cbm_store_free_doc_links(cbm_doc_link_row_t *rows, int count);
+void cbm_store_free_doc_link_reasons(cbm_doc_link_reason_count_t *reasons, int count);
+
 /* ── Search ─────────────────────────────────────────────────────── */
 
 int cbm_store_search(cbm_store_t *s, const cbm_search_params_t *params, cbm_search_output_t *out);
@@ -918,6 +1082,41 @@ int cbm_store_adr_delete(cbm_store_t *s, const char *project);
 int cbm_store_adr_update_sections(cbm_store_t *s, const char *project, const char **keys,
                                   const char **values, int count, cbm_adr_t *out);
 void cbm_store_adr_free(cbm_adr_t *adr);
+
+/* ── Doc -> code candidates (for the agent to verify) ───────────── */
+
+/* One documentation section -> function candidate, with the calibrated
+ * probability that the section is about the function. Candidates, not links:
+ * never graph edges; a short ranked list per section for the agent to judge. */
+typedef struct {
+    const char *section_qn;
+    const char *target_qn;
+    int rank;
+    double score;
+    double p;
+    const char *evidence; /* JSON: {"terms":n,"name_tokens":m} */
+} cbm_doc_candidate_t;
+
+/* Replace the project's candidates. The table is created here, at publish
+ * (not in the schema): a database written by an older build has none, and
+ * readers treat that as "no candidates". */
+int cbm_store_doc_candidates_replace(cbm_store_t *s, const char *project,
+                                     const cbm_doc_candidate_t *rows, int count);
+
+/* The candidates of one section (section_qn) or for one function (target_qn;
+ * pass the other NULL), highest p first, then score, at most limit. *out is
+ * allocated in CBM_MEM_CLASS_STORE (cbm_store_doc_candidates_free).
+ * CBM_STORE_NOT_FOUND: no table. */
+int cbm_store_doc_candidates_get(cbm_store_t *s, const char *project, const char *section_qn,
+                                 const char *target_qn, int limit, cbm_doc_candidate_t **out,
+                                 int *count);
+
+/* The candidates that point at a file as a whole: at its File node, or at a
+ * Folder node that holds it (a doc's home folder), highest p first, then
+ * score, at most limit. Allocation and CBM_STORE_NOT_FOUND as above. */
+int cbm_store_doc_candidates_for_path(cbm_store_t *s, const char *project, const char *file_path,
+                                      int limit, cbm_doc_candidate_t **out, int *count);
+void cbm_store_doc_candidates_free(cbm_doc_candidate_t *rows, int count);
 
 /* ADR section parsing/rendering (pure functions, no store needed) */
 
