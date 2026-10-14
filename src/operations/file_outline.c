@@ -1,4 +1,5 @@
 #include "operations/result_wire.h"
+#include "operations/doc_candidates.h"
 #include "operations/file_outline.h"
 #include "operations/store_host.h"
 #include "operations/json_args.h"
@@ -84,8 +85,9 @@ static bool outline_cancelled(void *context) {
     return cbm_operation_runtime_cancelled((const cbm_operation_runtime_t *)context);
 }
 
-static char *outline_json_payload(const char *file_path, cbm_file_outline_row_t *rows,
-                                  int row_count, int total, int offset, int limit) {
+static char *outline_json_payload(cbm_store_t *store, const char *project, const char *file_path,
+                                  cbm_file_outline_row_t *rows, int row_count, int total,
+                                  int offset, int limit) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *object = doc ? yyjson_mut_obj(doc) : NULL;
     if (!doc || !object) {
@@ -122,13 +124,20 @@ static char *outline_json_payload(const char *file_path, cbm_file_outline_row_t 
     yyjson_mut_obj_add_int(doc, object, "limit", limit);
     yyjson_mut_obj_add_int(doc, object, "returned", row_count);
     yyjson_mut_obj_add_bool(doc, object, "has_more", (int64_t)offset + row_count < total);
+    yyjson_mut_val *described =
+        offset == 0 ? cbm_doc_candidates_for_path(doc, store, project, file_path) : NULL;
+    if (described) {
+        yyjson_mut_obj_add_val(doc, object, "possibly_described_in", described);
+        yyjson_mut_obj_add_str(doc, object, "candidates_note", CBM_DOC_CANDIDATES_NOTE);
+    }
     char *payload = cbm_operation_json_write(doc);
     yyjson_mut_doc_free(doc);
     return payload;
 }
 
-static char *outline_tree_payload(const char *file_path, cbm_file_outline_row_t *rows,
-                                  int row_count, int total, int offset, int limit) {
+static char *outline_tree_payload(cbm_store_t *store, const char *project, const char *file_path,
+                                  cbm_file_outline_row_t *rows, int row_count, int total,
+                                  int offset, int limit) {
     cbm_sb_t sb;
     cbm_sb_init(&sb);
     cbm_tree_scalar_str(&sb, "file_path", file_path);
@@ -154,7 +163,20 @@ static char *outline_tree_payload(const char *file_path, cbm_file_outline_row_t 
     cbm_tree_scalar_int(&sb, "limit", limit);
     cbm_tree_scalar_int(&sb, "returned", row_count);
     cbm_tree_scalar_bool(&sb, "has_more", (int64_t)offset + row_count < total);
+    if (offset == 0) {
+        cbm_doc_candidates_tree(&sb, store, project, file_path);
+    }
     return cbm_sb_finish(&sb);
+}
+
+/* The JSON or tree page for one outline page, with its doc candidates. */
+static char *outline_payload(cbm_store_t *store, const char *project, const char *file_path,
+                             cbm_file_outline_row_t *rows, int row_count, int total, int offset,
+                             int limit, bool json_format) {
+    return json_format ? outline_json_payload(store, project, file_path, rows, row_count, total,
+                                              offset, limit)
+                       : outline_tree_payload(store, project, file_path, rows, row_count, total,
+                                              offset, limit);
 }
 
 cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
@@ -273,8 +295,8 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
     int rc =
         cbm_store_get_file_outline(store, project, normalized, labels, label_count, limit, offset,
                                    outline_cancelled, (void *)runtime, &rows, &row_count, &total);
-    cbm_store_close(store);
     if (rc != CBM_STORE_OK) {
+        cbm_store_close(store);
         cbm_operation_arg_free(project);
         yyjson_doc_free(doc);
         if (rc == CBM_STORE_CANCELLED)
@@ -283,10 +305,12 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
             return outline_error("get_file_outline exceeded its fixed output safety limit");
         return outline_error("get_file_outline query failed");
     }
-    char *payload = json_format
-                        ? outline_json_payload(normalized, rows, row_count, total, offset, limit)
-                        : outline_tree_payload(normalized, rows, row_count, total, offset, limit);
+    /* The doc-candidate lookup resolves each section against the store, so the
+     * payload is built before the store is closed. */
+    char *payload = outline_payload(store, project, normalized, rows, row_count, total, offset,
+                                    limit, json_format);
     cbm_store_free_file_outline(rows, row_count);
+    cbm_store_close(store);
     cbm_operation_arg_free(project);
     yyjson_doc_free(doc);
     if (!payload)
