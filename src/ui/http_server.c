@@ -5,16 +5,18 @@
  * the routes and their handlers:
  *   GET /             → embedded index.html
  *   GET /assets/...   → embedded JS/CSS
- *   OPTIONS /rpc      → CORS preflight (for vite dev on :5173)
  *   GET/POST /api/... → UI support endpoints (layout, index, browse, …)
  *   *                 → 404
  *
  * Runs in a background pthread. Binds to 127.0.0.1 only (see httpd.c).
+ * Owns a neutral store host with a separate SQLite connection (WAL reader).
  */
 #include "ui/http_server.h"
 #include "ui/httpd.h"
 #include "ui/embedded_assets.h"
 #include "ui/layout3d.h"
+#include "operations/operation.h"
+#include "operations/store_host.h"
 #include "store/store.h"
 #include "pipeline/pass_cross_repo.h"
 #include "watcher/watcher.h"
@@ -44,6 +46,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>
+#include <limits.h>
 #include <stdatomic.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -52,7 +55,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <process.h>
-#include <psapi.h> /* GetProcessMemoryInfo */
+#include <psapi.h>    /* GetProcessMemoryInfo */
 #include <tlhelp32.h> /* CreateToolhelp32Snapshot, Process32First/Next */
 #else
 #include <sys/stat.h>
@@ -73,7 +76,7 @@
 #define CBM_VERSION "dev"
 #endif
 
-/* Max JSON-RPC request body size (1 MB) — transport enforces the same cap. */
+/* Max request body size (1 MB) — transport enforces the same cap. */
 #define MAX_BODY_SIZE CBM_HTTP_MAX_BODY
 
 /* ── CORS: only allow localhost origins (blocks remote website attacks) ────── */
@@ -145,15 +148,14 @@ static void handle_ui_config(cbm_http_conn_t *c, const cbm_http_req_t *req) {
     if (cfg) {
         cbm_config_close(cfg);
     }
-    /* upstream_issues_url: where the missed-coverage callout (#963) sends
+    /* issues_url: where the missed-coverage callout (#963) sends
      * edge-case reports. Served from the backend on purpose — the UI security
      * audit forbids hardcoded external URLs in graph-ui source (external
      * targets must come from an auditable backend response, same pattern as
      * the /api/repo-info deep-links). */
     cbm_http_replyf(c, 200, g_cors_json,
-                    "{\"lang\":\"%s\",\"version\":\"%s\",\"upstream_issues_url\":\"%s\"}",
-                    lang_buf, CBM_VERSION,
-                    "https://github.com/DeusData/codebase-memory-mcp/issues/new");
+                    "{\"lang\":\"%s\",\"version\":\"%s\",\"upstream_issues_url\":\"%s\"}", lang_buf,
+                    CBM_VERSION, "https://github.com/ngallodev/codebase-memory-cli/issues/new");
 }
 
 /* ── Server state ─────────────────────────────────────────────── */
@@ -191,7 +193,8 @@ typedef struct {
 
 struct cbm_http_server {
     cbm_httpd_t *listener;
-    struct cbm_watcher *watcher; /* external watcher ref (not owned) */
+    cbm_store_host_t *store_host; /* own neutral read-side store cache */
+    struct cbm_watcher *watcher;  /* external watcher ref (not owned) */
     cbm_http_index_executor_fn index_executor;
     void *index_executor_context;
     cbm_http_project_mutation_begin_fn mutation_begin;
@@ -574,7 +577,7 @@ static void handle_logs(cbm_http_conn_t *c, const cbm_http_req_t *req) {
 #endif
 #include <signal.h>
 
-/* GET /api/processes — list codebase-memory-mcp processes via ps */
+/* GET /api/processes — list codebase-memory-cli processes via ps */
 static void handle_processes(cbm_http_conn_t *c) {
     char buf[8192];
     int pos = 0;
@@ -601,17 +604,16 @@ static void handle_processes(cbm_http_conn_t *c) {
                  "\"self_user_cpu_s\":%.1f,\"self_sys_cpu_s\":%.1f,\"processes\":[",
                  (int)_getpid(), (double)rss_bytes / (1024.0 * 1024.0), user_s, sys_s);
 
-    /* Enumerate all codebase-memory-mcp.exe processes via toolhelp snapshot */
+    /* Enumerate all codebase-memory-cli.exe processes via toolhelp snapshot */
     int proc_count = 0;
     HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (hSnap != INVALID_HANDLE_VALUE) {
         PROCESSENTRY32 pe;
         pe.dwSize = sizeof(pe);
         for (BOOL ok = Process32First(hSnap, &pe); ok; ok = Process32Next(hSnap, &pe)) {
-            if (_stricmp(pe.szExeFile, "codebase-memory-mcp.exe") == 0) {
-                HANDLE hProc = OpenProcess(
-                    PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-                    FALSE, pe.th32ProcessID);
+            if (_stricmp(pe.szExeFile, "codebase-memory-cli.exe") == 0) {
+                HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE,
+                                           pe.th32ProcessID);
                 if (hProc) {
                     PROCESS_MEMORY_COUNTERS ppmc;
                     FILETIME ftc, fte, ftk, ftu;
@@ -651,16 +653,13 @@ static void handle_processes(cbm_http_conn_t *c) {
                     http_appendf(buf, sizeof(buf), &pos,
                                  "{\"pid\":%lu,\"cpu\":%.1f,\"rss_mb\":%.1f,"
                                  "\"elapsed\":\"%lu-%02lu:%02lu:%02lu\","
-                                 "\"command\":\"codebase-memory-mcp\","
+                                 "\"command\":\"codebase-memory-cli\","
                                  "\"is_self\":%s}",
                                  pe.th32ProcessID, cpu_user + cpu_sys,
-                                 (double)proc_rss / (1024.0 * 1024.0),
-                                 elapsed_sec / 86400,
-                                 (elapsed_sec % 86400) / 3600,
-                                 (elapsed_sec % 3600) / 60,
+                                 (double)proc_rss / (1024.0 * 1024.0), elapsed_sec / 86400,
+                                 (elapsed_sec % 86400) / 3600, (elapsed_sec % 3600) / 60,
                                  elapsed_sec % 60,
-                                 pe.th32ProcessID == (DWORD)_getpid()
-                                     ? "true" : "false");
+                                 pe.th32ProcessID == (DWORD)_getpid() ? "true" : "false");
                     if (pos >= (int)sizeof(buf)) {
                         pos = (int)sizeof(buf) - 1;
                     }
@@ -688,7 +687,7 @@ static void handle_processes(cbm_http_conn_t *c) {
                  (double)ru.ru_stime.tv_sec + (double)ru.ru_stime.tv_usec / 1e6);
 
     FILE *fp = popen("LC_ALL=C ps -eo pid,pcpu,rss,etime,comm 2>/dev/null"
-                     " | grep '[c]odebase-memory-mcp'",
+                     " | grep '[c]odebase-memory-cli'",
                      "r");
     int proc_count = 0;
     if (fp) {
@@ -723,7 +722,6 @@ static void handle_processes(cbm_http_conn_t *c) {
 }
 
 /* ── Directory browser ────────────────────────────────────────── */
-
 
 static void append_roots_json(char *buf, size_t bufsz, int *pos) {
     http_appendf(buf, bufsz, pos, ",\"roots\":[");
@@ -769,8 +767,8 @@ static void handle_browse(cbm_http_conn_t *c, const cbm_http_req_t *req) {
 
     /* The browser UI may send Windows backslash separators (e.g.
      * "D:\projects\demo"). Normalize to forward slashes before the cbm_is_dir
-     * gate, exactly as the MCP repo_path handler and cbm_project_name_from_path
-     * already do — otherwise a real D:/ directory is rejected (#548). */
+     * gate, matching canonical project-path resolution — otherwise a real D:/
+     * directory is rejected (#548). */
     cbm_normalize_path_sep(path);
 
     if (!cbm_is_dir(path)) {
@@ -1186,11 +1184,10 @@ static void handle_index_start(cbm_http_server_t *server, cbm_http_conn_t *c,
         return;
     }
 
-    /* Same workspace boundary the MCP indexing tool applies, through the same
-     * function. This route used to check only that the path was a directory, so
-     * it accepted roots the MCP path refused — an operator's boundary held on one
-     * entry point and not the other. Canonicalize first: the policy is defined
-     * over resolved paths, and a symlink would otherwise launder the verdict. */
+    /* Apply the same workspace boundary as the neutral index operation. This
+     * route used to check only that the path was a directory, so policy differed
+     * by entry point. Canonicalize first: the policy is defined over resolved
+     * paths, and a symlink would otherwise launder the verdict. */
     char canonical_root[INDEX_JOB_ROOT_CAP];
     char boundary_err[1024];
     if (!cbm_canonical_path(rpath, canonical_root, sizeof(canonical_root))) {
@@ -1789,8 +1786,13 @@ static void handle_layout(cbm_http_conn_t *c, const cbm_http_req_t *req) {
     }
 }
 
-/* ── Handle JSON-RPC request ──────────────────────────────────── */
+/* ── Request dispatch ─────────────────────────────────────────── */
 
+/* True when the Host header names the loopback interface and exact port the
+ * server binds to. Anything else means the request reached us under a
+ * name that is not loopback — a rebinding DNS host or a proxy pointed at the
+ * local port — which is the DNS-rebinding / cross-site vector against a
+ * localhost-only service. */
 static bool host_is_this_server(const char *host, int port) {
     char expected[128];
     int length = snprintf(expected, sizeof(expected), "127.0.0.1:%d", port);
@@ -1801,7 +1803,7 @@ static bool host_is_this_server(const char *host, int port) {
 }
 
 static bool route_is_protected(const char *path) {
-    return strcmp(path, "/api") == 0 || strncmp(path, "/api/", 5) == 0 || strcmp(path, "/rpc") == 0;
+    return strcmp(path, "/api") == 0 || strncmp(path, "/api/", 5) == 0;
 }
 
 static bool content_type_is_json(const char *content_type) {
@@ -1915,6 +1917,105 @@ static bool request_passes_http_security(cbm_http_server_t *srv, cbm_http_conn_t
     return true;
 }
 
+/* Translate the native read API's bounded query into operation arguments.
+ * Only these three read operations are reachable; format and project details
+ * are server-owned so the response is always machine-readable. */
+static void handle_read_operation(cbm_http_conn_t *c, const cbm_http_req_t *req,
+                                  cbm_operation_id_t operation) {
+    /* The transport caps the entire query at 2 KiB. Sixfold JSON escaping
+     * plus keys fits here without adding heap allocations. */
+    char args[16384] = "{\"format\":\"json\",\"detail\":\"stats\"";
+    size_t used = strlen(args);
+    const char *query = req->query;
+    while (*query) {
+        const char *end = strchr(query, '&');
+        if (!end)
+            end = query + strlen(query);
+        const char *eq = memchr(query, '=', (size_t)(end - query));
+        char key[32], value[2048], escaped[12288];
+        size_t key_len = eq ? (size_t)(eq - query) : 0;
+        if (!key_len || key_len >= sizeof(key))
+            goto bad_query;
+        memcpy(key, query, key_len);
+        key[key_len] = '\0';
+        char pair[2048];
+        size_t pair_len = (size_t)(end - query);
+        if (pair_len >= sizeof(pair))
+            goto bad_query;
+        memcpy(pair, query, pair_len);
+        pair[pair_len] = '\0';
+        if (!cbm_http_query_param(pair, key, value, (int)sizeof(value)) || !value[0])
+            goto bad_query;
+
+        bool string_arg = strcmp(key, "project") == 0 && operation != CBM_OPERATION_PROJECTS;
+        bool number_arg = operation != CBM_OPERATION_SNIPPET &&
+                          (strcmp(key, "limit") == 0 || strcmp(key, "offset") == 0);
+        bool bool_arg = false;
+        if (operation == CBM_OPERATION_SNIPPET) {
+            string_arg =
+                string_arg || strcmp(key, "qualified_name") == 0 || strcmp(key, "source_mode") == 0;
+            number_arg = strcmp(key, "start_line") == 0 || strcmp(key, "max_lines") == 0 ||
+                         strcmp(key, "member_limit") == 0 || strcmp(key, "member_offset") == 0 ||
+                         strcmp(key, "max_output_tokens") == 0;
+            bool_arg = strcmp(key, "include_neighbors") == 0;
+        }
+        if (!string_arg && !number_arg && !bool_arg)
+            goto bad_query;
+        /* Reject duplicate keys rather than depending on JSON lookup order. */
+        char marker[40];
+        snprintf(marker, sizeof(marker), ",\"%s\":", key);
+        if (strstr(args, marker))
+            goto bad_query;
+        int n;
+        if (string_arg) {
+            cbm_json_escape(escaped, (int)sizeof(escaped), value);
+            n = snprintf(args + used, sizeof(args) - used, ",\"%s\":\"%s\"", key, escaped);
+        } else {
+            if (number_arg) {
+                for (const char *p = value; *p; p++) {
+                    if (*p < '0' || *p > '9')
+                        goto bad_query;
+                }
+                errno = 0;
+                unsigned long parsed = strtoul(value, NULL, 10);
+                if (errno || parsed > INT_MAX)
+                    goto bad_query;
+                n = snprintf(args + used, sizeof(args) - used, ",\"%s\":%lu", key, parsed);
+            } else {
+                if (strcmp(value, "true") != 0 && strcmp(value, "false") != 0)
+                    goto bad_query;
+                n = snprintf(args + used, sizeof(args) - used, ",\"%s\":%s", key, value);
+            }
+        }
+        if (n < 0 || (size_t)n >= sizeof(args) - used - 2)
+            goto bad_query;
+        used += (size_t)n;
+        query = *end ? end + 1 : end;
+    }
+    if (operation != CBM_OPERATION_PROJECTS && !strstr(args, ",\"project\":"))
+        goto bad_query;
+    if (operation == CBM_OPERATION_SNIPPET && !strstr(args, ",\"qualified_name\":"))
+        goto bad_query;
+    args[used++] = '}';
+    args[used] = '\0';
+    cbm_operation_result_t result = cbm_operation_execute(NULL, operation, args);
+    /* Schema reports failures as plain text; the other read operations already
+     * return JSON error objects. Keep the native API's error contract JSON. */
+    if (result.is_error && result.payload && operation == CBM_OPERATION_SCHEMA) {
+        char escaped[4096];
+        cbm_json_escape(escaped, (int)sizeof(escaped), result.payload);
+        cbm_http_replyf(c, 400, g_cors_json, "{\"error\":\"%s\"}", escaped);
+    } else {
+        cbm_http_replyf(c, result.payload ? (result.is_error ? 400 : 200) : 500, g_cors_json, "%s",
+                        result.payload ? result.payload : "{\"error\":\"operation failed\"}");
+    }
+    cbm_operation_result_dispose(&result);
+    return;
+
+bad_query:
+    cbm_http_replyf(c, 400, g_cors_json, "%s", "{\"error\":\"invalid query parameters\"}");
+}
+
 static void dispatch_request(cbm_http_server_t *srv, cbm_http_conn_t *c,
                              const cbm_http_req_t *req) {
     if (!request_passes_http_security(srv, c, req))
@@ -1938,9 +2039,16 @@ static void dispatch_request(cbm_http_server_t *srv, cbm_http_conn_t *c,
         return;
     }
 
-    /* The CLI fork does not expose the removed MCP JSON-RPC transport. */
-    if (is_post && cbm_http_path_match(req->path, "/rpc")) {
-        cbm_http_replyf(c, 404, g_cors_json, "%s", "{\"error\":\"not found\"}");
+    if (is_get && strcmp(req->path, "/api/projects") == 0) {
+        handle_read_operation(c, req, CBM_OPERATION_PROJECTS);
+        return;
+    }
+    if (is_get && strcmp(req->path, "/api/schema") == 0) {
+        handle_read_operation(c, req, CBM_OPERATION_SCHEMA);
+        return;
+    }
+    if (is_get && strcmp(req->path, "/api/snippet") == 0) {
+        handle_read_operation(c, req, CBM_OPERATION_SNIPPET);
         return;
     }
 
@@ -2004,7 +2112,7 @@ static void dispatch_request(cbm_http_server_t *srv, cbm_http_conn_t *c,
         return;
     }
 
-    /* GET /api/processes → list running codebase-memory-mcp processes */
+    /* GET /api/processes → list running codebase-memory-cli processes */
     if (is_get && cbm_http_path_match(req->path, "/api/processes")) {
         handle_processes(c);
         return;
@@ -2050,6 +2158,14 @@ cbm_http_server_t *cbm_http_server_new(int port) {
     atomic_init(&srv->stop_flag, 0);
     atomic_init(&srv->run_state, HTTP_RUN_IDLE);
 
+    /* Dedicated neutral read-side store host (own SQLite connection/cache). */
+    srv->store_host = cbm_store_host_new_deferred();
+    if (!srv->store_host) {
+        cbm_log_error("ui.http.store_host_fail", "reason", "cannot create store host");
+        free(srv);
+        return NULL;
+    }
+
     /* Bind to localhost only (httpd refuses anything else by construction) */
     srv->listener = cbm_httpd_listen(port);
     if (!srv->listener) {
@@ -2057,6 +2173,7 @@ cbm_http_server_t *cbm_http_server_new(int port) {
         snprintf(port_str, sizeof(port_str), "%d", port);
         cbm_log_warn("ui.unavailable", "port", port_str, "reason", "in_use", "hint",
                      "use --port=N to override");
+        cbm_store_host_free(srv->store_host);
         free(srv);
         return NULL;
     }
@@ -2090,6 +2207,7 @@ bool cbm_http_server_free(cbm_http_server_t *srv) {
     }
     if (!cbm_httpd_close(srv->listener))
         return false;
+    cbm_store_host_free(srv->store_host);
     cbm_secure_zero(srv->readiness_secret, sizeof(srv->readiness_secret));
     free(srv);
     return true;
@@ -2204,6 +2322,7 @@ void cbm_http_server_set_project_mutation_guard(cbm_http_server_t *srv,
     srv->mutation_begin = begin;
     srv->mutation_end = end;
     srv->mutation_context = begin ? context : NULL;
+    cbm_store_host_set_mutation_guard(srv->store_host, begin, begin, end, begin ? context : NULL);
 }
 
 void cbm_http_server_set_readiness_secret(cbm_http_server_t *srv,

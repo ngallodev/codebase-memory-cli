@@ -267,8 +267,9 @@ static void append_json_str_array(char *buf, size_t bufsize, size_t *pos, const 
     *pos = p;
 }
 
-/* Build properties JSON for a definition node. */
-static void build_def_props(char *buf, size_t bufsize, const CBMDefinition *def) {
+/* Build properties JSON for a definition node. Shared with pass_parallel.c
+ * (declared in pipeline_internal.h) so the two passes cannot drift. */
+void cbm_def_props_build(char *buf, size_t bufsize, const CBMDefinition *def) {
     /* The complexity/loop/recursion metrics are only meaningful for executable
      * units (Function/Method). Emitting them on the millions of Macro/Field/
      * Variable/Class/Enum nodes — where they are always zero — bloats every
@@ -310,7 +311,7 @@ static void build_def_props(char *buf, size_t bufsize, const CBMDefinition *def)
     size_t pos = (size_t)n;
     append_json_string(buf, bufsize, &pos, "docstring", def->docstring);
     /* Right after the docstring: the buffer is sized for exactly these two
-     * uncapped fields (pd_props_buf), so neither can be squeezed out. */
+     * uncapped fields (cbm_def_props_buf), so neither can be squeezed out. */
     append_json_raw(buf, bufsize, &pos, "variants", def->variants);
     append_json_string(buf, bufsize, &pos, "signature", def->signature);
     append_json_string(buf, bufsize, &pos, "return_type", def->return_type);
@@ -355,9 +356,8 @@ static void build_def_props(char *buf, size_t bufsize, const CBMDefinition *def)
 /* A def's properties buffer: CBM_SZ_2K for every other field plus the whole
  * serialized docstring and variants fields, which have no length cap (a field
  * that does not fit is dropped whole). Returns `stack` for a def with neither,
- * or when the larger buffer cannot be allocated. Twin of pass_parallel.c --
- * keep both in sync. */
-static char *pd_props_buf(const CBMDefinition *def, char *stack, size_t *size) {
+ * or when the larger buffer cannot be allocated. Shared with pass_parallel.c. */
+char *cbm_def_props_buf(const CBMDefinition *def, char *stack, size_t *size) {
     size_t need = *size;
     if (def->docstring && def->docstring[0]) {
         need += strlen("docstring") + def_json_escaped_len(def->docstring) + PD_JSON_FIELD_OVERHEAD;
@@ -377,8 +377,8 @@ static char *pd_props_buf(const CBMDefinition *def, char *stack, size_t *size) {
 }
 
 /* Add a file's own doc (Go package comment, Rust inner docs) to its File
- * node as "docstring". Twin of pass_parallel.c -- keep both in sync. */
-static void pd_add_file_doc(const cbm_gbuf_node_t *file_node, const char *doc) {
+ * node as "docstring". Shared with pass_parallel.c. */
+void cbm_def_file_doc(const cbm_gbuf_node_t *file_node, const char *doc) {
     if (!file_node || !doc || !doc[0]) {
         return;
     }
@@ -417,8 +417,8 @@ static void process_def(cbm_pipeline_ctx_t *ctx, const CBMDefinition *def, const
     }
     char stack[CBM_SZ_2K];
     size_t props_size = sizeof(stack);
-    char *props = pd_props_buf(def, stack, &props_size);
-    build_def_props(props, props_size, def);
+    char *props = cbm_def_props_buf(def, stack, &props_size);
+    cbm_def_props_build(props, props_size, def);
     int64_t node_id = cbm_gbuf_upsert_node(
         ctx->gbuf, def->label ? def->label : "Function", def->name, def->qualified_name,
         def->file_path ? def->file_path : rel, (int)def->start_line, (int)def->end_line, props);
@@ -435,7 +435,7 @@ static void process_def(cbm_pipeline_ctx_t *ctx, const CBMDefinition *def, const
     }
     char *file_qn = cbm_pipeline_fqn_compute(ctx->project_name, rel, "__file__");
     const cbm_gbuf_node_t *file_node = cbm_gbuf_find_by_qn(ctx->gbuf, file_qn);
-    pd_add_file_doc(file_node, file_doc);
+    cbm_def_file_doc(file_node, file_doc);
     if (file_node && node_id > 0) {
         cbm_gbuf_insert_edge(ctx->gbuf, file_node->id, node_id, "DEFINES", "{}");
     }

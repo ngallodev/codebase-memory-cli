@@ -121,7 +121,14 @@ typedef struct {
     const char *qualified_name;
     const char *file_path;
     int start_line;
+    int end_line;
+    const char *name;
+    const char *label;
 } tld_key_t;
+
+static int cmp_int(int a, int b) {
+    return a < b ? TLD_CMP_LESS : a > b ? TLD_CMP_GREATER : 0;
+}
 
 static int cmp_key_canonical(const tld_key_t *a, const tld_key_t *b) {
     int r = strcmp(str_or_empty(a ? a->qualified_name : NULL),
@@ -133,12 +140,19 @@ static int cmp_key_canonical(const tld_key_t *a, const tld_key_t *b) {
     if (r != 0) {
         return r;
     }
-    int la = a ? a->start_line : 0;
-    int lb = b ? b->start_line : 0;
-    if (la != lb) {
-        return la < lb ? TLD_CMP_LESS : TLD_CMP_GREATER;
+    r = cmp_int(a ? a->start_line : 0, b ? b->start_line : 0);
+    if (r != 0) {
+        return r;
     }
-    return 0;
+    r = cmp_int(a ? a->end_line : 0, b ? b->end_line : 0);
+    if (r != 0) {
+        return r;
+    }
+    r = strcmp(str_or_empty(a ? a->name : NULL), str_or_empty(b ? b->name : NULL));
+    if (r != 0) {
+        return r;
+    }
+    return strcmp(str_or_empty(a ? a->label : NULL), str_or_empty(b ? b->label : NULL));
 }
 
 typedef struct {
@@ -200,9 +214,9 @@ static void tld_graph_offsets(tld_graph_t *g) {
     }
 }
 
-static void tld_key_set(tld_graph_t *g, int64_t id, const char *qn, const char *file, int line) {
+static void tld_key_set(tld_graph_t *g, int64_t id, tld_key_t key) {
     if (id >= 1 && id <= g->maxid) {
-        g->keys[id] = (tld_key_t){qn, file, line};
+        g->keys[id] = key;
         g->present[id] = true;
     }
 }
@@ -340,7 +354,9 @@ static bool tld_gather_gbuf(const cbm_gbuf_t *gb, tld_graph_t *g) {
         }
         for (int i = 0; i < count; i++) {
             const cbm_gbuf_node_t *n = nodes[i];
-            tld_key_set(g, n->id, n->qualified_name, n->file_path, n->start_line);
+            tld_key_set(g, n->id,
+                        (tld_key_t){n->qualified_name, n->file_path, n->start_line, n->end_line,
+                                    n->name, n->label});
             tld_seed(g, n->id, n->properties_json, seed_cap);
         }
     }
@@ -352,7 +368,9 @@ static bool tld_gather_gbuf(const cbm_gbuf_t *gb, tld_graph_t *g) {
         }
         const cbm_gbuf_node_t *t = cbm_gbuf_find_by_id(gb, target);
         if (t && !(target >= 1 && target <= maxid && g->present[target])) {
-            tld_key_set(g, target, t->qualified_name, t->file_path, t->start_line);
+            tld_key_set(g, target,
+                        (tld_key_t){t->qualified_name, t->file_path, t->start_line, t->end_line,
+                                    t->name, t->label});
         }
     }
     tld_graph_offsets(g);
@@ -499,7 +517,8 @@ static bool tld_gather_store(sqlite3 *db, const char *project, CBMArena *arena, 
         "('Function','Method')), (SELECT COUNT(*) FROM edges WHERE project = ?1 AND type = "
         "'CALLS')";
     static const char kNodes[] =
-        "SELECT id, label, qualified_name, file_path, start_line, properties FROM nodes "
+        "SELECT id, label, qualified_name, file_path, start_line, properties, end_line, name "
+        "FROM nodes "
         "WHERE project = ?1 AND (label IN ('Function','Method') OR id IN (SELECT target_id "
         "FROM edges WHERE project = ?1 AND type = 'CALLS'))";
     static const char kEdges[] =
@@ -536,13 +555,19 @@ static bool tld_gather_store(sqlite3 *db, const char *project, CBMArena *arena, 
         const char *label = (const char *)sqlite3_column_text(st, 1);
         const char *qn = (const char *)sqlite3_column_text(st, 2);
         const char *file = (const char *)sqlite3_column_text(st, 3);
+        const char *name = (const char *)sqlite3_column_text(st, 7);
         char *qn_copy = qn ? cbm_arena_strdup(arena, qn) : NULL;
         char *file_copy = file ? cbm_arena_strdup(arena, file) : NULL;
-        ok = (!qn || qn_copy) && (!file || file_copy) && id >= 1 && id <= maxid;
+        char *name_copy = name ? cbm_arena_strdup(arena, name) : NULL;
+        char *label_copy = label ? cbm_arena_strdup(arena, label) : NULL;
+        ok = (!qn || qn_copy) && (!file || file_copy) && (!name || name_copy) &&
+             (!label || label_copy) && id >= 1 && id <= maxid;
         if (!ok) {
             break;
         }
-        tld_key_set(g, id, qn_copy, file_copy, sqlite3_column_int(st, 4));
+        tld_key_set(g, id,
+                    (tld_key_t){qn_copy, file_copy, sqlite3_column_int(st, 4),
+                                sqlite3_column_int(st, 6), name_copy, label_copy});
         if (label && (strcmp(label, "Function") == 0 || strcmp(label, "Method") == 0)) {
             tld_seed(g, id, (const char *)sqlite3_column_text(st, 5), seed_cap);
         }

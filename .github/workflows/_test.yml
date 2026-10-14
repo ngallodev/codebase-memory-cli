@@ -16,6 +16,10 @@ on:
         description: 'Split each C-suite leg across parallel shard jobs (ubuntu x3, windows x2); off = one job per leg, byte-identical to the pre-shard topology'
         type: boolean
         default: false
+      platforms:
+        description: "Platform set: 'all' (default) or 'linux' (skip macOS and Windows legs)"
+        type: string
+        default: 'all'
       shard_profile:
         description: 'Shard counts when shard_suites is on: standard = ubuntu x3, windows x2 (dry run, release); pr = ubuntu x86 x1, ubuntu arm64 x2, windows x1 (fewer jobs re-paying setup)'
         type: string
@@ -52,6 +56,7 @@ jobs:
         env:
           BROAD: ${{ inputs.broad_platforms }}
           SHARDS: ${{ inputs.shard_suites }}
+          PLATFORMS: ${{ inputs.platforms }}
           SHARD_PROFILE: ${{ inputs.shard_profile }}
           LANES: ${{ inputs.lanes }}
         run: |
@@ -112,6 +117,16 @@ jobs:
             WIN=$(jq -c --argjson sel "$LANES" 'map(select(.lane | IN($sel[])))' <<< "$WIN")
             TSAN=$(jq -c --argjson sel "$LANES" 'map(select(.lane | IN($sel[])))' <<< "$TSAN")
           fi
+          # Linux-only release: drop macOS legs. The Windows job is skipped by
+          # its job-level `if`, so its matrix is computed but never expanded.
+          case "$PLATFORMS" in
+            all) ;;
+            linux)
+              UNIX=$(jq -c 'map(select(.os | startswith("ubuntu")))' <<< "$UNIX")
+              TSAN=$(jq -c 'map(select(.os | startswith("ubuntu")))' <<< "$TSAN")
+              ;;
+            *) echo "::error::unknown platforms input: $PLATFORMS"; exit 1 ;;
+          esac
           # Suite sharding (opt-in via the shard_suites input): each platform's
           # C-suite run is split across N runner jobs. CBM_TEST_SHARD="i/N"
           # slices deterministically inside run-tests-parallel.sh; each
@@ -278,7 +293,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: ${{ fromJSON(inputs.platforms == 'linux' && '["ubuntu-latest"]' || '["ubuntu-latest","windows-latest"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
@@ -302,7 +317,7 @@ jobs:
         run: scripts/ci/test-package-wrappers.sh
 
   # ThreadSanitizer data-race gate. The threaded production surfaces (watcher,
-  # subprocess, httpd, pipeline, mcp, worker pool, diagnostics, the runnable
+  # subprocess, httpd, pipeline, worker pool, diagnostics, the runnable
   # daemon-coordination paths) plus allocator concurrency all run under TSan
   # here — see TEST_TSAN_SUITES in Makefile.cbm. Runs on both Linux
   # architectures AND native ARM64 macOS: the threading code is shared, so a
@@ -409,7 +424,7 @@ jobs:
   # so this leg is the ordinary ASan suite built with that toolchain and run
   # with detect_leaks=1. Mirrors the local `make -f Makefile.cbm test-lsan`.
   test-lsan-macos:
-    if: ${{ inputs.lanes == 'all' || contains(fromJSON(inputs.lanes), 'lsan-macos') }}
+    if: ${{ inputs.platforms != 'linux' && (inputs.lanes == 'all' || contains(fromJSON(inputs.lanes), 'lsan-macos')) }}
     runs-on: macos-latest
     timeout-minutes: 120
     steps:
@@ -504,6 +519,7 @@ jobs:
           CCACHE_DIR: ${{ github.workspace }}/.ccache
 
   test-windows:
+    if: ${{ inputs.platforms != 'linux' }}
     needs: setup-matrix
     if: ${{ needs.setup-matrix.outputs.has_windows == 'true' }}
     strategy:
@@ -601,6 +617,17 @@ jobs:
         env:
           CCACHE_DIR: ${{ github.workspace }}/.ccache
 
+      # The harness prints only each failing suite's last 15 lines, which cuts
+      # off sanitizer reports. Keep the full per-suite logs of a failed shard.
+      - name: Upload test logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-logs-${{ matrix.os }}-${{ matrix.msystem }}-${{ strategy.job-index }}
+          path: build/c/test-logs/*.log
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: Shard manifest (completeness proof)
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -663,7 +690,7 @@ jobs:
   # CLI arguments being mangled by the narrow-argv main() (#423/#20, fixed by the
   # wide-argv entrypoint that reads GetCommandLineW).
   test-windows-guards:
-    if: ${{ inputs.lanes == 'all' || contains(fromJSON(inputs.lanes), 'windows-guards') }}
+    if: ${{ inputs.platforms != 'linux' && (inputs.lanes == 'all' || contains(fromJSON(inputs.lanes), 'windows-guards')) }}
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
@@ -709,4 +736,4 @@ jobs:
         # against the real supervisor->worker spawn path: under the mandatory
         # coordination daemon, CBM_INDEX_SUPERVISOR=0 is a fail-closed refusal, so
         # the driver no longer sets it anywhere.
-        run: ./scripts/test-windows.ps1 -GuardsOnly -Binary build/c/codebase-memory-mcp.exe
+        run: ./scripts/test-windows.ps1 -GuardsOnly -Binary build/c/codebase-memory-cli.exe
