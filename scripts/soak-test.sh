@@ -65,6 +65,11 @@ CBM_SOAK_MODE="${CBM_SOAK_MODE:-default}"
 RESULTS_DIR="${RESULTS_DIR:-soak-results}"
 mkdir -p "$RESULTS_DIR"
 
+# One latency ceiling judges a slow call (Check 4 below). GitHub's
+# windows-11-arm image (2026-10) answers the PowerShell-backed search_code in
+# ~23 s per call, so the ceiling stays at 60 s.
+SOAK_MAX_QUERY_LATENCY_S=60
+
 # Every product process below must reach a daemon rendezvous this run owns.
 # Only CBM_RUNTIME_DIR moves that rendezvous — a private CBM_CACHE_DIR alone
 # still shares the operator's account daemon (#1691, #1696).
@@ -774,9 +779,9 @@ fi
 MAX_LATENCY=$(awk -F, 'NR>1 && $2!="index" { if ($3>max) max=$3 } END { print max+0 }' "$LATENCY_CSV")
 MAX_INDEX=$(awk -F, 'NR>1 && $2=="index" { if ($3>max) max=$3 } END { print max+0 }' "$LATENCY_CSV")
 echo "Max query latency: ${MAX_LATENCY}ms (index: ${MAX_INDEX}ms)" | tee -a "$SUMMARY"
-# 60s threshold — MSYS2/Wine adds significant overhead to all operations
-if [ "${MAX_LATENCY:-0}" -gt 60000 ] 2>/dev/null; then
-    echo "FAIL: max query latency ${MAX_LATENCY}ms > 60s" | tee -a "$SUMMARY"
+# SOAK_MAX_QUERY_LATENCY_S — MSYS2/Wine adds significant overhead to all operations
+if [ "${MAX_LATENCY:-0}" -gt $((SOAK_MAX_QUERY_LATENCY_S * 1000)) ] 2>/dev/null; then
+    echo "FAIL: max query latency ${MAX_LATENCY}ms > ${SOAK_MAX_QUERY_LATENCY_S}s" | tee -a "$SUMMARY"
     PASS=false
 fi
 

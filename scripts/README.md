@@ -37,7 +37,10 @@ and five repetitions. Set `CBM_LINUX_BENCHMARK_WORKSPACE` or
 Internal harnesses — never called directly by a venue (the contract forbids
 it): `smoke-test.sh` (CLI invariants; wrappers optionally provide a release fixture server + sandbox),
 `soak-test.sh` (one soak run; `soak-legs.sh` provides the sequence + guards),
-`run-tests-parallel.sh` (reached through `test.sh`).
+`run-tests-parallel.sh` (reached through `test.sh`), which sources
+`suite-failure-report.sh` for its end-of-run failure summary (failure sites,
+sanitizer report, running test, last lines) and for `test-logs/failed/`, the
+logs of every suite that did not end green.
 
 ## Conventions
 

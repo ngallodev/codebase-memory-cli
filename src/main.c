@@ -964,7 +964,8 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
             return SKIP_ONE;
         }
         args_json = heap_args;
-    } else if (!canonical_mode && cbm_cli_args_from_stdin_allowed(tool_name, cli_isatty(0) != 0)) {
+    } else if (!canonical_mode &&
+               cbm_cli_args_from_stdin_allowed(tool_name, cbm_cli_stdin_kind(0))) {
         /* Legacy `cli <tool>` retains its piped-JSON channel. Canonical named
          * commands never read stdin implicitly: automation commonly inherits
          * an open pipe with no writer, and a shell-native command such as
