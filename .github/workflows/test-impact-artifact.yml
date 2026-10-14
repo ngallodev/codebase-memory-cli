@@ -73,7 +73,7 @@ jobs:
           if [ "$EVENT" = push ] && [ -n "$BEFORE" ] && [ "$BEFORE" != 0000000000000000000000000000000000000000 ]; then
             before="$BEFORE"
           fi
-          scripts/ci/test-impact-publish.sh --binary build/c/codebase-memory-mcp \
+          scripts/ci/test-impact-publish.sh --binary build/c/codebase-memory-cli \
             --runner build/cov/test-runner --llvm-bin /usr/lib/llvm-21/bin \
             --out "$RUNNER_TEMP/bundle" --mode "$mode" --before "$before"
 

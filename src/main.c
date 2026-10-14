@@ -32,6 +32,7 @@
 #include "foundation/json_args.h"
 #include "foundation/mem_core.h"
 #include "operations/tool_catalog.h"
+#include "operations/test_impact_engine.h"
 #include "operations/result_wire.h"
 #include "operations/operation.h"
 #include "operations/reliability_events.h"
@@ -1222,6 +1223,8 @@ static void print_help(void) {
     printf("  codebase-memory-cli config <list|get|set|reset>\n");
     printf("  codebase-memory-cli daemon <start|stop|status>\n");
     printf("  codebase-memory-cli doctor [--deep] [--json]\n");
+    printf("  codebase-memory-cli test-impact <publish|select> ...   CI test selection "
+           "(in process)\n");
     printf("\nGlobal:\n");
     printf("  --version    Print version\n");
     printf("  --help       Print this help\n");
@@ -1387,6 +1390,11 @@ static int handle_subcommand(int argc, char **argv, cbm_project_lock_manager_t *
         if (strcmp(argv[i], "hook-augment") == 0) {
             cbm_mem_init(cbm_mem_ram_fraction_for_total(cbm_system_info().total_ram));
             return cbm_cmd_hook_augment(argc - i - SKIP_ONE, argv + i + SKIP_ONE);
+        }
+        if (strcmp(argv[i], "test-impact") == 0) {
+            /* In process, no daemon: the CI surface of the test-impact engine. */
+            cbm_mem_init(cbm_mem_ram_fraction_for_total(cbm_system_info().total_ram));
+            return cbm_test_impact_cli(argc - i - SKIP_ONE, argv + i + SKIP_ONE);
         }
         if (strcmp(argv[i], "install") == 0) {
             return cbm_cmd_install(argc - i - SKIP_ONE, argv + i + SKIP_ONE);

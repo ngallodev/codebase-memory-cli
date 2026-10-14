@@ -1,5 +1,5 @@
 /*
- * test_impact_cli.c — `codebase-memory-mcp test-impact <publish|select>`.
+ * test_impact_cli.c — `codebase-memory-cli test-impact <publish|select>`.
  *
  * The CI surface of the test-impact engine, in process (no daemon):
  *   publish  builds the team artifact bundle of the checked-out commit;
@@ -70,16 +70,27 @@ static const char *tic_work(const char *requested, char *buf, size_t cap) {
     return cbm_mkdir_p(buf, 0700) ? buf : NULL;
 }
 
+static const char TIC_USAGE[] =
+    "usage: codebase-memory-cli test-impact publish --repo DIR --out DIR\n"
+    "           [--previous BUNDLE] [--coverage DIR --observed-at EPOCH]\n"
+    "           [--platform LABEL] [--config FILE] [--work DIR] [--deadline-s N]\n"
+    "       codebase-memory-cli test-impact select --repo DIR --base REF\n"
+    "           [--config FILE] [--artifact BUNDLE --artifact-commit SHA\n"
+    "           --artifact-verified] [--platform LABEL] [--work DIR]\n"
+    "           [--deadline-s N]\n";
+
 static int tic_usage(void) {
-    (void)fprintf(stderr,
-                  "usage: codebase-memory-mcp test-impact publish --repo DIR --out DIR\n"
-                  "           [--previous BUNDLE] [--coverage DIR --observed-at EPOCH]\n"
-                  "           [--platform LABEL] [--config FILE] [--work DIR] [--deadline-s N]\n"
-                  "       codebase-memory-mcp test-impact select --repo DIR --base REF\n"
-                  "           [--config FILE] [--artifact BUNDLE --artifact-commit SHA\n"
-                  "           --artifact-verified] [--platform LABEL] [--work DIR]\n"
-                  "           [--deadline-s N]\n");
+    (void)fputs(TIC_USAGE, stderr);
     return 2;
+}
+
+static bool tic_wants_help(int argc, char **argv) {
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 static int tic_publish(int argc, char **argv) {
@@ -172,6 +183,10 @@ static int tic_select(int argc, char **argv) {
 }
 
 int cbm_test_impact_cli(int argc, char **argv) {
+    if (tic_wants_help(argc, argv)) {
+        (void)fputs(TIC_USAGE, stdout);
+        return 0;
+    }
     if (argc < 1) {
         return tic_usage();
     }

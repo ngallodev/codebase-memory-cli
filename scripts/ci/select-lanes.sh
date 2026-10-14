@@ -149,8 +149,6 @@ def category(path):
         return "memwaste-tools"
     if path in NON_GATING or path.startswith("scripts/test-impact/"):
         return "ci-other"
-    if path == "scripts/test_mcp_in_process.py":
-        return "test-contract"
     if path == "scripts/fuzz.sh":
         return "fuzz"
     if path == "scripts/audit-license-provenance.py":
@@ -208,7 +206,9 @@ def category(path):
 
 # ── Categories -> tier (highest wins) ──
 EXTRACT = {"grammar", "lsp-core", "extract"}
-MID = {"pipeline", "mcp", "store", "cypher", "discover", "git", "graph_buffer",
+# "operations" replaced the removed src/mcp; "mcp" stays so history-shaped inputs
+# (and tests/test_select_lanes.sh fixtures) still land in the same tier.
+MID = {"pipeline", "operations", "mcp", "store", "cypher", "discover", "git", "graph_buffer",
        "semantic", "simhash", "traces", "personal_memory"}
 PLATFORM = {"daemon", "cli", "watcher", "ui", "foundation", "smoke", "pkg", "test-win"}
 CORE = {"mem-core", "build", "vendored", "ci-gate", "other", "scripts-other"}
