@@ -1,3 +1,4 @@
+#include "operations/doc_candidates.h"
 #include "operations/json_args.h"
 #include "operations/output_budget.h"
 #include "operations/result_wire.h"
@@ -5,10 +6,12 @@
 #include "operations/store_host.h"
 
 #include "foundation/compat_fs.h"
+#include "foundation/constants.h"
 #include "foundation/workspace.h"
 #include "store/store.h"
 #include "yyjson/yyjson.h"
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -303,6 +306,60 @@ static char *snippet_budget_floor(int max_output_tokens) {
     return json;
 }
 
+/* A PDF is read as its text layer at index time (doc_pdf.c); its bytes are no
+ * source text. Its page Sections carry the page's text as their docstring. */
+static bool snippet_is_pdf(const char *file_path) {
+    static const char PDF_SUFFIX[] = ".pdf";
+    size_t suffix_len = sizeof(PDF_SUFFIX) - SKIP_ONE;
+    size_t n = file_path ? strlen(file_path) : 0;
+    if (n < suffix_len) {
+        return false;
+    }
+    const char *tail = file_path + (n - suffix_len);
+    for (size_t i = 0; i < suffix_len; i++) {
+        if (tolower((unsigned char)tail[i]) != PDF_SUFFIX[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static char *snippet_pdf_text(const cbm_node_t *node) {
+    if (!node->properties_json) {
+        return NULL;
+    }
+    yyjson_doc *pd = yyjson_read(node->properties_json, strlen(node->properties_json), 0);
+    if (!pd) {
+        return NULL;
+    }
+    yyjson_val *ds = yyjson_obj_get(yyjson_doc_get_root(pd), "docstring");
+    const char *text = yyjson_is_str(ds) ? yyjson_get_str(ds) : NULL;
+    char *out = NULL;
+    if (text && text[0]) {
+        /* the same builder read_lines returns its text from */
+        cbm_sb_t sb;
+        cbm_sb_init(&sb);
+        cbm_sb_append_n(&sb, text, strlen(text));
+        out = cbm_sb_finish(&sb);
+    }
+    yyjson_doc_free(pd);
+    return out;
+}
+
+/* The source text a snippet shows: none for an outline page, the node's
+ * text-layer docstring for a PDF (never the file's bytes), otherwise the
+ * requested lines of the file. */
+static char *snippet_source_for(const cbm_node_t *node, bool outline, const char *abs_path,
+                                int start_line, int end_line) {
+    if (outline) {
+        return NULL;
+    }
+    if (snippet_is_pdf(node->file_path)) {
+        return snippet_pdf_text(node);
+    }
+    return read_lines(abs_path, start_line, end_line);
+}
+
 static cbm_operation_result_t node_result(cbm_store_t *store, const char *project,
                                           const cbm_node_t *node, const char *match,
                                           bool include_neighbors, const char *args) {
@@ -353,7 +410,7 @@ static cbm_operation_result_t node_result(cbm_store_t *store, const char *projec
     }
     if (!outline && end_line < original_end)
         snippet_clipped = true;
-    char *source = outline ? NULL : read_lines(abs_path, start_line, end_line);
+    char *source = snippet_source_for(node, outline, abs_path, start_line, end_line);
     if (!outline && !source) {
         cbm_project_free_fields(&project_info);
         return error_result("source file could not be read",
@@ -506,6 +563,8 @@ static cbm_operation_result_t node_result(cbm_store_t *store, const char *projec
             yyjson_mut_obj_add_val(doc, root, "callees", callee_values);
         }
     }
+
+    cbm_doc_candidates_add_node(doc, root, store, node);
 
     if (byte_budget > 0 && snippet_probe_len(root) > byte_budget) {
         yyjson_mut_obj_add_str(doc, root, "truncation_reason", "output_budget");

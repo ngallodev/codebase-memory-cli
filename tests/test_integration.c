@@ -1894,6 +1894,330 @@ TEST(integ_step5_detect_default_branch_and_explicit_base) {
     PASS();
 }
 
+/* ══════════════════════════════════════════════════════════════════
+ *  Doc -> code candidates (port of upstream #2574 get_code_snippet /
+ *  get_file_outline candidate fields, and #2551 PDF text-layer snippet)
+ * ══════════════════════════════════════════════════════════════════ */
+
+/* Open a project db in the caller's cache dir and register the project, so an
+ * operation resolves it exactly as it resolves an indexed project. The node set
+ * and the doc_link_candidates rows are written by the test itself, so every
+ * asserted value is known. */
+static cbm_store_t *integ_doc_cand_store(const char *cache, const char *repo, const char *project) {
+    char db_path[512];
+    snprintf(db_path, sizeof(db_path), "%s/%s.db", cache, project);
+    cbm_store_t *store = cbm_store_open_path(db_path);
+    if (!store)
+        return NULL;
+    if (cbm_store_upsert_project(store, project, repo) != CBM_STORE_OK) {
+        cbm_store_close(store);
+        return NULL;
+    }
+    return store;
+}
+
+/* A Section lists the functions it is possibly about (highest p first, evidence
+ * included); a function lists the sections that possibly describe it; a row
+ * whose other end no longer exists is skipped; a node without rows gets no
+ * candidate keys at all. */
+TEST(integ_doc_candidates_snippet_both_directions) {
+    char *base = th_mktempdir("cbm_doc_cand_snippet");
+    ASSERT_NOT_NULL(base);
+    char repo[512];
+    char cache[512];
+    snprintf(repo, sizeof(repo), "%s/repo", base);
+    snprintf(cache, sizeof(cache), "%s/cache", base);
+    ASSERT_EQ(th_mkdir_p(repo), 0);
+    ASSERT_EQ(th_mkdir_p(cache), 0);
+    ASSERT_EQ(th_write_file(TH_PATH(repo, "README.md"), "Orders\none\ntwo\nthree\n"), 0);
+    ASSERT_EQ(th_write_file(TH_PATH(repo, "src/server.c"),
+                            "1\n2\n3\n4\n5\n6\nprocess()\n8\n9\n10\n11\n12\n13\n14\n15\n"),
+              0);
+
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? strdup(saved) : NULL;
+    (void)cbm_setenv("CBM_CACHE_DIR", cache, 1);
+
+    const char *project = "doc-cand-snippet";
+    cbm_store_t *store = integ_doc_cand_store(cache, repo, project);
+    ASSERT_NOT_NULL(store);
+
+    char section_qn[128];
+    char first_qn[128];
+    char second_qn[128];
+    char orphan_qn[128];
+    snprintf(section_qn, sizeof(section_qn), "%s.README.Orders", project);
+    snprintf(first_qn, sizeof(first_qn), "%s.src.server.ProcessOrder", project);
+    snprintf(second_qn, sizeof(second_qn), "%s.src.server.HandleRequest", project);
+    snprintf(orphan_qn, sizeof(orphan_qn), "%s.src.server.Run", project);
+    cbm_node_t nodes[] = {
+        {.project = project,
+         .label = "Section",
+         .name = "Orders",
+         .qualified_name = section_qn,
+         .file_path = "README.md",
+         .start_line = 1,
+         .end_line = 4},
+        {.project = project,
+         .label = "Function",
+         .name = "ProcessOrder",
+         .qualified_name = first_qn,
+         .file_path = "src/server.c",
+         .start_line = 7,
+         .end_line = 9},
+        {.project = project,
+         .label = "Function",
+         .name = "HandleRequest",
+         .qualified_name = second_qn,
+         .file_path = "src/server.c",
+         .start_line = 11,
+         .end_line = 13},
+        {.project = project,
+         .label = "Function",
+         .name = "Run",
+         .qualified_name = orphan_qn,
+         .file_path = "src/server.c",
+         .start_line = 15,
+         .end_line = 17},
+    };
+    for (size_t i = 0; i < sizeof(nodes) / sizeof(nodes[0]); i++)
+        ASSERT_GT(cbm_store_upsert_node(store, &nodes[i]), 0);
+
+    const cbm_doc_candidate_t rows[] = {
+        {.section_qn = section_qn,
+         .target_qn = second_qn,
+         .rank = 2,
+         .score = 0.25,
+         .p = 0.36,
+         .evidence = "{\"shared_terms\":2,\"name_tokens\":0}"},
+        {.section_qn = section_qn,
+         .target_qn = first_qn,
+         .rank = 1,
+         .score = 0.45,
+         .p = 0.548,
+         .evidence = "{\"shared_terms\":5,\"name_tokens\":2,\"kind\":\"function\","
+                     "\"position\":\"local\"}"},
+        {.section_qn = section_qn,
+         .target_qn = "doc-cand-snippet.gone.Missing",
+         .rank = 3,
+         .score = 0.31,
+         .p = 0.42,
+         .evidence = "{\"shared_terms\":1,\"name_tokens\":0}"},
+    };
+    ASSERT_EQ(cbm_store_doc_candidates_replace(store, project, rows, 3), CBM_STORE_OK);
+    cbm_store_close(store);
+
+    char args[512];
+    snprintf(args, sizeof(args), "{\"project\":\"%s\",\"qualified_name\":\"%s\"}", project,
+             section_qn);
+    char *resp = call_tool("get_code_snippet", args);
+    ASSERT_NOT_NULL(resp);
+    yyjson_doc *doc = yyjson_read(resp, strlen(resp), 0);
+    ASSERT_NOT_NULL(doc);
+    yyjson_val *about = yyjson_obj_get(yyjson_doc_get_root(doc), "possibly_about");
+    /* The unresolvable target is skipped, not emitted as an empty row. */
+    ASSERT_EQ((int)yyjson_arr_size(about), 2);
+    yyjson_val *first = yyjson_arr_get(about, 0);
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(first, "qualified_name")), first_qn);
+    ASSERT_FLOAT_EQ(yyjson_get_num(yyjson_obj_get(first, "p")), 0.548, 1e-9);
+    ASSERT_EQ((int)yyjson_get_int(yyjson_obj_get(first, "shared_terms")), 5);
+    ASSERT_EQ((int)yyjson_get_int(yyjson_obj_get(first, "start_line")), 7);
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(first, "label")), "Function");
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(first, "kind")), "function");
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(first, "position")), "local");
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(yyjson_arr_get(about, 1), "qualified_name")),
+                  second_qn);
+    ASSERT_NOT_NULL(yyjson_obj_get(yyjson_doc_get_root(doc), "candidates_note"));
+    yyjson_doc_free(doc);
+    free(resp);
+
+    snprintf(args, sizeof(args), "{\"project\":\"%s\",\"qualified_name\":\"%s\"}", project,
+             first_qn);
+    resp = call_tool("get_code_snippet", args);
+    ASSERT_NOT_NULL(resp);
+    doc = yyjson_read(resp, strlen(resp), 0);
+    ASSERT_NOT_NULL(doc);
+    yyjson_val *described = yyjson_obj_get(yyjson_doc_get_root(doc), "possibly_described_in");
+    ASSERT_NOT_NULL(described);
+    ASSERT_EQ((int)yyjson_arr_size(described), 1);
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(yyjson_arr_get(described, 0), "section")),
+                  section_qn);
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(yyjson_arr_get(described, 0), "file_path")),
+                  "README.md");
+    yyjson_doc_free(doc);
+    free(resp);
+
+    snprintf(args, sizeof(args), "{\"project\":\"%s\",\"qualified_name\":\"%s\"}", project,
+             orphan_qn);
+    resp = call_tool("get_code_snippet", args);
+    ASSERT_NOT_NULL(resp);
+    ASSERT_NULL(strstr(resp, "possibly_"));
+    ASSERT_NULL(strstr(resp, "candidates_note"));
+    free(resp);
+
+    integ_restore_cache_dir(saved_copy);
+    free(saved_copy);
+    th_cleanup(base);
+    PASS();
+}
+
+/* get_file_outline shows the sections possibly about the file as a whole or
+ * about a folder holding it (highest p first, kind shown), in both formats, on
+ * the first page only; a candidate for a function in the file is not one of
+ * them. */
+TEST(integ_doc_candidates_file_outline) {
+    char *base = th_mktempdir("cbm_doc_cand_outline");
+    ASSERT_NOT_NULL(base);
+    char cache[512];
+    snprintf(cache, sizeof(cache), "%s/cache", base);
+    ASSERT_EQ(th_mkdir_p(cache), 0);
+
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? strdup(saved) : NULL;
+    (void)cbm_setenv("CBM_CACHE_DIR", cache, 1);
+
+    const char *project = "doc-cand-outline";
+    cbm_store_t *store = integ_doc_cand_store(cache, base, project);
+    ASSERT_NOT_NULL(store);
+
+    struct {
+        const char *label, *qn, *path;
+        int start;
+    } spec[] = {
+        {"File", "doc-cand-outline.pkg.mail.parse.__file__", "pkg/mail/parse.py", 0},
+        {"Function", "doc-cand-outline.pkg.mail.parse.parse_mail", "pkg/mail/parse.py", 3},
+        {"Folder", "doc-cand-outline.pkg.mail", "pkg/mail", 0},
+        {"Section", "doc-cand-outline.pkg.mail.README.Mail", "pkg/mail/README.md", 1},
+        {"Section", "doc-cand-outline.docs.parsing.Parsing", "docs/parsing.md", 5},
+    };
+    for (size_t i = 0; i < sizeof(spec) / sizeof(spec[0]); i++) {
+        cbm_node_t node = {.project = project,
+                           .label = spec[i].label,
+                           .name = spec[i].qn,
+                           .qualified_name = spec[i].qn,
+                           .file_path = spec[i].path,
+                           .start_line = spec[i].start,
+                           .end_line = spec[i].start + 2};
+        ASSERT_GT(cbm_store_upsert_node(store, &node), 0);
+    }
+    const cbm_doc_candidate_t rows[] = {
+        {.section_qn = "doc-cand-outline.docs.parsing.Parsing",
+         .target_qn = "doc-cand-outline.pkg.mail.parse.__file__",
+         .rank = 1,
+         .score = 0.41,
+         .p = 0.5,
+         .evidence = "{\"shared_terms\":4,\"name_tokens\":0,\"kind\":\"file\","
+                     "\"position\":\"global\"}"},
+        {.section_qn = "doc-cand-outline.pkg.mail.README.Mail",
+         .target_qn = "doc-cand-outline.pkg.mail",
+         .rank = 1,
+         .p = 0.8,
+         .evidence = "{\"shared_terms\":0,\"name_tokens\":0,\"kind\":\"folder\","
+                     "\"position\":\"local\"}"},
+        {.section_qn = "doc-cand-outline.docs.parsing.Parsing",
+         .target_qn = "doc-cand-outline.pkg.mail.parse.parse_mail",
+         .rank = 1,
+         .score = 0.5,
+         .p = 0.9,
+         .evidence = "{\"shared_terms\":5,\"name_tokens\":1,\"kind\":\"function\","
+                     "\"position\":\"global\"}"},
+    };
+    ASSERT_EQ(cbm_store_doc_candidates_replace(store, project, rows, 3), CBM_STORE_OK);
+    cbm_store_close(store);
+
+    char *raw =
+        call_tool("get_file_outline", "{\"project\":\"doc-cand-outline\","
+                                      "\"file_path\":\"pkg/mail/parse.py\",\"format\":\"json\"}");
+    ASSERT_NOT_NULL(raw);
+    yyjson_doc *doc = yyjson_read(raw, strlen(raw), 0);
+    ASSERT_NOT_NULL(doc);
+    yyjson_val *in = yyjson_obj_get(yyjson_doc_get_root(doc), "possibly_described_in");
+    /* The section targeting a function in this file is not a file candidate. */
+    ASSERT_EQ((int)yyjson_arr_size(in), 2);
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(yyjson_arr_get(in, 0), "section")),
+                  "doc-cand-outline.pkg.mail.README.Mail");
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(yyjson_arr_get(in, 0), "kind")), "folder");
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(yyjson_arr_get(in, 1), "kind")), "file");
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(yyjson_arr_get(in, 1), "file_path")),
+                  "docs/parsing.md");
+    ASSERT_NOT_NULL(yyjson_obj_get(yyjson_doc_get_root(doc), "candidates_note"));
+    yyjson_doc_free(doc);
+    free(raw);
+
+    raw = call_tool("get_file_outline",
+                    "{\"project\":\"doc-cand-outline\",\"file_path\":\"pkg/mail/parse.py\"}");
+    ASSERT_NOT_NULL(raw);
+    ASSERT_NOT_NULL(strstr(raw, "possibly_described_in: 2  (cols: section file_path line p kind)"));
+    ASSERT_NOT_NULL(strstr(raw, "doc-cand-outline.pkg.mail.README.Mail"));
+    ASSERT_NOT_NULL(strstr(raw, "docs/parsing.md"));
+    free(raw);
+
+    /* Candidates describe the file as a whole: a later page repeats only rows. */
+    raw = call_tool("get_file_outline",
+                    "{\"project\":\"doc-cand-outline\",\"file_path\":\"pkg/mail/parse.py\","
+                    "\"offset\":1}");
+    ASSERT_NOT_NULL(raw);
+    ASSERT_NULL(strstr(raw, "possibly_described_in"));
+    free(raw);
+
+    integ_restore_cache_dir(saved_copy);
+    free(saved_copy);
+    th_cleanup(base);
+    PASS();
+}
+
+/* A PDF page Section answers with its text-layer docstring, never the file's
+ * bytes (which are not source text). */
+TEST(integ_doc_candidates_pdf_snippet_uses_text_layer) {
+    char *base = th_mktempdir("cbm_doc_cand_pdf");
+    ASSERT_NOT_NULL(base);
+    char repo[512];
+    char cache[512];
+    snprintf(repo, sizeof(repo), "%s/repo", base);
+    snprintf(cache, sizeof(cache), "%s/cache", base);
+    ASSERT_EQ(th_mkdir_p(repo), 0);
+    ASSERT_EQ(th_mkdir_p(cache), 0);
+    ASSERT_EQ(th_write_file(TH_PATH(repo, "docs/manual.pdf"), "%PDF-1.4 binary bytes\n"), 0);
+
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? strdup(saved) : NULL;
+    (void)cbm_setenv("CBM_CACHE_DIR", cache, 1);
+
+    const char *project = "doc-cand-pdf";
+    cbm_store_t *store = integ_doc_cand_store(cache, repo, project);
+    ASSERT_NOT_NULL(store);
+    char page_qn[128];
+    snprintf(page_qn, sizeof(page_qn), "%s.docs.manual.page1", project);
+    cbm_node_t page = {.project = project,
+                       .label = "Section",
+                       .name = "page1",
+                       .qualified_name = page_qn,
+                       .file_path = "docs/manual.pdf",
+                       .start_line = 1,
+                       .end_line = 1,
+                       .properties_json = "{\"docstring\":\"Page one: install steps.\"}"};
+    ASSERT_GT(cbm_store_upsert_node(store, &page), 0);
+    cbm_store_close(store);
+
+    char args[512];
+    snprintf(args, sizeof(args), "{\"project\":\"%s\",\"qualified_name\":\"%s\"}", project,
+             page_qn);
+    char *resp = call_tool("get_code_snippet", args);
+    ASSERT_NOT_NULL(resp);
+    yyjson_doc *doc = yyjson_read(resp, strlen(resp), 0);
+    ASSERT_NOT_NULL(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(root, "source")), "Page one: install steps.");
+    ASSERT_STR_EQ(yyjson_get_str(yyjson_obj_get(root, "source_mode")), "full");
+    yyjson_doc_free(doc);
+    free(resp);
+
+    integ_restore_cache_dir(saved_copy);
+    free(saved_copy);
+    th_cleanup(base);
+    PASS();
+}
+
 SUITE(integration) {
     RUN_TEST(index_reports_excluded_subtrees_issue411);
     /* Set up: create temp project and index it */
@@ -1944,6 +2268,9 @@ SUITE(integration) {
     RUN_TEST(integ_js_path_module_default_client);
     RUN_TEST(integ_mcp_index_status);
     RUN_TEST(integ_mcp_adr_outline_fence_status);
+    RUN_TEST(integ_doc_candidates_snippet_both_directions);
+    RUN_TEST(integ_doc_candidates_file_outline);
+    RUN_TEST(integ_doc_candidates_pdf_snippet_uses_text_layer);
 
     /* Store query validation */
     RUN_TEST(integ_store_search_by_degree);
