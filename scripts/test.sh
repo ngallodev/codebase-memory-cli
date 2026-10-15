@@ -13,6 +13,7 @@ while (($#)); do
         --smart) SMART=1; shift ;;
         --dry-run) SMART_ARGS+=(--dry-run); shift ;;
         --tool|--jobs|--tests) SMART_ARGS+=("$1" "${2:?$1 needs a value}"); shift 2 ;;
+        --attribute|--no-attribute) SMART_ARGS+=("$1"); shift ;;
         --changed)
             SMART_ARGS+=(--changed)
             if (($# > 1)) && [[ "$2" != -* ]]; then SMART_ARGS+=("$2"); shift 2; else shift; fi ;;

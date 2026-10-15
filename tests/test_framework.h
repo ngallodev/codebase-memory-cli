@@ -266,6 +266,10 @@ static inline const char *tf_reset(void) {
         timespec_get(&_test_started, TIME_UTC);                                              \
         printf("  %-55s", #name);                                                            \
         fflush(stdout);                                                                      \
+        if (getenv("CBM_TEST_MACHINE_RESULTS") != NULL) {                                    \
+            printf("\n@@cbm-test %s:%s status=START ms=0\n", tf_current_suite, #name);       \
+            fflush(stdout);                                                                  \
+        }                                                                                    \
         TF_COVERAGE_TEST_BEGIN(#name);                                                       \
         int _result = test_##name();                                                         \
         timespec_get(&_test_ended, TIME_UTC);                                                \

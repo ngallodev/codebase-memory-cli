@@ -1746,29 +1746,25 @@ static void test_list_redirect_stop(void) {
  * the shard union guard stays consistent. */
 static bool g_skip_perf = false;
 
-#define RUN_SELECTED_SUITE(name)                             \
-    do {                                                     \
-        if (g_list_only) {                                   \
-            printf("%s\n", #name);                           \
-        } else if (g_list_tests && suite_requested(#name)) { \
-            RUN_SUITE(name);                                 \
-        } else if (suite_requested(#name)) {                 \
-            RUN_SUITE(name);                                 \
-        }                                                    \
+#define RUN_SELECTED_SUITE(name)             \
+    do {                                     \
+        if (g_list_only) {                   \
+            printf("%s\n", #name);           \
+        } else if (suite_requested(#name)) { \
+            RUN_SUITE(name);                 \
+        }                                    \
     } while (0)
 
-#define RUN_SELECTED_SUITE_PERF(name)                        \
-    do {                                                     \
-        if (g_skip_perf) {                                   \
-            break;                                           \
-        }                                                    \
-        if (g_list_only) {                                   \
-            printf("%s\n", #name);                           \
-        } else if (g_list_tests && suite_requested(#name)) { \
-            RUN_SUITE(name);                                 \
-        } else if (suite_requested(#name)) {                 \
-            RUN_SUITE(name);                                 \
-        }                                                    \
+#define RUN_SELECTED_SUITE_PERF(name)        \
+    do {                                     \
+        if (g_skip_perf) {                   \
+            break;                           \
+        }                                    \
+        if (g_list_only) {                   \
+            printf("%s\n", #name);           \
+        } else if (suite_requested(#name)) { \
+            RUN_SUITE(name);                 \
+        }                                    \
     } while (0)
 
 /* Forward declarations of suite functions */
@@ -2176,8 +2172,7 @@ int main(int argc, char **argv) {
      * binary as `<self> cli --index-worker …` and recursively re-run suites.
      * A test that exercises the supervisor must explicitly re-enable it. */
     cbm_setenv("CBM_INDEX_SUPERVISOR", "0", 1);
-    bool listing_tests = argc >= 2 && strcmp(argv[1], "--list-tests") == 0;
-    if (!listing_tests && !tf_setup_cache_sentinel()) {
+    if (!tf_setup_cache_sentinel()) {
         fprintf(stderr, "failed to create isolated test cache and daemon runtime\n");
         return 2;
     }
