@@ -89,6 +89,7 @@ static cbm_store_t *compare_open_project_store(const char *project) {
             cbm_project_t row = {0};
             if (cbm_store_get_project(store, project, &row) == CBM_STORE_OK) {
                 cbm_project_free_fields(&row);
+                (void)cbm_store_read_batch_begin(store);
                 return store;
             }
             cbm_store_close(store);
@@ -112,6 +113,7 @@ static cbm_store_t *compare_open_project_store(const char *project) {
         char internal_name[CBM_SZ_1K];
         if (compare_primary_project_name(candidate, internal_name, sizeof(internal_name)) &&
             strcmp(internal_name, project) == 0) {
+            (void)cbm_store_read_batch_begin(candidate);
             found = candidate;
             break;
         }

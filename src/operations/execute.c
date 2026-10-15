@@ -1,6 +1,7 @@
 #include "operations/operation.h"
 #include "operations/read.h"
 #include "operations/mutation.h"
+#include "store/graph_mem.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -35,14 +36,16 @@ cbm_operation_result_t cbm_operation_execute(cbm_operation_context_t *context,
         return cbm_operation_result_copy("unknown operation", true);
     }
     const char *json = args_json ? args_json : "{}";
+    cbm_operation_result_t result;
     if (cbm_read_operation_supported(operation)) {
-        return cbm_read_operation_execute(operation, json, context ? context->runtime : NULL);
+        result = cbm_read_operation_execute(operation, json, context ? context->runtime : NULL);
+    } else if (cbm_mutation_operation_supported(operation)) {
+        result = cbm_mutation_operation_execute(operation, json, context ? context->runtime : NULL);
+    } else if (!context || !context->backend) {
+        result = cbm_operation_result_copy("operation backend unavailable", true);
+    } else {
+        result = context->backend(context->backend_context, operation, json);
     }
-    if (cbm_mutation_operation_supported(operation)) {
-        return cbm_mutation_operation_execute(operation, json, context ? context->runtime : NULL);
-    }
-    if (!context || !context->backend) {
-        return cbm_operation_result_copy("operation backend unavailable", true);
-    }
-    return context->backend(context->backend_context, operation, json);
+    cbm_graph_mem_evict_expired();
+    return result;
 }

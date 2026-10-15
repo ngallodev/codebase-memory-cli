@@ -1730,6 +1730,7 @@ extern void suite_store_edges(void);
 extern void suite_store_impact(void);
 extern void suite_store_scope(void);
 extern void suite_store_graph_digest(void);
+extern void suite_graph_mem(void);
 extern void suite_test_impact(void);
 extern void suite_test_impact_profiles(void);
 extern void suite_test_impact_changes(void);
@@ -1749,6 +1750,7 @@ extern void suite_cypher(void);
 extern void suite_index_supervisor(void);
 extern void suite_changes_operation(void);
 extern void suite_trace_architecture_operations(void);
+extern void suite_source_search(void);
 extern void suite_daemon(void);
 extern void suite_project_lock(void);
 extern void suite_version_cohort(void);
@@ -2187,6 +2189,7 @@ int main(int argc, char **argv) {
     RUN_SELECTED_SUITE(store_impact);
     RUN_SELECTED_SUITE(store_scope);
     RUN_SELECTED_SUITE(store_graph_digest);
+    RUN_SELECTED_SUITE(graph_mem);
     RUN_SELECTED_SUITE(test_impact);
     RUN_SELECTED_SUITE(test_impact_profiles);
     RUN_SELECTED_SUITE(test_impact_changes);
@@ -2214,6 +2217,7 @@ int main(int argc, char **argv) {
     RUN_SELECTED_SUITE(index_supervisor);
     RUN_SELECTED_SUITE(changes_operation);
     RUN_SELECTED_SUITE(trace_architecture_operations);
+    RUN_SELECTED_SUITE(source_search);
 
     /* Daemon coordination + private framing */
     RUN_SELECTED_SUITE(daemon);

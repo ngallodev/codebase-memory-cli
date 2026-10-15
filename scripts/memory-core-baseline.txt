@@ -23,7 +23,7 @@ src/cli/config_toml_edit.c	73
 src/cli/config_yaml_edit.c	117
 src/cli/hook_augment.c	27
 src/cli/legacy_agent_profiles.c	7
-src/cypher/cypher.c	128
+src/cypher/cypher.c	125
 src/daemon/application.c	113
 src/daemon/bootstrap.c	13
 src/daemon/daemon.c	31

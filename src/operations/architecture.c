@@ -536,6 +536,7 @@ cbm_operation_result_t cbm_architecture_operation_execute(const char *args) {
                                       ? CBM_STORE_CORRUPT_ERROR
                                       : "project not found or not indexed");
     }
+    (void)cbm_store_read_batch_begin(store);
     char *scope_path = architecture_string_arg(args, "path");
 
     if (cbm_store_count_nodes(store, project) <= 0) {
