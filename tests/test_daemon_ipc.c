@@ -25,6 +25,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern const char *cbm_test_program_path;
+
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -3262,6 +3264,7 @@ TEST(daemon_ipc_posix_startup_lock_is_cross_process) {
         int child_result = ipc_test_cross_process_lock_child(endpoint, commands[0], results[1]);
         (void)close(commands[0]);
         (void)close(results[1]);
+        cbm_daemon_ipc_endpoint_free(endpoint);
         _exit(child_result);
     }
     if (child > 0) {
@@ -3352,6 +3355,7 @@ TEST(daemon_ipc_posix_lifetime_reservation_rejects_fork_inheritance) {
         cbm_daemon_ipc_lifetime_reservation_release(inherited);
         bool reported = ipc_test_fd_write_all(result_pipe[1], &child_result, sizeof(child_result));
         (void)close(result_pipe[1]);
+        cbm_daemon_ipc_endpoint_free(endpoint);
         _exit(reported && child_result == 1 ? 0 : 1);
     }
     if (child > 0) {
@@ -3447,6 +3451,7 @@ TEST(daemon_ipc_posix_child_participant_handoff_retains_legacy_bridge) {
             ipc_test_fd_write_all(child_to_parent[1], &release_byte, sizeof(release_byte));
         (void)close(parent_to_child[0]);
         (void)close(child_to_parent[1]);
+        cbm_daemon_ipc_endpoint_free(endpoint);
         _exit(join_byte == 1 && release_reported && release_byte == 1 ? 0 : 1);
     }
     if (child > 0) {
@@ -5581,6 +5586,14 @@ TEST(daemon_ipc_posix_single_uid_userns_real_smoke_issue1830) {
          * unprivileged userns) -- while looking like a product regression.
          * Re-exec so the decision is made by a process that STARTED here, which
          * is also the only shape production ever takes. */
+        /* /proc/self/exe can name Valgrind itself here. Re-exec the runner
+         * path recorded from argv[0] so the probe starts fresh in the namespace.
+         * A relative argv[0] stops resolving once an earlier test changes the
+         * working directory, so fall back to /proc/self/exe. */
+        if (cbm_test_program_path) {
+            (void)execl(cbm_test_program_path, "test-runner", "--userns-secure-probe", probe,
+                        (char *)NULL);
+        }
         (void)execl("/proc/self/exe", "test-runner", "--userns-secure-probe", probe, (char *)NULL);
         _exit(3); /* exec failed -- distinct from secure(0)/refused(1)/skip(2) */
     }
