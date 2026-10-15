@@ -257,7 +257,7 @@ unoptimized/older binary was used for measurements. See `docs/PERFORMANCE_BASELI
 - **COMPLETE:** comparative Windows benchmarking is specified around a frozen repository corpus, exact artifact identity, fresh-cache alternating trials, correctness/shape parity, and retained raw evidence.
 - **COMPLETE:** a standalone Windows qualification-agent runbook defines acquisition, identity verification, frozen-corpus checks, functional/recovery testing, install/update/uninstall validation, benchmarking, failure classification, and evidence summary requirements.
 - **COMPLETE:** benchmark corpus revisions are immutable within a corpus generation. Any repository revision change creates a new generation and requires a new baseline capture rather than comparison against older results.
-- **REMAINING:** finalize the exact `agent-workflow` remote and select/pin the fourth larger open-source repository already available on `r6d12`/the qualification environment.
+- **REMAINING:** finalize the exact `agent-workflow` remote and select/pin the fourth larger open-source repository already available on the CI host / the qualification environment.
 - **REMAINING:** complete Linux consolidation, publish an immutable GitHub release candidate, execute native Windows qualification and comparative baselines, then run agent usability and produce the final product skill.
 
 ## CP62 — Frozen benchmark corpus finalization

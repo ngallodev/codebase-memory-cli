@@ -4,7 +4,7 @@ Date: 2026-09-03
 
 ## Repository
 
-- Local path: `/lump/apps/codebase-memory-cli`
+- Local path: `<workspace>/codebase-memory-cli`
 - Branch: `release-tooling`
 - HEAD: `fae6ff45` (`docs: deprecate MCP-dependent tests`)
 - Fork: `https://github.com/ngallodev/codebase-memory-cli`
