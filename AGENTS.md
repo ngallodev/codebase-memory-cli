@@ -7,6 +7,9 @@
   files and the compiler cache.
 - Prefer `scripts/test.sh --suites <suite>` for local validation. This uses the
   incremental test runner; choose the smallest relevant suite set.
+- For resumable per-test iteration, use `scripts/test.sh --smart` with
+  `--suites`, `--changed`, `--tests`, or `--failed`; use `--dry-run` on
+  `scripts/testsched/schedule.py` to inspect its timing based plan.
 - Do not use `scripts/build.sh` or the default `scripts/test.sh` for ordinary
   iteration. Those are clean, complete venue gates for GitHub, Jenkins, and
   release validation.

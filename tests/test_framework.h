@@ -52,6 +52,8 @@ extern const char *tf_current_suite;
 bool tf_suite_enter(const char *suite);
 void tf_suite_leave(const char *suite);
 bool tf_test_selected(const char *test);
+bool tf_test_list_mode(void);
+void tf_list_test(const char *test);
 
 /* ── Per-test coverage (CBM_TEST_COVERAGE builds only) ─────────── */
 
@@ -251,44 +253,60 @@ static inline const char *tf_reset(void) {
 
 /* ── Test runner ───────────────────────────────────────────────── */
 
-#define RUN_TEST(name)                                     \
-    do {                                                   \
-        if (!tf_test_selected(#name)) {                    \
-            break;                                         \
-        }                                                  \
-        time_t _test_started = time(NULL);                 \
-        printf("  %-55s", #name);                          \
-        fflush(stdout);                                    \
-        TF_COVERAGE_TEST_BEGIN(#name);                     \
-        int _result = test_##name();                       \
-        time_t _test_elapsed = time(NULL) - _test_started; \
-        TF_COVERAGE_TEST_END(#name);                       \
-        if (_result == 0) {                                \
-            printf("%sPASS%s", tf_green(), tf_reset());    \
-            tf_pass_count++;                               \
-        } else if (_result == -1) {                        \
-            /* skip — already printed */                   \
-        } else {                                           \
-            tf_fail_count++;                               \
-        }                                                  \
-        if (getenv("CBM_TEST_TIMINGS") != NULL)            \
-            printf(" [%llds]", (long long)_test_elapsed);  \
-        if (_result != -1)                                 \
-            printf("\n");                                  \
+#define RUN_TEST(name)                                                                       \
+    do {                                                                                     \
+        if (tf_test_list_mode()) {                                                           \
+            tf_list_test(#name);                                                             \
+            break;                                                                           \
+        }                                                                                    \
+        if (!tf_test_selected(#name)) {                                                      \
+            break;                                                                           \
+        }                                                                                    \
+        struct timespec _test_started, _test_ended;                                          \
+        timespec_get(&_test_started, TIME_UTC);                                              \
+        printf("  %-55s", #name);                                                            \
+        fflush(stdout);                                                                      \
+        TF_COVERAGE_TEST_BEGIN(#name);                                                       \
+        int _result = test_##name();                                                         \
+        timespec_get(&_test_ended, TIME_UTC);                                                \
+        long long _test_ms = ((long long)_test_ended.tv_sec - _test_started.tv_sec) * 1000 + \
+                             (_test_ended.tv_nsec - _test_started.tv_nsec) / 1000000;        \
+        TF_COVERAGE_TEST_END(#name);                                                         \
+        if (_result == 0) {                                                                  \
+            printf("%sPASS%s", tf_green(), tf_reset());                                      \
+            tf_pass_count++;                                                                 \
+        } else if (_result == -1) {                                                          \
+            /* skip — already printed */                                                     \
+        } else {                                                                             \
+            tf_fail_count++;                                                                 \
+        }                                                                                    \
+        if (getenv("CBM_TEST_MACHINE_RESULTS") != NULL) {                                    \
+            printf("\n@@cbm-test %s:%s status=%s ms=%lld\n", tf_current_suite, #name,        \
+                   _result == 0    ? "PASS"                                                  \
+                   : _result == -1 ? "SKIP"                                                  \
+                                   : "FAIL",                                                 \
+                   _test_ms);                                                                \
+            fflush(stdout);                                                                  \
+        }                                                                                    \
+        if (getenv("CBM_TEST_TIMINGS") != NULL)                                              \
+            printf(" [%llds]", _test_ms / 1000);                                             \
+        if (_result != -1)                                                                   \
+            printf("\n");                                                                    \
     } while (0)
 
 /* ── Suite grouping ────────────────────────────────────────────── */
 
 #define SUITE(name) void suite_##name(void)
 
-#define RUN_SUITE(name)                                            \
-    do {                                                           \
-        if (!tf_suite_enter(#name)) {                              \
-            break;                                                 \
-        }                                                          \
-        printf("\n%s=== %s ===%s\n", tf_dim(), #name, tf_reset()); \
-        suite_##name();                                            \
-        tf_suite_leave(#name);                                     \
+#define RUN_SUITE(name)                                                \
+    do {                                                               \
+        if (!tf_suite_enter(#name)) {                                  \
+            break;                                                     \
+        }                                                              \
+        if (!tf_test_list_mode())                                      \
+            printf("\n%s=== %s ===%s\n", tf_dim(), #name, tf_reset()); \
+        suite_##name();                                                \
+        tf_suite_leave(#name);                                         \
     } while (0)
 
 /* ── Summary ───────────────────────────────────────────────────── */

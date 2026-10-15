@@ -1669,6 +1669,73 @@ static bool suite_requested(const char *name) {
  * test-par, the CI shard matrix) enumerate suites from here and their union
  * guard compares against it. */
 static bool g_list_only = false;
+static bool g_list_tests = false;
+static char **g_test_names = NULL;
+static size_t g_test_name_count = 0;
+static size_t g_test_name_capacity = 0;
+static int g_list_stdout_copy = -1;
+static FILE *g_list_stdout_discard = NULL;
+
+bool tf_test_list_mode(void) {
+    return g_list_tests;
+}
+
+void tf_list_test(const char *test) {
+    if (g_test_name_count == g_test_name_capacity) {
+        size_t capacity = g_test_name_capacity ? g_test_name_capacity * 2 : 64;
+        char **grown = realloc(g_test_names, capacity * sizeof(*grown));
+        if (!grown) {
+            fprintf(stderr, "failed to grow test list\n");
+            tf_fail_count++;
+            return;
+        }
+        g_test_names = grown;
+        g_test_name_capacity = capacity;
+    }
+    size_t length = strlen(tf_current_suite) + strlen(test) + 2;
+    char *name = malloc(length);
+    if (!name) {
+        fprintf(stderr, "failed to store test list entry\n");
+        tf_fail_count++;
+        return;
+    }
+    snprintf(name, length, "%s:%s", tf_current_suite, test);
+    g_test_names[g_test_name_count++] = name;
+}
+
+static bool test_list_redirect_start(void) {
+#ifdef _WIN32
+    g_list_stdout_copy = _dup(_fileno(stdout));
+    g_list_stdout_discard = fopen("NUL", "w");
+    if (g_list_stdout_copy < 0 || !g_list_stdout_discard ||
+        _dup2(_fileno(g_list_stdout_discard), _fileno(stdout)) < 0) {
+#else
+    g_list_stdout_copy = dup(fileno(stdout));
+    g_list_stdout_discard = fopen("/dev/null", "w");
+    if (g_list_stdout_copy < 0 || !g_list_stdout_discard ||
+        dup2(fileno(g_list_stdout_discard), fileno(stdout)) < 0) {
+#endif
+        fprintf(stderr, "failed to isolate test enumeration output\n");
+        return false;
+    }
+    return true;
+}
+
+static void test_list_redirect_stop(void) {
+    fflush(stdout);
+#ifdef _WIN32
+    (void)_dup2(g_list_stdout_copy, _fileno(stdout));
+    _close(g_list_stdout_copy);
+#else
+    (void)dup2(g_list_stdout_copy, fileno(stdout));
+    close(g_list_stdout_copy);
+#endif
+    g_list_stdout_copy = -1;
+    if (g_list_stdout_discard) {
+        fclose(g_list_stdout_discard);
+        g_list_stdout_discard = NULL;
+    }
+}
 
 /* CBM_SKIP_PERF=1 excludes throughput/scale/perf-metric suites from the run.
  * The fidelity pass (CBM_LOCAL_CI_CPUS=4) and CI PRs set it: those suites
@@ -1679,25 +1746,29 @@ static bool g_list_only = false;
  * the shard union guard stays consistent. */
 static bool g_skip_perf = false;
 
-#define RUN_SELECTED_SUITE(name)             \
-    do {                                     \
-        if (g_list_only) {                   \
-            printf("%s\n", #name);           \
-        } else if (suite_requested(#name)) { \
-            RUN_SUITE(name);                 \
-        }                                    \
+#define RUN_SELECTED_SUITE(name)                             \
+    do {                                                     \
+        if (g_list_only) {                                   \
+            printf("%s\n", #name);                           \
+        } else if (g_list_tests && suite_requested(#name)) { \
+            RUN_SUITE(name);                                 \
+        } else if (suite_requested(#name)) {                 \
+            RUN_SUITE(name);                                 \
+        }                                                    \
     } while (0)
 
-#define RUN_SELECTED_SUITE_PERF(name)        \
-    do {                                     \
-        if (g_skip_perf) {                   \
-            break;                           \
-        }                                    \
-        if (g_list_only) {                   \
-            printf("%s\n", #name);           \
-        } else if (suite_requested(#name)) { \
-            RUN_SUITE(name);                 \
-        }                                    \
+#define RUN_SELECTED_SUITE_PERF(name)                        \
+    do {                                                     \
+        if (g_skip_perf) {                                   \
+            break;                                           \
+        }                                                    \
+        if (g_list_only) {                                   \
+            printf("%s\n", #name);                           \
+        } else if (g_list_tests && suite_requested(#name)) { \
+            RUN_SUITE(name);                                 \
+        } else if (suite_requested(#name)) {                 \
+            RUN_SUITE(name);                                 \
+        }                                                    \
     } while (0)
 
 /* Forward declarations of suite functions */
@@ -2105,7 +2176,8 @@ int main(int argc, char **argv) {
      * binary as `<self> cli --index-worker …` and recursively re-run suites.
      * A test that exercises the supervisor must explicitly re-enable it. */
     cbm_setenv("CBM_INDEX_SUPERVISOR", "0", 1);
-    if (!tf_setup_cache_sentinel()) {
+    bool listing_tests = argc >= 2 && strcmp(argv[1], "--list-tests") == 0;
+    if (!listing_tests && !tf_setup_cache_sentinel()) {
         fprintf(stderr, "failed to create isolated test cache and daemon runtime\n");
         return 2;
     }
@@ -2120,16 +2192,20 @@ int main(int argc, char **argv) {
     if (argc == 2 && strcmp(argv[1], "--list-suites") == 0) {
         g_list_only = true;
         g_suite_argc = 1; /* no suite-name args to match */
+    } else if (argc >= 2 && strcmp(argv[1], "--list-tests") == 0) {
+        g_list_tests = true;
+        g_suite_argc = argc - 1;
+        g_suite_argv = argv + 1;
     } else {
         g_suite_argc = argc;
         g_suite_argv = argv;
     }
-    if (!g_list_only && !tf_only_init()) {
+    if (!g_list_only && !g_list_tests && !tf_only_init()) {
         tf_only_free();
         return 2;
     }
 #ifdef CBM_TEST_COVERAGE
-    if (!g_list_only && !tf_coverage_init()) {
+    if (!g_list_only && !g_list_tests && !tf_coverage_init()) {
 #ifndef _WIN32
         tf_coverage_channel_finish();
 #endif
@@ -2147,7 +2223,10 @@ int main(int argc, char **argv) {
             return 1;
         }
     }
-    if (!g_list_only) {
+    if (g_list_tests && !test_list_redirect_start()) {
+        return 2;
+    }
+    if (!g_list_only && !g_list_tests) {
         printf("\n  codebase-memory-cli  C test suite\n");
     }
 
@@ -2439,6 +2518,23 @@ int main(int argc, char **argv) {
     }
     if (g_suite_argc > 1 && !any_suite_matched) {
         fprintf(stderr, "No matching test suites requested\n");
+    }
+    if (g_list_tests) {
+        test_list_redirect_stop();
+        if (tf_fail_count == 0) {
+            for (size_t i = 0; i < g_test_name_count; i++) {
+                printf("%s\n", g_test_names[i]);
+            }
+            fflush(stdout);
+        }
+        for (size_t i = 0; i < g_test_name_count; i++) {
+            free(g_test_names[i]);
+        }
+        free(g_test_names);
+        fflush(stdout);
+        cbm_kind_in_set_free_cache();
+        sqlite3_shutdown();
+        return tf_fail_count > 0 ? 1 : 0;
     }
 #if defined(CBM_TEST_COVERAGE) && !defined(_WIN32)
     tf_coverage_parent_failure_finish();
