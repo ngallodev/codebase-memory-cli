@@ -659,6 +659,7 @@ cbm_operation_result_t cbm_snippet_operation_execute(const char *args) {
             return error_result(CBM_STORE_CORRUPT_MESSAGE, CBM_STORE_CORRUPT_HINT);
         return error_result("project not indexed", "Run 'codebase-memory-cli index .' first.");
     }
+    (void)cbm_store_read_batch_begin(store);
 
     cbm_node_t exact = {0};
     if (cbm_store_find_node_by_qn(store, project, qualified_name, &exact) == CBM_STORE_OK) {

@@ -97,6 +97,7 @@ cbm_operation_result_t cbm_schema_operation_execute(const char *args_json) {
                                              : "project not found or not indexed",
                                          true);
     }
+    (void)cbm_store_read_batch_begin(store);
     if (cbm_store_count_nodes(store, project) <= 0) {
         cbm_store_close(store);
         cbm_operation_arg_free(project);

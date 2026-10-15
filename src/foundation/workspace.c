@@ -73,14 +73,19 @@ bool cbm_path_within_root(const char *root_path, const char *abs_path) {
         return false;
     }
     char real_root[4096];
-    char real_file[4096];
-    if (resolve_canonical_path(root_path, real_root, sizeof(real_root)) &&
-        resolve_canonical_path(abs_path, real_file, sizeof(real_file))) {
-        if (canonical_path_has_root(real_root, real_file)) {
-            return true;
-        }
+    if (!resolve_canonical_path(root_path, real_root, sizeof(real_root))) {
+        return false;
     }
-    return false;
+    return cbm_path_within_canonical_root(real_root, abs_path);
+}
+
+bool cbm_path_within_canonical_root(const char *canonical_root, const char *abs_path) {
+    if (!canonical_root || !abs_path) {
+        return false;
+    }
+    char real_file[4096];
+    return resolve_canonical_path(abs_path, real_file, sizeof(real_file)) &&
+           canonical_path_has_root(canonical_root, real_file);
 }
 
 enum {

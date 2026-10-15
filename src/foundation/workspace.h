@@ -55,6 +55,8 @@ int cbm_workspace_path_depth(const char *canonical_path);
  * and junction resolution? This is shared foundation policy used by every
  * source-reading surface. */
 bool cbm_path_within_root(const char *root_path, const char *abs_path);
+/* Check a path against a root already canonicalized by cbm_canonical_path. */
+bool cbm_path_within_canonical_root(const char *canonical_root, const char *abs_path);
 
 /*
  * ── Grant store ──────────────────────────────────────────────────────────────
