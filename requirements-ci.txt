@@ -2,3 +2,7 @@
 # Keep this separate from pkg/pypi/requirements-publish.txt: these packages are
 # CI analyzers, not runtime or registry-publishing dependencies.
 scancode-toolkit==32.5.0
+# pluggy 1.7.0 rejects plugincode 32.0.0's pre_scan hookspec module ("did not
+# find any 'pre_scan' hooks"), which breaks `scancode` at import. Keep the
+# last working release until plugincode supports 1.7.
+pluggy==1.6.0
