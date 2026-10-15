@@ -298,6 +298,7 @@ cbm_operation_result_t cbm_coverage_operation_execute(const char *args) {
         cbm_operation_arg_free(project);
         return result;
     }
+    (void)cbm_store_read_batch_begin(store);
 
     yyjson_doc *adoc = args ? yyjson_read(args, strlen(args), 0) : NULL;
     yyjson_val *aroot = adoc ? yyjson_doc_get_root(adoc) : NULL;

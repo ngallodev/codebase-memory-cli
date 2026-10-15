@@ -194,6 +194,7 @@ static cbm_store_t *open_indexed_project(const char *project,
     cbm_store_t *store = cbm_store_host_open_query_path(db_path, open_status);
     if (!store)
         return NULL;
+    (void)cbm_store_read_batch_begin(store);
     cbm_project_t indexed = {0};
     if (cbm_store_get_project(store, project, &indexed) != CBM_STORE_OK) {
         cbm_store_close(store);

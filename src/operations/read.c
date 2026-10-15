@@ -166,6 +166,7 @@ static void add_project_entry(yyjson_mut_doc *doc, yyjson_mut_val *array, const 
     if (!store) {
         return;
     }
+    (void)cbm_store_read_batch_begin(store);
     char project_name[1024];
     if (!primary_project_name(store, project_name, sizeof(project_name))) {
         cbm_store_close(store);
@@ -188,11 +189,12 @@ static void add_project_entry(yyjson_mut_doc *doc, yyjson_mut_val *array, const 
      * disambiguates same-repo projects). The full git block is one status call
      * away for the project you actually care about. */
     if (!metadata_only) {
-        cbm_git_context_t git = {0};
-        if (root_path[0] && cbm_git_context_resolve(root_path, &git) && git.is_git && git.branch) {
-            yyjson_mut_obj_add_strcpy(doc, item, "branch", git.branch);
+        bool is_git = false;
+        char branch[CBM_GIT_BRANCH_MAX];
+        if (root_path[0] && cbm_git_branch_resolve(root_path, &is_git, branch, sizeof(branch)) &&
+            is_git && branch[0]) {
+            yyjson_mut_obj_add_strcpy(doc, item, "branch", branch);
         }
-        cbm_git_context_free(&git);
     }
     if (include_details) {
         yyjson_mut_obj_add_int(doc, item, "nodes", cbm_store_count_nodes(store, project_name));

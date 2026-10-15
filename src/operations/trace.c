@@ -359,8 +359,8 @@ static yyjson_doc *resolve_edge_types(const char *args, const char *mode, const 
      * ordering (DEPENDS_ON), controllers (HANDLES), what an object declares
      * (DEFINES: an Ingress's routes) and what it deploys (DEPLOYS: a Flux
      * Kustomization's path, a HelmRelease's chart). */
-    static const char *mode_topology[] = {"INFRA_MAPS", "USAGE",   "DEPENDS_ON",
-                                          "HANDLES",    "DEFINES", "DEPLOYS"};
+    static const char *mode_topology[] = {"INFRA_MAPS", "USAGE",   "DEPENDS_ON", "HANDLES",
+                                          "DEFINES",    "DEPLOYS", "CONNECTS_TO"};
     /* deploy (#2597): what a CI job, script or Make rule starts (SPAWNS:
      * scripts, make targets, programs), calls (CALLS: shell functions) and
      * puts on a cluster (DEPLOYS) — outbound from the job, inbound from a
@@ -794,6 +794,7 @@ cbm_operation_result_t cbm_trace_operation_execute(const char *args) {
                 : error_result("project not indexed", "Run 'codebase-memory-cli index .' first.");
         goto done;
     }
+    (void)cbm_store_read_batch_begin(store);
 
     (void)cbm_store_find_nodes_by_name(store, project, function, &nodes, &node_count);
     if (node_count == 0) {

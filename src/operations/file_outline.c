@@ -282,6 +282,7 @@ cbm_operation_result_t cbm_file_outline_operation_execute(const char *args_json,
                                  ? CBM_STORE_CORRUPT_ERROR
                                  : "project not found or not indexed");
     }
+    (void)cbm_store_read_batch_begin(store);
     cbm_project_t info = {0};
     if (cbm_store_get_project(store, project, &info) != CBM_STORE_OK) {
         cbm_store_close(store);
