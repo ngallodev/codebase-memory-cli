@@ -5587,9 +5587,14 @@ TEST(daemon_ipc_posix_single_uid_userns_real_smoke_issue1830) {
          * Re-exec so the decision is made by a process that STARTED here, which
          * is also the only shape production ever takes. */
         /* /proc/self/exe can name Valgrind itself here. Re-exec the runner
-         * path recorded from argv[0] so the probe starts fresh in the namespace. */
-        (void)execl(cbm_test_program_path, "test-runner", "--userns-secure-probe", probe,
-                    (char *)NULL);
+         * path recorded from argv[0] so the probe starts fresh in the namespace.
+         * A relative argv[0] stops resolving once an earlier test changes the
+         * working directory, so fall back to /proc/self/exe. */
+        if (cbm_test_program_path) {
+            (void)execl(cbm_test_program_path, "test-runner", "--userns-secure-probe", probe,
+                        (char *)NULL);
+        }
+        (void)execl("/proc/self/exe", "test-runner", "--userns-secure-probe", probe, (char *)NULL);
         _exit(3); /* exec failed -- distinct from secure(0)/refused(1)/skip(2) */
     }
     if (child < 0) {
