@@ -1135,7 +1135,7 @@ package installation/runtime qualification is separate.
 Specifications are finalized in SpecGen `agent-workflow` mode (zero readiness
 blockers), committed on release-tooling at `51aa7a86`. Each defines five must
 requirements, acceptance/evaluation links, preservation boundaries and structured
-worker evidence. See `docs/specs/upstream-next-three/{daemon-ownership,rescript-hang,cache-stores}/spec.json`
+worker evidence. See `docs/internal/specs/upstream-next-three/{daemon-ownership,rescript-hang,cache-stores}/spec.json`
 and their derived `SPEC.md` projections.
 
 | Vertical | Durable Agent Run | Independent branch | Execution state |
@@ -1268,7 +1268,7 @@ R4 worker verdicts below are **checkpoint claims pending parent whole-hunk revie
 not accepted dispositions. Source-only findings and machine crosswalks are retained
 in `CBM-UPSTREAM-CONSOLIDATE-20261002` evidence. The dated
 [synthesis report](UPSTREAM_RECONCILIATION_REPORT_20261002.md) explains this snapshot;
-this ledger and `BACKLOG.md` retain task authority.
+this ledger and the (removed) backlog retained task authority.
 
 ### Adapter-only source-reviewed batch — 2026-10-03 UTC
 

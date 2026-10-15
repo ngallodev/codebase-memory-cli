@@ -52,7 +52,7 @@ remainder or credit thirteen commits as thirteen newly implemented features.
 
 **The history inventory is complete; the semantic audit is partial.** This report
 collects the Sol source audit, Luna handoffs, corrections, QA delta and remaining
-limits. It is a dated synthesis, subordinate to [BACKLOG.md](../BACKLOG.md) and
+limits. It is a dated synthesis, subordinate to the project backlog (not retained) and
 [the canonical 308 ledger](UPSTREAM_308_CANDIDATE_AUDIT_20260912.md). It creates no
 second implementation queue and establishes no review, acceptance or publication.
 
