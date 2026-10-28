@@ -534,7 +534,7 @@ significant. No earlier agent verdict or Jev answer was supplied to this call.
 ### Exact remaining limits, evidence and validation
 
 Run `CBM-UPSTREAM-SOL-20261002-R2`, under
-`/home/nate/.local/state/agent-workflow/runs/CBM-UPSTREAM-SOL-20261002-R2/evidence/`,
+`<state-dir>/agent-workflow/runs/CBM-UPSTREAM-SOL-20261002-R2/evidence/`,
 owns `merge-crosswalk.jsonl`, `nonmerge-crosswalk.jsonl`,
 `first-parent-history.tsv`, `canonical-reconciliation.jsonl`, `slice-grouping.json`,
 `next-five-slices.json`, `unresolved-dispositions.tsv`, source/combined diffs,
@@ -578,7 +578,7 @@ convert its exit or scoped doc commit into review, acceptance or integration.
 ## Current fetch — 2026-10-01 PDT
 
 CLI `upstream` was refreshed with `git fetch upstream --prune`; MCP `main` was
-fast-forwarded with `git pull --ff-only` in `/lump/apps/codebase-memory-mcp`.
+fast-forwarded with `git pull --ff-only` in `<workspace>/codebase-memory-mcp`.
 No CLI pull was performed.
 
 | Item | Value |
@@ -864,7 +864,7 @@ completion; its documentation commit `fd2aca2a` is separate from these slices.
 ## 2026-10-01 recovery evidence and outstanding work
 
 The independent parity audit is available at
-`/home/nate/.local/state/agent-workflow/runs/CBM-MCP-CLI-PARITY-20260930/evidence/parity-report.md`.
+`<state-dir>/agent-workflow/runs/CBM-MCP-CLI-PARITY-20260930/evidence/parity-report.md`.
 It found no operation-name absence, but `manage_adr` is compatibility-only:
 there is no top-level `manage-adr` alias/help route, and CLI omits MCP's
 `outline` mode while using a different default. The report prioritizes adding
@@ -1135,7 +1135,7 @@ package installation/runtime qualification is separate.
 Specifications are finalized in SpecGen `agent-workflow` mode (zero readiness
 blockers), committed on release-tooling at `51aa7a86`. Each defines five must
 requirements, acceptance/evaluation links, preservation boundaries and structured
-worker evidence. See `docs/specs/upstream-next-three/{daemon-ownership,rescript-hang,cache-stores}/spec.json`
+worker evidence. See `docs/internal/specs/upstream-next-three/{daemon-ownership,rescript-hang,cache-stores}/spec.json`
 and their derived `SPEC.md` projections.
 
 | Vertical | Durable Agent Run | Independent branch | Execution state |
@@ -1152,7 +1152,7 @@ shared Jenkins job; workers may format, inspect diffs and commit regression sour
 The requested Herdr right-hand panes could not be launched because this caller
 is outside a Herdr-managed pane (`HERDR_ENV` unset). No Herdr control was attempted
 and no headless fallback was substituted. The durable launch handoff is
-`/home/nate/.local/state/agent-workflow/handoffs/CBM-THREE-VERTICALS-20261002/README.md`.
+`<state-dir>/agent-workflow/handoffs/CBM-THREE-VERTICALS-20261002/README.md`.
 Preparation is not running, implementation completion, review or acceptance.
 
 ### Interactive Herdr launch verified — 2026-10-02T04:52Z
@@ -1222,7 +1222,7 @@ Previously implemented daemon/cache/ReScript candidates remain unmerged and
 unvalidated; do not confuse their surviving branch commits with accepted ports.
 Compact handoff, frozen universes, index/process receipts, native launch and
 acknowledgement evidence are retained at
-`/home/nate/.local/state/agent-workflow/handoffs/CBM-UPSTREAM-AUDIT-20261002/`.
+`<state-dir>/agent-workflow/handoffs/CBM-UPSTREAM-AUDIT-20261002/`.
 
 
 ## Three-candidate integration review resumed — 2026-10-02
@@ -1268,7 +1268,7 @@ R4 worker verdicts below are **checkpoint claims pending parent whole-hunk revie
 not accepted dispositions. Source-only findings and machine crosswalks are retained
 in `CBM-UPSTREAM-CONSOLIDATE-20261002` evidence. The dated
 [synthesis report](UPSTREAM_RECONCILIATION_REPORT_20261002.md) explains this snapshot;
-this ledger and `BACKLOG.md` retain task authority.
+this ledger and the (removed) backlog retained task authority.
 
 ### Adapter-only source-reviewed batch — 2026-10-03 UTC
 
@@ -2192,7 +2192,7 @@ successor lineage without rewriting sealed evidence.
 Exact full-hash remainders and immutable worker checkpoints remain under the four
 run evidence directories. Cleanup inventory SHA256s, before/after pane receipts,
 and external exits are saved at
-`/home/nate/.local/state/agent-workflow/handoffs/CBM-LUNA-CLEANUP-20261003/`.
+`<state-dir>/agent-workflow/handoffs/CBM-LUNA-CLEANUP-20261003/`.
 No local builds/tests, Jenkins, independent acceptance, push or main integration
 occurred in this cleanup. Overall audit remains incomplete.
 
@@ -2202,7 +2202,7 @@ User authorized a different20-commit comparison with Luna medium. Run
 `CBM-RECON-LUNA-MEDIUM20-20261003` owns20 independently unreviewed runtime
 hashes, disjoint from the previous pilot20 and six parent-reviewed rows. Exact
 assignment, prepared prompt and launch receipts:
-`/home/nate/.local/state/agent-workflow/handoffs/CBM-LUNA-MEDIUM20-20261003/`.
+`<state-dir>/agent-workflow/handoffs/CBM-LUNA-MEDIUM20-20261003/`.
 Worker uses interactive Herdr `wC:pK`, `codex - luna-review-medium20`, with
 GPT-6-Luna medium, sourced Jev environment and batched primary-evidence guidance.
 
@@ -2227,7 +2227,7 @@ live worker Jev credential inheritance confirmed without values. New evidence
 must remain in successor run; prior evidence is immutable. Renamed pane/worker
 `codex - deepseek-pilot20-continue`, durably steered and resumed with mandatory
 acknowledgement. Recovery receipts/prompt at
-`/home/nate/.local/state/agent-workflow/handoffs/CBM-DEEPSEEK-PILOT20-CONTINUE-20261003/`.
+`<state-dir>/agent-workflow/handoffs/CBM-DEEPSEEK-PILOT20-CONTINUE-20261003/`.
 No source closure, Jenkins, review or acceptance credited from recovery.
 
 ### Finished pilot20 independent verification and new ops20 — 2026-10-03 UTC
@@ -2271,7 +2271,7 @@ wC:pJ as prepared run `CBM-RECON-DEEPSEEK-BATCH2-20-20261003`. Exact20 hashes
 are disjoint from pilot20 and Luna medium runtime20. Same clean frozen indexed
 worktree reused; direct shell/CBM/Jev guidance and mandatory durable acknowledgement
 retained. Assignment/prompt/launch receipts at
-`/home/nate/.local/state/agent-workflow/handoffs/CBM-DEEPSEEK-BATCH2-20-20261003/`.
+`<state-dir>/agent-workflow/handoffs/CBM-DEEPSEEK-BATCH2-20-20261003/`.
 No builds/tests/Jenkins, runtime validation, acceptance or main integration claimed.
 
 ## Finished ops20 and Luna medium20 independent reviews — 2026-10-03 UTC

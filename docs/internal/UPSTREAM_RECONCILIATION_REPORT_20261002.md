@@ -52,7 +52,7 @@ remainder or credit thirteen commits as thirteen newly implemented features.
 
 **The history inventory is complete; the semantic audit is partial.** This report
 collects the Sol source audit, Luna handoffs, corrections, QA delta and remaining
-limits. It is a dated synthesis, subordinate to [BACKLOG.md](../BACKLOG.md) and
+limits. It is a dated synthesis, subordinate to the project backlog (not retained) and
 [the canonical 308 ledger](UPSTREAM_308_CANDIDATE_AUDIT_20260912.md). It creates no
 second implementation queue and establishes no review, acceptance or publication.
 
@@ -584,7 +584,7 @@ User authorized a different20-commit comparison with Luna medium. Run
 `CBM-RECON-LUNA-MEDIUM20-20261003` owns20 independently unreviewed runtime
 hashes, disjoint from the previous pilot20 and six parent-reviewed rows. Exact
 assignment, prepared prompt and launch receipts:
-`/home/nate/.local/state/agent-workflow/handoffs/CBM-LUNA-MEDIUM20-20261003/`.
+`<state-dir>/agent-workflow/handoffs/CBM-LUNA-MEDIUM20-20261003/`.
 Worker uses interactive Herdr `wC:pK`, `codex - luna-review-medium20`, with
 GPT-6-Luna medium, sourced Jev environment and batched primary-evidence guidance.
 
@@ -609,7 +609,7 @@ live worker Jev credential inheritance confirmed without values. New evidence
 must remain in successor run; prior evidence is immutable. Renamed pane/worker
 `codex - deepseek-pilot20-continue`, durably steered and resumed with mandatory
 acknowledgement. Recovery receipts/prompt at
-`/home/nate/.local/state/agent-workflow/handoffs/CBM-DEEPSEEK-PILOT20-CONTINUE-20261003/`.
+`<state-dir>/agent-workflow/handoffs/CBM-DEEPSEEK-PILOT20-CONTINUE-20261003/`.
 No source closure, Jenkins, review or acceptance credited from recovery.
 
 ### Pilot20 verification and ops20 successor — 2026-10-03 UTC
