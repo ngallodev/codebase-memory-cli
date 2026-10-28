@@ -5,12 +5,34 @@
 
 set -euo pipefail
 
+SMART=0
+SMART_ARGS=()
+FILTERED_ARGS=()
+while (($#)); do
+    case "$1" in
+        --smart) SMART=1; shift ;;
+        --dry-run) SMART_ARGS+=(--dry-run); shift ;;
+        --tool|--jobs|--tests) SMART_ARGS+=("$1" "${2:?$1 needs a value}"); shift 2 ;;
+        --attribute|--no-attribute) SMART_ARGS+=("$1"); shift ;;
+        --changed)
+            SMART_ARGS+=(--changed)
+            if (($# > 1)) && [[ "$2" != -* ]]; then SMART_ARGS+=("$2"); shift 2; else shift; fi ;;
+        --failed) SMART_ARGS+=(--failed); shift ;;
+        *) FILTERED_ARGS+=("$1"); shift ;;
+    esac
+done
+set -- "${FILTERED_ARGS[@]}"
+if [ "$SMART" -eq 0 ] && [ "${#SMART_ARGS[@]}" -gt 0 ]; then
+    echo "test.sh: scheduler options require --smart" >&2
+    exit 2
+fi
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 usage() {
     cat <<'EOF'
-Usage: scripts/test.sh [--suites LIST] [--phase PHASE] [--arch ARCH] [VAR=VAL ...]
+Usage: scripts/test.sh [--smart [--tool valgrind] [--suites LIST|--changed [BASE]|--failed] [--jobs N]] [--suites LIST] [--phase PHASE] [--arch ARCH] [VAR=VAL ...]
 
 The canonical test entry: identical in local CI, PR CI, dry run and release.
 DEFAULT (no --suites) is exactly what CI runs: static contract checks
@@ -18,6 +40,8 @@ DEFAULT (no --suites) is exactly what CI runs: static contract checks
 then the prod-binary regression guards (Steps 4-6).
 
 Modes:
+  --smart        Test-level resumable iteration scheduler; accepts --suites,
+                 --tests, --changed [BASE], --failed, --tool valgrind, --jobs.
   (default)      The venue leg. Clean build (scripts/clean.sh) + all suites +
                  all contract steps. This is the shape every gate runs.
   --suites LIST  ITERATION mode: comma- or space-separated suite names, e.g.
@@ -267,6 +291,25 @@ if [ "$TSAN" -eq 1 ]; then
     assert_test_runner_build_config "$BUILD_DIR/test-runner-tsan" 1
     make -f Makefile.cbm test-tsan ${MAKE_ARGS[@]+"${MAKE_ARGS[@]}"}
     exit "$?"
+fi
+
+if [ "$SMART" -eq 1 ]; then
+    BUILD_JOBS="$NPROC"
+    if [[ " ${SMART_ARGS[*]} " == *" --tool valgrind "* ]] && [ "$SANITIZE_GIVEN" -eq 0 ]; then
+        if [ "$BUILD_JOBS" -gt 16 ]; then BUILD_JOBS=16; fi
+        if [ "$BUILD_DIR" = "build/c" ]; then
+            BUILD_DIR="build/c-valgrind"
+            MAKE_ARGS+=("BUILD_DIR=$BUILD_DIR")
+        fi
+        MAKE_ARGS+=("SANITIZE=")
+        EXPECTED_SANITIZED=0
+    fi
+    make -j"$BUILD_JOBS" -f Makefile.cbm "$BUILD_DIR/test-runner" ${MAKE_ARGS[@]+"${MAKE_ARGS[@]}"}
+    assert_test_runner_build_config "$BUILD_DIR/test-runner" "$EXPECTED_SANITIZED"
+    MODE=asan; [ "$EXPECTED_SANITIZED" -eq 1 ] || MODE=plain
+    SCHED_ARGS=(--runner "$BUILD_DIR/test-runner" --mode "$MODE")
+    if [ -n "$SUITES" ]; then read -r -a SUITE_ARGS <<< "$SUITES"; SCHED_ARGS+=(--suites "${SUITE_ARGS[@]}"); fi
+    exec python3 "$ROOT/scripts/testsched/schedule.py" "${SCHED_ARGS[@]}" "${SMART_ARGS[@]}"
 fi
 
 # ── Iteration mode (--suites): incremental rebuild + subset run ──
