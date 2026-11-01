@@ -1084,17 +1084,35 @@
     }
   ],
   "security_hotfix": {
-    "state": "implementation_in_progress",
+    "state": "draft_pr_open",
     "branch": "sync/security-20261101",
-    "commit": null,
-    "draft_pr": null
+    "commit": "a0acc56236c7925c185e54e666af898b26e4fcc3",
+    "draft_pr": "https://github.com/ngallodev/codebase-memory-cli/pull/27",
+    "verification": {
+      "ui_build": "passed",
+      "ui_unit": "3969 passed with NODE_OPTIONS=--no-webstorage; default Node26 run failed",
+      "npm_audit": "zero vulnerabilities",
+      "httpd": "96 passed, 1 Windows skip",
+      "workspace": "27 passed",
+      "jenkins": "pending",
+      "windows": "not_run"
+    },
+    "installer_compatibility": "13A production 289 MiB exceeds old 256 MiB member ceiling; finite bound adaptation pending"
   },
   "ci_guard": {
     "state": "implemented_local_checks_passed",
     "branch": "sync/ci-guard-20261101",
-    "commit": "dc6ca056",
+    "commit": "48ba757abb3ec421f14cdd20bde1a56b458c6b7d",
     "draft_pr": null,
-    "lifecycle": "initial worker failed/completion_missing: no bound acceptance commands; independent source verification retained; acceptance pending"
+    "lifecycle": "initial worker failed/completion_missing: no bound acceptance commands; independent source verification retained; acceptance pending",
+    "verification": {
+      "policy": "18 files passed",
+      "policy_fixtures": "4 tests passed",
+      "ancestry_fixtures": "6 tests passed",
+      "coderabbit": "not_run: credentials_unavailable",
+      "jenkins": "pending"
+    },
+    "depends_on": "sync/security-20261101"
   },
   "post_campaign": {
     "commits": 9,
