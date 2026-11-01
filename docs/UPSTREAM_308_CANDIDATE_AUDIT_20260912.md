@@ -1,5 +1,20 @@
 # Upstream merge progress — canonical ledger
 
+## Pinned synchronization campaign — 2026-11-01
+
+The [campaign plan](upstream-sync/PLAN.md), [machine ledger](upstream-sync/ledger.json)
+and [933-commit inventory](upstream-sync/commits.tsv) extend this canonical ledger.
+Fork baseline is `ff8b8906c6807953336609cc7f464e7e4ef3cf7b`; common ancestor
+`8df0639c6268afe9888979e72b9797aa2cc1de7c`; pinned upstream target
+`6c0ce230ee26ab8d263eb5235ebf73755558344e`. Live upstream inventory reached
+`edc2301b022b1f5e1e0ec11e291917e22e9736aa` (nine additional commits deferred).
+All historical checkpoint ancestor/count checks passed. The security hotfix,
+policy guard and first true merge batch have separate receipts and gate status.
+Unresolved older semantic dispositions below remain unresolved unless a new
+receipt explicitly reconciles their exact behavior. No PR merge or main push
+is authorized by this campaign.
+
+
 ## Five-slice upstream ancestry trial — 2026-10-03
 
 The user authorized a trial of five upstream verticals, followed by release-tooling

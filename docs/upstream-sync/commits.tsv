@@ -1,0 +1,934 @@
+sha	merge	batch	subsystems	subject
+2083b7c6befeab0ec823e1a6b53a12a52142e7d9	no	13H	extraction-language,tests	fix(extraction): reduce A::B.new callee to the constant
+bd640caa918d5819f82c692a20005cdf83689778	no	13E	extraction-language,tests	fix(elixir): Phoenix channel extraction was unreachable in both branches
+c8f36262e18318f38387dd60a779eee5b59aa7fd	no	13K	extraction-language,tests	fix(elixir): functions carry no complexity, fingerprint or line count
+5265c94779d86025df3db81b84d71cea3fded619	yes	13H	merge-or-other	Merge branch 'main' into fix/ruby-namespaced-constructor-callee
+944b2293b44fee9328d2b54bd22f6c1b46e9a65f	no	13H	merge-or-other	ci: retrigger after transient runner failures
+ea375235e3a262d3e5278ab285be53d66dcc2b6e	yes	13H	merge-or-other	Merge branch 'main' into fix/ruby-namespaced-constructor-callee
+ad786cd4661c98c16012d461b9443b3d7b3a197a	no	13H	tests	fix(test): drop racy active_connections snapshot in connection-cap test
+b8adb14358a838ef585f50f71b1ae843eddc9ec0	yes	13H	merge-or-other	Merge branch 'main' into fix/ruby-namespaced-constructor-callee
+85532247fa96b529e5766a65038008320e85fe48	no	13C	security-runtime,tests	fix(workspace): treat '/' and '\' as the same separator in root matching
+5ca234c2b24c27a8a484e744cc200b93e01f130b	no	13I	security-runtime,tests	fix: persist daemon watches across client disconnects
+5e328814fc99ffe588daae4f0f1e8cf5066e084b	no	13I	security-runtime,storage,mcp-excluded-or-translate,tests	fix(store,ui): export paired free functions for FFI callers
+651ae3c2af1a22ec61a498b39350785aee480973	no	13I	extraction-language,tests	fix(pipeline): suppress weak short-name matches for Go selector calls
+dbba7573016e17f20fe5afaafe5cc2cddd98744e	no	13I	extraction-language,tests	fix(extract): receiver-qualify Go method QNs
+adff62e7f20dd439129d17c5dc028c7069af92f2	no	13I	extraction-language,tests	fix(extract): give each Go init() its own QN
+ac46c17fc37f78ae518145e73d51b46ca3013fac	no	13J	extraction-language,tests	fix(pipeline): bind field_type_hint by owning QN segment, not substring
+1e92269d7562d89a816271c4d99904ee53a94606	no	13H	security-runtime,mcp-excluded-or-translate,tests	feat(workspace): add PATH_ALLOW_BROAD override for too-shallow roots
+7c4b5fc8a7c9ed2f1cf3b675bb821dbbccf2c1bb	yes	13I	merge-or-other	Merge branch 'main' into fix/1762-paired-free-functions
+eaf59046e5371eda24bfafc60743291b429e79d8	no	13D	extraction-language,tests	fix(registry): stop external package imports binding to project homonyms
+a8293c498ca60c97c4116e40f58dffb751fe22ab	no	13D	extraction-language,tests	fix: address review feedback on external-import-shadow guard
+797a11a15eff6154428aeb268c0b55edb5647a7a	no	13D	extraction-language,tests	fix(registry): keep workspace-sibling imports out of the external-import guard
+90ba8990764674b2eeaca6fa372c654a63a04f51	yes	13E	merge-or-other	Merge branch 'main' into upstream-pr/elixir-channels
+8a1f2503c33bdd9a4d87782493af5640a505594f	yes	13I	merge-or-other	Merge branch 'main' into fix/1762-paired-free-functions
+9f57edfa576072398728eda2c6fc2585d2ecb063	no	13E	extraction-language,tests	fix(pipeline): skip an unreadable subdirectory in the control-file walk instead of aborting the whole index
+6b56d78e1bbb5715c9d0c715453244187bd299bc	no	13G	extraction-language	fix(lang): track Solidity modifier invocations as decorators
+b974adf6ed9b82d8669d1a65b1757816ce0d12df	no	13D	extraction-language,tests	fix: grow the ts_lsp AST walk stacks so wide files keep every declaration
+ec56ea8f60f0058bd1cd0fffb38cc0153b99f895	no	13D	tests	test: cover the return-type walk past the old stack cap
+1891d448054ae8ff111d2797d91ec93bf3820907	no	13K	security-runtime,mcp-excluded-or-translate	feat(cli): grade index_repository outcomes with distinct exit codes
+b037b488be4620a5e92424e7e390ee625cd7e5af	no	13K	tests	test(cli): pin the index_repository exit contract
+80f8bda5670c8ac1956e2a8fac7221c40c12da47	no	13F	tests	fix(discover): retain external source directories in fast mode
+53d8bb406b63e8a3354ffa36e89856ec44b7cdf6	no	13K	security-runtime,tests	fix(codex): migrate skill to shared agents root
+b961919223704bfb3e38adde55fab5651a2ca4e0	no	13K	security-runtime	fix(cli): simplify Codex cleanup condition
+7c88e64eb954e9400273d3ebb9f6f88f1aebc165	no	13K	security-runtime,tests	fix(codex): recognize released skill payloads
+50ee111714baa9d3bfe9bdba3b81e27cd1bdfe38	no	13B	extraction-language,tests	fix(pipeline): suppress weak short-name matches for Go selector calls
+da7619474d5ad27ff5073cf505b0b6cd5d0db36e	no	13B	extraction-language,tests	fix(extract): receiver-qualify Go method QNs
+7054e4ff8af76f4fc1fe89407874e9910d0e412d	no	13D	extraction-language,tests	fix(extraction): recover C# 14 extension block members
+9b4d697a57a03f242164db956843a5313168005d	no	13E	security-runtime,tests	fix(ui): preserve framework route entry points
+138a62253d28b66650cf2d4ea25ba7c3b4f3a111	no	13D	extraction-language,tests	fix(registry): resolve package-path imports against the project's own packages
+81820262e61f6e7f11920a5c4596b4297e793cf8	no	13D	extraction-language,tests	fix(pipeline): run the external-import guard after route classification
+2a2be4a2e0e20d8102e3c3eaa0d97250891baf7a	no	13D	extraction-language,tests	fix(ts): resolve inferred imported constructor receivers
+aa4da14d23dc28df58b9881dc66d89c0d1c0d788	no	13D	tests	test(ts): cover inferred stdlib constructor receivers
+56de845327dce03cdd1269b8aa73c6a1ecdb5cfa	no	13I	security-runtime,tests	fix(cli): support non-ASCII Windows agent paths
+4eb3af36c7b055987d5c0764482135658b28c550	yes	13D	merge-or-other	Merge branch 'main' into fix/1355-external-import-shadow
+7036c4d5996253c05d720ec4d0b3008509b4cad4	no	13G	tests	test: pin Solidity modifier_invocation decorator tracking (#2090)
+f9350caae0ccccf823d8cde85683a900b257f239	no	13G	tests	fix: remove extra blank line
+9e793df87b51f07d3741c55ea6e27367ee1a7b7d	no	13E	security-runtime,tests	fix(daemon): keep held runtime files fresh and exit when one is lost
+3cf2a6663f36a6a366806bc78e4cc0678e1f1b55	no	13E	security-runtime,tests	fix(daemon): address QA round 1
+e032a8ee9409c7a53a5d732ddff67c15721bf1ae	yes	13D	merge-or-other	Merge branch 'main' into fix/ts-inferred-receiver-calls-1974
+7f8d1ac252d88be2cce72c38dabb23e78d035dea	yes	13E	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/cohort-lock-tmp-cleaner
+34d172c9038a9b7cee78e42bb7768b93fbb8ed70	no	13D	security-runtime	fix(windows): pair aligned delete with its allocator
+1133ba324656042f8c73578a788ebf5c77ec8172	no	13E	security-runtime,tests	fix(daemon): address QA round 2
+38fc6ea995c9db78cedb10b9bba2b6aa79f616fc	yes	13E	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/cohort-lock-tmp-cleaner
+255463126650ab6deab3e62aab441b71479704f1	no	13G	security-runtime,tests	fix(windows): set UTF-8 environment values through wide CRT
+f4c897110cb1f02edee37db7c8849e63894ed8a4	no	13I	extraction-language,tests	fix(java): resolve record accessor calls, and never bind a call to data
+9d53f32dc1753fcece6c0d2af27a5958f8ce1799	yes	13D	merge-or-other	Merge branch 'main' into fix/1355-external-import-shadow
+fee73ced23e4f0753523bc2157f1fbb853f51fdd	no	13E	security-runtime,tests	test(daemon): cover host loop stop on coordination file loss
+b15e7f91b95958555ac23a575b0bd1ebbfec7ddf	no	13E	tests	style(tests): drop unrelated reflow hunks
+8cd2ee5f421d0b7c06022091d59dbe71002de30d	no	13E	tests	fix(daemon): address QA round 4
+26e2d0cba6df7b1cb53e655d0b902bdb7debdbd4	no	13G	security-runtime,extraction-language,tests	fix(windows): read worker and CLI environment paths as UTF-8
+9dca8d2fede860605943ee8dbd57ba6b927ae41b	no	13D	security-runtime	fix(windows): limit allocator fix to CRT aligned blocks
+8f441c19fb8a32b8ccf43ffcf65df7f4dc2bc16a	yes	13D	merge-or-other	Merge branch 'main' into fix/1355-external-import-shadow
+6f17caa7a763d9987ebcd7ed33063d47d34bf635	no	13E	security-runtime,mcp-excluded-or-translate,tests	fix(mcp): report request timing and transport failures
+a5a836cf7269a10b8f7278a10727893a73e42895	no	13J	extraction-language,tests	refactor(elixir): read a def head through its guard from one helper
+630f851526dfdd3ce5672e267598c0eeb5a2155a	no	13J	extraction-language,tests	fix(elixir): extract a def head wrapped in a `when` guard
+77d4beb7a8ad9a6b8486ee9196731dd46de69e9e	no	13J	extraction-language,tests	fix(elixir): span a multi-clause function's node over all of its clauses
+198e211c3001e33538f67a1cadb623cbd550bf08	no	13J	extraction-language,tests	fix(elixir): open a function scope for a guarded clause body
+4d21c3bbd34b420c8987e8588b88b5fc5446116f	no	13J	extraction-language,tests	fix(elixir): stop walking @spec and @type subtrees as code
+fd2456316e7b5dc27125497f640dc7e41760c104	yes	13K	merge-or-other	Merge branch 'main' into feat/codex-skill-location-compat
+ee9d1365e2c17d4e2bbdd84ac10ec6b89cffca5f	yes	13J	merge-or-other	Merge branch 'main' into fix/elixir-extraction-defects
+9f5f5ab56fce2baf095b75f1e7a8dc98368dbcad	yes	13I	merge-or-other	Merge branch 'main' into fix/java-record-accessor-calls
+b74cecc53cea20abdc64dbdc484f5ba0b44f5789	yes	13B	merge-or-other	Merge branch 'main' into fix/go-weak-selector-calls
+71ebbb9a9b54f2dcef84321de939429dd7707600	yes	13B	merge-or-other	Merge branch 'fix/go-weak-selector-calls' (with main) into fix/go-method-receiver-qn
+3db66f22ad7d5c435559869a34b6e14b1e54793b	no	13H	extraction-language,tests	fix(pipeline): free trees and compact results in sequential definitions pass
+e36930742a63efd2bbca491996ba8e37bfa5822c	no	13I	extraction-language,tests	perf(py-lsp): O(1) type membership in the shared Python cross-registry build
+ffa0b320047f4db99dc53f09e228c94703436ae1	no	13E	extraction-language,tests	fix(py-lsp): walk each lambda body at most once per call chain
+fd1b88374c0c21892c991c29909d22ed499c20fa	no	13H	tests	fix(discover): keep make/cargo dep-info .d files out of the D grammar
+3f53a308f4034f4d280130fbcc275f545d7bf05e	no	13H	extraction-language,tests	perf(python): climb the walk cursor for scope-directive and default checks
+702c3afb6bbab15e18e13f22880d5a61fa3317e1	yes	13H	merge-or-other	Merge branch 'main' into fix/sequential-definitions-retention
+82361ffdd66ffe39efc1ff9e00e0cdcc61223e4f	yes	13H	merge-or-other	Merge branch 'main' into perf/py-lexical-ancestor-kind
+a46dc5a9fbb39310027812234d0459d4bbcbe99c	yes	13I	merge-or-other	Merge branch 'main' into perf/py-cross-registry-index
+a85bef05f169e4f2c36cf4cf121a7b6d1309e155	yes	13H	merge-or-other	Merge branch 'main' into fix/dotd-depinfo-sniff
+c695cb728e4850b4152cd7cc54f06b6520372371	yes	13E	merge-or-other	Merge branch 'main' into fix/py-definitions-oom
+96f91005f0777e3fee5f5b5f9da69962ddf93695	yes	13J	merge-or-other	Merge branch 'main' into fix/elixir-extraction-defects
+2c71746fa52f4945f7e2edcbd92e5ded91bff395	no	13F	storage,extraction-language,mcp-excluded-or-translate,tests	fix(pipeline): expose unresolved call coverage
+3f7f4d78b572f6f2497763e150584b108d51e950	no	13F	storage,extraction-language,mcp-excluded-or-translate,tests	fix(pipeline): reconcile unresolved call coverage
+050274fcc72ce75dfbadf3a0f4a19fc95cdcf8f6	no	13A	tests	test(ts-lsp): fail when fixture allocation fails
+8d80be7bdef118ac4430464a0f99715680340673	no	13F	mcp-excluded-or-translate,tests	fix(mcp): limit unresolved outbound totals to project symbols
+2479724a35d252786b8dbbeb9f1a74d86c569620	no	13E	extraction-language,tests	fix(pipeline): refresh the projects row's root_path on the delta route
+4f7f8acca2aba292bd3f51a73dfa7288e11880c4	no	13E	tests	fix(test): compare root_path against dir_b, not a realpath()'d form
+b2a0a2cde52b8fc9237dbddfb347b8a058747032	no	13E	merge-or-other	docs(cli): list daemon <start|stop|status> in --help
+48f25595ca147a65515403b03ed4e15e673e634b	no	13D	security-runtime,tests	fix(cli): read PATH at its real length and probe Windows shim dirs (#221)
+42971f2c023db2ec4e1a0fa011f983dec9d67fb0	no	13G	security-runtime	fix(cli): trust root-owned per-user /home entries during activation walk
+2fbf3fb977c02c5fed5b2b8b6796902a270bc1c5	no	13G	security-runtime,tests	fix(cli): fold per-user /home entry into the alias loop, add test seam
+f1e0593653579e1a1ee449a47967785c7552da1a	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+72dc59fed58444ca7d5e7a4749fb767c28e48b94	no	13C	extraction-language,tests	fix(haskell): name infix-form definitions after the operator (#2440)
+f9e4ae51a4d13f28fa308eeb7094115bf28c04e3	yes	13H	merge-or-other	Merge branch 'main' into perf/py-lexical-ancestor-kind
+65acd388c9d02c378b08cbbf8474bd7b7b743dec	yes	13I	merge-or-other	Merge branch 'main' into perf/py-cross-registry-index
+26bf2fd854ef902e8627dc3be1de31ff6d8f582a	yes	13H	merge-or-other	Merge branch 'main' into fix/dotd-depinfo-sniff
+8c7322a4c147c522e8dfc671aaaed69dd6ed8256	yes	13E	merge-or-other	Merge branch 'main' into fix/py-definitions-oom
+c4627ef195355ff0e8c83cc6d6d4bc3ab6d4d888	yes	13H	merge-or-other	Merge branch 'main' into fix/sequential-definitions-retention
+4887b05ac9b08350e2eb6c918cb7d576d06a8db1	yes	13J	merge-or-other	Merge branch 'main' into elixir-extraction-defects
+9140e7dfbe2e4942428e017cab8efef1f9de7f84	no	13H	tests	test(pipeline): dep-info .d files leave no File, Module or Folder nodes
+ceb729d8a36b9a02778d86d0b209c7decbe58dd5	no	13H	tests	fix(discover): keep D whose first colon follows an attribute or comment
+006f2a991c6a8e0d141750d53959150147f876ad	no	13H	tests	fix(discover): split dep-rule targets on every D whitespace
+ac09fe7eae7b7b83978f4539ce0944ac5eaacf12	yes	13F	merge-or-other	Merge branch 'main' into fix/discover-external-fast-mode
+44c25a2b30a1e61f9ac95df00746d8db7ca497f0	yes	13E	merge-or-other	Merge branch 'main' into fix/2001-manifest-walk-skip-unreadable-subdir
+952d46d84c66b08097a130926e73ec3c2da40acd	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+38ba1f16b0496081878e9183cd8b126b95633796	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+2443e92bece270d1207c715962707faee23387c3	no	13J	security-runtime,extraction-language,mcp-excluded-or-translate,tests	fix: preserve CPU headroom during background indexing
+9bfd5cbe609e24f2ee77dd05f48aefed2199bfba	no	13J	security-runtime,extraction-language,mcp-excluded-or-translate,tests	fix: route the remaining all-core sites and fix the review findings
+26eece514fef17bef35cafb23b16c647c3358aaf	no	13J	extraction-language,mcp-excluded-or-translate,tests	fix(mcp): keep full width for a project's first index
+937ad47e55706e086777a8690008bb202199c883	no	13C	tests	fix(cypher): defer WHERE until referenced bindings exist
+2a83fe50e4f67df01be1770c3e103ed91b52f539	no	13D	tests	test(mcp): cover project discovery after store switches
+c1d05f15171be639a202874fab929a8cb43644de	no	13C	tests	test(parse): cover the reported TSX ampersand fragment
+e489badf4d904ad2ed9842732df604446558108f	yes	13F	merge-or-other	chore: merge upstream main into issue 2265 branch
+b7a703e210a63de055792c170bfa7e3541ae35b7	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+398e69b08b826be4a8e15f90e955f6bb66d15323	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+3b79e3d3bdfd833914550c21b3275a6e52f5f964	yes	13I	merge-or-other	Merge branch 'main' into perf/py-cross-registry-index
+36d18c1124ea73ff8ad51f93a62938f76437fb98	yes	13D	merge-or-other	Merge current main and document expected-red TypeScript case
+21c224fba56fe1b6b55cb13d003f5ab7f9199264	no	13E	extraction-language,tests	fix(pipeline): resolve constants in template URLs
+6bc7ade18cd9fe95e4395f843090fb5e61e81538	no	13C	mcp-excluded-or-translate,tests	fix(mcp): log the server/discover connect probe as info, not an error
+944cfbfd75da2766abcf4db6c70b3fe8618fae10	yes	13G	merge-or-other	Merge branch 'main' into fix/home-user-symlink-alias
+6015c843946911dadaf4b193413824f9d43c77e2	yes	13F	merge-or-other	chore: merge upstream main into issue 2265 branch
+e632d4214bf5ca100ddbd27f303eb013ce9c105e	no	13F	extraction-language	fix(pipeline): initialize frozen coverage state
+c35d7793b7ecb04289775e627c58a6345adea462	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+d4273ae901da4834f550d798b5d19d291b4bc29d	no	13F	security-runtime,storage,extraction-language,mcp-excluded-or-translate,tests	fix(pipeline): bound unresolved call evidence
+8e3e65f5693ace53d812d2281e9f65f57156502d	yes	13F	merge-or-other	chore: merge upstream main for issue 2265
+5c52a004311aa2c5adfa2e179721761f9b7419e0	no	13C	tests	fix(discover): map jinja and jinja2 in userconfig language table
+ea09b2a30bd6fac4a59cd8223521caa6aa6c8cc3	yes	13F	merge-or-other	chore(pipeline): merge upstream C-family index changes
+c461ed00d40f29b2b34cabf2e85f9a1776342f24	yes	13H	merge-or-other	Merge branch 'main' into fix/dotd-depinfo-sniff
+66ff5b86a3f3219fcddc9b69f75a2036a96c8ae9	no	13H	tests	test(language): cover the .d rule in the shared classifier tests
+40179b39f36a77e27302e8915eba7c7596789dd0	yes	13F	merge-or-other	chore(pipeline): merge upstream document coverage changes
+ef551460ce5fe432eca00458d338c24c910284d4	no	13C	extraction-language,tests	fix(ts-lsp): resolve JSX calls from top-level arrow components
+222992adabbfd3f32eba167f932e15095dae61a5	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+c1e2414fb085dc63fa89a8d6e9df5a44c44d4a72	no	13C	extraction-language,tests	fix(pipeline): resolve parent-relative non-code imports
+65474cead19ed5be42b7baff2bb5de345f8e769f	yes	13F	merge-or-other	chore(pipeline): integrate upstream language documentation and diagrams
+76b190a5adfb3105ef8734e96a2b2048c435a0f4	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+1c1d5422056e14ffd7ce86727d291b34f04da26d	no	13G	mcp-excluded-or-translate,tests	fix(mcp): verify content for freshness and snippets; expose store generation (#2585)
+fd9b01ad7ad1ff6bef463d8beb009043cbab5854	no	13C	security-runtime,tests	fix(daemon): wait out Windows local teardown contention
+9a180d06263c07c5afc5706e3965d2dbee73639e	no	13H	extraction-language,tests	fix(doc-links): report a path::member reference to a missing member (#2587)
+104dc21b045d5236a341c0967bef866a146fb0e0	no	13E	extraction-language,tests	fix(store): use 64-bit file offsets in the SQLite page writer
+e5c3ddd573b02f4a530bf0530a7656f71c388d86	no	13C	extraction-language,tests	fix(ts): bound recursive member and method lookup
+19374f2d340df14c0273b1381c1ad2390b0157d9	no	13E	mcp-excluded-or-translate,tests	fix(mcp): apply search_graph label filter inside the BM25 candidate window (#2386)
+f1e36b583d3a21664b373f854466c676897a5560	no	13C	security-runtime,tests	fix(watcher): inspect repository and cache paths as UTF-8
+0fd8180699b06502cd53d1a33e085f2c525ce131	no	13K	security-runtime,tests	fix(cli): leave a user-owned OpenCode module untouched instead of appending the block
+6530142fe18af967c6cd87ba91a9447cf029a5ea	no	13E	extraction-language,tests	fix(doc-links): report references into a moved directory as missing (#2588)
+9129898e6e38e414f9370bcfc89de91c62571f60	no	13I	extraction-language,tests	fix(markdown): qualify a repeated heading's Section by its parent headings (#2586)
+05a18a7c1489f4405262f51a2e85409d44e8b99d	yes	13F	merge-or-other	chore(pipeline): integrate upstream indexing and call resolution
+d21693df58b638c1b359288eff5bade1750e7605	no	13A	tests	fix(security): allow the bare wget token the shell pass compares
+187abfd155eb7f894ef4e9b091804156a3e906c9	yes	13C	merge-or-other	Merge branch 'main' into fix/windows-local-transition-cleanup
+eb294298e083eea73896e5257d25c6f52237f8ac	no	13A	security-runtime,tests	fix(daemon): settings startup survives busy and interrupted writes
+8a6a1047d67086a23b25cf9d94393d48ca1cfe96	no	13A	ci-policy-reconcile	ci(security): pin the ScanCode install; pluggy 1.7.0 breaks it
+dc516fe2989d5afc69aef6032817901c2a129bc0	yes	13A	merge-or-other	Merge pull request #2648 from DeusData/fix/audit-wget-token
+58ca1012e705f316fed59a20ab01e893d7cc8e0f	yes	13A	merge-or-other	Break-glass merge PR #2651
+ec6427c38176efcd37b28682e82f2491afda94be	yes	13A	merge-or-other	Break-glass merge PR #2650
+db14b110936aa9a833f8ea2dcfbe78bdf4e3cc09	no	13A	packaging	chore(pkg): sync packaging metadata to v0.12.0
+3f9948689d5dfc36d2aa93bb42d24179f23dc763	no	13A	packaging	chore(pkg): sync the Scoop manifest to v0.12.0
+c040476634f2e476c2f252c0f1045f91555e0bfa	no	13A	merge-or-other	docs(readme): point the main CI badge at the release workflow
+e99c15997bf9b3e74fe66b2d7dcb062a7a810453	no	13A	storage,extraction-language,tests	fix(docker): never invent a registry host for an image
+33d6b28e6a54fe23c5d40ed4f9ccda03b47ae8d2	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+1348b86b21089e674baad1f8e6e0451518603c5f	yes	13C	merge-or-other	Merge branch 'main' into fix/windows-local-transition-cleanup
+55b7916fba227f134dbe1bfaff440687a5fcee06	yes	13A	merge-or-other	Merge pull request #2652 from DeusData/chore/sync-version-0.12.0
+851096ad373459e8ebfca68d62b91cedc0bbece5	no	13A	extraction-language,tests	feat(k8s): a Helm chart deploys its objects, images and values
+10c7fc3206724de49845eb822e3ac99d8540b86a	no	13A	packaging,ci-policy-reconcile,tests	fix(pkg): remove the archive size caps from the npm, PyPI and Go wrappers
+cfcf7528c4e70b62a146cf51da38d6ea2534885f	yes	13A	merge-or-other	Merge pull request #2653 from DeusData/docs/readme-main-ci-badge-release
+ff829cbfee7df2e86cb47556aa4337e03f2ba51c	yes	13A	merge-or-other	Merge pull request #2654 from DeusData/fix/image-unknown-registry
+5966b7f0811dd970445d693513e77949cc119c19	yes	13A	merge-or-other	Break-glass merge PR #2664
+e7ea0aff8e5c91aadc8c81aa0af9c6594013d39f	yes	13A	merge-or-other	Break-glass merge PR #2663
+6382fad7b3c9a95cc47d453c5fa423adf02d05e2	no	13A	ci-policy-reconcile	fix(ci): give the wrapper smoke a Go toolchain and a deletable work tree
+a7158ac2f48ca646b4527341b76f930f2aeff87e	yes	13A	merge-or-other	Break-glass merge PR #2669
+b1225e57ad1ff12348485c09d226a2c93a446350	no	13A	packaging	chore(pkg): sync packaging metadata to v0.12.1
+9f85f1043af3c4e9f42888598cd8573821bec305	yes	13A	merge-or-other	Break-glass merge PR #2674
+7f6f56784066b8eb46d51618f5fb5a6632cf01c4	no	13A	mcp-excluded-or-translate,ci-policy-reconcile,tests	wip: Smart CI narrows PR CI for real (pre-rebase checkpoint)
+57b557ced80933bc1719c294a1cd345a1c45a405	no	13A	mcp-excluded-or-translate,ci-policy-reconcile,tests	fix(test-impact): close the role table's fail-opens, follow literals through macros
+d21949ef2c22a2ed099075ebb24eb26d5d71832a	no	13C	extraction-language,tests	feat(deploy): render Helm images, mark default-valued images, link crds and werf charts
+48d33fadf646344be775c1c04819ac70bc9c72e9	no	13A	merge-or-other	test(ci): hold README pushes to the test legs in the selector history replay
+285d21c1f1c64ae5ed4af3283e17c2c372f295ed	yes	13B	merge-or-other	Merge branch 'main' into fix/go-weak-selector-calls
+6f3fdba92ae6c7e39179e424c66fce9b29797888	no	13A	extraction-language,tests	fix(python): extract defs nested in a function body (#1548)
+7528ec06fe7da5ab703e7c802624fef88285ae37	no	13B	extraction-language,tests	test(pipeline): bind the Go selector guard on the parallel resolver
+f1272d8b141e31b2c9f785bf30fe92a5acb1e858	no	13B	extraction-language,tests	fix(routes): extract ASP.NET Core attribute routes (#1692, #1041)
+9aeea8eb6f8a36cd1d49163ea9c3dddb3699061c	yes	13B	merge-or-other	Merge branch 'fix/go-weak-selector-calls' (with main) into fix/go-method-receiver-qn
+87cafb9ef8723b42e6348a9b2be864575a476699	no	13B	storage,extraction-language,tests	fix(extract): bump the index format for receiver-qualified Go method QNs
+9cdae25c12f6190f362b38aadc9a68305afac969	no	13A	extraction-language,tests	fix(python): bind a function's nested defs in the LSP; lexical_scope after it
+51a3e4e7b559e416c2eaff6caeacfca3a368dabe	no	13A	extraction-language,tests	fix(python): resolve a base class spelled through a root-binding import
+d2ea417ec2fc948dced84549f5dc6e3c467f2368	no	13A	extraction-language,tests	fix(pipeline): link methods to their type after every file is registered
+399b7de80f911fd66d27890a115e03e55f4b7328	yes	13C	merge-or-other	Merge branch 'main' into fix/windows-local-transition-cleanup
+221e07feea6657b79727b3c7fd0cf627d00bed31	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+2ac9c33e187f600ab47f29b718a2a544f2be700a	no	13A	extraction-language,tests	fix(rust-lsp): a Rust call never binds another language's definition
+bfe53f344b8a41c73aba8506c7e38ff9f89f3e92	no	13A	extraction-language	style: clang-format the new lines
+db8d547ae1acb444f69cf08a5f81d4e8ec5e83d9	no	13B	extraction-language	fix(extract): keep both Go method QN sides flat when the type QN is NULL
+9dba7fe1af7b33c44127932c6aff31b173a7ddec	yes	13A	merge-or-other	Merge pull request #2676 from DeusData/feat/smart-ci-live
+09c4885e11ba8df308146a23c6582e11d88b12d7	no	13A	extraction-language,tests	fix(extract): a Rust generic impl's call scope drops its type arguments
+d40f8e6be19c876167fc8d6cb794649403f98bdb	no	13A	tests	test(pipeline): generic Rust impl methods source their own calls (both resolvers)
+bb650ca45ae95fd8d8e91e74be2f9b684b6727fe	yes	13A	merge-or-other	Merge branch 'main' into test/ts-lsp-allocation-failures
+0533beb7c6dd5b0b608f2904e95697240499bfb9	yes	13A	merge-or-other	Merge pull request #2678 from DeusData/fix/seq-link-methods-after-registration
+354ccecbe612a9fdb624396a6738fa87f2617434	yes	13A	merge-or-other	Merge pull request #2431 from kaNEGY/test/ts-lsp-allocation-failures
+42769c2d6da78c91e13cf98d25715234523be49c	yes	13A	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/rust-registry-rust-defs-only
+2fbbecc550ca08eb81e79ef7faf1c8d2a790996e	yes	13A	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/rust-generic-impl-call-scope
+cc79e1d63fe0cd3906a0d00361280df0dda7c2a7	no	13A	extraction-language	style(pipeline): clang-format the dotted-base resolution
+ec4f0eaae638540134ef1f08aabcf8aa5b352b92	no	13A	extraction-language,tests	fix(rust-lsp): a type-qualified call never takes the free-function fallback
+6b1cd8aa0de7718c6ab10a0b2d84b15782f31f2c	no	13A	extraction-language	style(python): clang-format the nested-def binding and lexical step
+f75af00a8b01db44d84fdeebaf493f400662d74d	no	13A	extraction-language,tests	fix(rust-lsp): a generic impl's self type drops its type arguments
+e106c415cf583f99f1cb8cb69ec713077f68e919	no	13B	extraction-language,tests	fix(python): from . import x names the importing package, not its parent
+9b5139d73da34fc882beabeae403c3eee94c56b6	no	13A	extraction-language,tests	fix(python): bound the function-local walks at the symbol's own file
+0bab94ce1cf465e446f4ffb3a803269a9ec68854	no	13A	tests	test(python): a def under a branch is bound by the lexical step, not the LSP
+5bfa7b53bfc9cd8d648e2a09e45f2d8caf427df2	no	13A	tests	test(python): note that H1 may move the branch-def case to an lsp strategy
+d4beec3c5811d8165f34905158c10a22e0c9d403	no	13A	tests	test(python): local classes are extracted defs now (#1548)
+f2534d1e3d74cc531bf7db4be1515bfaf22af0d9	yes	13A	merge-or-other	Merge origin/main into fix/py-dotted-base-qn
+a120c9439e1cbd1b085906af702c918f0f367114	yes	13B	merge-or-other	Merge origin/main into fix/py-relative-package-import
+eec3418fef18066f457b46e3a243ab3c66732430	no	13A	extraction-language,tests	fix(python): a test's nested helper keeps TESTS for its calls (#1548)
+8469fed9602db7ff1d115abe5fbc0d887405b4d8	no	13A	tests	test(rust-lsp): tag the shared-registry fixtures as Rust defs
+f6b505914a432fe23ac2775ef177cb25a6540c86	yes	13A	merge-or-other	Merge origin/main into fix/issue-1548-python-nested-defs-v2
+090580b3c95ba2ec58e7e09eb2858438dc827111	no	13A	extraction-language	refactor(python): scope the nested-def counter to the Python branch
+753df46b7858121d810355ecd696746cd79fd42c	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/issue-1692-aspnet-routes-v2
+2ecf202b3ca166ce7c8e727aaef67043971ae31b	no	13B	extraction-language,tests	fix(routes): keep every overload's decorator route on both resolvers (#1692)
+67ff40d5cbe88d3fe933b846ab228340e8bb2f7d	no	13A	extraction-language,tests	fix(kotlin): resolve calls through typed class properties (#1555)
+fed5cbf9cc0d11affde9030f640c697df3edd6dc	no	13A	extraction-language	fix(extract): test the empty Rust impl name before the cut
+7ec13add9825bb47823787174828497086a48616	no	13A	mcp-excluded-or-translate,tests	fix(test-impact): mark conditionally registered runner suites CONDITIONAL on every selection path
+e554a2ab58ca954c2e9f46ba3fe9d340d1bcf06d	no	13B	extraction-language,tests	fix(go): no field-type hint for Go; it is a name guess, par-only
+ec1e8b8cf4e89aaaf84275ea272dbd646f961edf	yes	13B	merge-or-other	Merge branch 'gq-l5/stack-a-1907' into gq-l5/stack-a-1913
+fe19efb8b5d3a30a7e6fb771e0a71d87fd13ac50	no	13A	tests	test(test-impact): make the conditional-path fixture a valid coverage map
+5992ea61a332dd8a11cddd59c562c1249310bf8f	no	13A	extraction-language,tests	fix(pipeline): size definition properties for every field
+4feb4754fe2e30ec627f59fce017747c37f069f4	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into gq-l5/stack-a-1907
+ee2a4d6a7da7f6003b0f306490689c081d6709f3	yes	13B	merge-or-other	Merge branch 'gq-l5/stack-a-1907' into gq-l5/stack-a-1913
+f04df4a887edc8fa26c14573ca26373cccd06767	no	13A	extraction-language	fix(pipeline): DATA_FLOWS link every caller and handler of a route
+2a57f1dc08ad2c6afc86ef4a1cb77cdd708410bc	no	13A	extraction-language	style: clang-format the DATA_FLOWS walk
+7c5112953f8a7714cc72023747848f73c4e11354	no	13A	tests	test(pipeline): DATA_FLOWS reach every caller and infra handler of a route
+4b59b9a3b2eb66185d765447aa348ef73698e6d0	no	13B	tests	test(python): a decorated class nested in a class body is extracted
+c23f16262be5185e28e632d589aa5cf0866883b2	yes	13A	merge-or-other	Merge pull request #2684 from DeusData/fix/runner-conditional-suites
+a24e09105c88a9b9302eecd60fabebedfbbf340c	yes	13A	merge-or-other	Merge origin/main into fix/py-dotted-base-qn (pick up the Smart CI selection fix #2684)
+99dafc1616ad650ed9cee3ff835b377e5169da6e	yes	13B	merge-or-other	Merge origin/main into fix/py-relative-package-import (pick up the Smart CI selection fix #2684)
+5ae2a3461450d63e265f900dff55db0a8841e4b4	yes	13A	merge-or-other	Merge origin/main into fix/rust-registry-rust-defs-only (pick up the Smart CI selection fix #2684)
+3db701f5efdf5c4836d3f47c57a0da8756541c35	yes	13A	merge-or-other	Merge origin/main into fix/issue-1555-kotlin-property-receivers (pick up the Smart CI selection fix #2684)
+9dc0ab6b3edbc369ee350d3d47936572b89f9f08	yes	13A	merge-or-other	Merge origin/main into fix/rust-generic-impl-call-scope (pick up the Smart CI selection fix #2684)
+ef90708e703ed8e8f21313a80ae424ef7bad21ac	yes	13A	merge-or-other	Merge origin/main into fix/issue-1548-python-nested-defs-v2 (pick up the Smart CI selection fix #2684)
+4d71327cfd1a2def1b89b822078fdf737c500bd6	no	13B	extraction-language	fix(python): extract a decorated class nested in a class body
+b87e0c0bedf19cf4dac6d6b9b82e53bacde35520	yes	13A	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/def-props-buffer-every-field
+221cb0c108a8a1193f3732d869db100f015b3358	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/issue-1692-aspnet-routes-v2
+e772ff820a70778352f772aec4e566ae456cd4c8	no	13B	tests	test(python): methods of a class nested in a class resolve through the LSP
+5f66c867ed7eee06dabf31a7203a5b02841ec661	yes	13A	merge-or-other	Merge pull request #2679 from DeusData/fix/py-dotted-base-qn
+ace384c91a7f3e4d8b07fa677444674311bf43e0	no	13B	extraction-language	fix(python): walk a class nested in a class under its outer class
+4cea54f75835cadd402d60733c9310113e11a4a6	no	13C	extraction-language,tests	fix(deploy): bound Helm rendering on hostile input, no partial or wrong release images
+9cc3b762f955b20e5a0eecdd54cd11e805627089	yes	13A	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/def-props-buffer-every-field
+ba58d15e830a448b71d0e0b5d82c03c8d1934899	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/issue-1692-aspnet-routes-v2
+bddacfed360f8411b03b55f725ff4005e41b69e0	yes	13A	merge-or-other	Merge pull request #2682 from DeusData/fix/issue-1555-kotlin-property-receivers
+5cc7b5c7575a688f7e142b176077e64c61e87ace	no	13B	extraction-language,tests	fix(php): prove an unaliased global class use absent from the project
+033be76c703928a9ee2a8e74eec2ee26f2674c1f	no	13B	extraction-language	fix(doc-links): a Go method claims no flat doc-link node name
+4c62b61845d4e9e402c4bf397311bf7b23ccb7b7	no	13B	tests	test(doc_mentions_go): receiver-qualified Go method nodes (#1913)
+8055f4e2418de13c2546976ffd618fb9aa746b4e	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into gq-l5/stack-a-1907
+099d063d281eb378f0c93b9b40690f17a381d144	yes	13B	merge-or-other	Merge branch 'gq-l5/stack-a-1907' into gq-l5/stack-a-1913
+c6eab65ae57ea835ad38304a4f34eb9a896ff8ce	yes	13B	merge-or-other	Merge fix/issue-1548-python-nested-defs-v2 into fix/py-decorated-nested-class (pick up ef90708e: origin/main incl. the Smart CI selection fix #2684)
+08ee95a82b5c23353908f97a2ad866ca99d976b9	yes	13A	merge-or-other	Merge pull request #2681 from DeusData/fix/rust-registry-rust-defs-only
+1346ac4ea2835c15b1aa257e970abbd520e92c74	yes	13A	merge-or-other	Merge pull request #2686 from DeusData/fix/issue-1548-python-nested-defs-v2
+166167384dead028b9b77a7d5fb9f8a5b00ca47e	yes	13A	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/rust-generic-impl-call-scope
+2700589ef7f69d71856d44f7e76bdf5ae3b4ac08	yes	13C	merge-or-other	Merge branch 'main' into fix/windows-local-transition-cleanup
+dcb6d49c8f2950efc0c99c2e861680212b9545b2	yes	13B	merge-or-other	Merge origin/main into fix/py-decorated-nested-class (#2686 landed as 1346ac4e)
+757881619f85b8114aec3f8b72e5a12283a6d0f1	yes	13B	merge-or-other	Merge fix/py-decorated-nested-class into fix/py-nested-class-qn-v3 (F11a with origin/main 1346ac4e)
+4aaa8b2ec55f95ec9dacf10343bc84f365fb9343	yes	13F	merge-or-other	chore(pipeline): integrate upstream Python lexical resolution
+e475115436d745a1cfbb13b3e9c9bea24a94d84d	no	13B	tests	test(python): a nested class base names an earlier sibling of its class body
+9054309fee7faa4e6c7039c243852f96b5dc3092	no	13B	tests	test(python): import the exc module in the class-body base fixture
+79cb4f722792474a64cbcd5e60b797807385400f	no	13B	extraction-language	fix(python): bind a nested class base to an earlier sibling of its class body
+aa282776c574fe372ce16acad5b8f033b49c2465	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into gq-l5/stack-a-1907
+4e2dcd5771bb713c0f108da6057c76b2ad66a355	yes	13B	merge-or-other	Merge branch 'gq-l5/stack-a-1907' into gq-l5/stack-a-1913
+6e8e785679e71d1833d61c1cd13b0cea992d6454	no	13C	security-runtime,tests	fix(cli): bound emitted OpenCode augment() with SIGKILL timeout and stdin guard
+29e7832c04c80771042463f60ad0565fa8453361	no	13A	tests	test(python): super() follows the C3 method resolution order
+7fa5f89374e366d6972fcdbb8085bafab43f21b8	no	13A	extraction-language	fix(python-lsp): resolve super() through the C3 method resolution order
+edaefefadf591044db9dd7a533b06d2bb43ac74e	no	13B	tests	test(python): attribute lookup follows the C3 method resolution order
+f7c55e776f6bf9132830229135075c0d5663d42f	no	13B	extraction-language	fix(python-lsp): look attributes up along the C3 method resolution order
+5c5964efb9ab637cd6a42a12ff417f5ae0b502db	no	13C	extraction-language,tests	fix(deploy): bound Helm render memory, no wrong image from a skipped change
+c2ee12200cdb377f00eea70c8aae53b98a8416b5	no	13B	security-runtime,mcp-excluded-or-translate,tests	feat(mcp): load the structural tools upfront and say what the graph answers
+257aea1379507ae287f70bf9e5e31428b2f6cb96	no	13B	extraction-language,tests	test(python): annotations resolve through TYPE_CHECKING imports (#1277)
+3a46d69212d8deb59d4514385f6dc67bb4d614ab	no	13B	extraction-language	fix(python): resolve annotations through TYPE_CHECKING imports (#1277)
+1a7839db2e8349c01111e3e0bd7f5520a92b0feb	yes	13A	merge-or-other	Merge pull request #2687 from DeusData/fix/def-props-buffer-every-field
+88bfceda0be347d9f5199b7e67ff3360ac04846d	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/issue-1692-aspnet-routes-v2
+7cb58d3f15727a2c060213ab2fcd4e8032825414	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/php-global-use-known-absent
+a45f36251e79ad142811f03a60c89e1d8eb1b04d	no	13B	tests	test(python): a name the else branch rebinds is no TYPE_CHECKING-only import (#1277)
+2455e75578b4beb13574756a4363ff2d2fa29c26	no	13B	extraction-language	fix(python): a TYPE_CHECKING import the else branch rebinds stays unrecorded (#1277)
+3e9db97456e6617194abfec0391eb13e7586d336	no	13B	tests	test(python): calls through package re-exports resolve by the LSP
+fe2fbad2c49e6b9d5cacc49f5263b1cf23c26afd	no	13B	tests	test(python): TYPE_CHECKING shapes of a package namespace
+62191225c55ee5c04deab1af11932cec913464b3	no	13B	extraction-language	fix(python): resolve names re-exported through package namespaces
+02704401bbc4ad11a689f38205207162095e2f78	no	13B	extraction-language	fix(python): reserve every file's defs before appending namespace records
+45b7279f6a2b85d581a3266ccfc238891268c693	no	13B	extraction-language,tests	fix(php): index the single-file LSP type registry
+24277c40379154f35c3de9799ffb6743015bcd3e	no	13B	extraction-language	fix(python): withdraw a TYPE_CHECKING re-export the else branch imports again
+ea5c1f725066be8acb5de7a3b1a41d5b00f45008	yes	13A	merge-or-other	Merge pull request #2689 from DeusData/fix/data-flows-every-caller
+eb9594d35cd9277fbcc6291040795a9d8a3936b4	no	13B	tests	test(python): name the re-export call that fails
+16b2e940bfdba2da763d1386c61cf87586a08436	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/issue-1692-aspnet-routes-v2
+7c3f50605b051926eb2ae5e76735864b66049758	no	13B	extraction-language,tests	fix(python): give the alternative-branch shadow a valid reason
+aa4775f5669092fde88142c2011e82649fd8466c	no	13B	extraction-language,tests	test(doc_links_pdf): receiver-qualified Go method nodes (#1913)
+669911ce60c4b701ac49a97f7fdb6ccc00795a21	no	13B	extraction-language	style(lsp): clang-format the work-ceiling macro
+4641e16d2333632b49f284046854ebdb610bdb87	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/php-single-file-registry-finalize
+658639ec569c3b8cb3beb0395876edab95aba055	yes	13A	merge-or-other	Merge pull request #2685 from DeusData/fix/rust-generic-impl-call-scope
+730a8747e824e4551a4ec84b011271fb9f728f27	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into gq-l5/stack-a-1907
+7d92e749b31bc68e3576b2bc0e6d00b16e322238	yes	13B	merge-or-other	Merge branch 'gq-l5/stack-a-1907' into gq-l5/stack-a-1913
+3401def5ba3acecdfb636e12a25f6051bb44ed4e	no	13C	extraction-language,tests	fix(deploy): coarse rule for Helm changes not run, BasePath includes, render memory
+3ead775d0bfbdd538794e92bbeee452b50d49007	no	13B	extraction-language	fix(python): skip annotation-only imports without a new raw free
+12b3b844f008670900f3d77114a579f7713c83fd	no	13B	extraction-language	fix(python): size the def array for namespace records up front
+a7f24eac472acfe0093719073f895325ef86ffb2	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/php-global-use-known-absent
+36bce46e68af89c9594e8e9b70bc234bee5a8d89	no	13B	extraction-language,tests	fix(go-lsp): cross-file multi-value and named results type their variables
+5dc83ac9fa363d51706a70977840b61ea59ce9db	yes	13A	merge-or-other	Merge pull request #2696 from DeusData/fix/py-super-c3-mro
+9129c48f4832d295a914547ee11907d9a6500cd3	no	13B	tests	test(pipeline): the surface envelope probe expects codec version 3
+1501cade367a9de3bbb0a4aefccbcb80c35379b9	yes	13B	merge-or-other	Merge origin/main into fix/py-attr-c3-mro (#2696 landed as 5dc83ac9)
+4a057e4ec6a0a1078c037b151a75700837fefd71	yes	13B	merge-or-other	Merge pull request #2690 from DeusData/fix/py-decorated-nested-class
+c5b6f22ec6f1529819d8a37304a140c050a3727c	yes	13B	merge-or-other	Merge origin/main into fix/py-nested-class-qn-v3 (#2690 landed as 4a057e4e)
+90d6d64c62e87586ef5d462cf3f3b5d1059a45e4	yes	13B	merge-or-other	Merge pull request #2695 from DeusData/fix/py-class-body-sibling-base
+c06465bae12c76f3899685fbd157350c63920155	yes	13B	merge-or-other	Merge pull request #2680 from DeusData/fix/py-relative-package-import
+bec015461c7a034b201112d249afcfecd9927117	no	13B	extraction-language,tests	fix(go-lsp): split the raw Go result list, keep a single result raw
+9b2ad49dbc9e6c4d3ceb4312edf64908a75d7649	no	13B	tests	test(python): package re-exports survive an incremental re-index
+0ae936f053b1831d0ad6f02f3a3b10f9cd2eca67	no	13B	extraction-language	fix(python): a per-file def selection follows package re-exports
+7b5e680f336933802c114d6635f54b542585cd4e	yes	13B	merge-or-other	Merge origin/main into fix/py-namespace-reexports-v2 (pick up #2680, #2690, #2695, #2696)
+4527fc731a2e4712b14b4508b4bbe4ddf5022fd4	yes	13B	merge-or-other	Merge pull request #2702 from DeusData/fix/php-single-file-registry-finalize
+9adada0185f8d65a6826da72ccd4ea8929630623	no	13B	extraction-language,tests	fix(php): index trait methods by receiver while flattening (#1265)
+2cee7a12e21e8e46640687af4734e616f8112959	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/issue-1692-aspnet-routes-v2
+e6b47a393ba0501f258ba09445aa6e3dfdc81641	yes	13B	merge-or-other	Merge pull request #2700 from DeusData/fix/py-type-checking-imports-v2
+782ab752d96cb645773a018c129ecf9ecf6d95d8	yes	13B	merge-or-other	Merge origin/main into fix/py-namespace-reexports-v2 (pick up #2700)
+35598e66fdf68a3c4ff9f03224e82fb039303503	no	13B	tests	test(python): docstrings and __future__ imports keep the package namespace
+240b24ae822cc488797b397f4702eb3aee480fb7	no	13B	extraction-language,tests	fix(python): docstrings and __future__ imports are no namespace barriers
+27c330324d36858f8e74e710e9b7f5244012b335	yes	13B	merge-or-other	Merge pull request #2697 from DeusData/fix/py-attr-c3-mro
+67e53d0ead6a0959557057acefb397eba3360cab	yes	13B	merge-or-other	Merge origin/main into fix/py-namespace-reexports-v2 (pick up #2697)
+728bb3b822d1d5987b67adea0dc6075093b4435c	no	13B	extraction-language,tests	fix(python): a star import from __future__ is a parse barrier
+bf56fcfd14048b9688c99264b6f4fae28d9ccf8a	yes	13B	merge-or-other	Merge #2704 head 67e53d0e into fix/py-namespace-string-future-facts (pick up #2697)
+4ae190922352cef0f9568dbb9b3103e5c30654e2	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/php-global-use-known-absent
+7dc07d97fdb700aea3758e13a94561669efa48ae	no	13B	extraction-language	refactor(php): keep the trait index in the LSP arena
+74b115e929d458b24ee714c9121d7cf2e8642ea5	no	13B	tests	test(python): a top-level __go(locals()) keeps the package namespace
+3281626c602a431e1047e4097104d000f4274d9f	no	13B	tests	style(test): clang-format the __go allowlist test
+90bb6845d6304ae97f693d789f8df68888ef029d	no	13B	extraction-language	fix(python): a top-level call of a harmless same-module function keeps the namespace
+1e644b4414544a3da6d0ee10a6cb5121c78af61a	no	13B	extraction-language	fix(python): bound the module-path scan of the __go import check
+e9b334e7a18725a32e9e3e2aa9a396489163cda0	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/php-trait-flatten-index
+41232687dd6c8de6ec51411aeb9a8b57fe46bf8c	yes	13B	merge-or-other	Merge pull request #2691 from DeusData/fix/py-nested-class-qn-v3
+684dcf544736fb272de221266078047756566c7e	yes	13B	merge-or-other	Merge pull request #2703 from DeusData/fix/go-lsp-multi-return
+ac78896253650e44cd6a1466d2d5e49c3c91f70f	no	13B	tests	test(python): an escaped string in __all__ is no effect
+0f6cc06ba2ad016c47def744fcf12fb175c22a65	yes	13B	merge-or-other	Merge pull request #2704 from DeusData/fix/py-namespace-reexports-v2
+3c2853e338e37da4c10a9157b7d54e0d5a565f0d	yes	13B	merge-or-other	Merge main 0f6cc06b into fix/py-namespace-string-future-facts (#2704 landed)
+f26da1aaf2d9602faa555e9963ec5e431c56e3d7	yes	13B	merge-or-other	Merge pull request #2688 from DeusData/fix/issue-1692-aspnet-routes-v2
+30bd5aaa919d968869861e402ccb91ca89de60d6	no	13B	tests	test(routes): test-file callers and handlers pair only within their file
+6f00af3b7eab5958133fa3f456ca5e4678f2741e	no	13B	extraction-language	fix(routes): scope DATA_FLOWS pairing at the test-file boundary (R1 + R2)
+8d1815cb76f5c4b7b616dad5f2e5b11a09349cb4	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/data-flows-test-file-scope
+d4980ad7570b42e8186a77fbdf1b963639bbbe8e	yes	13B	merge-or-other	Merge pull request #2705 from DeusData/fix/php-global-use-known-absent
+5e345e32c01d2cd3473aef2cd2e1b83469721ecf	no	13B	mcp-excluded-or-translate,tests	feat(mcp): state the structural questions in the scout and analysis profiles
+93724ba36b9e9ee57a30363eacdcaa22ff8a22f2	yes	13B	merge-or-other	Merge main d4980ad7 into fix/py-namespace-string-future-facts
+2cda42e8945cb1b7d3875342ab80943989a3a0c2	yes	13B	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/data-flows-test-file-scope
+5fd9e4f33c184e6caf1cd09f5b46eec00c62205e	no	13C	extraction-language,tests	fix(php): drop the name guess when the receiver's class is not indexed
+260fb77e5b18403a7fd6bbda4c467a24d8b967fa	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+e9e7861d779b82ef3820e8f150874eb1187c7c7f	yes	13C	merge-or-other	Merge branch 'main' into fix/windows-local-transition-cleanup
+2248ae1f3c6447484eaf775f171be5f1b71639b5	yes	13B	merge-or-other	Merge pull request #2698 from DeusData/feat/mcp-tool-search-discovery
+efe007ea1b8646fe304e761208aa050d17497cd0	yes	13B	merge-or-other	Merge pull request #2708 from DeusData/feat/mcp-profile-instructions
+32445b200156d23002aa6e11b8a808b2ca856795	yes	13B	merge-or-other	Merge pull request #2706 from DeusData/fix/php-trait-flatten-index
+170fad6b654d4b0993f516b6642b35a98b736178	yes	13B	merge-or-other	Merge fix/py-namespace-string-future-facts (#2712) into fix/py-namespace-effect-allowlist
+6856f097053ea2a9ecd9ce0a6ae8b346ea5b9e51	yes	13B	merge-or-other	Merge origin/main (32445b20) into fix/go-weak-selector-calls
+cd16ef804673bb617929bfe8ef613f36f66290c7	yes	13B	merge-or-other	Merge fix/go-weak-selector-calls (#1907, with main 32445b20) into fix/go-method-receiver-qn
+5cdbe9b0b664de1ba0cdb004e696b2d7bf153061	no	13C	extraction-language,tests	fix(deploy): taint Helm changes of and/or, later conditions, sortAlpha, parse errors
+db5791a0de981fc34a52e224a9c71580a481586c	yes	13C	merge-or-other	Merge branch 'main' into fix/606-php-unindexed-receiver
+c52ca5d34c76b4f731090ab17a2dc3390dea6467	no	13B	security-runtime,tests	feat(hooks): name the graph follow-up tools in every search augmentation
+d21152603c7e0df218550f0193eeb1b25141179a	yes	13B	merge-or-other	Merge pull request #2707 from DeusData/fix/data-flows-test-file-scope
+f0e3b514a087ab10fb84b6c6f835c1d448c2804f	yes	13C	merge-or-other	Merge branch 'main' into fix/opencode-augment-timeout
+4f29d6cbddc9936929f18a69e7f32634a98fed57	yes	13C	merge-or-other	Merge branch 'main' into fix/606-php-unindexed-receiver
+fc80ed00d733d482349869c7e1a40aa24b14d546	yes	13C	merge-or-other	Merge branch 'main' into fix/windows-utf8-watcher-paths
+ccedf273aaf2e29b1e9a16795b068c9cb8e2ccc4	yes	13K	merge-or-other	Merge branch 'main' into fix/2204-opencode-extension-untouched
+28a6905c07d3cef3ba3568be413ece7b794402a4	yes	13B	merge-or-other	Merge pull request #2712 from DeusData/fix/py-namespace-string-future-facts
+8781bbd29f136e4fcda9ddcee499f62592f6b709	yes	13B	merge-or-other	Merge origin/main into fix/py-namespace-effect-allowlist
+1137a9ebe2a4654ad99b84d292de724f94fcc094	yes	13C	merge-or-other	Merge branch 'main' into fix/606-php-unindexed-receiver
+6513104921993f80ffba171810793ad100600fd5	yes	13C	merge-or-other	Merge branch 'main' into fix/opencode-augment-timeout
+1b3ca8cb672a054ad953e89a68aa42a8c0942406	yes	13C	merge-or-other	Merge branch 'main' into fix/windows-utf8-watcher-paths
+6bb7acdf3af41e6fc317f7f581c80170ffe67b5a	no	13K	security-runtime	refactor(cli): share the managed-block read step with the ownership probe
+3f612f6b710f6592a7612537f197909483ce9480	no	13K	security-runtime,tests	fix(cli): keep a user-owned OpenCode module out of the install plan
+4bead60c04924f20865e24fa3780327d1ffe7019	yes	13K	merge-or-other	Merge branch 'main' into fix/2204-opencode-extension-untouched
+0e4ec8018d2e97d71ed7dd7620e3f8afb72c35e2	yes	13C	merge-or-other	Merge main 28a6905c into fix/ts-bounded-lookup-main-20261013
+5e3935b9b63096890a730937c4de98540bac8d4e	yes	13E	merge-or-other	Merge main 28a6905c into fix/windows-sqlite-writer-64bit-offsets
+a933d5318c341acb01f64d17adb4a1df4b4edfa7	no	13G	merge-or-other	docs(troubleshooting): add Windows troubleshooting guide
+fbfcfee30a187244ad07af3eabdb9db1d431f866	no	13K	security-runtime	style(cli): narrow bom_len to the branch that uses it
+6ebd07816b5fce5dab2d49cbd15903b63f5a248a	no	13H	tests	test(daemon): leave the connection-cap test out of this Ruby fix
+fb679e063ca3a23d1a1bdf3d350d649808c39e88	yes	13H	merge-or-other	Merge branch 'main' into fix/ruby-namespaced-constructor-callee
+af312fb74bf18ceb218a5f5e38fb162314c6aad8	yes	13C	merge-or-other	Merge branch 'main' into fix/windows-local-transition-cleanup
+171f99b6982cff43e9d60863b6bd3e01866d709e	yes	13B	merge-or-other	Merge pull request #2714 from DeusData/feat/hooks-graph-follow-up-hint
+55e8479516cdda1cc44bf886f00cde5bd425f687	yes	13C	merge-or-other	Merge branch 'main' into fix/relative-non-code-imports
+0baad9450fcb63bc3d50d8c597a205bf10d1befd	no	13C	extraction-language	fix(pipeline): resolve relative import files without a raw allocation
+f8b6a1ad8f53c28258a2404de87d589b4a60341c	yes	13E	merge-or-other	Merge branch main into upstream-pr/elixir-channels
+ad178b23e67f264606078e7d0d3f6587f977336c	yes	13C	merge-or-other	Merge branch 'main' into fix/relative-non-code-imports
+00649064fe161803f3c03b5a87087f600d9dd8aa	yes	13J	merge-or-other	Merge branch main into fix/elixir-extraction-defects
+5a4af9c46f285c8fc18c6fd00a5bb32f035888ca	yes	13B	merge-or-other	Merge pull request #1913 from ilyabrykau-orca/fix/go-method-receiver-qn
+1b2238eea8e4a6d3595c7f659fa5c91485ed936f	yes	13C	merge-or-other	Merge origin/main (5a4af9c4) into fix/tsx-arrow-jsx-calls
+c363d8f0f542a8dcf95f9565e12c38daec204ae4	no	13J	tests	test(elixir): pin the clause fold inside compile-time if/else variants
+688efc72ae317fa3df5de18c0a5bfe0d9037667d	yes	13J	merge-or-other	Merge branch main into fix/elixir-extraction-defects
+6e3799b090fdd40dc6913903c13c9714addfc628	yes	13D	merge-or-other	Merge origin/main (5a4af9c4) into fix/1355-external-import-shadow
+4c80d89edf1283cfeaa7e60ecbf40c9d2eb2b689	yes	13B	merge-or-other	Merge pull request #2713 from DeusData/fix/py-namespace-effect-allowlist
+3867625c442e6a580025c5337214fccbb3b587c4	no	13C	extraction-language,tests	fix(ts-lsp): keep exported arrow consts out of the module lexical scope
+f0d34de56d81ae2fca01f2e675a7754b0f79b9e4	yes	13C	merge-or-other	Merge origin/main (4c80d89e) into fix/tsx-arrow-jsx-calls
+1cf657377b4c3ecdf452c223bc9a3d74af66f91a	yes	13C	merge-or-other	Merge branch 'main' into fix/opencode-augment-timeout
+542311ba1189805ab77f0ebf72880484a94175a2	yes	13C	merge-or-other	Merge branch 'main' into fix/gh-2563-extra-extensions-jinja2
+cad81696974997bdd0445d9b7232f20d96779a59	yes	13K	merge-or-other	Merge branch 'main' into feat/codex-skill-location-compat
+5a04e424e7e5fd1cfac299ebf293cbe9236844d2	yes	13C	merge-or-other	Merge branch 'main' into fix/issue-1718-approve-sensitive-separators
+8af291deb48acda7568300577b670da415da978e	yes	13C	merge-or-other	Merge branch 'main' into fix/2433-server-discover-probe-log
+0286569e635e045963d03bbdef8aeb6af2ad31bb	no	13C	tests	test(workspace): create the descendant on disk; write the grant via cbm_fopen
+a76600db096721e37931ffdc6e3254e574263832	no	13E	extraction-language	revert(extract): drop template-URL constant resolution now done by the URL fold
+ec960f1c693888486d127d0367e029e2ff2fd971	yes	13E	merge-or-other	Merge origin/main into fix/js-template-leading-substitution-url
+aa95352bd1e33671257159bef2030d464b82697f	no	13C	tests	fix(discover): a symlink must not abort a bounded count
+a22271570eddba4ebed2c43577a5a4d36cb82086	yes	13C	merge-or-other	Merge pull request #2677 from DeusData/feat/deploy-graph-gaps
+f460813b94e8c97028039803fbb346c16fa1ab2d	yes	13C	merge-or-other	Merge branch 'main' into fix/606-php-unindexed-receiver
+6172374452ab21618dde59b8317420fe0b51530c	yes	13C	merge-or-other	Merge origin/main into fix/issue-2481-tsx-ampersand
+26cd2608f577bcf2f9e6eaccdba52f4201636780	yes	13D	merge-or-other	Merge origin/main into fix/issue-1115-indexed-project-discovery
+2e7244fe4ccf56dbee2c8ebeb45837ce25e02bdd	no	13D	tests	test(mcp): give the #1115 store-switch coverage its own test
+ed28f3ce4b9ee9f9326e810e49b772f6bb1e55e2	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+d1ab2426ee1b817945eccbabdd6fa78ff2d06260	yes	13G	merge-or-other	Merge branch 'main' into docs/windows-troubleshooting
+ad1f029645fe4b2fd41baac0b00917ebfd2cc79f	yes	13E	merge-or-other	Merge origin/main into fix/cohort-lock-tmp-cleaner
+faa0a2fcb2ade4b54f9562fbd3fc18e8dcb6e2c6	yes	13D	merge-or-other	Merge origin/main into fix/221-windows-cli-detection
+788dbe075ea62e83b817582267fb734c09a6419b	no	13D	security-runtime,tests	fix(platform): cbm_env_dup answers through the settings resolver (#221)
+079fb2067a8432310dac88240f926000b94f0582	no	13D	tests	test(cli): run the #221 long-PATH and Windows shim regressions in the cli suite
+dd357a7c97187b53f68c0270a0992f4c4d64f07e	no	13C	packaging	docs: refresh project messaging and Lens website
+43a7e592027d3f4282cdb0314d92c142fca0165a	no	13C	merge-or-other	revert(cypher): drop the early-WHERE deferral that #2253 superseded
+146daa976e5b3f8c4ac2d080d97279e0e50b6ef9	yes	13C	merge-or-other	Merge origin/main into fix/query-graph-where-not-target
+6d2d30c3ea2191adfc000f57d31a95d14b7b290b	no	13C	tests	fix(cypher): the early WHERE pass waits for every alias a condition reads
+4563748955e17865246995163fda4ec06f1def5d	yes	13I	merge-or-other	Merge branch 'main' into fix/1762-paired-free-functions
+c4b635b25f7a51670642e5100c6e73d6406be4a1	no	13I	security-runtime,storage,tests	fix(store,ui): route the paired-free allocations through the memory core
+954350d59070c7e54bd4d9586772bbf0cc1a903e	yes	13C	merge-or-other	Merge origin/main into fix-haskell-infix-def-name
+3fa75481dcd8548eec28ac1042707afc28868c47	yes	13C	merge-or-other	Merge pull request #2726: refresh project messaging and CBM Lens website
+2b1aba710c81cf763234967f56b6df014f784b31	no	13E	merge-or-other	docs(cli): say what a warm daemon gives hooks in --help
+b9df26094fa1b3cb423a34f972f46dc7e1bbdfe0	yes	13H	merge-or-other	Merge origin/main into feat/path-allow-broad-too-shallow-override
+3e2de74e985f3fa688db98a6b4bb6873d2c740d8	no	13H	security-runtime,mcp-excluded-or-translate,tests	feat(workspace): record broad approvals with allow-root --approve-broad
+fe38a8a23b617d3f67692d8a2dfc3f38494a7b97	yes	13E	merge-or-other	Merge origin/main into fix/2276-incremental-reindex-root-path-stale
+f70c6a92b220de85a609c89d6b9727b8809fcb67	yes	13J	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/1084-background-index-cpu
+a909f8418e9fb0fe52372d82f92c41a53e2f6fe7	no	13J	security-runtime,tests	fix(daemon): let an explicit index join a running automatic job
+a62ff96249670cf52596529fefda492c439fb1bf	yes	13E	merge-or-other	Merge branch 'main' into fix/2001-manifest-walk-skip-unreadable-subdir
+ddf63592adc29143427e1eecd85a9a7c785d8fe2	yes	13G	merge-or-other	Merge branch 'main' into feat/solidity-support
+34d945419370ca9a107668c32d16c9724030deb5	yes	13D	merge-or-other	Merge branch 'main' into fix/ts-lsp-walk-stack-drops-nodes
+e8ccc330576ce3fdf826d2dbb0a0a515f0d11473	no	13D	extraction-language,tests	fix(lsp): grow the ts_lsp walk stacks with cbm_walk_stack_reserve
+64349dedab739dd462d57ac098f9f9a5d242be17	yes	13E	merge-or-other	Merge branch 'main' into fix/py-definitions-oom
+20840107a85dc2381bc90b5bf64eea0a44634020	yes	13K	merge-or-other	Merge branch 'main' into feat/graph-gate-contract
+864484d3d80255d2fed801e64ee791c872a9adba	no	13K	security-runtime,tests	fix(cli): move index verdict exit codes off the usage-error code
+cb62f63739e934706a66422c7e14a4901af9bc1e	no	13K	security-runtime,tests	fix(cli): read gate thresholds through cbm_env_long
+73a47de8ffef331551a5ac8d2f41d424bba153b6	yes	13H	merge-or-other	Merge origin/main into fix/dotd-depinfo-sniff
+85987de5b4e0adf73cc4904347a89e1747e5e017	yes	13F	merge-or-other	Merge branch 'main' into fix/discover-external-fast-mode
+3455492043ed0ab5e2fc6ed30ab2f6ee3528f05b	no	13F	tests	test(repro): drop external from the fast-skip invariant table
+895b451fb8421218e5a9527733fd28289ef40c4c	yes	13I	merge-or-other	Merge origin/main into perf/py-cross-registry-index
+f08dadae9c6b439e167c8cebbf429e6aad1b5bff	no	13I	tests	test(py-lsp): gate the shared cross-registry build on counted work
+8b8948d76213e97f1cb862c37d0b8be234490cfc	yes	13H	merge-or-other	Merge origin/main into perf/py-lexical-ancestor-kind
+70c7d456c2ba3c401af5ac9552148c554c5093ee	yes	13H	merge-or-other	Merge origin/main into fix/sequential-definitions-retention
+5c9099f015bc65d67a9bfcac7156e50acc1b2f42	no	13H	extraction-language,tests	fix(pipeline): keep PHP trees in the sequential cache, release on abort
+6d7cd64353a3cbfecc5a724857bad7016b26ac16	yes	13D	merge-or-other	Merge origin/main into fix/csharp14-extension-members
+15950c361c5eee83e6fef4593727b0b1b62b14b4	no	13D	tests	test(grammar): pin C# 14 extension block members in the regression net
+c4acff3dba747ab74d479fd8973c3407c675aac0	yes	13E	merge-or-other	Merge origin/main into fix/framework-entry-dead-code
+143ccfa35e2150aa4b2320039ceb09f11988c1a9	no	13E	security-runtime	fix(ui): allocate the framework-entry flags through the memory core
+a36c6927c261a2ce6399931d792daf5ecf04b104	yes	13I	merge-or-other	Merge origin/main into fix/windows-unicode-agent-detection
+c21c42b4d6ce88da41fe040d8a6254405bdfbeff	no	13I	tests	test(cli): create the non-ASCII Windows profile through the wide API
+71ec2e6e225ebc3662026b58c720e9491f796ebe	no	13D	tests	test(windows): pin the CRT aligned-block route of the aligned-free wrapper
+19c6fd9cc07509e23582f62923853fea0f15f6d9	yes	13G	merge-or-other	Merge origin/main into pr/windows-setenv-utf8
+9a2d1d60c3c50e779e95de66f767414c14e4576c	yes	13C	merge-or-other	Merge pull request #2710 from wazum/fix/606-php-unindexed-receiver
+a8477fec9f7265024f259e9d276ec009fe8fb747	yes	13E	merge-or-other	Merge origin/main into fix/2386-bm25-label-window
+172c36191d6b7898bb6e3bd02791ce661dc694c3	yes	13C	merge-or-other	Merge pull request #2623 from dianshu/fix/ts-bounded-lookup-main-20261013
+27dea228f0bd860974b82042a6c21b65b11a2404	yes	13C	merge-or-other	Merge pull request #2720 from DeusData/carry/1803-symlink-bounded-count
+c99fe11c36d3754f00b01f1be33186ef3f992850	yes	13C	merge-or-other	Merge pull request #2512 from lorenzozanee/fix/issue-2481-tsx-ampersand
+9c89041a56cdb47d58cb832d707bda571e9ef1f8	yes	13C	merge-or-other	Merge pull request #2556 from mvanhorn/fix/2433-server-discover-probe-log
+8c7b3bd76e8cc0e23f5c570dafeb0ddff5c4d6fd	yes	13C	merge-or-other	Merge pull request #1786 from umi008/fix/issue-1718-approve-sensitive-separators
+205343e8dba0e0f87c5fa3843dbb994392d3e70a	yes	13C	merge-or-other	Merge pull request #2694 from woodsonl/fix/opencode-augment-timeout
+94f952d8d6597452a2c860a04fc912f10fd485c8	yes	13C	merge-or-other	Merge pull request #2599 from pcristin/fix/windows-local-transition-cleanup
+8fafd8aa2a3434bd06edd3bfca385dd787b59223	yes	13C	merge-or-other	Merge pull request #2568 from Totopo27/fix/gh-2563-extra-extensions-jinja2
+424ab76cb5791fbab3264ae866d10cbb25f7a4b8	yes	13C	merge-or-other	Merge pull request #2595 from lorenzozanee/fix/relative-non-code-imports
+fceb25d811f61795c002a7233c2ea94f288b5f3f	yes	13C	merge-or-other	Merge pull request #2579 from lorenzozanee/fix/tsx-arrow-jsx-calls
+62fc4f951458a126ddab0440c54af4d851352931	yes	13E	merge-or-other	Merge branch 'main' into upstream-pr/elixir-channels
+a6e612ab35324cb1414e4857f01e67714f2273fd	yes	13J	merge-or-other	Merge branch 'main' into fix/elixir-extraction-defects
+012dbabf4a062424724eb7dfb3dbb99d1a54fdf2	yes	13E	merge-or-other	Merge branch 'main' into fix/js-template-leading-substitution-url
+af0f6c7490b8b918163972c27fec54a589d69779	yes	13D	merge-or-other	Merge branch 'main' into fix/issue-1115-indexed-project-discovery
+158883b3b770a4b11385743528d443f51a798f25	yes	13I	merge-or-other	Merge branch 'main' into fix/1762-paired-free-functions
+7f8d048a673ce7b3e45353727bcd5a74c01bb74f	yes	13E	merge-or-other	Merge branch 'main' into docs/help-daemon-subcommand
+cf1b443a168bfbe169052f9b214954bdad82bb9e	yes	13H	merge-or-other	Merge branch 'main' into feat/path-allow-broad-too-shallow-override
+1aca366b2da1af6aa29b9d8d5a79d5db16bcfc20	yes	13E	merge-or-other	Merge branch 'main' into fix/2276-incremental-reindex-root-path-stale
+c080c4a04d4a2f7fc88da1d283fa42f2466c2c93	yes	13J	merge-or-other	Merge branch 'main' into fix/1084-background-index-cpu
+1a0b2681934f0888818a095a3dac4c9999c041e6	yes	13E	merge-or-other	Merge branch 'main' into fix/2001-manifest-walk-skip-unreadable-subdir
+7e95a5f882317f59f770f6ed840a989423f33d16	yes	13D	merge-or-other	Merge branch 'main' into fix/ts-lsp-walk-stack-drops-nodes
+acec2fa84779307c6ce1ba62ab16b77b40c13dc7	yes	13K	merge-or-other	Merge branch 'main' into feat/graph-gate-contract
+d95e30625b2f411a4a10367ccf84b34547fd0f24	yes	13H	merge-or-other	Merge branch 'main' into fix/dotd-depinfo-sniff
+592fafb6d09ae8b5883f3b77be3670edef884777	yes	13F	merge-or-other	Merge branch 'main' into fix/discover-external-fast-mode
+6130f3fd4a5d761a9950626f8b232955881fb4e0	yes	13H	merge-or-other	Merge branch 'main' into fix/sequential-definitions-retention
+55e31c386531b2b7e46cbf6e141fb5849fec59e4	yes	13D	merge-or-other	Merge branch 'main' into pr/windows-aligned-delete-fix
+3f8b6b413834db01248e55c858dea244983af991	yes	13E	merge-or-other	Merge branch 'main' into fix/cohort-lock-tmp-cleaner
+e77b494b3e6854217d756785cafb4d9d3c8eda30	no	13C	merge-or-other	docs: improve site discovery and invite the Discord community
+912dae61c9d7ac77b95330e0c0dd0987010e8b9c	no	13C	merge-or-other	docs: add Lens walkthroughs and restore GitHub star badge
+e81b6599a8eaa3ed4646397365a1234584b7b5f6	no	13C	merge-or-other	docs: center the MCP server while keeping Lens visuals up front
+1d2c9bcf89c53f821c3b47df4fb2c5e8c186c111	no	13C	merge-or-other	docs: place community badges in the website header
+137996c43d9e754269cfa7d4e3899a6a88c15670	no	13C	merge-or-other	docs: integrate community controls into the website navigation
+4cf44147e639ae070ee44d9230244bfb9d9676e0	yes	13C	merge-or-other	Merge pull request #2729: sharpen MCP positioning and refresh website discovery
+8af6833118de4364243af2b0d8cee4ff0024893a	no	13E	mcp-excluded-or-translate,tests	fix(mcp): serve every named label in BM25 search_graph, never a silent zero
+b95b4033ea1a1befbd660e7a1917de059da8f705	no	13J	mcp-excluded-or-translate,tests	fix(mcp): rank every BM25 candidate when post-window filters would hide them
+5afdfcaac9d10e1f216cb3e7ec7df9c8971c8432	no	13C	ci-policy-reconcile,tests	ci(codeql): run CodeQL on main, dry run and release, not per PR
+13c38feeff7df89eb9bd9db1c36de68c5a89873e	no	13C	merge-or-other	docs: refresh Lens recordings and correct README claims
+453b21e68086c3403aa64c2c8d17764324a87344	no	13C	ci-policy-reconcile,tests	ci(codeql): PR scan per language inside PR CI, full scan on main
+2f10540b3a9c88d49cf128888dd31e7604195014	no	13C	ci-policy-reconcile	ci(codeql): make codeql-retrace-vendored.sh executable
+a22c89bd9c4d2a67f302821bda6e4223ddb93566	yes	13C	merge-or-other	Merge pull request #2735: improve Lens demo clarity and correct README claims
+925703d614206c799494a20866de971ad553876a	no	13D	extraction-language,tests	fix(pipeline): emit and reconstruct route properties as valid JSON
+6a61538f97bebf0258a38d1120b4b58a4e741151	no	13C	ci-policy-reconcile,tests	fix(ci): retrace changed vendor families and wrappers
+d5bb016a370e6476275ffd643e419cb448facc17	yes	13C	merge-or-other	Break-glass merge PR #2734
+d2e00366c02ea154bdaa679a84d756a6a69ee81d	no	13D	tests	test(contract): drop the language-count surfaces #2729 stopped claiming
+f9f44b5869961e4fd7a91fc8b5cef5e3ed3a13ac	no	13G	ci-policy-reconcile	fix(mem): vendor mimalloc 3.5.3 so free(NULL) before init is safe
+ddc986ea0d750884cf91d5d4c634cb579758092e	no	13G	tests	test(mem): pin the production allocator's start-up and local patches
+4c09f7c70cf083bd213921772de954c24652049c	no	13I	tests	feat(plugin): Claude Code plugin marketplace, discovery slice
+49130a3d8f7786f987d0ddb1645dc15225bff4d1	no	13D	packaging,ui	fix(deps): patch Vite and certifi security advisories
+402cc818f7f664e5f5f0ec81c26504fdd1702462	yes	13C	merge-or-other	Merge pull request #2639 from H4M4CHi-ttr/fix/windows-utf8-watcher-paths
+321dcb63f9a4b7ef2e5cc196bd8393a186df5c99	yes	13I	merge-or-other	Merge main and complete Java record call handling
+124ce0e130d7a4e9680ce8dcfc60aca2e0a6ea40	yes	13H	merge-or-other	Merge main into Ruby namespaced constructor fix
+631d24c790f68fc06d42b6a72338f6b0e317e294	yes	13G	merge-or-other	Merge main and strengthen home alias ownership regression coverage
+37e535ebea7e85c412ebcbe8e3ff817ba3d50d6c	yes	13C	merge-or-other	Merge pull request #2457 from Zhuoxi2000/fix-haskell-infix-def-name
+3457b21b0a3d75960c07ed3ec666a9e684985ef9	yes	13C	merge-or-other	Merge pull request #2502 from lorenzozanee/fix/query-graph-where-not-target
+b40ed9c275653783fa983987ee603c6a4b05ae7b	yes	13H	merge-or-other	Merge main to refresh Ruby constructor CI
+86fb94fe152104c586ab3b5307927bb28e264054	yes	13I	merge-or-other	Refine Markdown heading names and refresh main
+b759b95635994b40ecc945f084073ae2693a0cf4	yes	13I	merge-or-other	Merge latest main before Markdown heading CI
+e2660c4a400955f15c8fc254e5b7579ab5f46614	yes	13I	merge-or-other	Merge latest main to refresh Java accessor CI
+b74e91cb2f2b523a2ab00b565ff6d40f6878e920	no	13D	tests	test(ts): cover module-level inferred receiver
+671bc4956d3271fb9b2bbf1166cd920df5ed1131	yes	13D	merge-or-other	Merge main to refresh PR verification
+d9766ae878362d614e195a89ccdbd4736a5e6f13	no	13D	extraction-language,tests	fix(pipeline): keep route properties that are not UTF-8
+fd9f1d83025e569039314436a6f780f284a69d99	no	13G	extraction-language,tests	fix(ts-lsp): resolve calls through renamed named imports
+0325d6a3fa6a36b4f03f5dd6b8e7d7041a5448a6	no	13D	security-runtime,mcp-excluded-or-translate,tests	fix: watch explicit MCP index targets
+ad7899399bf4ec6f1dfcaf195bba99160908ccc7	no	13J	extraction-language,tests	fix(routes): read Go 1.22 ServeMux method and host patterns
+0a966d58101992eb3c663f82542c5442c6b844de	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+0799f74afaae8846bdab7f77fa3609918a066ba0	no	13D	ui	fix(ui): hide stale focus warning while arranging graph
+7890796662760e89b7778c51902d10c1d1ab3c24	no	13D	ci-policy-reconcile,tests	fix(ci): normalize Windows paths in CodeQL retracing
+72e8be908935e9d78beb87f0347c2c3965c8a59d	yes	13D	merge-or-other	Merge commit '3457b21b0a3d75960c07ed3ec666a9e684985ef9' into HEAD
+5aa31bee626c36e3b2def9435994d41b91e88615	no	13D	merge-or-other	ci: parallelize cppcheck with isolated whole-program state
+c933d0bb4ce0b61bca95c477e536dda2069cb5b1	no	13G	extraction-language,tests	fix(pipeline): a bare C reference never binds a struct Field
+72c36044a4ead6dce9b703c2f00eff1b00914ce2	yes	13D	merge-or-other	Merge pull request #2732 from DeusData/fix/language-count-surfaces-after-2729
+1a0afcdc05a3b452c2066545c35027cff252edc4	yes	13D	merge-or-other	Merge main after shared CI baseline repair
+a4ffb2bf3720336d7f9206ba10ed5f93f63ccf8b	yes	13D	merge-or-other	Merge main after shared CI baseline repair
+bc5928456545c8e80d4d62cbbde57392ec632cbc	yes	13G	merge-or-other	Merge branch 'main' into fix/2666-c-extraction-a-macro-argument-identifier
+bb2d51ae69ab03415546cc40d18910c1d2530db6	yes	13H	merge-or-other	Merge branch 'main' into fix/dotd-depinfo-sniff
+1d7ce9ba6ac0294d7e1a2ef3a3ae3c9c0259b996	no	13J	extraction-language,tests	fix(pipeline): cap surface callbacks at the worker budget
+38a3ddb29d0a92fc3f6bcc28fceec21127f87a4c	yes	13J	merge-or-other	Merge repaired main baseline
+2a9796e0167bf3f5a0a9add55458a626d95949b1	no	13G	extraction-language,tests	fix(lsp): preserve overloads through imported TypeScript aliases
+8187804d160b0e69fe7db786bc9ee9624a5a6fd2	yes	13G	merge-or-other	Merge repaired main baseline
+884bf9917d4dca5e77543910927cfe09166ef2c5	yes	13D	merge-or-other	Merge main into external import shadow fix
+01368e65a26182cb0aef4ef4b5cc79d58d527cd2	yes	13D	merge-or-other	Merge shared CI baseline fixes into external import shadow fix
+f309fd84252f1ce8ca9428002fe58fca0ad262ce	yes	13D	merge-or-other	Merge shared CI baseline fixes into dependency updates
+bd21af33f3f6f7f981c9aab28d03326372c8c284	no	13E	merge-or-other	fix: prefer toolchain-provided linker to embed web-ui assets
+ea762b83e0d134741b953cb0a1138e98d3439dc7	yes	13H	merge-or-other	Merge shared CI baseline fixes into Ruby constructor fix
+159a19ea8da4ebe29fb846e9c62cd2418a0aa9be	yes	13I	merge-or-other	Merge branch 'main' into fix/1762-paired-free-functions
+fc18b9da0452ac5e39c2aad8260af54b66e1f7ba	yes	13E	merge-or-other	Merge branch 'main' into fix/2386-bm25-label-window
+329aeeb1a9023c032bf4b6327fe12bb2a6bbbb5d	yes	13D	merge-or-other	Merge branch 'main' into fix/ts-inferred-receiver-calls-1974
+ed52f62f25bddb486ae0a015b7b98146c935f83d	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+b260a4bf70ab2d0b9890f3e93b01119c5fab7ee5	no	13D	security-runtime,tests	fix: preserve watcher roots and refresh options
+aa5501d457072ebfcc2c89638df963a7d5880828	yes	13D	merge-or-other	Merge main to pick up current CI baseline
+8c4747666c9369699346216c390f1e3fe745b29d	no	13D	ui	fix: preserve literal input and static asset boundaries
+2999c7ac7b22b9fbb531896fc0f194c8aef4a509	yes	13G	merge-or-other	Merge main to pick up shared CI repairs
+ee6e78b7142d51f849acaaa34cf010492568a28c	no	13I	extraction-language,tests	fix(java): ignore comment extras in record accessor parameters
+373c090a4a9789a8e12866a5e65c73d930f1b0e1	yes	13I	merge-or-other	Merge main to pick up shared CI repairs
+04f64233146b06744681bdb8f4da4ed5f827204c	yes	13I	merge-or-other	Merge main into plugin marketplace slice
+1aa6c3270fa1f89fd6601d513ab9a0b3aceb6412	yes	13E	merge-or-other	Merge main to pick up shared CI contract fixes
+8b2d8401042b8d8d474bf0662b40e3f272c99e55	yes	13D	merge-or-other	Merge main to pick up shared CI contract fixes
+e30dd59fde5d6ccdf74ea120d4461a50bda43e82	no	13D	ui	fix: match architecture handtest identifiers literally
+47e0f53f7c24caf4e3a6e5e1958e332c3b2e0ba3	yes	13H	merge-or-other	Merge main to refresh required CI baseline
+060b56a1be5990f046362af9ffee7d9a91b1fa92	no	13D	extraction-language,tests	fix(ts): keep uncapped signature walks linear
+22f41f16f2578a785fe488763f5d821dfd531954	yes	13D	merge-or-other	Merge main to refresh PR CI
+88aa864bdc1bc972209684da2aa930e76e6981f5	yes	13F	merge-or-other	Merge main to include shared CI contract repair
+5e6b1bb3f681968affad58eb8fc8c4aa4c1d0338	yes	13D	merge-or-other	Merge main to include shared CI contract repair
+ff28841eedbc2467eb5d55ee44005365af45be64	yes	13D	merge-or-other	Merge pull request #2753 from DeusData/codex/fix-ui-reader-focus-loading
+67695d41624f8daf938607d22bafef97f933fab4	yes	13D	merge-or-other	Merge current main to refresh required CI
+b54729ecd053e3df4b24313e0eb6716ce4acc327	yes	13I	merge-or-other	Merge current main to include shared CI repairs
+7028640495e60c3696e8f593678d5a94b8efbe07	no	13D	extraction-language,tests	fix(csharp): preserve escaped constructors and conditional extension members
+dad6a01a80cdfaef69443dabbc498e9e421399ac	yes	13D	merge-or-other	Merge shared UI CI repair from main
+a3d266d705b7903552f6f232cd078ed5e0320b7e	yes	13D	merge-or-other	Merge pull request #2739 from DeusData/codex/dependabot-alerts-41-44
+10ab613de30dfd573d0b251cd0ad648e1c7e5204	yes	13D	merge-or-other	Merge pull request #1766 from Yyunozor/fix/1355-external-import-shadow
+17a85cce5c2159200284f1b11fe7d900c5702962	yes	13G	merge-or-other	Merge main to validate C field-reference fix against current pipeline
+4b843c27916cd2ebe80e041df80a2cbbbcfe3838	no	13G	extraction-language,tests	fix(extract): YAML walkers grow their stacks instead of capping content
+259db16da7e894eb3bdeb8a22cd12bf8e0ffa372	no	13E	tests	fix(discover): keep JVM packages named like build output dirs (#2661)
+b5eacb12370635d3a3ec281f1704a1348e7c4182	no	13D	tests	feat(language): map GLSL compute, geometry and tessellation stages
+d57846cb03332efd23e22adbc11b1f23d20861c5	no	13E	tests	test(discover): pin moderate-mode JVM package exception (#2661)
+c9d353440b89a27252806f80e80a88a99f042bfd	no	13D	ui	build(deps): Bump @vitest/mocker
+9a7d53b47b342e1ec0936a29a0780e6f11691c84	no	13E	tests	fix(cypher): return one row for an ungrouped aggregate over empty input
+3b37d9e2304df06ab34a026820d6287b50179705	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+001fbe269ac5ed0a0667a8d235c5e95ad0eff19e	no	13J	security-runtime,storage,extraction-language,mcp-excluded-or-translate,tests	fix(adr): store ADRs in a per-project sidecar DB, untouched by reindex
+a7917903242fc7959317d26683089a2a2cd37b42	yes	13D	merge-or-other	Merge main to pick up the CI contract fixes (#2732)
+2809f88d6e509e449cc809117b7e767a76b8526a	no	13E	security-runtime,tests	install.ps1: report checksum-verified layout mismatch separately from unsafe archive
+4b03f7afea9bacaa9368f6b0da086f8e51bd7cb8	no	13G	extraction-language,tests	fix(go-lsp): follow a type alias declared in another file of the package
+9f5b922cb2a5ffed2cf982df00a4826f35a9f8d5	no	13F	extraction-language,tests	extract: fold prefixed and triple-quoted Python string URLs
+32272f95e339046d12264511703314f407a99844	no	13E	security-runtime,tests	fix(daemon): log the effective auto_index_limit in daemon.autoindex.skipped
+7d01caeb6ed9a7cbc75f212b256d21f45c79c6e7	yes	13D	merge-or-other	Merge branch 'main' into fix/221-windows-cli-detection
+a9434d88e9014e2770a13c57aa558c4924aeb700	no	13K	ci-policy-reconcile	build(deps): Bump github/codeql-action/upload-sarif
+3e5234f660cf41e95d2839b513fd6508e3b33371	no	13D	security-runtime,tests	feat(cli): give Codex shell searches graph context through a PreToolUse hook
+18d7273b745f3fdbda76477377140602c2a2027e	no	13D	tests	test(config): a v0.10.2 Codex block now upgrades in place to the PreToolUse block
+869fc2b54ca98bf12e6f0408e68ad05d4a0468ea	yes	13D	merge-or-other	Merge pull request #2757 from DeusData/codex/codeql-main-alerts
+282f0e6412be92dfcda97474ec59053bb8437f02	no	13E	ci-policy-reconcile	fix(ci): post the PR acknowledgement without its hidden maintainer note
+61f185c7fa5a9f7fed3f4b3f349d61b727e59fdb	yes	13D	merge-or-other	Merge pull request #2762 from DeusData/dependabot/npm_and_yarn/graph-ui/npm_and_yarn-49322df965
+b87001968057a9e9f9f7763157b24e11b3f9478f	yes	13D	merge-or-other	Merge pull request #2508 from lorenzozanee/fix/issue-1115-indexed-project-discovery
+46c01c479dbcbebbeded0d31ee00afd2fca05316	yes	13D	merge-or-other	Merge pull request #2737 from WarGloom/fix/session-index-watch-registration
+023e997fd8737f985b8628837bb6a82aebe2fd88	yes	13D	merge-or-other	Merge pull request #2281 from knewstimek/pr/windows-aligned-delete-fix
+6efe33b7307d480086de0f422c1ffc0ac169db81	yes	13D	merge-or-other	Merge pull request #1999 from mikemikimike/fix/ts-inferred-receiver-calls-1974
+0a045b588bbbf03f9cbbfd105832d5c3ad749b94	yes	13E	merge-or-other	Merge origin/main into fix/2001-manifest-walk-skip-unreadable-subdir
+f2dad9ac7a56a773aba0c18bbbb1b4dc58979029	yes	13E	merge-or-other	Merge origin/main into fix/cohort-lock-tmp-cleaner
+cd368cec1ed53d68bab710230c32b253e49e3a7e	no	13E	extraction-language,tests	fix: guard empty ObjectScript scanner state
+4a1e6d11037170eb43ab607923e82dbc9ad2da86	yes	13D	merge-or-other	Merge pull request #2091 from CaptainMittens/fix/ts-lsp-walk-stack-drops-nodes
+e2f93baf5c996ade5b4bc0afb6aab9a37562313f	yes	13D	merge-or-other	Merge pull request #2231 from yasmoradi/fix/csharp14-extension-members
+ced508f6a45e5248fcb0c1bd594246eaf089bba3	yes	13D	merge-or-other	Merge pull request #2381 from wcy12378/fix/221-windows-cli-detection
+619192a9908f2b3c80031069f7bc461b1548c13f	yes	13D	merge-or-other	Merge pull request #2719 from DeusData/feat/codex-pretooluse-hook
+173e11a9da61d2adeb1d9f2492bee022e522228b	yes	13J	merge-or-other	Merge remote-tracking branch 'origin/main' into fix/1084-background-index-cpu
+a18b4a4574d28ea6e630982fdd7fc13c17602bff	no	13E	security-runtime,tests	feat(cli): give Copilot searches graph context through a PostToolUse hook
+d0937940a93d1383487da0cff313fe5db7491884	no	13E	merge-or-other	docs(readme): name the Codex PreToolUse and Copilot PostToolUse search hooks
+87b346ee516ea4d9aeecb0f362900340f159085b	yes	13E	merge-or-other	Merge origin/main into fix/framework-entry-dead-code
+5bb4ee209a9ec3687baba232b1d5f9e6c6419ed4	yes	13I	merge-or-other	Merge origin/main into fix/windows-unicode-agent-detection
+8cfefa6d3803ad3c3480bd7f703a4b1e5afd4b2e	yes	13J	merge-or-other	Merge origin/main into fix/adr-reindex-race
+a74d528e8cb89f77cdf897a78d5c9d44992c20f4	yes	13D	merge-or-other	Merge pull request #2755 from DeusData/codex/ci-cppcheck-parallel
+5f0f862df6dc50c39c73164e43ab361aeeec8220	yes	13E	merge-or-other	Merge origin/main into docs/help-daemon-subcommand
+760cb9ccaeff49ec1d3995d4d2a7bc2c03295552	yes	13E	merge-or-other	Merge origin/main into fix/2386-bm25-label-window
+eaed3cdf6edd4a53203895ddf75ca3d0e426bcd4	yes	13E	merge-or-other	Merge origin/main into fix/objectscript-empty-deserialize
+10df7bc2942d95da82dd1a30f2a50fed67a5f93d	yes	13D	merge-or-other	Merge pull request #2761 from tmonestudio/feat/glsl-stage-mapping
+c822dce37971928ba2639715c7bf3fe8bd256fef	yes	13J	merge-or-other	Merge origin/main into fix/elixir-extraction-defects
+31ba586de4589e6e5749ece3aaaf4ca06d8853ce	yes	13D	merge-or-other	Merge pull request #2738 from petterip/fix/route-properties-json
+50ed9c38ff1c86eb5e09bd5fef5097aa3adbf3c3	yes	13G	merge-or-other	Merge origin/main into fix/2388-extraction-remaining-fixed-size-tsnode-w
+5350b5b83e33cbf1b239497b882a2b2750e59940	no	13E	security-runtime,tests	fix(cli): render the Copilot manifest through the memory core
+db74648c22b9f057a16ae25814d5e762c415ab32	no	13J	extraction-language,tests	fix(pipeline): keep background refreshes on the parallel route
+1cc2377c1400980baf0ab1f9e174cf6192abfdb3	no	13E	tests	fix(cypher): support property-to-property comparisons in WHERE (#2591)
+2d06fe300a62d65b71c5226659b8510063a4f2d3	no	13E	extraction-language,tests	fix(pipeline): never guess a same-named sibling for explicit ./ and ../ imports (#2797)
+4ad22bf30738edda792d1a529919ed836b7d5b6b	yes	13E	merge-or-other	Merge pull request #2798 from DeusData/fix/pr-ack-strip-hidden-note
+24bd38c4bfce791103635db61d3aa182c195db15	no	13F	storage,tests	fix(store): bump the graph digest stream to version 2
+8ca839363f41fe5c4ee15657d63e0291badb65f9	no	13F	storage,tests	fix(store): keep unresolved_calls rows out of the missed graph
+34218487c1aae5f2e4641a9f241422e81bb1f41a	yes	13F	merge-or-other	Merge origin/main into fix/issue-2265-unresolved-call-coverage
+07e73a3bcef1ae6e6e5c17bfc7a353e608dad794	yes	13E	merge-or-other	Merge pull request #2766 from RithvikReddy0-0/install-ps1-layout-mismatch
+5be2e8824de6ae6a359c2def5c1d51d220eb9dfe	yes	13E	merge-or-other	Merge origin/main into fix/py-definitions-oom
+5e9f146e7bebfea8a3948722142a639a1212599d	yes	13E	merge-or-other	Merge pull request #2289 from halindrome/fix/cohort-lock-tmp-cleaner
+8b428eb1d43341100d15d67d99d83aa424a21bea	yes	13E	merge-or-other	Merge pull request #2085 from AmirF194/fix/2001-manifest-walk-skip-unreadable-subdir
+0433142a15cc05d4938936809abd071e50c534c4	yes	13E	merge-or-other	Merge pull request #2764 from gaurav0107/fix/2742-cypher-return-zero-for-ungrouped-count-o
+4cedb8d7a661139177e68e2ab6b9e606efb3ad3c	yes	13F	merge-or-other	Merge origin/main into python-prefixed-string-urls
+f8b2f36674b8e8ca72f0bba66b59028e06f356da	yes	13G	merge-or-other	Merge origin/main into fix/2033-go-type-alias-alias-of-is-never-register
+ca419635ee42f043cbdadd691bad62d4b81d5a78	yes	13E	merge-or-other	Merge origin/main into fix/1818-daemon-autoindex-skipped-omits-the-effec
+f05eccefa25f291a8cca8663789e887ade4d5b76	no	13E	tests	test(doc-links): move JVM not_indexed fixtures to a skipped layout (#2661)
+0c2c8d9038c6fb568c3411546f22d44852163651	yes	13I	merge-or-other	Merge origin/main into fix/doc-section-hierarchy
+52375bed71bff1201684e880e3847c6177dbc8b6	yes	13G	merge-or-other	Merge origin/main into feat/solidity-support
+c6932bcc03781d1f00fdb646ff1dc3d7f55932b2	yes	13G	merge-or-other	Merge origin/main into fix/2297-typescript-calls-through-a-renamed-named
+f0f88b9c4d24cf4a21b0b104d0a9c04acee61667	yes	13E	merge-or-other	Merge origin/main into upstream-pr/elixir-channels
+aaee4848c172342b8fe1cc4563db410e62b27d6c	yes	13K	merge-or-other	Merge branch 'main' into feat/graph-gate-contract
+0c83f604422dd4a77c66ad8866621b2ed6005fed	yes	13E	merge-or-other	Merge origin/main into fix/2276-incremental-reindex-root-path-stale
+807a780febaba3516ff82103b643423105379719	yes	13E	merge-or-other	Merge origin/main into fix/js-template-leading-substitution-url
+9e7794b04f101731841c31bb76a9cad9625cd95b	yes	13E	merge-or-other	Merge pull request #2443 from bmcnaboe/docs/help-daemon-subcommand
+4d97d7819b80f96e2492569ae54b442af4406f98	no	13J	extraction-language,tests	fix(routes): read a ServeMux pattern only for Handle and HandleFunc
+2ba6e64210f53358017f395bf5bffeeb6fa2f559	yes	13J	merge-or-other	Merge remote-tracking branch 'origin/main' into prq/pr2752-fixup
+e33f32222b535c9c623ae2b10645fdf1a1450789	yes	13G	merge-or-other	Merge origin/main into pr/windows-setenv-utf8
+4ef2d23b1d444e276c941ab84f868a6bbdf5bdde	yes	13E	merge-or-other	Merge pull request #2234 from lorenzozanee/fix/framework-entry-dead-code
+f05c221e9c47f2a6f298e6a0383fe4cd5cb142a4	yes	13E	merge-or-other	Merge pull request #2744 from harshitaajoshi/fix/2591-cypher-where-property-compare
+14bf8f0c6c23b3027cb0ccb047199ab6e53b8bd1	no	13E	security-runtime,mcp-excluded-or-translate,tests	fix(mcp): keep request timing, defer protocol behaviour changes
+25665c6e4d862e0024d2a89701b7691cdcb6e286	yes	13E	merge-or-other	Merge origin/main into fix/search-code-cancellation-observability
+a49481df70afbbbb6e60d1cff247a3c742caaa79	yes	13E	merge-or-other	Merge pull request #2602 from bline/fix/doc-link-moved-directory
+762a6e47d80e60ee1e8eae74c475fc89374565c1	yes	13K	merge-or-other	Merge origin/main into feat/codex-skill-location-compat
+158a0c9da2919f5ad43d03d99528c9cd5a3d2044	no	13K	tests	test(cli): assert a real install leaves a user-owned module untouched
+8fe97d79af0b5297583b5aaa5c6a38040f3de710	yes	13K	merge-or-other	Merge origin/main into fix/2204-opencode-extension-untouched
+d6109bfdfecbb898fbcc9ee81117e89fad775d3f	yes	13E	merge-or-other	Merge origin/main into fix/windows-sqlite-writer-64bit-offsets
+0685110e22dd487634bb80166470dd53ed5f3671	yes	13H	merge-or-other	Merge origin/main into feat/path-allow-broad-too-shallow-override
+8530c8cd1c1ac8e1e3d2962bc213a8c9025fea0a	yes	13E	merge-or-other	Merge pull request #2675 from attilaolah/musl
+d07f6d65f152351e4fc10d0b0aba0e52c59a6b41	yes	13J	merge-or-other	Merge origin/main into fix/adr-reindex-race
+572b749f02e3a769719f4127d49fe5be8c445ba7	yes	13H	merge-or-other	Merge origin/main into fix/dotd-depinfo-sniff
+f13a13326d8d483790420b6af33e2869719b94db	yes	13G	merge-or-other	Merge origin/main into fix/snapshot-coherence
+2be8ee329ee430de385f8a1468546cd2dacfaaee	yes	13I	merge-or-other	Merge origin/main into perf/py-cross-registry-index
+80db98038e53e92f027cf75f84871e2a88ab5b7d	yes	13H	merge-or-other	Merge origin/main into perf/py-lexical-ancestor-kind
+729ce339bd130e44d317d7ecf5c296bdfe016350	no	13I	extraction-language,tests	fix(java): register generated record accessors by qualified name only
+81820258ee365eed559fa15d53d14aee3d3c03fd	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+86320afa972e4233e30a77216a6f58a6bedbd2d2	no	13G	security-runtime,tests	fix(cli): emit string enums as Type.String({ enum }) in Pi adapter (#2787)
+129443a0b755a59418893c8de28e296cbcb49d1f	yes	13E	merge-or-other	Merge pull request #2801 from DeusData/feat/copilot-posttooluse-hook
+402617555cd4cb56844930eb759a421922ef409c	no	13F	security-runtime,tests	feat(cli): note when a Claude Code session keeps searching without the graph
+69b26df9f00ff0647c0f23b1eb8c969d6ea75551	yes	13E	merge-or-other	Merge pull request #2372 from lorenzozanee/fix/search-code-cancellation-observability
+5dcf253b45dd00ebf70ff8b5153d88515bb4d2e8	yes	13E	merge-or-other	Merge pull request #2555 from lorenzozanee/fix/js-template-leading-substitution-url
+5948316c3d434cf0064b3f9b38c3e1b1e8fee748	yes	13E	merge-or-other	Merge pull request #2800 from WarGloom/fix/objectscript-empty-deserialize
+4edc6b7b30e8cc176d6af26e4e1c3918a37d30f1	yes	13E	merge-or-other	Merge pull request #2724 from tmonestudio/fix/java-skip-dirs-and-typed-calls
+aaf902158224360e74587ede23aaf782c53e7fce	yes	13E	merge-or-other	Merge pull request #1730 from henry-hz/upstream-pr/elixir-channels
+6ef815540dc2378517c7f15ce45623552e7a9f35	yes	13E	merge-or-other	Merge pull request #2422 from Fieldnote-Echo/fix/py-definitions-oom
+70cd1a55683a066f560310c4793cac3fc0fe7b68	yes	13E	merge-or-other	Merge pull request #2622 from Lixsp11/fix/windows-sqlite-writer-64bit-offsets
+e73eb9d6ae3912603ea87cb2feda3f50eb1dd47d	yes	13E	merge-or-other	Merge pull request #2777 from gaurav0107/fix/1818-daemon-autoindex-skipped-omits-the-effec
+83109dde52b3d5c766451f84d346cf98ad05bf3f	yes	13E	merge-or-other	Merge pull request #2802 from harshitaajoshi/fix/2797-relative-import-exact-path
+6c52e8260cc01e7cb5470c16b106b28815c426de	no	13I	extraction-language,tests	fix(java): no import resolves to a generated record accessor
+7ca765f69a6c7eec60b9bdfbbfc330cf03a9de5d	yes	13E	merge-or-other	Merge origin/main into fix/2276-incremental-reindex-root-path-stale
+cb0e6b5a2bf4c2b0b354c93a0298dfbc225e0380	yes	13E	merge-or-other	Merge origin/main into fix/2386-bm25-label-window
+27c1cdd95517592292e69547c189a3993c4a3a8a	yes	13F	merge-or-other	Merge origin/main into python-prefixed-string-urls
+9189dab772adb410bb3afb6be8deadd02ac46a75	yes	13G	merge-or-other	Merge origin/main into fix/2297-typescript-calls-through-a-renamed-named
+20a6f1f8010420d68575c9d7ff356219fb34be7f	yes	13J	merge-or-other	Merge origin/main into fix/2537-go-net-http-servemux-patterns-with-a-met
+a2feed881c00d0f5a39039477d26736ab612b7a4	yes	13G	merge-or-other	Merge origin/main into fix/2033-go-type-alias-alias-of-is-never-register
+2382876cd0d253a3e46a7f57d33919b48ad0b7a4	yes	13G	merge-or-other	Merge origin/main into feat/solidity-support
+e8979303881e9e9cf9ad43d49ffc7928a473e632	yes	13G	merge-or-other	Merge origin/main into fix/snapshot-coherence
+abdd281566e528c5789e8cf0ee4738c6ee8b737a	yes	13G	merge-or-other	Merge origin/main into fix/2388-extraction-remaining-fixed-size-tsnode-w
+cb3191fe4f546d9b1b92e2973ed17b87e3945095	yes	13H	merge-or-other	Merge origin/main into feat/path-allow-broad-too-shallow-override
+a9fceeb06df998439acd4f3a1d4b1bb960e1e75e	yes	13J	merge-or-other	Merge origin/main into fix/1084-background-index-cpu
+f4ad327add69156741e2cfc66078311c8b686fb8	yes	13K	merge-or-other	Merge origin/main into feat/graph-gate-contract
+1fb8125861329ddf057c09cb5d6db035642bdc04	yes	13I	merge-or-other	Merge origin/main into fix/windows-unicode-agent-detection
+21d3550f5d5a593b4fe25490bfc36942f725ca83	yes	13G	merge-or-other	Merge origin/main into pr/windows-setenv-utf8
+04cb93723622cbbacaa3b8b400143c6d29b0d319	yes	13J	merge-or-other	Merge origin/main into fix/adr-reindex-race
+32b61a87da38a130aa5a6dafa1cca3f373fb07b1	yes	13I	merge-or-other	Merge origin/main into fix/doc-section-hierarchy
+48762667b9e0e8fb9291bb9c21bf09d03ce8e3b4	yes	13K	merge-or-other	Merge origin/main into fix/2204-opencode-extension-untouched
+c62fd01f9170461d846ae0291da11a8d8262c172	yes	13I	merge-or-other	Merge origin/main into fix/1762-paired-free-functions
+57d641bfebeced644faafcc35ff7008a2f3ecaef	yes	13I	merge-or-other	Merge branch 'main' into feat/claude-code-plugin-marketplace
+9c075722c88069c9cf30f83fd8f5bc63bf1f999c	yes	13F	merge-or-other	Merge origin/main into fix/issue-2265-unresolved-call-coverage
+8fd93a2e08bb10aa8d9943e0043e1a6f03439958	no	13F	merge-or-other	test(smoke): pin the Claude PostToolUse matcher that covers the graph tools
+679d1e1af432b0bb1c0873c60668d46ed6736172	no	13I	extraction-language,tests	fix(java): a JVM leaf-name fallback never picks a generated accessor
+1d4bcc9edf47e0560a992ebfe9633b0fa037a4e6	yes	13I	merge-or-other	Merge origin/main into fix/java-record-accessor-calls
+3096a1879da746f838b2a8b4a87d008e943d93d0	yes	13J	merge-or-other	Merge origin/main into fix/elixir-extraction-defects
+73833def24234770f8675d386220cc4bec676c72	yes	13H	merge-or-other	Merge origin/main into fix/ruby-namespaced-constructor-callee
+3f4afec3ee7caec3bb66abd9e4fec99779b7812c	yes	13H	merge-or-other	Merge origin/main into fix/dotd-depinfo-sniff
+df2c35f841c941358bd95d4878a89c0a9f1dd69b	yes	13F	merge-or-other	Merge origin/main into fix/discover-external-fast-mode
+a0940ce152a803413f1d9515235dbd49a2c43d1a	yes	13G	merge-or-other	Merge origin/main into fix/2666-c-extraction-a-macro-argument-identifier
+7e55bc110befba6874e5b41278dfda7846c8aa47	yes	13G	merge-or-other	Merge branch 'main' into fix/mimalloc-3.5.3-preinit-free
+994432f06837be83349a939291461e7cf3e95c95	yes	13K	merge-or-other	Merge origin/main into feat/codex-skill-location-compat
+776f6f589ad5913b399253762fc1fa717c4f605a	yes	13I	merge-or-other	Merge origin/main into fix/go-init-qn
+6e784c38a2ab6d0a7f1f65bc22792cae0d9b9034	no	13I	extraction-language,tests	fix(lsp): name Go init() callers per file in the Go LSP
+771615363031a8843876bbf412c305a0ed15e25b	yes	13G	merge-or-other	Merge origin/main into fix/home-user-symlink-alias
+74982efc60bb4b5ca49a2efdf7698f0f98991517	no	13G	tests	test(cli): restore Pi abort-kill assertion dropped alongside #2787 test
+4316e93c2be30d3cbabe02ccf3263ce15bbc0da0	no	13J	tests	test(pipeline): pass the pipeline argument in the skip-locked manifest test
+a36b2ee6dabbe3632e337283fc6490468da601f1	no	13G	merge-or-other	docs(troubleshooting): refresh Windows entries for v0.12.x
+a728eeb0c43ef945120795f6c551672018cab17f	yes	13I	merge-or-other	Merge origin/main into fix/permanent-daemon-watch
+1a7239f52bfb1f9b77a79d08fa91b0f06e714b8f	no	13H	extraction-language,tests	fix(doc-links): a member the code file writes keeps its file edge (#2587)
+69155bcf6c0e1cf9e7b0bded115f35d33e41ecff	no	13H	extraction-language,tests	fix(incremental): re-resolve documents whose member rows name a changed file (#2587)
+406f6c7c71d92ea575934d9df50ac17ae9663417	yes	13H	merge-or-other	Merge origin/main into fix/doc-link-missing-member
+74e301d42e8a5ab32aa31d46e21637fd9d241a6f	no	13I	security-runtime,tests	fix(daemon): end a permanent watch whose project was deleted
+8f36ea6c0b15a1060296718e93bb62aa45b5a2d7	no	13I	tests	test(pipeline): rename the near/far locals in the record accessor test
+631418683e005850a3bce49a81f2cf655ce53e1c	no	13I	security-runtime,tests	fix(daemon): keep the workspace-policy release under daemon start
+70d6d5017c741b57cd035b1ecc7927affb7908a2	no	13I	security-runtime	docs(watcher): describe the watch lifetime under daemon start
+3d65c609e1c1f206045103942af35a59fa6f9014	no	13G	merge-or-other	fix(mem): define MI_MINGW_UCRT64 for MinGW mimalloc builds
+0f8b46570cd366dddc7d6e854fa08309b2af3fb0	no	13G	tests	test(mem): unpoison mimalloc output in the MSan test runner
+5810183b3b5c0d5ac4c54f466baa4c6f263884db	yes	13E	merge-or-other	Merge pull request #2430 from AmirF194/fix/2276-incremental-reindex-root-path-stale
+b956413eb49bd38188d060866700a97bc1d622de	yes	13E	merge-or-other	Merge pull request #2423 from harshitaajoshi/fix/2386-bm25-label-window
+f3cd8385a8c48eff53d0ceeffc041d8578a2f692	yes	13J	merge-or-other	Merge origin/main into fix/2386-bm25-post-window-filters
+1f934b6afbaf85958c180ffea739773d23115ed6	yes	13F	merge-or-other	Merge pull request #2774 from RithvikReddy0-0/python-prefixed-string-urls
+3b646da612eed30c24fa321cdde5cf6fb06a5f4d	yes	13J	merge-or-other	Merge origin/main into fix/2537-go-net-http-servemux-patterns-with-a-met
+8012a7516fa9360b77df7a1c4fcf0884f7e1aa0e	yes	13G	merge-or-other	Merge origin/main into fix/2388-extraction-remaining-fixed-size-tsnode-w
+c8fd93a070252b310c41e09f37929e134d707ad3	yes	13K	merge-or-other	Merge origin/main into feat/graph-gate-contract
+791e3780096d14f0dfc52e2a95e8668c40909725	yes	13J	merge-or-other	Merge origin/main into fix/adr-reindex-race
+bd144c2544c1a0e80dc6ac3926e10e60450db18a	yes	13G	merge-or-other	Merge origin/main into fix/snapshot-coherence
+c4bb4b524f9ad10703a7c65271eedf0c56fb59a1	yes	13J	merge-or-other	Merge origin/main into fix/elixir-extraction-defects
+8aeee865e6af32c4e2c72671eaa290d252bd1d2a	yes	13G	merge-or-other	Merge origin/main into pr/windows-setenv-utf8
+8984e7e98999bffe8c67a0415be2f8af69aca60d	yes	13G	merge-or-other	Merge origin/main into fix/2297-typescript-calls-through-a-renamed-named
+6217b49381ec545263e3192ec105f11b0d190826	yes	13G	merge-or-other	Merge origin/main into feat/solidity-support
+62965bc0f645df7edbf441ac0f8e61744fb0d7b6	no	13H	tests	test(doc-links): exercise the ambiguous member row on a Ruby group (#2587)
+5b3fe0646f32df8bfcc344a4890509805d306393	yes	13H	merge-or-other	Merge origin/main into fix/ruby-namespaced-constructor-callee
+ee9dc48d1e2262eca6967c5fb59c03895d751210	yes	13F	merge-or-other	Merge origin/main into fix/issue-2265-unresolved-call-coverage
+1306c276f23b439b935208670e15e8ad3ee2f99e	yes	13G	merge-or-other	Merge origin/main into fix/2033-go-type-alias-alias-of-is-never-register
+820cd02307e960d84d4746cc47e7c83d0a5f8c72	yes	13F	merge-or-other	Merge pull request #2161 from htarnacki/fix/discover-external-fast-mode
+8a2f718e1c1d56200c4391d0271cb05a27a10ed1	yes	13F	merge-or-other	Merge branch 'main' into fix/issue-2265-unresolved-call-coverage
+323e88fa0b8265768f282367388736e4127dacf6	yes	13G	merge-or-other	Merge branch 'main' into fix/2787-pi-extension-string-enum
+55844c9da9b969eb7e80b60b50c0402f2952ba0c	no	13I	security-runtime,tests	fix(cli): use managed binary path for agent configs when externally managed (#2722)
+ea892c53495e4a85322bcb063e2dfd85640abc0f	yes	13F	merge-or-other	Merge pull request #2817 from DeusData/feat/drift-reminder-hook
+2796460efea8bef1f9232b6ffff37e2e87e9a193	yes	13F	merge-or-other	Merge pull request #2305 from pcristin/fix/issue-2265-unresolved-call-coverage
+635f8e3b631b9061b07726ec60dc824b18fd3aa4	yes	13G	merge-or-other	Merge pull request #2309 from BumaldaOverTheWater94/fix/home-user-symlink-alias
+e425666aab8a3df236207f2948cc8ef9fa531122	yes	13G	merge-or-other	Merge pull request #2760 from gaurav0107/fix/2388-extraction-remaining-fixed-size-tsnode-w
+dca2a44ef0c514384d297410fd05fd8335a4d5b5	yes	13G	merge-or-other	Merge pull request #2807 from divakantpandey/fix/2787-pi-extension-string-enum
+113f24faf12bee65cf9678cdbc5ef23612678ede	no	13I	security-runtime	style(cli): clang-format the managed-binary agent-config call (#2722)
+ebdf9bafd5d3136aaf584baa9ed4c8484c20cec4	no	13G	tests	test(mem): unpoison mimalloc output before the handler reads it
+c614edcde2d9fc878b09122c0787effcccb71b34	yes	13I	merge-or-other	Merge origin/main into fix/windows-unicode-agent-detection
+5d97172b895d69981c35ec8666effb8825a0bd95	yes	13G	merge-or-other	Merge origin/main into docs/windows-troubleshooting
+2a195bd202de50404c8feb499a5b02ed122c0332	yes	13K	merge-or-other	Merge origin/main into fix/2204-opencode-extension-untouched
+5d374a76342cac242392090e00a416cea4aef2db	yes	13G	merge-or-other	Merge origin/main into fix/2297-typescript-calls-through-a-renamed-named
+849e74f69eb2c302c7c27e8e26eb5fffbc541e08	yes	13H	merge-or-other	Merge origin/main into fix/ruby-namespaced-constructor-callee
+1aeaf6f024538deeb6052554b1502bb432e783ee	yes	13G	merge-or-other	Merge origin/main into fix/2666-c-extraction-a-macro-argument-identifier
+eb76d04acf227c79e596477c537a6de9d9704222	yes	13H	merge-or-other	Merge origin/main into fix/dotd-depinfo-sniff
+a3ff99de91821f8b30b4ec9c470d1c81d89da524	yes	13I	merge-or-other	Merge origin/main into fix/go-init-qn
+9ae55eb0b67880d46a885b152a53c60f10477a42	yes	13H	merge-or-other	Merge origin/main into feat/path-allow-broad-too-shallow-override
+acd0b5b9a4ef293b0f04bb262e4e855ef85acc54	yes	13J	merge-or-other	Merge origin/main into fix/1084-background-index-cpu
+124671318d49f82d22b4f005353284a541899dd9	yes	13I	merge-or-other	Merge origin/main into fix/1762-paired-free-functions
+9fe25c476fda7b0899a413767d9c3eb3b6d04667	yes	13H	merge-or-other	Merge origin/main into fix/doc-link-missing-member
+ba246dad4f27f333fae2b04695d76a9c3070d89b	yes	13G	merge-or-other	Merge origin/main into fix/2033-go-type-alias-alias-of-is-never-register
+c04d41921e071202b84c737763b4008539484152	yes	13K	merge-or-other	Merge origin/main into feat/graph-gate-contract
+e2c9de1d1b9cac0f166890d5ce333ed0dbd1abd5	yes	13G	merge-or-other	Merge origin/main into feat/solidity-support
+545c1bd51927722b7f2a532209aa4027f02719fd	yes	13I	merge-or-other	Merge origin/main into fix/permanent-daemon-watch
+95279bd74f1d88fd3c24630f24768379e3042066	yes	13G	merge-or-other	Merge origin/main into fix/snapshot-coherence
+3bd645efd5453ca48133e68e16ed54cec3958b22	yes	13G	merge-or-other	Merge origin/main into pr/windows-setenv-utf8
+6cc63d2c692bfd236a1c96a36ac3bf80e415055e	yes	13J	merge-or-other	Merge origin/main into fix/elixir-extraction-defects
+dbea06c118d53140bb942baa25a7358717f86d67	yes	13J	merge-or-other	Merge branch 'main' into fix/2386-bm25-post-window-filters
+97f8aef64459e94e15bcdbee771b3080b01373a5	yes	13I	merge-or-other	Merge branch 'main' into feat/claude-code-plugin-marketplace
+4680954620821c75c40173ed7c0c432c6d54a2c8	yes	13I	merge-or-other	Merge origin/main into fix/doc-section-hierarchy
+8fae39e29463dc3b42383057b2d2b6b58f6081e3	yes	13J	merge-or-other	Merge origin/main into fix/adr-reindex-race
+848975f6350902417fc0a35fd2608e1038be775a	yes	13K	merge-or-other	Merge origin/main into feat/codex-skill-location-compat
+dda8f8a953be727526c9d5a255744cfb151b9631	no	13J	tests	test(pipeline): restore the tests split by the merge resolution
+f33f976458d04fa8b52415df31ebff2f3b2afa35	yes	13J	merge-or-other	Merge origin/main into fix/2537-go-net-http-servemux-patterns-with-a-met
+2aaef231114aaf185377c14f3cfe46ef2bd24478	yes	13I	merge-or-other	Merge origin/main into fix/java-record-accessor-calls
+51fd445f663fefabada1cb84b500039ece157479	no	13I	tests	fix(discover): select C++ for C-family include fragments
+e1405eaeb7908e56199b23b7d5c435521b61a1b4	yes	13H	merge-or-other	Merge origin/main into fix/sequential-definitions-retention
+5985131d86d15201dc211cb0cc2a3b54efc41447	yes	13I	merge-or-other	Merge origin/main into perf/py-cross-registry-index
+72ab1cefe17373d63e19d848b51692a5a90d621a	yes	13H	merge-or-other	Merge origin/main into perf/py-lexical-ancestor-kind
+442989ebaa5b443cd96865017d783e5f0335eca6	yes	13G	merge-or-other	Merge pull request #2754 from gaurav0107/fix/2666-c-extraction-a-macro-argument-identifier
+0002acd002bfe32e2a65c64893edbb3ce160cd86	yes	13G	merge-or-other	Merge pull request #2090 from sanskar717/feat/solidity-support
+79d02a6d520fde803cd769137f8f5c847ae79475	yes	13J	merge-or-other	Merge origin/main into fix/1084-background-index-cpu
+7ee3124bca4bdbc0790aa38f70f14cf885dc9820	yes	13I	merge-or-other	Merge origin/main into fix/java-record-accessor-calls
+d758fd6080eac132fc1bca06aba736c811cfb27d	yes	13J	merge-or-other	Merge origin/main into fix/2537-go-net-http-servemux-patterns-with-a-met
+f1efbf60d8f9b52198bc6e8369a5d1d2047d1c96	yes	13G	merge-or-other	Merge pull request #2746 from gaurav0107/fix/2297-typescript-calls-through-a-renamed-named
+c4e37c1239dca165c2fbd0dd44d1ff18a55ef096	yes	13G	merge-or-other	Merge pull request #2290 from knewstimek/pr/windows-setenv-utf8
+b4fb1e31b11154bcc9a85417de8e50e443ae73db	yes	13I	merge-or-other	Merge origin/main into fix/windows-unicode-agent-detection
+079e59d770b8347458e060d2b914edc80b18f9c3	yes	13K	merge-or-other	Merge origin/main into fix/2204-opencode-extension-untouched
+19b57f3e644bc3c7215ded494d30860ed1c9dff2	yes	13I	merge-or-other	Merge origin/main into fix/go-init-qn
+182f7e15d7a820e4320985ddb939109c62535671	yes	13K	merge-or-other	Merge origin/main into feat/graph-gate-contract
+4a85a2665c20f319cbe6e54464547bbad7bcf6e6	yes	13I	merge-or-other	Merge origin/main into fix/2722-install-managed-binary-path
+ea2dbaae709ba0e1ac8d0802818cd78ad154a2f6	yes	13K	merge-or-other	Merge origin/main into feat/codex-skill-location-compat
+b66ac8454c050e0bc52d7d938e593fe986280196	yes	13J	merge-or-other	Merge origin/main into fix/adr-reindex-race
+7b398de4e4b9c65ed1ef321907344fe87ef1132e	yes	13G	merge-or-other	Merge pull request #2769 from gaurav0107/fix/2033-go-type-alias-alias-of-is-never-register
+ed95814233c3e00e3eafcbd885a03abb06443f58	yes	13J	merge-or-other	Merge origin/main into fix/1084-background-index-cpu
+1c97a4d8a67c73b79da9c4cd9d745dd909329a9c	yes	13J	merge-or-other	Merge origin/main into fix/elixir-extraction-defects
+1962c214b1f1fa204a067f051ffe1c2abc33a17d	yes	13I	merge-or-other	Merge origin/main into fix/doc-section-hierarchy
+0947903cb2af272265b8091606d88aa256599c78	yes	13J	merge-or-other	Merge origin/main into fix/adr-reindex-race
+32bd1d30479cb2e97dccf6b3b4580a07d6264586	yes	13I	merge-or-other	Merge origin/main into fix/java-record-accessor-calls
+ba0f8a84093c07024dd13e8d09cdddcb448e8f92	yes	13G	merge-or-other	Merge pull request #2717 from oscarbol09/docs/windows-troubleshooting
+beddaaaa2eb9c5b750e5265a20efc602c1f6868e	yes	13G	merge-or-other	Merge pull request #2731 from DeusData/fix/mimalloc-3.5.3-preinit-free
+7a9e6c628edaa652fea5a1474c6ff0639b97f0cf	yes	13I	merge-or-other	Merge origin/main into fix/go-init-qn
+2658a181b50ad65cf855e91542e16ef101a1767e	yes	13G	merge-or-other	Merge pull request #2600 from bline/fix/snapshot-coherence
+7854e1c8a2f4c12a81f56393c6201f22bb61eff1	yes	13J	merge-or-other	Merge origin/main into fix/1084-background-index-cpu
+5842b84c65ec5d2608eea0484c5092a3fdf8ce19	yes	13I	merge-or-other	Merge origin/main into fix/1762-paired-free-functions
+b2c62b1455c02eb49c417e741e490d226161fe16	yes	13K	merge-or-other	Merge origin/main into feat/graph-gate-contract
+9f707646a85b340d2725b061bc4af9ab8317ffa9	yes	13J	merge-or-other	Merge origin/main into fix/adr-reindex-race
+83ed2bd9eafca6787528b048f93538fad3cc751a	yes	13J	merge-or-other	Merge branch 'main' into fix/2386-bm25-post-window-filters
+006101ae4f812657fa4caf63dc6fcff0a9bfc249	yes	13H	merge-or-other	Merge pull request #1710 from benrfairless/fix/ruby-namespaced-constructor-callee
+bd197320178b9d0e70df9b60372a3f81e5d82c2d	yes	13J	merge-or-other	Merge origin/main into fix/elixir-extraction-defects
+fec0b87b4c97b0ad5fd7cb81a18d34c4d2878a64	yes	13J	merge-or-other	Merge origin/main into fix/2537-go-net-http-servemux-patterns-with-a-met
+ba4122d3cc601974ac49fab95b3f823877cde7d0	yes	13H	merge-or-other	Merge pull request #2418 from Fieldnote-Echo/fix/sequential-definitions-retention
+d1a96df077f40c866144d5a764e112d5cadac4a5	yes	13I	merge-or-other	Merge origin/main into fix/java-record-accessor-calls
+ed17097e34318b343fe124489cee4da23e7d06b6	yes	13I	merge-or-other	Merge origin/main into fix/permanent-daemon-watch
+59d6b526796d0eb736f9e5900b93eeb038593b36	yes	13H	merge-or-other	Merge pull request #2421 from Fieldnote-Echo/fix/dotd-depinfo-sniff
+d841ddd17767b7a64d8d63289a47299c1df3c326	yes	13I	merge-or-other	Merge origin/main into fix/inc-c-family-routing
+3be5a02708f9f0a851240b79a67face6db658fe2	yes	13H	merge-or-other	Merge pull request #2601 from bline/fix/doc-link-missing-member
+88375be096ff06bac7357ba3881f2982a2c406f1	yes	13J	merge-or-other	Merge origin/main into fix/1084-background-index-cpu
+218123b036e2eb97ae1c1ae16966e3295f7834fe	yes	13J	merge-or-other	Merge origin/main into fix/adr-reindex-race
+bff6ce9c230f6fd505e03ba65e33335f7f7f8d37	yes	13I	merge-or-other	Merge origin/main into fix/java-record-accessor-calls
+d68cd2e2af3bb848981cc2692c26bd387541a8cd	no	13I	extraction-language,tests	fix(diagram): set an empty PlantUML operand id when there is none
+d807b1eca734cc79ff3ca5c7f8d62b325fa8ad54	yes	13H	merge-or-other	Merge pull request #2419 from Fieldnote-Echo/perf/py-lexical-ancestor-kind
+f925afaab75f24de8c8706b56ef50b6a5aa94d74	yes	13J	merge-or-other	Merge origin/main into fix/elixir-extraction-defects
+7abfb0d8476a70c710201421bb74d802a51bd401	yes	13I	merge-or-other	Merge branch 'main' into feat/claude-code-plugin-marketplace
+a3831c979547d33adaa36998dca2b004d735fc84	yes	13H	merge-or-other	Merge pull request #2017 from kobaz/feat/path-allow-broad-too-shallow-override
+baf1ada38db094f9ac499474e9c5441c9081c0e9	yes	13K	merge-or-other	Merge origin/main into feat/graph-gate-contract
+9c836894f6ff123d3509ec3a9998cd228df18adc	yes	13I	merge-or-other	Merge origin/main into fix/permanent-daemon-watch
+b94a7d7a32fea4f1ad7988e71450a1280d905a99	no	13J	security-runtime,tests	fix(cli): recognize symlinked agent config directories during detection (#2671)
+7f2fd1081d8a93616c36bffccff118d56b213541	no	13I	security-runtime,tests	fix(hooks): tell subagents without MCP tools how to reach the graph via the CLI
+5a666f2fa3431a3389027a3428e37816f7208f77	no	13I	mcp-excluded-or-translate,tests	fix(mcp): match search_code file_pattern with a directory against the repo-relative path
+ab8f68a169190f00a7010f339b24a69e3faa9446	no	13K	mcp-excluded-or-translate,tests	fix(mcp): expose recursion metadata in trace_path
+f8dfaca12a0b2882c7dabffc52d522a7583ec658	yes	13K	merge-or-other	Merge branch 'main' into codex/fix-2816-trace-recursion
+58e5841e195ca04bb105e0dcbc612d199601ce00	yes	13I	merge-or-other	Merge branch 'main' into fix/2722-install-managed-binary-path
+d01ba800396be08708b237acb1a16134841cf3e5	yes	13I	merge-or-other	Merge pull request #2244 from lorenzozanee/fix/windows-unicode-agent-detection
+164b2dc02f43a1ede02a2c19fb41f847581fd525	yes	13I	merge-or-other	Merge pull request #1996 from Jumaga2015/fix/1762-paired-free-functions
+88a1d1d761da04034aaffa6a6fcb33f8296c12a9	yes	13I	merge-or-other	Merge pull request #2716 from DeusData/feat/claude-code-plugin-marketplace
+edb4a6e7359de391c389736fafa5e45f4587669b	yes	13I	merge-or-other	Merge pull request #2295 from MopicMP/fix/java-record-accessor-calls
+a33878c039b4ee71ed4c5cdf04853feb2e4924bd	yes	13I	merge-or-other	Merge pull request #2420 from Fieldnote-Echo/perf/py-cross-registry-index
+359bd2f3ffa45111d1a6d0e2da4920f983f43f70	yes	13J	merge-or-other	Merge origin/main into fix/adr-reindex-race
+46c95bcddb86abc3cfdad3577ac3065488dd584f	yes	13J	merge-or-other	Merge origin/main into fix/2537-go-net-http-servemux-patterns-with-a-met
+8f6974e0252ffee52b21066ff39cce5e4cd1c92d	yes	13K	merge-or-other	Merge origin/main into fix/2204-opencode-extension-untouched
+e0546f527af31aaba579a5fdc5ced9e9625faa3b	yes	13K	merge-or-other	Merge origin/main into feat/graph-gate-contract
+9cbc350720a9a3678ccd07b0b3d0afc5f62336cf	yes	13K	merge-or-other	Merge origin/main into feat/codex-skill-location-compat
+24dfb30c6d2774efea4fb97120a6dd872a4b2c52	yes	13J	merge-or-other	Merge branch 'main' into fix/2386-bm25-post-window-filters
+7ee29d8841169166ad8c692b1aa102764df7bd7f	yes	13I	merge-or-other	Merge origin/main into fix/go-init-qn
+a5575b4c7636bdceac45fdc784ef46bdac687724	yes	13J	merge-or-other	Merge origin/main into fix/1084-background-index-cpu
+0bd442cd2f9f1fc1afad4404c11a596dd8b988e2	yes	13I	merge-or-other	Merge origin/main into fix/doc-section-hierarchy
+b33a645e4717d8f7108252cae91d3bc16af00ff3	yes	13I	merge-or-other	Merge origin/main into fix/permanent-daemon-watch
+cf77fb84e2fb7232075daa72d7a385315db0fb6b	yes	13I	merge-or-other	Merge origin/main into fix/2722-install-managed-binary-path
+47474b668a7aba2a541999a586fb182402df578a	yes	13I	merge-or-other	Merge pull request #2826 from knewstimek/fix/inc-c-family-routing
+bdf204b2e5c3b85716016ef54a028ae69395a944	yes	13J	merge-or-other	Merge origin/main into fix/elixir-extraction-defects
+192fdb918f29c0ccfe8c030446e8fbb5ff116537	no	13J	merge-or-other	test(windows): try FLS init for the MinGW test allocator (R32 experiment)
+6f63e385679005be8c6fd1ae36efb050d8788afb	yes	13I	merge-or-other	Merge origin/main into fix/search-code-file-pattern-path
+d514868ee4701c8462a483d8d2050721f27e0ce4	no	13I	tests	test(diagram): keep the unclosed class declaration in its own diagram
+9bb891b669a3ae527841454d56eeed66498814b1	no	13I	ci-policy-reconcile,tests	ci: move macOS runners to macos-15 and pin the deployment target to 14.0
+dd96a984947ce706d622c2ccd0c91487eda731aa	yes	13K	merge-or-other	Merge origin/main into codex/fix-2816-trace-recursion
+3a869ee1ac6321a9a869976c1b3d39599ac25230	no	13I	security-runtime	fix(hooks): state the CLI fallback for subagents as a fact
+395763cd1d835f4042b375e147b12ff141a225dc	yes	13I	merge-or-other	Merge origin/main into fix/subagent-cli-hint
+30f1fbf33ba3eaf9a78ee6cccd69bbe7d147889f	yes	13I	merge-or-other	Merge pull request #2841 from halindrome/fix/search-code-file-pattern-path
+76dda7e35bf23913e39b0c4e8e8c991e77d6df37	yes	13I	merge-or-other	Merge pull request #2827 from nefayran/fix/2818-puml-edge-operand
+0e4c96b4cf0e23b9d1ba1db61e8b0e026b489e3c	yes	13I	merge-or-other	Merge pull request #2849 from DeusData/ci/macos-15-runners
+85a38ed2a8af37c795fa4590848bba672916c70e	yes	13I	merge-or-other	Merge pull request #2839 from halindrome/fix/subagent-reminder-cli-fallback
+9f0fdcb40053c9de888f7e766549c6b920704e35	yes	13I	merge-or-other	Merge pull request #2613 from bline/fix/doc-section-hierarchy
+502d86aa0c1057141594bd7c429530132a0a181c	yes	13K	merge-or-other	Merge origin/main into fix/2204-opencode-extension-untouched
+8c62cb3344a6b044b449f728d7a0f2b91aea3d60	yes	13I	merge-or-other	Merge origin/main into fix/go-init-qn
+4ee44f9c38be811b12b79c96d1a35e2be19bced7	yes	13J	merge-or-other	Merge origin/main into fix/1084-background-index-cpu
+e546991175f01ae984d443f086238115cc5e467f	yes	13K	merge-or-other	Merge origin/main into feat/graph-gate-contract
+2609e5633666fcb9f749044a0e0a772180230a2d	yes	13I	merge-or-other	Merge origin/main into fix/permanent-daemon-watch
+2418526e50661acc415d92ef83c651db105cc64e	yes	13K	merge-or-other	Merge origin/main into feat/codex-skill-location-compat
+0b0e294be0eddc42cabf1847fdfa5310ac80f6d0	yes	13J	merge-or-other	Merge origin/main into fix/adr-reindex-race
+3e075d59beb545521c690e8a12ef7f285c220715	yes	13J	merge-or-other	Merge origin/main into fix/2537-go-net-http-servemux-patterns-with-a-met
+4787012023f61faca79ce592a36e1c3f88157e2d	yes	13I	merge-or-other	Merge origin/main into fix/2722-install-managed-binary-path
+c0e929378a9cbe6b006a0eb16f8777d984310bbf	yes	13J	merge-or-other	Merge origin/main into fix/elixir-extraction-defects
+d86ca262ce55eda97bc6c0ce290e47d964c1b4b8	yes	13J	merge-or-other	Merge branch 'main' into fix/2386-bm25-post-window-filters
+b7385490974c2682a9ef5ea7313db1c069d54ded	yes	13J	merge-or-other	Merge main and enforce user ownership for directory symlinks in dir_exists
+c548d8e46a820cb3eb27de55fb1d0a54dab628c1	no	13J	extraction-language,tests	fix(pipeline): infer HTTP method for Angular and verb-suffix client calls (#2768)
+9faa3e5c060b22ce581a74f836b998ad2edfcc95	yes	13I	merge-or-other	Merge pull request #1915 from ilyabrykau-orca/fix/go-init-qn
+a2787346c02d8801d9d24eaa27eb52db5b8b7e55	yes	13J	merge-or-other	Merge origin/main into fix/go-field-type-hint-owner-segment
+55aeee8978356773ffb12ca9940a89775c36c7f7	yes	13K	merge-or-other	Merge branch 'main' into codex/fix-2816-trace-recursion
+70f6de8a2f90800c42ea0fd8d925e23831f2d7c2	yes	13I	merge-or-other	Merge pull request #2822 from divakantpandey/fix/2722-install-managed-binary-path
+d1d8bbfa8fb52b0312dbbf1bf48b2787a7273a56	yes	13I	merge-or-other	Merge pull request #1833 from LeoLan-Digital/fix/permanent-daemon-watch
+e0823879e9a66684cadb4ee2635eea637ad335cb	yes	13J	merge-or-other	Merge pull request #2819 from DeusData/fix/2386-bm25-post-window-filters
+747665d71fe8b002e334df287635d33ae236b0b8	yes	13J	merge-or-other	Merge pull request #2752 from gaurav0107/fix/2537-go-net-http-servemux-patterns-with-a-met
+afb499b62a9e328e69e70784ddee7f86746c6588	no	13J	tests	test(pipeline): pin owner-segment field-type hints for C#
+4a78fe6a6b5135a4bcf1a4a28d890adf86908405	no	13J	extraction-language,tests	fix(go): a bare init never binds to a package init or an init method
+9901feeff10b59bc27364963b9134a9d7e6ce66f	no	13J	ui	build(deps-dev): bump vite
+70a7062e181b73bbe4399fd84c1e3dd60a27415c	yes	13J	merge-or-other	Merge origin/main into fix/go-bare-init-never-binds
+0d1d44b74d551d56595622d65660d578dc4d1701	yes	13K	merge-or-other	Merge origin/main into fix/2204-opencode-extension-untouched
+23c195fd3020574ed610152f859f68cd5746372e	yes	13K	merge-or-other	Merge origin/main into feat/graph-gate-contract
+ecd2eab93d27da1f54e52de98687466f4adb883d	yes	13K	merge-or-other	Merge origin/main into feat/codex-skill-location-compat
+83a00063f18ef95587b0e6fe3b62532571172489	yes	13J	merge-or-other	Merge origin/main into fix/1084-background-index-cpu
+8cef96dd88a92d3d200be9cc97c0c4e7b8f688bd	yes	13J	merge-or-other	Merge origin/main into fix/adr-reindex-race
+a5c5b42fea151944ac0d63f8b0233317b64fb7a9	yes	13J	merge-or-other	Merge origin/main into fix/elixir-extraction-defects
+a33cddcdbaf217032f18b2e1094fce8bdd7cb526	yes	13J	merge-or-other	Merge origin/main into fix/go-field-type-hint-owner-segment
+6d33c27ae78cd07d2e1fc1863e7853c54c24ca8d	yes	13K	merge-or-other	Merge origin/main into codex/fix-2816-trace-recursion
+df30463f12be1aed41a54abee67daddece227135	yes	13J	merge-or-other	Merge pull request #2862 from DeusData/fix/go-bare-init-never-binds
+257821805cfbe1aa4b525ccff2bfc8c92d6604b9	yes	13J	merge-or-other	Merge origin/main into fix/go-field-type-hint-owner-segment
+7be2becf7321961360777db8fc0c41c5a50ddb51	yes	13J	merge-or-other	Merge pull request #2315 from 0xb007ab1e/fix/adr-reindex-race
+3b46abec256049427d7523489a21a923c637f4aa	yes	13J	merge-or-other	Merge pull request #2861 from DeusData/dependabot/npm_and_yarn/graph-ui/npm_and_yarn-89011d1d99
+e7a7a2b44ebe1256404aff215a4090eae1cc5e3e	yes	13J	merge-or-other	Merge origin/main into fix/2671-agent-config-symlinks
+f6fb3e0d361e8d5961016707b1d3b679a0ddf097	yes	13J	merge-or-other	Merge pull request #2371 from BobbieBarker/fix/elixir-extraction-defects
+9cb2a477739458453e63f88fff2f68408fb81954	yes	13K	merge-or-other	Merge origin/main into fix/2204-opencode-extension-untouched
+2acbd3b02857c9cab1e33994525c3e93b5c1f473	no	13J	storage,extraction-language,tests	fix(store): ADR sidecar follow-ups from #2315 review
+8006567e58b3eab174478a617f035be59e82e9ff	yes	13K	merge-or-other	Merge origin/main into feat/graph-gate-contract
+2e6ab84fd96fbc983f4aebd4de8bfcd3def0950e	yes	13K	merge-or-other	Merge origin/main into the Elixir complexity branch
+22a7dff3ff19a53ba958d1ddc50721bb22356c23	no	13J	extraction-language,tests	fix(service-patterns): end the Angular receiver rows at a separator (#2768)
+e12d3db387e7b4d5c95a7fc2033c36b1c3cbce87	no	13J	extraction-language	revert(pipeline): drop two hunks that change no output (#2768)
+b9bd036602e18b4a708c9d5682d41c93e341b2e0	no	13J	tests	test(cross-repo): seed method-less client edges so the verb fallback binds (#2768)
+6b6213e8cc46e19205b4168061fbc0edebeca3c6	no	13J	extraction-language,tests	fix(pipeline): format the arg-URL verb edge and test the path that reaches it (#2768)
+a6d0d6c9bb35c35703f488795393852b55980dd2	yes	13J	merge-or-other	Merge pull request #1936 from ilyabrykau-orca/fix/go-field-type-hint-owner-segment
+d5cf735ce0ddaa0135f16342657dd99178036b8b	no	13K	tests	test(elixir): pin the fingerprint half of the complexity/fingerprint change
+b19ac1e923b41ff753eb8d0cf5dc695394f408bc	no	13K	tests	test(elixir): the same body shape under other names shares a fingerprint
+c2faaaa3d0004c78b4358ca66cbfec3825bbeb22	yes	13J	merge-or-other	Merge branch 'main' into exp/r32-mimalloc-win-test-init
+aa3161fd817e646dbadb9ff0cfd6a001b0b39f91	no	13K	extraction-language,tests	fix(elixir): grow the complexity walk stack instead of capping it
+2caf51a4c6556a9d60d330758b1397ef7b804d95	no	13K	extraction-language,tests	fix(elixir): a folded multi-clause function carries the metrics of every clause
+3b33babd7c0b649942ad6728a483a492d1a81bb2	no	13K	extraction-language	style(elixir): put the definition comment back above extract_elixir_func_def
+af4121616eef09791ca29b3a6ccec208cdc09f2c	yes	13J	merge-or-other	Merge pull request #2833 from divakantpandey/fix/2671-agent-config-symlinks
+c07cb8e4a95b8837f65076aa5759a02095523151	yes	13J	merge-or-other	Merge pull request #2864 from DeusData/fix/adr-sidecar-followups
+812d0755c1a79917aecfc76f67bc891663d1e2c3	yes	13J	merge-or-other	Merge pull request #2854 from divakantpandey/fix/2768-angular-http-client-method
+8d9a8e30fece3d180ee5011906593a117537cefc	yes	13K	merge-or-other	Merge origin/main into fix/2204-opencode-extension-untouched
+2d5284e875af3aaee03fd71ea5e26e10a0f06a55	yes	13J	merge-or-other	Merge origin/main into fix/1084-background-index-cpu
+98a66b73566cb1129a35dc6b6c4b236706b41f63	no	13K	security-runtime,tests	fix(cli): emit OpenCode plugin hooks for the V2 setup context
+c0a8ed8b938fc22bf53f1c0543a6fbf7e8b81b9c	no	13K	extraction-language,tests	fix(cs-lsp): resolve nested types through type qualifiers, bind global-ns types
+9fe22e3c0306db6cf6530abdd519203e71f78403	yes	13J	merge-or-other	Merge pull request #2850 from DeusData/exp/r32-mimalloc-win-test-init
+bc44de15d38195de217511ffe52ef2d7e9155a8b	no	13K	extraction-language,tests	fix(cs-lsp): bound the nested-type qualifier walk
+dad89184cb8831d2b8ce1cab073ad36400a8f25b	no	13K	extraction-language,tests	fix(cs-lsp): look up the global namespace in C# spec order
+21c253ff63419e5c3de80b9df1dae55877d0cbc5	no	13K	extraction-language,tests	fix(cs-lsp): never pool global-namespace types as partial twins
+29aa74867bd8ac80a5482156dc3e555904b7a382	yes	13J	merge-or-other	Merge pull request #2022 from mvanhorn/fix/1084-background-index-cpu
+b3c6becee78c73a79135b78920060134a7647966	yes	13K	merge-or-other	Merge origin/main into codex/fix-2816-trace-recursion
+6e0c59f5cf88620dfc38bbbd540832fa07d8b786	yes	13K	merge-or-other	Merge pull request #2867 from DeusData/fix/cs-lsp-nested-types-global-ns
+96c2fef6db4d5b053de50a850f00c40cecb17103	yes	13K	merge-or-other	Merge pull request #2641 from crisacm/fix/2204-opencode-extension-untouched
+12920dae155ec5f896031d745f96d7fc27663eb0	yes	13K	merge-or-other	Merge origin/main into feat/codex-skill-location-compat
+09ea34041c885709b3d014e5e16cf61b473cddfc	yes	13K	merge-or-other	Merge pull request #2842 from pcristin/codex/fix-2816-trace-recursion
+01ac4fe6a9441e82d37a0f63af4bf969b85a3552	yes	13K	merge-or-other	Merge origin/main into feat/codex-skill-location-compat
+f29e74f276af08456ba80c3b8e21f466bd00765b	yes	13K	merge-or-other	Merge pull request #1781 from agn-7/feat/codex-skill-location-compat
+9aa44426f73a7a0e1b9a8e21bd732eb0bfea6e03	yes	13K	merge-or-other	Merge origin/main into feat/graph-gate-contract
+65acd4277bf8599bdaa98b9d7dc507836bc180a2	yes	13K	merge-or-other	Merge pull request #2092 from Blysspeak/feat/graph-gate-contract
+f159b4c21db1284b07b7e86ee417f17af1970dc0	yes	13K	merge-or-other	Merge pull request #1731 from henry-hz/upstream-pr/elixir-complexity
+339cd516608a8c8434aa83f81f7fb79a3e17c4c6	no	13K	ci-policy-reconcile	ci: fail fast when an apt mirror stalls
+f531be2500f46a3af132287a6fa9011e0ac27328	no	13K	security-runtime,tests	fix(cli): keep the OpenCode 2 compaction note inside the compaction
+d3d0bc8452eae08e067e4d4be604c9ce72a69984	no	13K	security-runtime,tests	fix(cli): never create note-only content for an empty OpenCode 2 result
+a545a0aa8cebade912ff2990122e9022091dc8a7	no	13K	ci-policy-reconcile	ci: fail apt-get update on any fetch error
+e3a9fa34edfbda173c344c10fe64ba10e2fdbc8f	no	13K	ci-policy-reconcile	ci: let apt fail over between mirrors instead of hanging
+fb88365dc07936014c758745d013e0d72f8918bf	no	13K	security-runtime,tests	fix(cli): add no OpenCode 2 compaction note until one has run on a real host
+6926a65018ce96dc69d127b7dad622620044474c	yes	13K	merge-or-other	Merge pull request #2872 from DeusData/ci/apt-fail-fast
+587f134e5c255b1002c0854c096af5f618cd1231	yes	13K	merge-or-other	Merge pull request #2385 from HazielMagallanes/fix/opencode-v2-setup-hooks
+6c0ce230ee26ab8d263eb5235ebf73755558344e	yes	13K	merge-or-other	Merge pull request #2779 from DeusData/dependabot/github_actions/github/codeql-action/upload-sarif-4.39.1
