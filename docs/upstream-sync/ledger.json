@@ -114,10 +114,10 @@
         "security_hotfix",
         "ci_guard"
       ],
-      "state": "implemented_full_gate_pending",
+      "state": "draft_pr_open_full_gate_pending",
       "branch": "sync/upstream-13a-20261101",
       "merge_commit": "a03f1f8ab85e8861d8d6820061ccfd88797efae1",
-      "draft_pr": null,
+      "draft_pr": "https://github.com/ngallodev/codebase-memory-cli/pull/29",
       "adaptations": [
         "test-impact moved to src/operations",
         "shared complete definition-property serialization",
@@ -146,7 +146,12 @@
         "real_binary_archive": "old limit rejected; new npm/PyPI extraction and version passed at 302808096 bytes",
         "clang_tidy_diff": "failed; out-of-range diagnostics observed, cause unverified",
         "additional_changed_subsystems": "initial combined command failed on 2 stale image expectations with early-exit leak; corrected 2/2 ASan/UBSan regressions pass; combined union pending Jenkins",
-        "jenkins": "dedicated exact-SHA job created; build not started",
+        "jenkins": {
+          "build_1": "failed before pipeline: lightweight SCM treated SHA as branch",
+          "build_2": "running at receipt capture; full checkout confirms pinned SHA",
+          "url": "http://192.168.88.146:8080/job/codebase-memory-cli-sync-13a-20261101/2/",
+          "source_revision": "3019aecc1c9318819d07558c4bdf66f4e10c2665"
+        },
         "windows": "not_run",
         "test_impact_policy": "21 passed after native/conservative policy adaptation"
       },
@@ -217,7 +222,8 @@
         "CONFLICT (content): Merge conflict in tests/test_version_metadata_contract.sh",
         "CONFLICT (content): Merge conflict in tests/windows/test_daemon_stability.py"
       ],
-      "jenkins_job": "codebase-memory-cli-sync-13a-20261101"
+      "jenkins_job": "codebase-memory-cli-sync-13a-20261101",
+      "qualification_source_revision": "3019aecc1c9318819d07558c4bdf66f4e10c2665"
     },
     {
       "batch": "13B",
@@ -1407,5 +1413,35 @@
       "jobs": 0,
       "cause": "same invalid reusable workflow; fixed"
     }
-  ]
+  ],
+  "final_ancestry_at_code_candidate": {
+    "source_revision": "3019aecc1c9318819d07558c4bdf66f4e10c2665",
+    "merge_base_with_pinned_target": "5dc83ac9fa363d51706a70977840b61ea59ce9db",
+    "candidate_only_commits": 367,
+    "pinned_target_only_commits": 854,
+    "observed_tip_only_commits": 863,
+    "main_unchanged": true,
+    "main_only_commits": 348,
+    "observed_tip_only_relative_to_main": 942
+  },
+  "publication_status": {
+    "security": {
+      "draft": true,
+      "pr": 27
+    },
+    "ci_guard": {
+      "draft": true,
+      "pr": 28,
+      "base_pr": 27
+    },
+    "13A": {
+      "draft": true,
+      "pr": 29,
+      "base_pr": 28
+    },
+    "automatic_merge_enabled": false,
+    "main_pushed": false,
+    "integration_actions_runs_observed": [],
+    "repaired_security_ci_pushes": "no new Actions runs; prior invalid-YAML records had zero jobs"
+  }
 }

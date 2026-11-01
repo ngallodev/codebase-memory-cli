@@ -7,15 +7,18 @@ GitHub auto-merge, push main, or dispatch Actions.
 
 Refresh origin refs and all draft PRs, Git status/worktrees and Jenkins state.
 Security draft #27 is sync/security-20261101 -> main; guard draft #28 is
-sync/ci-guard-20261101 -> security; the 13A integration is
+sync/ci-guard-20261101 -> security; the 13A draft #29 is
 sync/upstream-13a-20261101 -> guard. Verify current PR numbers/SHAs live.
 Upstream true merge a03f1f8ab85e8861d8d6820061ccfd88797efae1 has exact parents
 ff8b8906c6807953336609cc7f464e7e4ef3cf7b and
 5dc83ac9fa363d51706a70977840b61ea59ce9db. Never rewrite these parents.
 
-First finish exact-SHA Jenkins qualification using the dedicated
+First finish exact-SHA Jenkins build #2 for code candidate
+3019aecc1c9318819d07558c4bdf66f4e10c2665 using the dedicated
 codebase-memory-cli-sync-13a-20261101 job. Record actual archived source revision,
-job URL and status; inspect real failures. Local diff-scoped clang-tidy failed,
+job URL and status; inspect real failures. Build #1 failed before pipeline
+execution because lightweight SCM treated the SHA as a branch; #2 uses full
+checkout of the same SHA. Later receipt-only commits require separate accounting. Local diff-scoped clang-tidy failed,
 and its cause/baseline is unverified. The additional grammar expectations were
 corrected for registry-unknown image identities and passed 2/2 under sanitizers;
 the combined extra-suite union remains a Jenkins gate. Native Windows commands
