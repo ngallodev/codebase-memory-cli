@@ -78,6 +78,12 @@ Branch: `sync/security-20261101`
   dependency attribution and the supported-runtime baseline were not established
   by that run. Parent is investigating the runtime interaction. No test
   configuration change is included in this scoped hotfix.
+- Parent reran the failing file with `NODE_OPTIONS=--no-webstorage npm run
+  test:unit -- src/galaxy/GalaxyPanel.layers.test.tsx`: 5 passed. The full
+  `NODE_OPTIONS=--no-webstorage npm run test:unit` then passed all 3,969 tests
+  in 310 files. This isolates the Node 26 global Web Storage interaction;
+  no product/test configuration was changed. The unqualified run's failures
+  remain recorded above rather than being attributed to dependency changes.
 - Native Windows tests were not run on this Linux host.
 - Jenkins full venue gate remains pending for the parent workflow.
 - Codebase Memory structural search was unavailable: `codebase-memory-cli
