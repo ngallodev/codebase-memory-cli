@@ -584,9 +584,8 @@ jobs:
           CCACHE_DIR: ${{ github.workspace }}/.ccache
 
   test-windows:
-    if: ${{ inputs.platforms != 'linux' }}
     needs: setup-matrix
-    if: ${{ needs.setup-matrix.outputs.has_windows == 'true' }}
+    if: ${{ inputs.platforms != 'linux' && needs.setup-matrix.outputs.has_windows == 'true' }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup-matrix.outputs.windows) }}

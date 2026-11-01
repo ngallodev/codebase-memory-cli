@@ -17,12 +17,19 @@ arena hash_table dyn_array str_intern log str_util index_policy workspace platfo
     }
 
     stages {
+        stage('Install Python CI tools') {
+            steps {
+                sh 'CBM_CI_VENV="$WORKSPACE/.ci-venv" scripts/ci/install-python-tools.sh'
+            }
+        }
         stage('Lint') {
             steps {
                 sh '''
                     set -eu
                     rm -f .jenkins-installed-cli
-                    python3 scripts/ci/check-github-actions-policy.py
+                    "$WORKSPACE/.ci-venv/bin/python" scripts/ci/check-github-actions-policy.py
+                    "$WORKSPACE/.ci-venv/bin/python" scripts/ci/test_github_actions_policy.py
+                    python3 scripts/ci/test_sync_ancestry.py
                     python3 tests/test_jenkins_daemon_recovery.py
                     scripts/lint.sh --ci CLANG_FORMAT=clang-format-20
                 '''
@@ -41,11 +48,6 @@ arena hash_table dyn_array str_intern log str_util index_policy workspace platfo
                     scripts/security-ui.sh
                     scripts/security-vendored.sh
                 '''
-            }
-        }
-        stage('Install Python CI tools') {
-            steps {
-                sh 'CBM_CI_VENV="$WORKSPACE/.ci-venv" scripts/ci/install-python-tools.sh'
             }
         }
         stage('License gate') {

@@ -8,7 +8,12 @@ or `workflow_call` (reusable by a manually dispatched workflow) as events.
 No `push`, `pull_request`, `pull_request_target`, `schedule`, `issues`,
 `workflow_run`, or other automatic Actions events are allowed.
 
-* Jenkins' `Jenkinsfile` runs `scripts/ci/check-github-actions-policy.py`.
+* Jenkins installs the pinned CI Python tools, then runs
+  `scripts/ci/check-github-actions-policy.py` and its focused self-tests.
+  The guard parses YAML and rejects duplicate top-level `on` or trigger keys,
+  anchors, aliases, merge keys, explicit document markers/directives and tags. It
+  accepts block or flow mappings but permits only `workflow_dispatch` and
+  `workflow_call` under the workflow's top-level `on` key.
 * The GitHub release/promotion workflows are retained as **manual-only**
   fallback/publishing operations. They can consume Actions minutes when started.
 * CodeQL, GitHub Pages, smoke/soak and repro workflows remain manual-only;
