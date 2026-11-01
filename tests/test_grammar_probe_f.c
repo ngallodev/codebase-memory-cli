@@ -1669,7 +1669,7 @@ TEST(probe_mcp_trace_run) {
     ASSERT_NOT_NULL(r);
     /* qualified names are grouped by prefix, split at a dot */
     ASSERT_NOT_NULL(strstr(r, "Deployment/-/server"));
-    ASSERT_NOT_NULL(strstr(r, "\"__image__docker\",\"rows\":[[\"io/acme/server\""));
+    ASSERT_NOT_NULL(strstr(r, "\"rows\":[[\"__image__acme/server\""));
     ASSERT_NOT_NULL(strstr(r, ".svc\",\"rows\":[[\"Dockerfile\""));  /* its Module */
     ASSERT_NOT_NULL(strstr(r, ".cmd.server\",\"rows\":[[\"main\"")); /* what it starts */
     ASSERT_NOT_NULL(strstr(r, "Deployment/-/server#env/server/LISTEN_PORT"));
@@ -2227,10 +2227,10 @@ TEST(probe_compose_services_are_resources) {
          "        condition: service_healthy\n"
          "  worker:\n    build:\n      context: .\n      dockerfile: worker/Dockerfile\n"}};
     char *got = gpf_compose(files, 3);
-    static const char want[] = "Service/cache -> Image:docker.io/library/redis (USAGE image)\n"
+    static const char want[] = "Service/cache -> Image:redis (USAGE image)\n"
                                "Service/cache -> Service/db (DEPENDS_ON depends_on)\n"
-                               "Service/db -> Image:docker.io/library/postgres (USAGE image)\n"
-                               "Service/web -> Image:docker.io/acme/web (USAGE image)\n"
+                               "Service/db -> Image:postgres (USAGE image)\n"
+                               "Service/web -> Image:acme/web (USAGE image)\n"
                                "Service/web -> Module:web/Dockerfile (DEPENDS_ON build)\n"
                                "Service/web -> Service/cache (DEPENDS_ON depends_on)\n"
                                "Service/web -> Service/db (DEPENDS_ON depends_on)\n"

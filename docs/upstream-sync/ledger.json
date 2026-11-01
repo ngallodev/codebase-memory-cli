@@ -145,9 +145,10 @@
         "go": "passed with test-scoped inherited install directory removed",
         "real_binary_archive": "old limit rejected; new npm/PyPI extraction and version passed at 302808096 bytes",
         "clang_tidy_diff": "failed; out-of-range diagnostics observed, cause unverified",
-        "additional_changed_subsystems": "running",
-        "jenkins": "pending",
-        "windows": "not_run"
+        "additional_changed_subsystems": "initial combined command failed on 2 stale image expectations with early-exit leak; corrected 2/2 ASan/UBSan regressions pass; combined union pending Jenkins",
+        "jenkins": "dedicated exact-SHA job created; build not started",
+        "windows": "not_run",
+        "test_impact_policy": "21 passed after native/conservative policy adaptation"
       },
       "acceptance": [
         "True merge includes exact checkpoint parent, no unresolved conflicts.",
@@ -215,7 +216,8 @@
         "CONFLICT (content): Merge conflict in tests/test_main.c",
         "CONFLICT (content): Merge conflict in tests/test_version_metadata_contract.sh",
         "CONFLICT (content): Merge conflict in tests/windows/test_daemon_stability.py"
-      ]
+      ],
+      "jenkins_job": "codebase-memory-cli-sync-13a-20261101"
     },
     {
       "batch": "13B",

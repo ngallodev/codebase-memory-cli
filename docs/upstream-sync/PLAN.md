@@ -35,3 +35,24 @@ To verify PRs automatically, an operator should configure a Jenkins GitHub Branc
 ## Platform and benchmark follow-up
 
 Use the existing pinned corpus at `benchmark-runs/linux/20260911T045124Z/BENCHMARK_CORPUS.frozen.json` for Linux/Windows parity: codebase-memory-cli `0c6d00d6011c1fdb50b90c53538f536cc3b5e4d9`, specgen-aw `466debfec788c7aeeee858c6b51e98b1b9afe653`, agent-workflow `e84925205301ff7169aff5a8cb14d10680c3739c`, agent-workflow-spec-contracts `0b32e556ef33bd00c0111d30a8b9225eb5196fcd`, and herdr `61ca85d5895bb530b59da85beeccdd767f4720d2`. Preserve these manifest pins; candidate version and platform evidence are separate. No current benchmark or Windows result is implied by this inventory.
+
+## Delivery checkpoint
+
+Security PR #27 targets main. CI-policy PR #28 targets the security branch.
+The 13A integration branch targets the CI-policy branch and preserves upstream
+merge `a03f1f8ab85e8861d8d6820061ccfd88797efae1`. Its source and regression
+receipts are in [13a.md](13a.md). 854 pinned upstream commits remain after 13A;
+13B–13K have not been implemented. The next checkpoint is
+`4c80d89edf1283cfeaa7e60ecbf40c9d2eb2b689` (119 commits after 13A).
+
+A dedicated Jenkins job `codebase-memory-cli-sync-13a-20261101` is prepared for
+an exact integration SHA, with no automatic triggers. Existing main/release jobs
+were not reconfigured. Do not recommend merge while its full gate, failed local
+clang-tidy assessment or native platform checks remain unresolved.
+
+Initial durable workers lacked bound native acceptance commands. Their source,
+tests and sealed evidence are retained, but `agent finish` returned
+`verification_required`; no lifecycle acceptance is claimed. Evaluation-plan
+recovery was investigated, but the installed evaluation schema supports only a
+Docker venue while these checks ran natively. Do not relabel native execution
+or mutate sealed records to manufacture acceptance.
