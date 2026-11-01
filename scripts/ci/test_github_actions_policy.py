@@ -47,6 +47,8 @@ class PolicyTests(unittest.TestCase):
             "on: &events {workflow_dispatch: null}\n",
             "on: *events\n",
             "on: {<<: {workflow_dispatch: null}, push: null}\n",
+            "on: {<<: {workflow_dispatch: null}}\n",
+            "<<: {on: {workflow_dispatch: null}}\non: {workflow_call: null}\n",
             "---\non: {workflow_dispatch: null}\n",
             "on: {workflow_dispatch: null}\n...\n",
             "%YAML 1.2\non: {workflow_dispatch: null}\n",

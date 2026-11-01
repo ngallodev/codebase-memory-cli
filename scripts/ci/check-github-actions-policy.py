@@ -5,7 +5,7 @@ import sys
 
 import yaml
 from yaml.events import AliasEvent, DocumentEndEvent, DocumentStartEvent, NodeEvent
-from yaml.nodes import MappingNode, ScalarNode
+from yaml.nodes import MappingNode, ScalarNode, SequenceNode
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / ".github" / "workflows"
@@ -35,6 +35,16 @@ def inspect(path: Path) -> list[str]:
         root = yaml.compose(text, Loader=PolicyLoader)
         if not isinstance(root, MappingNode):
             raise ValueError("workflow document root must be a mapping")
+        pending = [root]
+        while pending:
+            node = pending.pop()
+            if isinstance(node, MappingNode):
+                for key, value in node.value:
+                    if isinstance(key, ScalarNode) and key.tag == "tag:yaml.org,2002:merge":
+                        raise ValueError("YAML merge keys are unsupported")
+                    pending.extend((key, value))
+            elif isinstance(node, SequenceNode):
+                pending.extend(node.value)
         on_nodes = [value for key, value in root.value
                     if isinstance(key, ScalarNode) and key.value == "on"]
         if len(on_nodes) != 1:
