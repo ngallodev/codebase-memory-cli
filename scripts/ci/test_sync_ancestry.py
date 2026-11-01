@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 SCRIPT = Path(__file__).with_name("check-sync-ancestry.py")
 SPEC = importlib.util.spec_from_file_location("sync_ancestry", SCRIPT)
@@ -70,6 +71,17 @@ class AncestryTests(unittest.TestCase):
         self.git("replace", "--graft", unrelated, self.base)
         with self.assertRaises(ValueError):
             ancestry.verify(self.base, unrelated, self.merge)
+
+    def test_rejects_grafted_merge_parent(self):
+        self.git("commit", "--allow-empty", "-qm", "ordinary commit")
+        ordinary = self.git("rev-parse", "HEAD")
+        graft = self.repo / ".git" / "info" / "grafts"
+        graft.write_text(f"{ordinary} {self.base} {self.target}\n")
+        with self.assertRaises(ValueError):
+            ancestry.verify(self.target, self.target, ordinary)
+        with mock.patch.dict(os.environ, {"GIT_GRAFT_FILE": str(graft)}):
+            with self.assertRaises(ValueError):
+                ancestry.verify(self.target, self.target, ordinary)
 
     def test_rejects_non_merge_result_and_abbreviated_sha(self):
         with self.assertRaises(ValueError):

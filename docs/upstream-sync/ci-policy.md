@@ -42,7 +42,7 @@ documents, and tags.
 `scripts/ci/check-sync-ancestry.py --checkpoint SHA --target SHA --merge SHA`
 requires full commit IDs, resolves each exact object, proves checkpoint is an
 ancestor of the pinned upstream target, and proves the checkpoint is an exact non-first parent of the integration
-merge. Early batches do not need to contain the final campaign target. Git replacement refs are disabled
+merge. Early batches do not need to contain the final campaign target. Git replacement refs and graft files are disabled
 for these graph checks, so a synthetic replacement cannot manufacture the
 ancestry claim. The helper is local/manual and does not run hosted Actions.
 Jenkins runs its self-test, which constructs true and replacement-ref-faked
@@ -58,7 +58,7 @@ python3 scripts/ci/check-github-actions-policy.py
 python3 scripts/ci/test_github_actions_policy.py
   Ran 4 tests; OK (real workflows plus positive/negative fixtures)
 python3 scripts/ci/test_sync_ancestry.py
-  Ran 5 tests; OK (early checkpoint, exact parent, replacement-ref spoof, invalid inputs)
+  Ran 6 tests; OK (early checkpoint, exact parent, replacement/graft spoof, invalid inputs)
 git diff --check
   passed
 ```
