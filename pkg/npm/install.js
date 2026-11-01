@@ -23,7 +23,7 @@ const MAX_CHECKSUM_MANIFEST_BYTES = 1024 * 1024;
 // (pkg/go/cmd/codebase-memory-cli/main.go) and the PyPI wrapper (_cli.py).
 const MAX_RELEASE_ARCHIVE_BYTES = 256 * 1024 * 1024;
 const MAX_ARCHIVE_MEMBERS = 64;
-const MAX_ARCHIVE_MEMBER_BYTES = 256 * 1024 * 1024;
+const MAX_ARCHIVE_MEMBER_BYTES = 512 * 1024 * 1024;
 const MAX_ARCHIVE_EXPANDED_BYTES = 512 * 1024 * 1024;
 const DEFAULT_ARCHIVE_LIMITS = Object.freeze({
   compressedBytes: MAX_RELEASE_ARCHIVE_BYTES,

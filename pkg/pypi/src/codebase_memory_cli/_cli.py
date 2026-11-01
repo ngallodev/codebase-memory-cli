@@ -47,7 +47,7 @@ _MAX_CHECKSUM_MANIFEST_BYTES = 1024 * 1024
 # (pkg/go/cmd/codebase-memory-mcp/main.go) and the npm wrapper (install.js).
 _MAX_RELEASE_ARCHIVE_BYTES = 256 * 1024 * 1024
 _MAX_ARCHIVE_MEMBERS = 64
-_MAX_ARCHIVE_MEMBER_BYTES = 256 * 1024 * 1024
+_MAX_ARCHIVE_MEMBER_BYTES = 512 * 1024 * 1024
 _MAX_ARCHIVE_EXPANDED_BYTES = 512 * 1024 * 1024
 _ARCHIVE_COPY_CHUNK_BYTES = 64 * 1024
 _ArchiveLimits = collections.namedtuple(

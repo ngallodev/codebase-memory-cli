@@ -27,6 +27,7 @@ class AncestryTests(unittest.TestCase):
             "GIT_COMMITTER_EMAIL": "ci-policy@example.invalid",
         }
         self.git("init", "-q")
+        self.git("config", "advice.graftFileDeprecated", "false")
         self.git("config", "user.name", "CI policy test")
         self.git("config", "user.email", "ci-policy@example.invalid")
         self.git("commit", "--allow-empty", "-qm", "base")

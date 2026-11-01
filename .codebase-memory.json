@@ -9,14 +9,18 @@
     "rules": [
       {
         "id": "harness",
-        "paths": ["tests/test_framework.h", "tests/test_helpers.*", "tests/test_main.c"],
+        "paths": [
+          "tests/test_framework.h",
+          "tests/test_helpers.*",
+          "tests/test_main.c"
+        ],
         "action": "run_all"
       },
       {
         "id": "engine",
         "paths": [
           ".codebase-memory.json",
-          "src/mcp/test_impact*",
+          "src/operations/test_impact*",
           "src/store/store_impact.*",
           "scripts/test-impact/**",
           "scripts/ci/test-impact-*"
@@ -26,39 +30,42 @@
       {
         "id": "build",
         "paths": [
-          "scripts/build.sh",
-          "scripts/env.sh",
-          "scripts/test.sh",
-          "scripts/run-tests-parallel.sh",
-          "scripts/run-test-wave.py",
-          "scripts/path-safety.sh",
-          "scripts/clean.sh",
-          "scripts/suite-failure-report.sh",
-          "scripts/ci/verify-shard-union.sh",
-          "scripts/embed-frontend.sh",
+          "scripts/**",
+          "test-infrastructure/**",
+          "pkg/**",
           "/.gitattributes"
         ],
         "action": "run_all"
       },
       {
         "id": "grammars",
-        "paths": ["internal/cbm/vendored/**"],
+        "paths": [
+          "internal/cbm/vendored/**"
+        ],
         "action": "run_all"
       },
       {
         "id": "fixtures",
-        "paths": ["tests/fixtures/*/**"],
+        "paths": [
+          "tests/fixtures/*/**"
+        ],
         "action": "referencing_tests",
         "key": "path_segment:2"
       },
       {
         "id": "contracts",
-        "paths": ["tests/**/*.{sh,py,json,txt,ps1}"],
+        "paths": [
+          "tests/**/*.{sh,py,json,txt,ps1}"
+        ],
         "action": "ignore"
       },
       {
         "id": "notices",
-        "paths": ["NOTICE*", "CHANGELOG*", "THIRD_PARTY*"],
+        "paths": [
+          "NOTICE*",
+          "CHANGELOG*",
+          "THIRD_PARTY*"
+        ],
         "action": "ignore"
       },
       {

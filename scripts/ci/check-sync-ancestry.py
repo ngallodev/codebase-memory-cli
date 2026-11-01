@@ -7,10 +7,11 @@ import subprocess
 import sys
 
 
+GIT = ["git", "-c", "advice.graftFileDeprecated=false"]
 GIT_ENV = os.environ | {"GIT_NO_REPLACE_OBJECTS": "1", "GIT_GRAFT_FILE": os.devnull}
 
 def git(*args: str) -> str:
-    return subprocess.check_output(["git", *args], text=True, stderr=subprocess.PIPE, env=GIT_ENV).strip()
+    return subprocess.check_output([*GIT, *args], text=True, stderr=subprocess.PIPE, env=GIT_ENV).strip()
 
 
 def exact_commit(value: str) -> str:
@@ -26,7 +27,7 @@ def verify(checkpoint: str, target: str, merge: str) -> None:
     checkpoint = exact_commit(checkpoint)
     target = exact_commit(target)
     merge = exact_commit(merge)
-    if subprocess.run(["git", "merge-base", "--is-ancestor", checkpoint, target],
+    if subprocess.run([*GIT, "merge-base", "--is-ancestor", checkpoint, target],
                       env=GIT_ENV, check=False).returncode:
         raise ValueError("checkpoint is not an ancestor of pinned target")
     parents = git("rev-list", "--parents", "-n", "1", merge).split()[1:]

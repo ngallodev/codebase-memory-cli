@@ -110,18 +110,42 @@
       "upstream_commits": 79,
       "ancestry_validated": true,
       "fork_base": "ff8b8906c6807953336609cc7f464e7e4ef3cf7b",
-      "depends_on": [],
-      "state": "implementation_in_progress",
+      "depends_on": [
+        "security_hotfix",
+        "ci_guard"
+      ],
+      "state": "implemented_full_gate_pending",
       "branch": "sync/upstream-13a-20261101",
-      "merge_commit": null,
+      "merge_commit": "a03f1f8ab85e8861d8d6820061ccfd88797efae1",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
+      "adaptations": [
+        "test-impact moved to src/operations",
+        "shared complete definition-property serialization",
+        "Python per-file scope in parallel registration",
+        "finite 512 MiB member cap; compressed/count/total limits retained",
+        "CLI release dist-tag and conservative test selection"
+      ],
+      "exclusions": [
+        "MCP server/session/transport and upstream product manifests",
+        "automatic GitHub PR workflows and SMART_CI manual",
+        "unbounded archive downloads/extraction",
+        "upstream-only wrapper smoke driver and associated workflow flags",
+        "unqualified upstream version bump over fork release hashes"
+      ],
       "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "schema_migrations": "Index format 2 -> 3; old invented Docker registry identities force full reindex.",
+      "policy_gate": "passed: all 18 YAML files parse with manual/reusable events and no duplicate mappings",
       "verification": {
-        "local": "pending",
+        "production_build": "passed at worker integration",
+        "core_language": "1337 passed under ASan/UBSan",
+        "storage": "190 passed",
+        "parallel_determinism": "139 passed; initial combined command invalid suite alias, valid storage rerun passed",
+        "npm": "22 passed, 4 Windows skips",
+        "pypi": "44 passed",
+        "go": "passed with test-scoped inherited install directory removed",
+        "real_binary_archive": "old limit rejected; new npm/PyPI extraction and version passed at 302808096 bytes",
+        "clang_tidy_diff": "failed; out-of-range diagnostics observed, cause unverified",
+        "additional_changed_subsystems": "running",
         "jenkins": "pending",
         "windows": "not_run"
       },
@@ -132,7 +156,66 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "Resolve actual merge and validate focused suites."
+      "next_action": "Resolve lint findings/baseline and run exact-SHA Jenkins qualification; retain draft status. 13B starts from this reviewed integration, not main.",
+      "upstream_prs": [
+        1548,
+        1555,
+        2431,
+        2648,
+        2650,
+        2651,
+        2652,
+        2653,
+        2654,
+        2663,
+        2664,
+        2669,
+        2674,
+        2676,
+        2678,
+        2679,
+        2681,
+        2682,
+        2684,
+        2685,
+        2686,
+        2687,
+        2689,
+        2696
+      ],
+      "fork_merge_sha": "a03f1f8ab85e8861d8d6820061ccfd88797efae1",
+      "file_conflicts": [
+        "CONFLICT (content): Merge conflict in .github/workflows/_security.yml",
+        "CONFLICT (modify/delete): .github/workflows/pr.yml deleted in HEAD and modified in 5dc83ac9fa363d51706a70977840b61ea59ce9db.  Version 5dc83ac9fa363d51706a70977840b61ea59ce9db of .github/workflows/pr.yml left in tree.",
+        "CONFLICT (content): Merge conflict in .github/workflows/release.yml",
+        "CONFLICT (content): Merge conflict in README.md",
+        "CONFLICT (content): Merge conflict in docs/index.html",
+        "CONFLICT (content): Merge conflict in docs/llms.txt",
+        "CONFLICT (content): Merge conflict in flake.nix",
+        "CONFLICT (content): Merge conflict in pkg/chocolatey/codebase-memory-cli.nuspec",
+        "CONFLICT (content): Merge conflict in pkg/chocolatey/tools/chocolateyInstall.ps1",
+        "CONFLICT (content): Merge conflict in pkg/go/cmd/codebase-memory-cli/main.go",
+        "CONFLICT (content): Merge conflict in pkg/homebrew/Formula/codebase-memory-cli.rb",
+        "CONFLICT (content): Merge conflict in pkg/npm/README.md",
+        "CONFLICT (content): Merge conflict in pkg/npm/install.js",
+        "CONFLICT (content): Merge conflict in pkg/npm/package.json",
+        "CONFLICT (content): Merge conflict in pkg/npm/test/archive-limits.test.js",
+        "CONFLICT (content): Merge conflict in pkg/pypi/README.md",
+        "CONFLICT (content): Merge conflict in pkg/pypi/pyproject.toml",
+        "CONFLICT (content): Merge conflict in pkg/pypi/src/codebase_memory_cli/_cli.py",
+        "CONFLICT (content): Merge conflict in pkg/pypi/tests/test_cli.py",
+        "CONFLICT (modify/delete): pkg/scoop/codebase-memory-mcp.json deleted in HEAD and modified in 5dc83ac9fa363d51706a70977840b61ea59ce9db.  Version 5dc83ac9fa363d51706a70977840b61ea59ce9db of pkg/scoop/codebase-memory-mcp.json left in tree.",
+        "CONFLICT (content): Merge conflict in scripts/smoke-test.sh",
+        "CONFLICT (modify/delete): server.json deleted in HEAD and modified in 5dc83ac9fa363d51706a70977840b61ea59ce9db.  Version 5dc83ac9fa363d51706a70977840b61ea59ce9db of server.json left in tree.",
+        "CONFLICT (content): Merge conflict in src/main.c",
+        "CONFLICT (content): Merge conflict in src/operations/test_impact_cli.c",
+        "CONFLICT (content): Merge conflict in src/pipeline/pass_definitions.c",
+        "CONFLICT (content): Merge conflict in src/pipeline/pass_parallel.c",
+        "CONFLICT (content): Merge conflict in tests/test_grammar_probe_f.c",
+        "CONFLICT (content): Merge conflict in tests/test_main.c",
+        "CONFLICT (content): Merge conflict in tests/test_version_metadata_contract.sh",
+        "CONFLICT (content): Merge conflict in tests/windows/test_daemon_stability.py"
+      ]
     },
     {
       "batch": "13B",
@@ -165,7 +248,36 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main."
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        1041,
+        1265,
+        1277,
+        1692,
+        1907,
+        1913,
+        2680,
+        2684,
+        2686,
+        2688,
+        2690,
+        2691,
+        2695,
+        2696,
+        2697,
+        2698,
+        2700,
+        2702,
+        2703,
+        2704,
+        2705,
+        2706,
+        2707,
+        2708,
+        2712,
+        2713,
+        2714
+      ]
     },
     {
       "batch": "13C",
@@ -198,7 +310,30 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main."
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        1786,
+        2253,
+        2440,
+        2457,
+        2502,
+        2512,
+        2556,
+        2568,
+        2579,
+        2595,
+        2599,
+        2623,
+        2639,
+        2677,
+        2694,
+        2710,
+        2720,
+        2726,
+        2729,
+        2734,
+        2735
+      ]
     },
     {
       "batch": "13D",
@@ -231,7 +366,29 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main."
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        221,
+        1115,
+        1766,
+        1999,
+        2091,
+        2231,
+        2281,
+        2381,
+        2508,
+        2719,
+        2729,
+        2732,
+        2737,
+        2738,
+        2739,
+        2753,
+        2755,
+        2757,
+        2761,
+        2762
+      ]
     },
     {
       "batch": "13E",
@@ -264,7 +421,36 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main."
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        1730,
+        2085,
+        2234,
+        2289,
+        2372,
+        2386,
+        2422,
+        2423,
+        2430,
+        2443,
+        2555,
+        2588,
+        2591,
+        2602,
+        2622,
+        2661,
+        2675,
+        2724,
+        2744,
+        2764,
+        2766,
+        2777,
+        2797,
+        2798,
+        2800,
+        2801,
+        2802
+      ]
     },
     {
       "batch": "13F",
@@ -297,7 +483,13 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main."
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        2161,
+        2305,
+        2774,
+        2817
+      ]
     },
     {
       "batch": "13G",
@@ -330,7 +522,22 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main."
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        2090,
+        2290,
+        2309,
+        2585,
+        2600,
+        2717,
+        2731,
+        2746,
+        2754,
+        2760,
+        2769,
+        2787,
+        2807
+      ]
     },
     {
       "batch": "13H",
@@ -363,7 +570,16 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main."
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        1710,
+        2017,
+        2418,
+        2419,
+        2421,
+        2587,
+        2601
+      ]
     },
     {
       "batch": "13I",
@@ -396,7 +612,25 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main."
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        1833,
+        1915,
+        1996,
+        2244,
+        2295,
+        2420,
+        2586,
+        2613,
+        2716,
+        2722,
+        2822,
+        2826,
+        2827,
+        2839,
+        2841,
+        2849
+      ]
     },
     {
       "batch": "13J",
@@ -429,7 +663,23 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main."
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        1936,
+        2022,
+        2315,
+        2371,
+        2671,
+        2752,
+        2768,
+        2819,
+        2833,
+        2850,
+        2854,
+        2861,
+        2862,
+        2864
+      ]
     },
     {
       "batch": "13K",
@@ -462,7 +712,18 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main."
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        1731,
+        1781,
+        2092,
+        2385,
+        2641,
+        2779,
+        2842,
+        2867,
+        2872
+      ]
     }
   ],
   "reconciliation": [
@@ -1086,7 +1347,7 @@
   "security_hotfix": {
     "state": "draft_pr_open",
     "branch": "sync/security-20261101",
-    "commit": "a0acc56236c7925c185e54e666af898b26e4fcc3",
+    "commit": "39d3ab73f5b5b68850e866d996ce116ec49463d7",
     "draft_pr": "https://github.com/ngallodev/codebase-memory-cli/pull/27",
     "verification": {
       "ui_build": "passed",
@@ -1100,10 +1361,10 @@
     "installer_compatibility": "13A production 289 MiB exceeds old 256 MiB member ceiling; finite bound adaptation pending"
   },
   "ci_guard": {
-    "state": "implemented_local_checks_passed",
+    "state": "draft_pr_open",
     "branch": "sync/ci-guard-20261101",
-    "commit": "48ba757abb3ec421f14cdd20bde1a56b458c6b7d",
-    "draft_pr": null,
+    "commit": "8bc84fabace08d7342a2de3be77dd737a5686611",
+    "draft_pr": "https://github.com/ngallodev/codebase-memory-cli/pull/28",
     "lifecycle": "initial worker failed/completion_missing: no bound acceptance commands; independent source verification retained; acceptance pending",
     "verification": {
       "policy": "18 files passed",
@@ -1119,5 +1380,30 @@
     "target": "edc2301b022b1f5e1e0ec11e291917e22e9736aa",
     "state": "deferred",
     "next_action": "Finish pinned campaign before planning another batch."
-  }
+  },
+  "remaining_pinned_upstream_commits": 854,
+  "lifecycle": {
+    "workers": [
+      "cbm-sync-security-20261101",
+      "cbm-sync-ci-20261101",
+      "cbm-sync-13a-20261101"
+    ],
+    "completion": "initial structured compatibility runs lacked acceptance binding; finish verification_required; no lifecycle acceptance claimed",
+    "source_review": "parent verified/fixed ancestry, YAML, package identity, metadata, resource limits and conservative selector adaptations",
+    "coderabbit": "not_run: credentials_unavailable"
+  },
+  "github_validation_records": [
+    {
+      "run_id": 41349084091,
+      "branch": "sync/security-20261101",
+      "jobs": 0,
+      "cause": "invalid pre-existing duplicate if key; fixed"
+    },
+    {
+      "run_id": 41349135318,
+      "branch": "sync/ci-guard-20261101",
+      "jobs": 0,
+      "cause": "same invalid reusable workflow; fixed"
+    }
+  ]
 }
