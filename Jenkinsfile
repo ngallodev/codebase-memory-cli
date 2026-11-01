@@ -22,6 +22,7 @@ arena hash_table dyn_array str_intern log str_util index_policy workspace platfo
                 sh '''
                     set -eu
                     rm -f .jenkins-installed-cli
+                    python3 scripts/ci/check-github-actions-policy.py
                     python3 tests/test_jenkins_daemon_recovery.py
                     scripts/lint.sh --ci CLANG_FORMAT=clang-format-20
                 '''
