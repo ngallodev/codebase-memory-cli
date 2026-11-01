@@ -31,10 +31,8 @@ def verify(checkpoint: str, target: str, merge: str) -> None:
     parents = git("rev-list", "--parents", "-n", "1", merge).split()[1:]
     if len(parents) < 2:
         raise ValueError("result is not a merge commit")
-    if not any(subprocess.run(["git", "merge-base", "--is-ancestor", target, parent],
-                              env=os.environ | {"GIT_NO_REPLACE_OBJECTS": "1"},
-                              check=False).returncode == 0 for parent in parents[1:]):
-        raise ValueError("pinned target is not in a non-first merge-parent history")
+    if checkpoint not in parents[1:]:
+        raise ValueError("checkpoint is not an exact non-first merge parent")
 
 
 def main() -> int:

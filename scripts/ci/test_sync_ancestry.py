@@ -46,7 +46,22 @@ class AncestryTests(unittest.TestCase):
                                        text=True, stderr=subprocess.PIPE).strip()
 
     def test_accepts_real_checkpoint_and_second_parent(self):
-        ancestry.verify(self.base, self.target, self.merge)
+        ancestry.verify(self.target, self.target, self.merge)
+
+    def test_accepts_early_checkpoint_before_campaign_target(self):
+        self.git("checkout", "-q", "side")
+        self.git("commit", "--allow-empty", "-qm", "later campaign target")
+        campaign_target = self.git("rev-parse", "HEAD")
+        ancestry.verify(self.target, campaign_target, self.merge)
+
+    def test_rejects_first_parent_or_wrong_checkpoint(self):
+        with self.assertRaises(ValueError):
+            ancestry.verify(self.base, self.target, self.merge)
+        self.git("checkout", "-q", "side")
+        self.git("commit", "--allow-empty", "-qm", "unmerged checkpoint")
+        unmerged = self.git("rev-parse", "HEAD")
+        with self.assertRaises(ValueError):
+            ancestry.verify(unmerged, unmerged, self.merge)
 
     def test_rejects_ancestor_claim_using_replacement_ref(self):
         self.git("checkout", "--orphan", "unrelated")
