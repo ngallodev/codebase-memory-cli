@@ -61,7 +61,7 @@ Branch: `sync/security-20261101`
 | #2757, merge `869fc2b54ca98bf12e6f0408e68ad05d4a0468ea` | Exact merge diff touches graph-ui architecture/browser-ai source, handtest tooling, and CodeQL tests. It does not modify `src/ui/http_server.c` or `src/ui/httpd.c`. This fork serves frontend assets only through exact lookup in compiled `cbm_embedded_lookup`; request paths are matched raw, with no filesystem asset resolution. The applicable filesystem boundary is POST `/api/index`: it resolves the submitted directory with `cbm_canonical_path`, checks the resolved path against workspace authorization, stores that exact canonical path, and escapes policy errors into JSON. Existing tests cover percent-encoded route rejection, lexical `..` handling with outside-root refusal, resolved-root storage, controlled errors, and symlink-to-sensitive-root refusal (`httpd_path_match_matrix`, `ui_server_index_start_refuses_root_outside_allowed`, `ui_server_index_start_stores_resolved_root`, `ws_manifest_link_to_sensitive_directory_refused`). The separate file-picker browse endpoint intentionally lists user-selected directories and is not the asset server or indexing authorization boundary. |
 | #1786, merge `8c7b3bd76e8cc0e23f5c570dafeb0ddff5c4d6fd` | Merge is not an ancestor of the fork base. Current `workspace.c` compares both slash forms as separators in Windows canonical containment and normalizes canonical Windows paths. Sensitive-root grants still require exact explicit approval. Kept current behavior; native Windows execution remains unverified. |
 | #2017, merge `a3831c979547d33adaa36998dca2b004d735fc84` | Merge is not an ancestor of the fork base. Current breadth policy denies volume and too-shallow roots; there is no broad-root override. Preserved this default-deny policy; no opt-in added. |
-| #2664, break-glass merge `5966b7f0` | Reviewed the merge diff: it removes compressed-size and expanded-byte ceilings in the upstream wrapper paths while retaining namespace/member checks. This fork retains finite limits in npm/PyPI/Go wrappers: 256 MiB archive, 64 members, 256 MiB per member, and 512 MiB expanded. Kept these limits because release archives are small, fixed-name bundles and the caps bound download and decompression resource use without requiring unlimited extraction. |
+| #2664, break-glass merge `5966b7f0` | Reviewed the merge diff: it removes compressed-size and expanded-byte ceilings in the upstream wrapper paths while retaining namespace/member checks. This fork retains finite limits in npm/PyPI/Go wrappers: 256 MiB archive, 64 members, 256 MiB per member, and 512 MiB expanded. This dependency-only PR retains those bounds. Parent integration review measured the new 13A production binary at 289 MiB, exceeding the old 256 MiB per-member limit. The integration batch must raise that finite member ceiling consistently and verify legitimate release compatibility; preserving the old limit is not evidence that larger releases install. |
 
 ## Validation and limitations
 
@@ -74,10 +74,10 @@ Branch: `sync/security-20261101`
 - Vite, Vitest, DOMPurify manifest/lock pins and both PyPI certifi artifact
   hashes matched registry metadata.
 - `npm run test:unit`: 3,813 passed, 156 failed across 14 files. Failures share
-  `window.localStorage` being undefined in jsdom because the repository test
-  config selects the default opaque origin; this is test setup behavior, not a
-  dependency-resolution failure. No test configuration change is included in
-  this scoped hotfix.
+  `window.localStorage` being undefined in jsdom. The run used Node 26.9.0;
+  dependency attribution and the supported-runtime baseline were not established
+  by that run. Parent is investigating the runtime interaction. No test
+  configuration change is included in this scoped hotfix.
 - Native Windows tests were not run on this Linux host.
 - Jenkins full venue gate remains pending for the parent workflow.
 - Codebase Memory structural search was unavailable: `codebase-memory-cli
