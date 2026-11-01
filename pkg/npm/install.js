@@ -13,13 +13,14 @@ const { pipeline } = require('stream');
 
 const REPO = 'DeusData/codebase-memory-mcp';
 const VERSION = require('./package.json').version;
+const DEFAULT_DOWNLOAD_BASE = `https://github.com/${REPO}/releases/download/v${VERSION}`;
 const BIN_DIR = path.join(__dirname, 'bin');
 const MAX_REDIRECTS = 5;
 const DOWNLOAD_HOP_TIMEOUT_MS = 120_000;
 const CANDIDATE_TIMEOUT_MS = 15_000;
 const MAX_CHECKSUM_MANIFEST_BYTES = 1024 * 1024;
 // Release archive resource limits. Keep in sync with the Go wrapper
-// (pkg/go/cmd/codebase-memory-mcp/main.go) and the PyPI wrapper (_cli.py).
+// (pkg/go/cmd/codebase-memory-cli/main.go) and the PyPI wrapper (_cli.py).
 const MAX_RELEASE_ARCHIVE_BYTES = 256 * 1024 * 1024;
 const MAX_ARCHIVE_MEMBERS = 64;
 const MAX_ARCHIVE_MEMBER_BYTES = 256 * 1024 * 1024;
@@ -81,6 +82,16 @@ function validateUrl(rawUrl) {
     throw new Error(`Refusing non-HTTPS or credentialed URL: ${rawUrl}`);
   }
   return parsed.href;
+}
+
+function resolveDownloadBase() {
+  const override = process.env.CBM_DOWNLOAD_URL;
+  if (!override) return DEFAULT_DOWNLOAD_BASE;
+  try {
+    return validateUrl(override).replace(/\/$/, '');
+  } catch (_) {
+    throw new Error(`Refusing non-HTTPS download URL (CBM_DOWNLOAD_URL): ${override}`);
+  }
 }
 
 function validateExactTarMemberListing(listing, expectedNames) {
@@ -713,8 +724,8 @@ function extractZipOnWindows(
 }
 
 // Fetch checksums.txt and verify the archive hash.
-async function verifyChecksum(archivePath, archiveName) {
-  const url = `https://github.com/${REPO}/releases/download/v${VERSION}/checksums.txt`;
+async function verifyChecksum(archivePath, archiveName, base) {
+  const url = `${base}/checksums.txt`;
   const tmpChecksums = archivePath + '.checksums';
   try {
     await download(url, tmpChecksums, MAX_CHECKSUM_MANIFEST_BYTES);
@@ -772,6 +783,7 @@ async function main() {
     }
   }
 
+  const base = resolveDownloadBase();
   fs.mkdirSync(BIN_DIR, { recursive: true });
 
   // Linux ships a fully-static "-portable" build; the standard linux binary
@@ -782,7 +794,7 @@ async function main() {
   // always embedded. The old CBM_VARIANT=ui opt-in pointed at ui-* archives
   // that no longer exist, so honoring it could only 404 (#1538).
   const archive = `codebase-memory-cli-${platform}-${arch}${variant}.${ext}`;
-  const url = `https://github.com/${REPO}/releases/download/v${VERSION}/${archive}`;
+  const url = `${base}/${archive}`;
 
   process.stdout.write(`codebase-memory-cli: downloading v${VERSION} for ${platform}/${arch}...\n`);
 
@@ -791,7 +803,7 @@ async function main() {
 
   try {
     await download(url, tmpArchive, MAX_RELEASE_ARCHIVE_BYTES);
-    await verifyChecksum(tmpArchive, archive);
+    await verifyChecksum(tmpArchive, archive, base);
 
     // Validate the complete archive namespace, then extract only executables.
     if (ext === 'tar.gz') {

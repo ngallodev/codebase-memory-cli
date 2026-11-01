@@ -260,6 +260,16 @@ cbm_resolution_t cbm_registry_resolve_call_lang(const cbm_registry_t *r, const c
                                                 const char *module_qn, const char **import_map_keys,
                                                 const char **import_map_vals, int import_map_count,
                                                 CBMLanguage lang);
+/* The registry step of BOTH call resolvers once the LSP has not answered:
+ * for Python, the def or class `callee_name` binds in the nearest def enclosing
+ * `scope_qn` (cbm_registry_resolve_lexical, "lexical_scope"); otherwise, or
+ * when there is no such local, cbm_registry_resolve_call_lang. */
+cbm_resolution_t cbm_registry_resolve_call_scoped(const cbm_registry_t *r, const char *callee_name,
+                                                  const char *module_qn,
+                                                  const char **import_map_keys,
+                                                  const char **import_map_vals,
+                                                  int import_map_count, CBMLanguage lang,
+                                                  const char *scope_qn);
 #ifdef CBM_ENABLE_TEST_SEAMS
 void cbm_pxc_test_import_probe_fail_after(int successful_allocations);
 #endif
@@ -1072,6 +1082,9 @@ int cbm_parse_compile_commands(const char *json_data, const char *repo_path, cha
 /* File identification helpers */
 bool cbm_is_kustomize_file(const char *name);
 bool cbm_is_k8s_manifest(const char *name, const char *content);
+/* A Helm values file name: values.yaml / .yml, values-<x>.yaml / .yml
+ * (pass_k8s.c; beside Chart.yaml it CONFIGURES the chart). */
+bool cbm_helm_values_name(const char *base);
 
 /* Secret detection */
 bool cbm_is_secret_binding(const char *key, const char *value);
@@ -1347,9 +1360,10 @@ bool cbm_ansible_is_sequence(const char *src);
  * (pass_terraform.c). */
 bool cbm_repo_rel_join(const char *dir, const char *v, char *out, size_t sz);
 
-/* The Image node of image reference `ref` (its normalised repository:
- * docker.io for no registry host, library/ for an official image; tag and
- * digest dropped), made when new; 0 for scratch or no image. */
+/* The Image node of image reference `ref` (its repository as written, tag
+ * and digest dropped; Docker Hub's host spellings as docker.io with library/
+ * for an official image; registry "unknown" when the reference names no
+ * host -- none is invented), made when new; 0 for scratch or no image. */
 int64_t cbm_pipeline_image_node(cbm_pipeline_ctx_t *ctx, const char *ref);
 
 /* A chart repository URL as an identity (pass_k8s.c): `url` trimmed, its

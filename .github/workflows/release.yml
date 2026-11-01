@@ -559,6 +559,12 @@ jobs:
           else
             npm publish --access public --provenance
           fi
+          # `next` is "the newest you can opt into": once a stable release
+          # exists, an older RC must not stay behind it (0.9.1-rc.1 did until
+          # v0.12.1). Re-runnable: dist-tag add is idempotent.
+          if [[ "$RELEASE_VERSION" != *-* ]]; then
+            npm dist-tag add "codebase-memory-cli@$V" next
+          fi
 
       # ── PyPI ─────────────────────────────────────────────────
       - name: Setup Python

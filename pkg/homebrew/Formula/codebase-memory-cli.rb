@@ -1,7 +1,7 @@
 class CodebaseMemoryCli < Formula
   desc "Fast code intelligence engine for AI coding agents"
   homepage "https://github.com/DeusData/codebase-memory-mcp"
-  version "0.10.3"
+  version "0.12.1"
   license "MIT"
 
   on_macos do
@@ -15,6 +15,8 @@ class CodebaseMemoryCli < Formula
     end
   end
 
+  # The static -portable build: the dynamic one needs glibc 2.38, which
+  # Ubuntu 22.04, Debian 12 and RHEL 9 do not have.
   on_linux do
     on_arm do
       url "https://github.com/DeusData/codebase-memory-mcp/releases/download/v#{version}/codebase-memory-cli-linux-arm64.tar.gz"
