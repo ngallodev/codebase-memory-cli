@@ -92,3 +92,12 @@ Branch: `sync/security-20261101`
   `secure CLI coordination could not be created (cache-resolve)`. The failed
   probe left Git porcelain unchanged. Actionable issue for parent backlog:
   diagnose secure coordination cache resolution for this indexed worktree.
+
+## Pre-publication workflow validation follow-up
+
+The first branch push produced GitHub workflow-validation failure record
+`41349084091`, with event `push` and zero jobs. `_test.yml` had a pre-existing
+job containing duplicate `if` keys. Combined its platform and matrix conditions
+into one key while preserving `workflow_call` as the sole trigger. No runner job
+started for that record and no Actions workflow was dispatched. The stacked CI
+guard now rejects duplicate mapping keys throughout workflows.
