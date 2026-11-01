@@ -53,6 +53,7 @@ class PolicyTests(unittest.TestCase):
             "on: {workflow_dispatch: null}\n...\n",
             "%YAML 1.2\non: {workflow_dispatch: null}\n",
             "on: !!map {workflow_dispatch: null}\n",
+            "on: {workflow_call: null}\njobs: {test: {if: true, if: false}}\n",
         ):
             with self.subTest(document=document):
                 self.rejects(document)

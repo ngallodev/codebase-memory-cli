@@ -39,9 +39,14 @@ def inspect(path: Path) -> list[str]:
         while pending:
             node = pending.pop()
             if isinstance(node, MappingNode):
+                seen = set()
                 for key, value in node.value:
-                    if isinstance(key, ScalarNode) and key.tag == "tag:yaml.org,2002:merge":
-                        raise ValueError("YAML merge keys are unsupported")
+                    if isinstance(key, ScalarNode):
+                        if key.tag == "tag:yaml.org,2002:merge":
+                            raise ValueError("YAML merge keys are unsupported")
+                        if key.value in seen:
+                            raise ValueError(f"duplicate mapping key {key.value!r}")
+                        seen.add(key.value)
                     pending.extend((key, value))
             elif isinstance(node, SequenceNode):
                 pending.extend(node.value)

@@ -15,13 +15,14 @@ mappings receive the same checks. Only these event keys pass:
 * `workflow_dispatch`
 * `workflow_call`
 
-Aliases, anchors, merge keys, duplicate top-level `on` keys, duplicate event
-keys within `on`, explicit document starts/ends, YAML directives, explicit
+Aliases, anchors, merge keys, duplicate mapping keys anywhere in a workflow,
+explicit document starts/ends, YAML directives, explicit
 tags, invalid YAML, non-mapping `on` values, and unsupported trigger names
 fail closed.
 Scalar `on` values such as `on: push` and block scalars fail because `on` must
-be a mapping. Duplicate keys outside the trigger declaration are outside this
-guard's scope.
+be a mapping. The real-workflow test also catches invalid job definitions such
+as duplicate `if` keys, which GitHub otherwise records as push validation failures
+even when no automatic events are enabled.
 
 Run locally:
 
