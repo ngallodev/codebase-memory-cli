@@ -791,7 +791,7 @@
       ],
       "state": "integrated_provisional",
       "branch": "sync/upstream-13j-20261102",
-      "merge_commit": "pending",
+      "merge_commit": "c79477792",
       "draft_pr": null,
       "receipt": "13j.md",
       "adaptations": [
