@@ -8,7 +8,7 @@ esac
 UNIX='[
   {"os":"ubuntu-latest","goos":"linux","goarch":"amd64","cc":"gcc","cxx":"g++"},
   {"os":"ubuntu-24.04-arm","goos":"linux","goarch":"arm64","cc":"gcc","cxx":"g++"},
-  {"os":"macos-14","goos":"darwin","goarch":"arm64","cc":"cc","cxx":"c++"},
+  {"os":"macos-15","goos":"darwin","goarch":"arm64","cc":"cc","cxx":"c++"},
   {"os":"macos-15-intel","goos":"darwin","goarch":"amd64","cc":"cc","cxx":"c++"}
 ]'
 case "$PLATFORMS" in

@@ -20,6 +20,7 @@
 #include "daemon/runtime.h"
 #include "daemon/version_cohort.h"
 #include "foundation/compat.h"
+#include "foundation/compat_fs.h"
 #include "foundation/platform.h"
 #include "foundation/constants.h"
 #include "foundation/json_writer.h"
@@ -2345,12 +2346,8 @@ int cbm_remove_zed_mcp_owned(const char *binary_path, const char *config_path) {
 /* ── Agent detection ──────────────────────────────────────────── */
 
 static bool dir_exists(const char *path) {
-    struct stat st;
-#ifndef _WIN32
-    return lstat(path, &st) == 0 && S_ISDIR(st.st_mode);
-#else
-    return stat(path, &st) == 0 && S_ISDIR(st.st_mode);
-#endif
+    cbm_path_info_t info = {0};
+    return cbm_path_info_utf8(path, &info) == CBM_PATH_INFO_OK && info.is_directory;
 }
 
 /* Resolve the Claude Code config dir.
@@ -9421,11 +9418,15 @@ int cbm_install_agent_configs(const char *home, const char *binary_path, bool fo
     g_agent_install_errors = 0;
     cbm_detected_agents_t agents = cbm_detect_agents(home);
     if (g_client_selection && !cli_clients_apply_selection(g_client_selection, &agents)) {
+        g_client_selection = NULL;
         return CLI_ERR;
     }
     cli_config_follow_begin(home);
     int result = cbm_install_agent_configs_in_scope(home, binary_path, force, dry_run, &agents);
     cbm_config_edit_path_follow_clear();
+    /* The selector belongs to this install operation. Direct native config
+     * calls that follow a command must start from the detected clients. */
+    g_client_selection = NULL;
     return result;
 }
 
@@ -9714,7 +9715,20 @@ void cbm_cli_set_client_selection_for_testing(const char *spec) {
 /* Detect the running binary's path at runtime. The return value distinguishes
  * OS-reported identity (safe ownership evidence) from the ~/.local/bin fallback
  * used only as an install copy source. */
+#ifdef CBM_CLI_ENABLE_TEST_API
+static const char *g_cli_self_path_override_for_test = NULL;
+void cbm_cli_set_self_path_override_for_test(const char *self_path) {
+    g_cli_self_path_override_for_test = self_path;
+}
+#endif
+
 static bool cbm_detect_self_path(char *buf, size_t buf_sz, const char *home) {
+#ifdef CBM_CLI_ENABLE_TEST_API
+    if (g_cli_self_path_override_for_test) {
+        snprintf(buf, buf_sz, "%s", g_cli_self_path_override_for_test);
+        return true;
+    }
+#endif
     buf[0] = '\0';
     bool exact = false;
 #ifdef _WIN32
@@ -9995,6 +10009,7 @@ char *cbm_build_hook_install_plan_json(const char *home, const char *binary_path
 
 typedef struct {
     const char *bin_target;
+    const char *config_binary;
     const char *bin_dir;
     const char *home;
     const char *shell_rc;
@@ -10019,6 +10034,8 @@ static int cli_install_activate(void *opaque) {
         !activation->shell_rc) {
         return CLI_TRUE;
     }
+    const char *config_binary =
+        activation->config_binary ? activation->config_binary : activation->bin_target;
     char previous_managed_binary[CLI_BUF_1K] = {0};
     bool previous_managed_binary_exact = cbm_detect_self_path(
         previous_managed_binary, sizeof(previous_managed_binary), activation->home);
@@ -10067,10 +10084,13 @@ static int cli_install_activate(void *opaque) {
      * including same-binary and non-force installs. */
     int agent_config_rc = CLI_OK;
     if (!activation->skip_config) {
+        const char *prev = previous_managed_binary_exact ? previous_managed_binary : NULL;
+        if (config_binary != activation->bin_target &&
+            (!prev || strcmp(prev, config_binary) == 0)) {
+            prev = activation->bin_target;
+        }
         agent_config_rc = cbm_install_agent_configs_with_previous(
-            activation->home, activation->bin_target,
-            previous_managed_binary_exact ? previous_managed_binary : NULL, activation->force,
-            activation->dry_run);
+            activation->home, config_binary, prev, activation->force, activation->dry_run);
     }
     if (agent_config_rc != CLI_OK) {
         cli_activation_transaction_finalize_committed_or_fail_stop(
@@ -10227,6 +10247,35 @@ int cbm_cmd_install(int argc, char **argv) {
         return CLI_TRUE;
     }
 
+    char self_path[CLI_BUF_1K] = {0};
+    bool self_path_exact = cbm_detect_self_path(self_path, sizeof(self_path), home);
+
+    /* #1566: a binary owned by mise/Homebrew/nix is not ours to relocate. Infer
+     * it, and let either flag override the inference in either direction. */
+    bool externally_managed =
+        !force_binary && cli_binary_is_externally_managed(self_path, self_path_exact, bin_dir);
+    bool explicit_skip_binary = skip_binary;
+    if (externally_managed) {
+        skip_binary = true;
+    }
+
+    /* NOT stat(): on Windows it goes through the ANSI code page, so an
+     * extended-length or non-ASCII target reports "absent" and a non-force
+     * install silently overwrites bytes the user asked to keep. */
+    cbm_path_info_t target_status;
+    bool target_exists = cbm_path_info_utf8(bin_target, &target_status) == 0;
+    bool same_binary = cbm_same_file(self_path, bin_target);
+
+    /* #2722: when a binary is managed externally (mise, brew, nix, etc.),
+     * do not write the non-existent default target into agent configurations.
+     * Use the running managed binary path instead. */
+    const char *config_binary = bin_target;
+    if (externally_managed && self_path_exact && self_path[0]) {
+        config_binary = self_path;
+    } else if (skip_binary && !target_exists && self_path_exact && self_path[0]) {
+        config_binary = self_path;
+    }
+
     /* #1558: validate the client tokens BEFORE anything is written, so a typo
      * fails immediately instead of part-way through configuring. */
     if (requested_clients) {
@@ -10241,7 +10290,7 @@ int cbm_cmd_install(int argc, char **argv) {
      * mutating anything (no config writes, no index deletion, no network) so
      * an agent can inspect exactly what install would touch first (#388). */
     if (plan) {
-        char *json = cbm_build_install_plan_json_options(home, bin_target, skip_config,
+        char *json = cbm_build_install_plan_json_options(home, config_binary, skip_config,
                                                          CBM_AGENT_INSTALL_ASSETS);
         if (!json) {
             (void)fprintf(stderr, "error: failed to build install plan\n");
@@ -10254,16 +10303,9 @@ int cbm_cmd_install(int argc, char **argv) {
 
     printf("codebase-memory-cli install %s\n\n", CBM_VERSION);
 
-    char self_path[CLI_BUF_1K] = {0};
-    bool self_path_exact = cbm_detect_self_path(self_path, sizeof(self_path), home);
-
-    /* #1566: a binary owned by mise/Homebrew/nix is not ours to relocate. Infer
-     * it, and let either flag override the inference in either direction. */
-    bool externally_managed =
-        !force_binary && cli_binary_is_externally_managed(self_path, self_path_exact, bin_dir);
-    if (externally_managed || skip_binary) {
+    if (externally_managed || explicit_skip_binary) {
         const char *manager = cli_external_manager_name(self_path);
-        if (skip_binary) {
+        if (explicit_skip_binary) {
             printf("Skipping binary placement (--skip-binary); configuring agents only.\n\n");
         } else {
             printf("Binary is managed elsewhere%s%s:\n  %s\n"
@@ -10271,15 +10313,8 @@ int cbm_cmd_install(int argc, char **argv) {
                    "  (use --force-binary to install a copy into %s anyway)\n\n",
                    manager ? " by " : "", manager ? manager : "", self_path, bin_dir);
         }
-        skip_binary = true;
     }
 
-    /* NOT stat(): on Windows it goes through the ANSI code page, so an
-     * extended-length or non-ASCII target reports "absent" and a non-force
-     * install silently overwrites bytes the user asked to keep. */
-    cbm_path_info_t target_status;
-    bool target_exists = cbm_path_info_utf8(bin_target, &target_status) == 0;
-    bool same_binary = cbm_same_file(self_path, bin_target);
     bool do_copy = !skip_binary && !same_binary && (!target_exists || force);
 
     /* (#607) Default: preserve existing indexes. `--reset-indexes` opts into
@@ -10446,6 +10481,7 @@ int cbm_cmd_install(int argc, char **argv) {
 #endif
     cli_install_activation_t activation = {
         .bin_target = bin_target,
+        .config_binary = config_binary,
         .bin_dir = bin_dir,
         .home = home,
         .shell_rc = shell_rc,

@@ -9555,12 +9555,21 @@ TEST(cli_hook_session_resolves_custom_named_index_by_root_path) {
     snprintf(input, sizeof(input), "{\"hook_event_name\":\"SessionStart\",\"cwd\":\"%s\"}", nested);
     char *output = cbm_hook_augment_lifecycle_json(input);
     bool matched = output && strstr(output, "custom-hook-project") && strstr(output, "is indexed");
+    bool session_no_cli = output && !strstr(output, "codebase-memory-cli cli <tool>");
+    free(output);
+    snprintf(input, sizeof(input), "{\"hook_event_name\":\"SubagentStart\",\"cwd\":\"%s\"}",
+             nested);
+    output = cbm_hook_augment_lifecycle_json(input);
+    bool subagent_cli = output && strstr(output, "custom-hook-project") &&
+                        strstr(output, "`codebase-memory-cli cli <tool> --help`");
 
     free(output);
     restore_test_env("CBM_CACHE_DIR", saved_cache);
     test_rmdir_r(tmpdir);
     if (!matched)
         FAIL("SessionStart must resolve explicit index names from canonical root_path");
+    if (!session_no_cli || !subagent_cli)
+        FAIL("Only indexed SubagentStart context must carry the CLI fallback hint");
     PASS();
 }
 
@@ -10710,12 +10719,12 @@ TEST(cli_copilot_install_upgrades_previous_manifest) {
     char copilot_mcp[640];
     char binary[640];
     snprintf(hooks_dir, sizeof(hooks_dir), "%s/.copilot/hooks", tmpdir);
-    snprintf(manifest_path, sizeof(manifest_path), "%s/codebase-memory-mcp.json", hooks_dir);
+    snprintf(manifest_path, sizeof(manifest_path), "%s/codebase-memory-cli.json", hooks_dir);
     snprintf(copilot_mcp, sizeof(copilot_mcp), "%s/.copilot/mcp-config.json", tmpdir);
 #ifdef _WIN32
-    snprintf(binary, sizeof(binary), "%s/.local/bin/codebase-memory-mcp.exe", tmpdir);
+    snprintf(binary, sizeof(binary), "%s/.local/bin/codebase-memory-cli.exe", tmpdir);
 #else
-    snprintf(binary, sizeof(binary), "%s/.local/bin/codebase-memory-mcp", tmpdir);
+    snprintf(binary, sizeof(binary), "%s/.local/bin/codebase-memory-cli", tmpdir);
 #endif
     test_mkdirp(hooks_dir);
     write_test_file(copilot_mcp, "{}\n");
@@ -10735,10 +10744,10 @@ TEST(cli_copilot_install_upgrades_previous_manifest) {
     cbm_setenv("HOME", tmpdir, 1);
     cbm_setenv("PATH", tmpdir, 1);
     cbm_unsetenv("COPILOT_HOME");
-    int install_rc = cbm_install_agent_configs(tmpdir, binary, false, false);
+    int install_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary, false, false);
     char *upgraded = read_test_file_alloc(manifest_path);
     bool is_current = upgraded && strcmp(upgraded, current) == 0;
-    int second_rc = cbm_install_agent_configs(tmpdir, binary, false, false);
+    int second_rc = cbm_install_agent_hooks_for_testing(tmpdir, binary, false, false);
     char *again = read_test_file_alloc(manifest_path);
     bool stable = again && strcmp(again, current) == 0;
 
@@ -12035,6 +12044,9 @@ TEST(cli_hook_augment_lifecycle_output_contract) {
         ASSERT(strstr(context, "cbm-secret-path") == NULL);
         if (strcmp(cases[i].event, "SessionStart") == 0)
             ASSERT(strstr(context, "Active tier: Tier 2") != NULL);
+        /* Subagents defined without MCP tools must learn the CLI fallback (#2837). */
+        bool has_cli_hint = strstr(context, "`codebase-memory-cli cli <tool> --help`") != NULL;
+        ASSERT(has_cli_hint == (strcmp(cases[i].event, "SubagentStart") == 0));
         yyjson_doc_free(doc);
         free(output);
     }
@@ -12865,6 +12877,29 @@ TEST(cli_detect_agents_finds_zed_in_roaming_appdata) {
     test_rmdir_r(tmpdir);
     if (!agents.zed)
         FAIL("Zed detection on Windows must use Roaming AppData, not Local AppData");
+    PASS();
+}
+#endif
+
+#ifdef _WIN32
+/* #2145: a profile path outside the ANSI code page must stay visible to agent
+ * detection. The directory is created with th_mkdir_p, which goes through the
+ * wide-char API: test_mkdirp uses cbm_mkdir, the narrow _mkdir on Windows,
+ * which would create a code-page-mangled name instead of this one. Cursor is
+ * detected by its directory alone, so the assertion goes through dir_exists. */
+TEST(cli_detect_agents_handles_non_ascii_windows_profile) {
+    char home[1024];
+    snprintf(home, sizeof(home), "%s/cbm-用户-profile", cbm_tmpdir());
+    test_rmdir_r(home);
+    char cursor_dir[1024];
+    snprintf(cursor_dir, sizeof(cursor_dir), "%s/.cursor", home);
+    if (th_mkdir_p(cursor_dir) != 0)
+        FAIL("could not create non-ASCII Windows profile path");
+
+    cbm_detected_agents_t agents = cbm_detect_agents(home);
+    test_rmdir_r(home);
+    if (!agents.cursor)
+        FAIL("agent detection must support non-ASCII Windows profile paths");
     PASS();
 }
 #endif
@@ -13940,9 +13975,9 @@ TEST(cli_claude_post_hook_matcher_migrates_from_read) {
     snprintf(settings_path, sizeof(settings_path), "%s/settings.json", config_dir);
     snprintf(install_dir, sizeof(install_dir), "%s/bin", tmpdir);
 #ifdef _WIN32
-    snprintf(binary_path, sizeof(binary_path), "%s/codebase-memory-mcp.exe", install_dir);
+    snprintf(binary_path, sizeof(binary_path), "%s/codebase-memory-cli.exe", install_dir);
 #else
-    snprintf(binary_path, sizeof(binary_path), "%s/codebase-memory-mcp", install_dir);
+    snprintf(binary_path, sizeof(binary_path), "%s/codebase-memory-cli", install_dir);
 #endif
     test_mkdirp(config_dir);
     test_mkdirp(install_dir);
@@ -13954,7 +13989,7 @@ TEST(cli_claude_post_hook_matcher_migrates_from_read) {
     size_t counts[4] = {0U, 0U, 0U, 0U};
     int install_rc[2] = {-1, -1};
     for (int round = 0; round < 2; round++) {
-        install_rc[round] = cbm_install_agent_configs(tmpdir, binary_path, false, false);
+        install_rc[round] = cbm_install_agent_hooks_for_testing(tmpdir, binary_path, false, false);
         char *settings = read_test_file_alloc(settings_path);
         yyjson_doc *doc = settings ? yyjson_read(settings, strlen(settings), 0) : NULL;
         yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
@@ -15831,6 +15866,55 @@ TEST(cli_external_manager_detection_needs_positive_evidence_issue1566) {
     PASS();
 }
 
+/* A managed installation's native hooks must keep using the running CLI path
+ * without creating a second copy under ~/.local/bin. */
+TEST(cli_install_hooks_uses_managed_binary_path) {
+    char tmpdir[256];
+    snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-install-managed-XXXXXX");
+    if (!cbm_mkdtemp(tmpdir)) {
+        FAIL("cbm_mkdtemp failed");
+    }
+    char *old_home = NULL;
+    char *old_cache = NULL;
+    cli_activation_save_env(&old_home, &old_cache);
+    cbm_setenv("HOME", tmpdir, 1);
+    char cache_dir[512];
+    snprintf(cache_dir, sizeof(cache_dir), "%s/cache", tmpdir);
+    cbm_setenv("CBM_CACHE_DIR", cache_dir, 1);
+
+    test_mark_claude_code_installed(tmpdir);
+
+    const char *managed_path =
+        "/Users/x/.local/share/mise/installs/cbm/0.12.1/bin/codebase-memory-cli";
+    cbm_cli_set_self_path_override_for_test(managed_path);
+
+    char *argv[] = {"--clients=claude"};
+    int rc = cbm_cmd_install_hooks(1, argv);
+
+    cbm_cli_set_self_path_override_for_test(NULL);
+
+    char bin_target[512];
+    snprintf(bin_target, sizeof(bin_target), "%s/.local/bin/codebase-memory-cli", tmpdir);
+    struct stat target_st;
+    bool target_created = stat(bin_target, &target_st) == 0;
+
+    char settings_path[512];
+    snprintf(settings_path, sizeof(settings_path), "%s/.claude/settings.json", tmpdir);
+    char *settings = read_test_file_alloc(settings_path);
+    bool has_managed_path = settings && strstr(settings, managed_path) != NULL;
+    bool has_target_path = settings && strstr(settings, ".local/bin/codebase-memory-cli") != NULL;
+
+    free(settings);
+    cli_activation_restore_env(old_home, old_cache);
+    test_rmdir_r(tmpdir);
+
+    ASSERT_EQ(rc, 0);
+    ASSERT_FALSE(target_created);
+    ASSERT_TRUE(has_managed_path);
+    ASSERT_FALSE(has_target_path);
+    PASS();
+}
+
 /* #1558: `install` configured EVERY detected client, so a user who wanted
  * Claude and Codex had to revert OpenCode and Cursor by hand — and the next
  * install silently recreated them. The selector restricts it.
@@ -16337,6 +16421,7 @@ SUITE(cli) {
     RUN_TEST(cli_ui_config_keys_are_discoverable_and_settable_issue1558);
     RUN_TEST(cli_skill_frontmatter_scalars_with_colons_are_quoted_issue1554);
     RUN_TEST(cli_external_manager_detection_needs_positive_evidence_issue1566);
+    RUN_TEST(cli_install_hooks_uses_managed_binary_path);
     RUN_TEST(cli_clients_selector_vocabulary_is_complete_and_strict_issue1558);
     RUN_TEST(cli_clients_selector_filters_registry_installs_issue1798);
     RUN_TEST(cli_update_accepts_retired_variant_flags_issue1544);
@@ -16592,6 +16677,7 @@ SUITE(cli) {
 #endif
 #ifdef _WIN32
     RUN_TEST(cli_detect_agents_finds_zed_in_roaming_appdata);
+    RUN_TEST(cli_detect_agents_handles_non_ascii_windows_profile);
 #endif
     RUN_TEST(cli_detect_agents_finds_antigravity);
     RUN_TEST(cli_detect_agents_finds_kilocode);

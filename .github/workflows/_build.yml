@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
       # platforms=linux drops the darwin legs; the default keeps all four.
       matrix:
-        include: ${{ fromJSON(inputs.platforms == 'linux' && '[{"os":"ubuntu-latest","goos":"linux","goarch":"amd64","cc":"gcc","cxx":"g++"},{"os":"ubuntu-24.04-arm","goos":"linux","goarch":"arm64","cc":"gcc","cxx":"g++"}]' || '[{"os":"ubuntu-latest","goos":"linux","goarch":"amd64","cc":"gcc","cxx":"g++"},{"os":"ubuntu-24.04-arm","goos":"linux","goarch":"arm64","cc":"gcc","cxx":"g++"},{"os":"macos-14","goos":"darwin","goarch":"arm64","cc":"cc","cxx":"c++"},{"os":"macos-15-intel","goos":"darwin","goarch":"amd64","cc":"cc","cxx":"c++"}]') }}
+        include: ${{ fromJSON(inputs.platforms == 'linux' && '[{"os":"ubuntu-latest","goos":"linux","goarch":"amd64","cc":"gcc","cxx":"g++"},{"os":"ubuntu-24.04-arm","goos":"linux","goarch":"arm64","cc":"gcc","cxx":"g++"}]' || '[{"os":"ubuntu-latest","goos":"linux","goarch":"amd64","cc":"gcc","cxx":"g++"},{"os":"ubuntu-24.04-arm","goos":"linux","goarch":"arm64","cc":"gcc","cxx":"g++"},{"os":"macos-15","goos":"darwin","goarch":"arm64","cc":"cc","cxx":"c++"},{"os":"macos-15-intel","goos":"darwin","goarch":"amd64","cc":"cc","cxx":"c++"}]') }}
     runs-on: ${{ matrix.os }}
     # Every leg is BLOCKING — no continue-on-error. The darwin-amd64 binary
     # built on macos-15-intel must ship with every release; if that runner is

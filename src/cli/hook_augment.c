@@ -1734,6 +1734,10 @@ static char *ha_lifecycle_json_from_root(const char *session_root, yyjson_val *r
         scope = "Compaction";
     }
     const char *tier = ha_active_tier(root, event);
+    const char *cli_hint = strcmp(event, "SubagentStart") == 0
+                               ? " The same tools are available from the shell: "
+                                 "`codebase-memory-cli cli <tool> --help` lists each tool's flags."
+                               : "";
     if (project) {
         char safe_project[HA_METADATA_CAP];
         ha_sanitize_metadata(project, safe_project, sizeof(safe_project));
@@ -1750,8 +1754,8 @@ static char *ha_lifecycle_json_from_root(const char *session_root, yyjson_val *r
                  "read the reported missed lines directly and qualify conclusions. For structural "
                  "code discovery use `codebase-memory-cli search`, then `trace`, then `snippet`. "
                  "Use grep, glob, and file reads for literals, configs, non-code files, and "
-                 "verification.",
-                 scope, safe_project, tier);
+                 "verification.%s",
+                 scope, safe_project, tier, cli_hint);
     } else {
         const char *index_guidance = ha_no_project_index_guidance(event);
         snprintf(context, sizeof(context),
@@ -1762,8 +1766,8 @@ static char *ha_lifecycle_json_from_root(const char *session_root, yyjson_val *r
                  "run `codebase-memory-cli coverage PATH` for every file relied on; if incomplete, "
                  "read the reported missed lines directly and qualify conclusions. Use "
                  "`codebase-memory-cli search`, `trace`, and `snippet` first; use grep for "
-                 "literals, configs, non-code files, and verification.",
-                 scope, index_guidance, tier);
+                 "literals, configs, non-code files, and verification.%s",
+                 scope, index_guidance, tier, cli_hint);
     }
     free(project);
     if (dialect == HA_DIALECT_COPILOT) {
