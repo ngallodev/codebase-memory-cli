@@ -928,7 +928,7 @@
       "policy_gate": "passed",
       "verification": {
         "local": "strict Actions policy, diff check, memory-core ratchet, production build, 1 CLI help test, and 2 daemon application index tests passed",
-        "jenkins": "pending exact final candidate",
+        "jenkins": "build #86 failed in memory-core linter before repair; build #87 running at repaired candidate",
         "windows": "not_run"
       },
       "acceptance": [
@@ -938,7 +938,8 @@
         "Focused affected-subsystem tests pass; record unavailable native Windows gates.",
         "Full Jenkins release-tooling archive qualifies the exact final candidate."
       ],
-      "next_action": "Final Jenkins qualification and independent review; keep all dependent batches unaccepted until host review."
+      "next_action": "Final Jenkins qualification and independent review; keep all dependent batches unaccepted until host review.",
+      "publication_blocker": "GitHub push unavailable: git remote requires Username in this non-interactive executor; GitHub ref API update returned not_found. No stacked draft PRs published; stale PRs #28/#29 untouched."
     }
   ],
   "reconciliation": [
@@ -1649,7 +1650,13 @@
     "automatic_merge_enabled": false,
     "main_pushed": false,
     "integration_actions_runs_observed": [],
-    "repaired_security_ci_pushes": "no new Actions runs; prior invalid-YAML records had zero jobs"
+    "repaired_security_ci_pushes": "no new Actions runs; prior invalid-YAML records had zero jobs",
+    "remainder_stack": {
+      "branches_local": true,
+      "remote_push": "blocked_no_github_credentials",
+      "draft_prs": [],
+      "stale_prs_28_29": "untouched"
+    }
   },
   "current_continuation": {
     "baseline": "27b731cec45e2353303738ac6d8e77acbef42b7c",

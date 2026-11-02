@@ -4,7 +4,7 @@
 
 The [campaign plan](upstream-sync/PLAN.md), [machine ledger](upstream-sync/ledger.json)
 and [933-commit inventory](upstream-sync/commits.tsv) extend this canonical ledger.
-The 2026-11-02 continuation uses promoted 13A baseline `27b731cec45e2353303738ac6d8e77acbef42b7c` and pinned target `a5b248f47272413189746589b9a2c551c6b6c5ec`; earlier inventory targets and counts below are historical. Receipts link 13B–13L, including final [13l.md](upstream-sync/13l.md). True merge `8a686f225b2c64f81c0716f3129c36c50fb10ffe` integrates the pinned target with zero upstream-only remainder. All dependent batches remain provisional pending independent review, final Jenkins qualification, and host acceptance.
+The 2026-11-02 continuation uses promoted 13A baseline `27b731cec45e2353303738ac6d8e77acbef42b7c` and pinned target `a5b248f47272413189746589b9a2c551c6b6c5ec`; earlier inventory targets and counts below are historical. Receipts link 13B–13L, including final [13l.md](upstream-sync/13l.md). True merge `8a686f225b2c64f81c0716f3129c36c50fb10ffe` integrates the pinned target with zero upstream-only remainder. All dependent batches remain provisional pending independent review, final Jenkins qualification, and host acceptance. The final candidate is local only: GitHub push authentication is unavailable in this non-interactive run, so no new stacked draft PRs were published; stale PRs #28/#29 were left untouched.
 The prior inventory recorded fork baseline `ff8b8906c6807953336609cc7f464e7e4ef3cf7b`, common ancestor
 `8df0639c6268afe9888979e72b9797aa2cc1de7c`, and upstream inventory through
 `edc2301b022b1f5e1e0ec11e291917e22e9736aa`; these are historical facts. The current
