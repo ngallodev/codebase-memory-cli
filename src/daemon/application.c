@@ -2944,13 +2944,13 @@ static char *application_index_execute_sync(cbm_daemon_application_session_t *se
         }
         cbm_mutex_unlock(&session->application->mutex);
         if (queued_cancelled) {
-            free(project_key);
+            application_release_text(project_key);
             return application_operation_wire_error(
                 "index operation cancelled for this session. " CBM_INDEX_ASYNC_HINT);
         }
         cbm_usleep(APPLICATION_JOB_POLL_US);
     }
-    free(project_key);
+    application_release_text(project_key);
     if (!job) {
         return application_operation_wire_error(
             application_index_admission_error(subscribe_status));
@@ -3002,7 +3002,7 @@ static char *application_index_run_sync(cbm_daemon_application_session_t *sessio
     char *project_key = application_index_project_key(root_path, args_json);
     bool notice =
         project_key && application_index_take_cut_short(session->application, project_key);
-    safe_free(project_key);
+    application_release_text(project_key);
     char *response = application_index_execute_sync(session, root_path, args_json);
     return notice ? application_wire_add_notice(response, APPLICATION_CUT_SHORT_NOTICE) : response;
 }
@@ -3108,7 +3108,7 @@ static char *application_index_start_async(cbm_daemon_application_session_t *ses
     } else {
         result = application_operation_wire_error(application_index_admission_error(status));
     }
-    safe_free(project_key);
+    application_release_text(project_key);
     return result;
 }
 
@@ -4198,8 +4198,9 @@ static void application_watch_encode_index_args_locked(const cbm_daemon_applicat
         encoded = encoded &&
                   yyjson_mut_obj_add_bool(document, root, "doc_candidates", watch->doc_candidates);
     }
-    free(*args);
-    *args = encoded ? yyjson_mut_write(document, 0, NULL) : NULL;
+    cbm_free(CBM_MEM_CLASS_OTHER, *args);
+    *args = encoded ? yyjson_mut_write_opts(document, 0, cbm_json_writer_allocator(), NULL, NULL)
+                    : NULL;
 }
 
 /* Under `daemon start` a watch outlives its last session, so delete_project
@@ -4357,15 +4358,17 @@ static int application_background_index(cbm_daemon_application_t *application,
     if (encoded && custom_project) {
         encoded = yyjson_mut_obj_add_strcpy(document, root, "name", project_name);
     }
-    free(default_project);
-    char *args = encoded ? yyjson_mut_write(document, 0, NULL) : NULL;
+    application_release_text(default_project);
+    char *args = encoded
+                     ? yyjson_mut_write_opts(document, 0, cbm_json_writer_allocator(), NULL, NULL)
+                     : NULL;
     if (!args) {
         yyjson_mut_doc_free(document);
         return APPLICATION_BACKGROUND_INDEX_FAILED;
     }
     char *project_key = application_index_project_key(canonical_root, args);
     if (!project_key) {
-        free(args);
+        cbm_free(CBM_MEM_CLASS_OTHER, args);
         yyjson_mut_doc_free(document);
         return APPLICATION_BACKGROUND_INDEX_FAILED;
     }
@@ -4375,8 +4378,8 @@ static int application_background_index(cbm_daemon_application_t *application,
     cbm_daemon_application_job_t *job = application_background_index_admit(
         application, project_name, canonical_root, project_key, document, root, &args,
         require_live_watch, &watcher_owns_job, &no_job_result);
-    free(project_key);
-    free(args);
+    application_release_text(project_key);
+    cbm_free(CBM_MEM_CLASS_OTHER, args);
     yyjson_mut_doc_free(document);
     return job ? application_background_index_wait(application, job, require_live_watch,
                                                    watcher_owns_job)

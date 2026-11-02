@@ -13323,7 +13323,7 @@ static char *fetch_latest_tag(void) {
             slash[--len] = '\0';
         }
         if (len > 0) {
-            tag = strdup(slash);
+            tag = cbm_mem_strdup(CBM_MEM_CLASS_OTHER, slash);
         }
         break;
     }
@@ -13351,11 +13351,11 @@ static bool check_already_latest(void) {
         } else {
             printf("Already up to date (%s).\n", CBM_VERSION);
         }
-        free(latest);
+        cbm_free(CBM_MEM_CLASS_OTHER, latest);
         return true;
     }
     printf("Update available: %s -> %s\n", CBM_VERSION, latest);
-    free(latest);
+    cbm_free(CBM_MEM_CLASS_OTHER, latest);
     return false;
 }
 
@@ -14025,10 +14025,10 @@ static void cli_print_schema_value(const yyjson_val *value) {
         fputs(yyjson_get_str(value), stdout);
         return;
     }
-    char *json = yyjson_val_write(value, 0, NULL);
+    char *json = yyjson_val_write_opts(value, 0, cbm_json_writer_allocator(), NULL, NULL);
     if (json) {
         fputs(json, stdout);
-        free(json);
+        cbm_free(CBM_MEM_CLASS_OTHER, json);
     }
 }
 
