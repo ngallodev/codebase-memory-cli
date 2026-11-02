@@ -731,7 +731,7 @@
       ],
       "state": "integrated_local_review_pending",
       "branch": "sync/upstream-13i-20261102",
-      "merge_commit": "pending commit",
+      "merge_commit": "afdd4af34259228f05b6311afccf2d10a84f6896",
       "draft_pr": null,
       "adaptations": [
         "Manual/reusable Actions only; remove hosted PR and cache-warm workflows.",
