@@ -1400,6 +1400,11 @@ static void posix_lifetime_lock_release(int fd, process_lock_entry_t *process_en
     process_lock_unclaim(process_entry);
 }
 
+/* Serialize lifetime probe, claim and release within this process. Without this
+ * gate, a probe can observe an empty registry, then open/close the inode
+ * after another thread acquires its process-scoped fcntl lock. */
+static pthread_mutex_t lifetime_lock_operations_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 int cbm_daemon_ipc_lifetime_reservation_try_acquire(
     const cbm_daemon_ipc_endpoint_t *endpoint,
     cbm_daemon_ipc_lifetime_reservation_t **reservation_out) {
@@ -1409,18 +1414,24 @@ int cbm_daemon_ipc_lifetime_reservation_try_acquire(
     if (!endpoint || !reservation_out) {
         return -1;
     }
+    if (pthread_mutex_lock(&lifetime_lock_operations_mutex) != 0) {
+        return -1;
+    }
     int fd = -1;
     process_lock_entry_t *process_entry = NULL;
     int result = posix_lifetime_lock_try_acquire(endpoint, endpoint->lifetime_lock_name, &fd,
                                                  &process_entry);
     if (result != 1) {
+        (void)pthread_mutex_unlock(&lifetime_lock_operations_mutex);
         return result;
     }
     cbm_daemon_ipc_lifetime_reservation_t *reservation = malloc(sizeof(*reservation));
     if (!reservation) {
         posix_lifetime_lock_release(fd, process_entry);
+        (void)pthread_mutex_unlock(&lifetime_lock_operations_mutex);
         return -1;
     }
+    (void)pthread_mutex_unlock(&lifetime_lock_operations_mutex);
     reservation->fd = fd;
     reservation->process_entry = process_entry;
     reservation->owner_pid = getpid();
@@ -1433,7 +1444,11 @@ void cbm_daemon_ipc_lifetime_reservation_release(
     if (!reservation) {
         return;
     }
+    if (pthread_mutex_lock(&lifetime_lock_operations_mutex) != 0) {
+        ipc_coordination_cleanup_fail_stop("lifetime_lock_mutex");
+    }
     posix_lifetime_lock_release(reservation->fd, reservation->process_entry);
+    (void)pthread_mutex_unlock(&lifetime_lock_operations_mutex);
     free(reservation);
 }
 
@@ -1459,7 +1474,12 @@ static bool lifetime_reservation_matches_endpoint(
 }
 
 int cbm_daemon_ipc_lifetime_reservation_probe(const cbm_daemon_ipc_endpoint_t *endpoint) {
-    return endpoint ? posix_lifetime_lock_probe(endpoint, endpoint->lifetime_lock_name) : -1;
+    if (!endpoint || pthread_mutex_lock(&lifetime_lock_operations_mutex) != 0) {
+        return -1;
+    }
+    int result = posix_lifetime_lock_probe(endpoint, endpoint->lifetime_lock_name);
+    (void)pthread_mutex_unlock(&lifetime_lock_operations_mutex);
+    return result;
 }
 
 static int posix_startup_lock_probe(const cbm_daemon_ipc_endpoint_t *endpoint) {
