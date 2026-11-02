@@ -13,16 +13,16 @@ Upstream true merge a03f1f8ab85e8861d8d6820061ccfd88797efae1 has exact parents
 ff8b8906c6807953336609cc7f464e7e4ef3cf7b and
 5dc83ac9fa363d51706a70977840b61ea59ce9db. Never rewrite these parents.
 
-First finish exact-SHA Jenkins build #2 for code candidate
-3019aecc1c9318819d07558c4bdf66f4e10c2665 using the dedicated
-codebase-memory-cli-sync-13a-20261101 job. Record actual archived source revision,
-job URL and status; inspect real failures. Build #1 failed before pipeline
-execution because lightweight SCM treated the SHA as a branch; #2 uses full
-checkout of the same SHA. Later receipt-only commits require separate accounting. Local diff-scoped clang-tidy failed,
-and its cause/baseline is unverified. The additional grammar expectations were
-corrected for registry-unknown image identities and passed 2/2 under sanitizers;
-the combined extra-suite union remains a Jenkins gate. Native Windows commands
-and frozen corpus pins are in windows-qualification.md.
+The existing codebase-memory-cli-release-tooling build #85 finished SUCCESS
+at exact d1a4c9d244e6a0446e1ab45fffc5da2d4cce3e1c with empty CBM_TEST_SUITES.
+Archived qualification and binary source revisions match; checksum is verified.
+C shards: 9348 passed, 0 failed, 5 platform skips; TSAN: 919 passed, 3 platform
+skips. Post-test and wrapper gates passed. Preserve failed special-job builds
+and #84 as separate evidence. See 13a.md and ledger.json for the final receipt.
+Receipt-only commits after d1a4c9d2 are not independently Jenkins qualified.
+Local diff-scoped clang-tidy cause/baseline remains unverified; native Windows
+commands and frozen corpus pins are in windows-qualification.md. Keep draft
+status until remaining platform/review/acceptance gates are resolved.
 
 After review and required gates, the next true merge boundary is 13B:
 4c80d89edf1283cfeaa7e60ecbf40c9d2eb2b689, 119 commits after the 13A upstream

@@ -47,8 +47,10 @@ receipts are in [13a.md](13a.md). 854 pinned upstream commits remain after 13A;
 
 A dedicated Jenkins job `codebase-memory-cli-sync-13a-20261101` is prepared for
 an exact integration SHA, with no automatic triggers. Existing main/release jobs
-were not reconfigured. Do not recommend merge while its full gate, failed local
-clang-tidy assessment or native platform checks remain unresolved.
+were not reconfigured. Existing release-tooling build #85 subsequently passed
+the full Linux gate at d1a4c9d2; see 13a.md for exact archived evidence. Do not
+recommend merge while the local clang-tidy assessment, native platform checks
+or review/acceptance remain unresolved.
 
 Initial durable workers lacked bound native acceptance commands. Their source,
 tests and sealed evidence are retained, but `agent finish` returned

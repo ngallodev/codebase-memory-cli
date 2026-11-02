@@ -114,7 +114,7 @@
         "security_hotfix",
         "ci_guard"
       ],
-      "state": "draft_pr_open_existing_jenkins_qualification_pending",
+      "state": "draft_pr_open_full_jenkins_passed_review_pending",
       "branch": "sync/upstream-13a-20261101",
       "merge_commit": "a03f1f8ab85e8861d8d6820061ccfd88797efae1",
       "draft_pr": "https://github.com/ngallodev/codebase-memory-cli/pull/29",
@@ -145,15 +145,36 @@
         "go": "passed with test-scoped inherited install directory removed",
         "real_binary_archive": "old limit rejected; new npm/PyPI extraction and version passed at 302808096 bytes",
         "clang_tidy_diff": "failed; out-of-range diagnostics observed, cause unverified",
-        "additional_changed_subsystems": "initial combined command failed on 2 stale image expectations with early-exit leak; corrected 2/2 ASan/UBSan regressions pass; combined union pending Jenkins",
+        "additional_changed_subsystems": "Initial stale fixtures repaired; full build 85 passed all three C shards and verified complete suite union.",
         "jenkins": {
           "special_build_1": "checkout configuration failed before pipeline",
           "special_build_2": "failed Step 0e: Windows bundle contract required retired pr.yml; lint, security, license and production build completed",
           "follow_up": "stale workflow and mixed-origin tag contracts repaired; full local preparation passed",
           "existing_job": "codebase-memory-cli-release-tooling",
           "existing_job_suites": "empty = full gate",
-          "existing_job_status": "pending submission on fast-forwarded release-tooling",
-          "existing_build_84": "source 598d7c71; full suite exposed stale test_impact mapping; retry required for correction"
+          "existing_job_status": "SUCCESS at build 85; exact archived source and binary checksum verified",
+          "existing_build_84": "source 598d7c71; full suite exposed stale test_impact mapping; retry required for correction",
+          "existing_build_85": {
+            "result": "SUCCESS",
+            "source_revision": "d1a4c9d244e6a0446e1ab45fffc5da2d4cce3e1c",
+            "url": "http://192.168.88.146:8080/job/codebase-memory-cli-release-tooling/85/",
+            "duration_ms": 3225301,
+            "c_tests": {
+              "passed": 9348,
+              "failed": 0,
+              "skipped": 5
+            },
+            "thread_sanitizer": {
+              "passed": 919,
+              "skipped": 3,
+              "warnings": 0
+            },
+            "post_test": "passed",
+            "package_wrappers": "passed",
+            "binary_sha256": "910466a2ea38c81196b2ee4630b821e944b73e8ec4c1cae47a2582a198e5eba8",
+            "binary_bytes": 302808096,
+            "receipt_scope": "Later documentation-only commits are not separate Jenkins-qualified revisions."
+          }
         },
         "windows": "not_run",
         "test_impact_policy": "21 passed after native/conservative policy adaptation",
@@ -166,7 +187,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "Resolve lint findings/baseline and run exact-SHA Jenkins qualification; retain draft status. 13B starts from this reviewed integration, not main.",
+      "next_action": "Retain draft status; resolve local clang-tidy findings/baseline, native Windows qualification and review/acceptance. Full Linux Jenkins gate passed at d1a4c9d2. 13B starts from reviewed integration, not main.",
       "upstream_prs": [
         1548,
         1555,
