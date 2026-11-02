@@ -316,6 +316,10 @@ scripts/build.sh
 
 The build remains C11-based and uses the existing vendored parser/storage dependencies.
 
+Contributor checks have additional tools: `scripts/test.sh` requires `zip`,
+`python3`, and `curl`; `scripts/lint.sh` requires `cppcheck`, `clang-format`,
+and `clang-tidy`. CI uses `scripts/lint.sh --ci`, which skips `clang-tidy`.
+
 ## Security
 
 Codebase Memory indexes source that the current account can read. Treat an allowed repository root as a real data-access boundary.
