@@ -209,6 +209,8 @@ It verifies the package against `checksums.txt`, uses the matching source tag,
 installs the native executable, and stores timestamped benchmark evidence under
 `C:\cbm-benchmark`. See [`docs/WINDOWS_BENCHMARK_RUNBOOK.md`](docs/WINDOWS_BENCHMARK_RUNBOOK.md)
 for prerequisites and the full qualification path.
+For common Windows setup and runtime issues, see
+[`docs/WINDOWS_TROUBLESHOOTING.md`](docs/WINDOWS_TROUBLESHOOTING.md).
 
 To run the same build, install, and benchmark flow on a GitHub-hosted Windows
 runner, manually dispatch the **Manual Windows Benchmark** workflow from the

@@ -47,7 +47,7 @@ Use the existing pinned corpus at `benchmark-runs/linux/20260911T045124Z/BENCHMA
 
 ## Historical delivery checkpoint (2026-11-01)
 
-At that historical checkpoint, security PR #27 targeted main, CI-policy PR #28 targeted the security branch, and the 13A integration branch targeted the CI-policy branch while preserving upstream merge `a03f1f8ab85e8861d8d6820061ccfd88797efae1`. Its source and regression receipts are in [13a.md](13a.md). The inventory recorded 854 pinned upstream commits after 13A. The user later authorized and completed promotion of 13A; current authoritative main is `27b731cec45e2353303738ac6d8e77acbef42b7c`. The 2026-11-02 continuation receipts supersede the old pending status; the current next checkpoint after provisional 13F is `2658a181b50ad65cf855e91542e16ef101a1767e`.
+At that historical checkpoint, security PR #27 targeted main, CI-policy PR #28 targeted the security branch, and the 13A integration branch targeted the CI-policy branch while preserving upstream merge `a03f1f8ab85e8861d8d6820061ccfd88797efae1`. Its source and regression receipts are in [13a.md](13a.md). The inventory recorded 854 pinned upstream commits after 13A. The user later authorized and completed promotion of 13A; current authoritative main is `27b731cec45e2353303738ac6d8e77acbef42b7c`. The 2026-11-02 continuation receipts supersede the old pending status; the current next checkpoint after provisional 13G is `a3831c979547d33adaa36998dca2b004d735fc84`.
 
 A dedicated Jenkins job `codebase-memory-cli-sync-13a-20261101` is prepared for
 an exact integration SHA, with no automatic triggers. Existing main/release jobs

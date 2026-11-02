@@ -614,23 +614,43 @@
       "upstream_checkpoint": "2658a181b50ad65cf855e91542e16ef101a1767e",
       "upstream_commits": 71,
       "ancestry_validated": true,
-      "fork_base": null,
+      "fork_base": "912926550b7ed06ddadf6dca4103df70cb6e3e33",
       "depends_on": [
         "13F"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_local_review_pending",
+      "branch": "sync/upstream-13g-20261102",
+      "merge_commit": "68f56b790258cd3fe2c4ebec5352ffe7f502378b",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "adaptations": [
+        "Retained native C field, Go type-alias method, TypeScript renamed-import, and YAML traversal fixes.",
+        "Refreshed vendored mimalloc to upstream v3.5.3 with the documented local patches and production profile disabled.",
+        "Kept the LSP surface codec version-4 migration and updated the stale decoder test fixture.",
+        "Added Windows troubleshooting guidance and README link."
+      ],
+      "exclusions": [
+        "No MCP server, JSON-RPC/session transport, registration, client adapter, or mandatory MCP dependency restored.",
+        "Excluded MCP registry adapter implementation and its adapter-only tests."
+      ],
+      "conflicts": [
+        "README.md: retained fork CLI/configuration docs; upstream MCP-oriented environment/tool documentation was redundant or inapplicable.",
+        "tests/test_extraction.c: retained native wide YAML traversal tests and deduplicated body-token regression already present from 13F.",
+        "tests/test_pipeline.c: updated LSP surface fixture envelope from version 3 to version 4 after focused run exposed stale input.",
+        "src/cli/client_adapter.c and MCP server source/test paths remained absent."
+      ],
+      "schema_migrations": "No index schema migration; CBM_INDEX_FORMAT_VERSION unchanged. LSP surface codec version advances to 4.",
+      "policy_gate": "passed: python3 scripts/ci/check-github-actions-policy.py; manual/reusable only, Jenkins owns automatic CI.",
       "verification": {
-        "local": "pending",
-        "jenkins": "pending",
-        "windows": "not_run"
+        "production_build": "passed: scripts/build-dev.sh before and after commit-hook formatting",
+        "focused_suites": "passed 1,477 ASan/UBSan tests: extraction,pipeline,go_lsp,ts_lsp,activation_transaction,registry,platform",
+        "allocator_contract": "passed: bash tests/test_prod_allocator_contract.sh build/c; 3 production allocator checks",
+        "vendored_integrity": "passed: scripts/security-vendored.sh; 1,089 files checked.",
+        "license_gate": "passed: scripts/license-gate.sh; structural coverage, 185 ScanCode detections and 211 npm packages allow-listed.",
+        "memory_core": "passed: python3 scripts/lint-memory-core.py; 3,240 raw sites / 102 files.",
+        "jenkins": "pending final pinned candidate",
+        "windows": "not_run",
+        "clang_tidy": "not_run",
+        "codebase_memory": "post-merge exact-worktree full nonpersistent index failed with cache-resolve; Git porcelain unchanged; parent owns canonical backlog update."
       },
       "acceptance": [
         "True merge includes exact checkpoint parent, no unresolved conflicts.",
@@ -639,7 +659,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue with true merge 13H at a3831c979547d33adaa36998dca2b004d735fc84; preserve the final pinned candidate for full Jenkins qualification.",
       "upstream_prs": [
         2090,
         2290,
@@ -654,7 +674,8 @@
         2769,
         2787,
         2807
-      ]
+      ],
+      "receipt": "docs/upstream-sync/13g.md"
     },
     {
       "batch": "13H",
