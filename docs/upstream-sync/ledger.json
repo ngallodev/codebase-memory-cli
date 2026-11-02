@@ -789,17 +789,30 @@
       "depends_on": [
         "13I"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_provisional",
+      "branch": "sync/upstream-13j-20261102",
+      "merge_commit": "pending",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "receipt": "13j.md",
+      "adaptations": [
+        "Retained upstream background worker-width and deterministic single-thread override in native pipeline execution.",
+        "Adapted the background-index join regression to native daemon sessions and CLI JSON argument parsing.",
+        "Canonicalized trusted policy and async/status control flags before job admission; preserved explicit doc-candidates values and normalized only generated default project names."
+      ],
+      "exclusions": [
+        "Excluded MCP-only server implementation, MCP-only tests, and MCP plugin/install README guidance."
+      ],
+      "conflicts": [
+        "README.md retained the CLI-first fork guide.",
+        "graph-ui package metadata conflicts were formatting-only.",
+        "src/pipeline/pipeline.c kept upstream effective worker-count behavior.",
+        "tests/test_cli.c retained fork-native lifecycle coverage.",
+        "src/mcp/mcp.c and tests/test_mcp.c remained deleted."
+      ],
+      "schema_migrations": "no index version migration identified; detailed storage verification pending",
+      "policy_gate": "passed",
       "verification": {
-        "local": "pending",
+        "local": "final production build passed; final focused non-CLI suites passed, 1385 passed; targeted daemon regressions passed, 4 passed; CLI suite passed, 320 passed, 1 skipped",
         "jenkins": "pending",
         "windows": "not_run"
       },
@@ -810,7 +823,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue with 13K on this provisional ancestry; independent review and final Jenkins qualification remain pending.",
       "upstream_prs": [
         1936,
         2022,

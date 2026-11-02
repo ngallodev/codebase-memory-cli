@@ -2378,9 +2378,19 @@ static bool application_index_args_normalize_defaults(yyjson_mut_val *root) {
         (void)yyjson_mut_obj_remove_key(root, "persistence");
     }
     yyjson_mut_val *name = yyjson_mut_obj_get(root, "name");
-    if (name && (!yyjson_mut_is_str(name) || yyjson_mut_get_len(name) == 0)) {
+    bool default_name = name && yyjson_mut_is_str(name) && yyjson_mut_get_len(name) == 0;
+    yyjson_mut_val *repo_path = yyjson_mut_obj_get(root, "repo_path");
+    if (name && yyjson_mut_is_str(name) && repo_path && yyjson_mut_is_str(repo_path)) {
+        char *project = cbm_project_name_from_path(yyjson_mut_get_str(repo_path));
+        default_name = project && yyjson_mut_equals_str(name, project);
+        free(project);
+    }
+    if (name && (!yyjson_mut_is_str(name) || default_name)) {
         (void)yyjson_mut_obj_remove_key(root, "name");
     }
+    /* Automatic jobs carry _cbm_background, which picks the worker count and
+     * never what is indexed, so an explicit request joins them. */
+    (void)yyjson_mut_obj_remove_key(root, "_cbm_background");
     return true;
 }
 
@@ -2597,8 +2607,8 @@ static bool application_index_args_add_policy(cbm_daemon_application_t *applicat
     bool loaded = cbm_config_load_index_policy(config, &policy, error, sizeof(error));
     /* The worker reads no config: a doc_candidates setting the user set
      * travels with the request; unset, the worker's index mode decides. */
-    bool doc_candidates_encoded =
-        !loaded || cbm_index_doc_candidates_add_to_args(document, root, config);
+    bool doc_candidates_encoded = !loaded || yyjson_mut_obj_get(root, "doc_candidates") ||
+                                  cbm_index_doc_candidates_add_to_args(document, root, config);
     cbm_config_close(owned_config);
     if (!loaded) {
         cbm_log_error("daemon.index.policy", "error", error);
@@ -2617,10 +2627,36 @@ static char *application_auto_index_args(cbm_daemon_application_t *application,
         return NULL;
     }
     yyjson_mut_doc_set_root(document, root);
-    char *args = yyjson_mut_obj_add_strcpy(document, root, "repo_path", root_path) &&
-                         application_index_args_add_policy(application, document, root)
-                     ? yyjson_mut_write(document, 0, NULL)
-                     : NULL;
+    bool encoded = yyjson_mut_obj_add_strcpy(document, root, "repo_path", root_path) &&
+                   application_index_args_add_policy(application, document, root) &&
+                   yyjson_mut_obj_add_bool(document, root, "_cbm_background", true);
+    char *args = encoded ? yyjson_mut_write(document, 0, NULL) : NULL;
+    yyjson_mut_doc_free(document);
+    return args;
+}
+
+/* Explicit CLI requests and automatic daemon requests must reach the job table
+ * with the same trusted worker policy. The operation layer adds this policy
+ * before launching a worker; daemon admission happens earlier, so canonicalize
+ * it here as well before comparing or storing the request. */
+static char *application_index_args_with_policy(cbm_daemon_application_t *application,
+                                                const char *args_json) {
+    yyjson_doc *source = args_json ? yyjson_read(args_json, strlen(args_json), 0) : NULL;
+    yyjson_mut_doc *document = source ? yyjson_doc_mut_copy(source, NULL) : NULL;
+    yyjson_doc_free(source);
+    yyjson_mut_val *root = document ? yyjson_mut_doc_get_root(document) : NULL;
+    if (!document || !root || !yyjson_mut_is_obj(root)) {
+        yyjson_mut_doc_free(document);
+        return NULL;
+    }
+    (void)yyjson_mut_obj_remove_key(root, "async");
+    (void)yyjson_mut_obj_remove_key(root, "status");
+    (void)yyjson_mut_obj_remove_key(root, "_cbm_index_policy");
+    if (!application_index_args_add_policy(application, document, root)) {
+        yyjson_mut_doc_free(document);
+        return NULL;
+    }
+    char *args = yyjson_mut_write(document, 0, NULL);
     yyjson_mut_doc_free(document);
     return args;
 }
@@ -3082,8 +3118,14 @@ static char *application_index_execute(void *context, const char *root_path, con
     if (!session || !root_path || !args_json) {
         return NULL;
     }
-    return async ? application_index_start_async(session, root_path, args_json)
-                 : application_index_run_sync(session, root_path, args_json);
+    char *effective_args = application_index_args_with_policy(session->application, args_json);
+    if (!effective_args) {
+        return application_operation_wire_error("failed to resolve trusted index worker policy");
+    }
+    char *response = async ? application_index_start_async(session, root_path, effective_args)
+                           : application_index_run_sync(session, root_path, effective_args);
+    free(effective_args);
+    return response;
 }
 
 static void application_status_add_record(yyjson_mut_doc *doc, yyjson_mut_val *root,
@@ -4307,7 +4349,8 @@ static int application_background_index(cbm_daemon_application_t *application,
     }
     yyjson_mut_doc_set_root(document, root);
     bool encoded = yyjson_mut_obj_add_strcpy(document, root, "repo_path", canonical_root) &&
-                   application_index_args_add_policy(application, document, root);
+                   application_index_args_add_policy(application, document, root) &&
+                   yyjson_mut_obj_add_bool(document, root, "_cbm_background", true);
     char *default_project = cbm_project_name_from_path(canonical_root);
     bool custom_project =
         project_name[0] && (!default_project || strcmp(default_project, project_name) != 0);
