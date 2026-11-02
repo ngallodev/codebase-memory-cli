@@ -329,13 +329,13 @@
       "upstream_checkpoint": "3457b21b0a3d75960c07ed3ec666a9e684985ef9",
       "upstream_commits": 80,
       "ancestry_validated": true,
-      "fork_base": "45d0b6d37",
+      "fork_base": "45d0b6d374c4bedc2519be086f84964f758d8bfa",
       "depends_on": [
         "13B"
       ],
       "state": "integrated_local_review_pending",
       "branch": "sync/upstream-13c-20261102",
-      "merge_commit": "pending commit",
+      "merge_commit": "d206156d825627f1307c8ed4c841f20a3ce4ee7f",
       "draft_pr": null,
       "adaptations": [
         "Retained Cypher all-alias wait logic and incoming WHERE regression cases.",
