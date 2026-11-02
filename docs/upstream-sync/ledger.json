@@ -506,7 +506,8 @@
         "policy": "passed: strict GitHub Actions policy checker.",
         "jenkins": "pending final pinned candidate",
         "windows": "not_run",
-        "clang_tidy": "not_run"
+        "clang_tidy": "not_run",
+        "codebase_memory": "post-merge full nonpersistent index failed with secure CLI coordination cache-resolve; Git porcelain unchanged; parent owns canonical backlog update."
       },
       "acceptance": [
         "True merge includes exact checkpoint parent, no unresolved conflicts.",
