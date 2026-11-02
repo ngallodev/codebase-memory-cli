@@ -4,9 +4,10 @@
 
 13A is on the authoritative fork main at `27b731cec45e2353303738ac6d8e77acbef42b7c`.
 The pinned continuation target is `a5b248f47272413189746589b9a2c551c6b6c5ec`.
-13B–13K are integrated provisionally in order; 13K is merge
-`53e3ff9ecdcc0c71df821fe395a9cc7f6bee43e7` with receipt [13k.md](13k.md).
-13L remains the final merge boundary. Current branch/checkpoint state is in
+13B–13L are integrated provisionally in order. The final 13L merge is
+`8a686f225b2c64f81c0716f3129c36c50fb10ffe` with receipt [13l.md](13l.md); the
+pinned target is now an ancestor and no pinned upstream commits remain. Independent
+review, final Jenkins qualification, and host acceptance remain open. Current state is in
 [ledger.json](ledger.json); older campaign inventory and PR bases below are
 historical, and do not override the continuation run contract.
 
