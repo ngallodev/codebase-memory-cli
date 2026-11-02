@@ -2338,8 +2338,9 @@ TEST(daemon_application_sensitive_root_blocks_auto_index_but_preserves_controls)
                            app_wait_for_active_jobs(application, 0);
 
     char grant_error[APP_TEST_PATH_CAP];
-    bool approved = ordinary_reaped && cbm_workspace_grant_add(cache, sensitive, sensitive, true,
-                                                               grant_error, sizeof(grant_error));
+    bool approved =
+        ordinary_reaped && cbm_workspace_grant_add(cache, sensitive, sensitive, true, false,
+                                                   grant_error, sizeof(grant_error));
     bool approved_initialized =
         approved &&
         app_test_initialize_session(&callbacks, approved_session, sensitive, NULL, NULL);
@@ -2464,8 +2465,9 @@ TEST(daemon_application_sensitive_root_blocks_watch_but_preserves_controls) {
     bool ordinary_released = ordinary_watched && cbm_watcher_watch_count(watcher) == 0;
 
     char grant_error[APP_TEST_PATH_CAP];
-    bool approved = ordinary_released && cbm_workspace_grant_add(cache, sensitive, sensitive, true,
-                                                                 grant_error, sizeof(grant_error));
+    bool approved =
+        ordinary_released && cbm_workspace_grant_add(cache, sensitive, sensitive, true, false,
+                                                     grant_error, sizeof(grant_error));
     bool approved_initialized =
         approved &&
         app_test_initialize_session(&callbacks, approved_session, sensitive, NULL, NULL);
