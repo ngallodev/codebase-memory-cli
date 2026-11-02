@@ -1933,6 +1933,32 @@ TEST(cypher_exists_has_outgoing_calls) {
     ASSERT_EQ(rc, 0);
     ASSERT_EQ(r.row_count, 2);
     cbm_cypher_result_free(&r);
+
+    rc = cbm_cypher_execute(s,
+                            "MATCH (a)-[:CALLS]->(b) WHERE b.name <> \"SubmitOrder\" "
+                            "RETURN a.name, b.name",
+                            "test", 0, &r);
+    ASSERT_EQ(rc, 0);
+    ASSERT_EQ(r.row_count, 2);
+    cbm_cypher_result_free(&r);
+
+    rc = cbm_cypher_execute(s,
+                            "MATCH (a)-[:CALLS]->(b) WHERE b.name = \"SubmitOrder\" OR "
+                            "NOT b.name = \"SubmitOrder\" RETURN count(*)",
+                            "test", 0, &r);
+    ASSERT_EQ(rc, 0);
+    ASSERT_EQ(r.row_count, 1);
+    ASSERT_STR_EQ(r.rows[0][0], "3");
+    cbm_cypher_result_free(&r);
+
+    rc = cbm_cypher_execute(s,
+                            "MATCH (a)-[:CALLS]->(b) WITH a, b WHERE NOT b.name = "
+                            "\"SubmitOrder\" RETURN a.name, b.name",
+                            "test", 0, &r);
+    ASSERT_EQ(rc, 0);
+    ASSERT_EQ(r.row_count, 2);
+    cbm_cypher_result_free(&r);
+
     cbm_store_close(s);
     PASS();
 }
@@ -3432,6 +3458,86 @@ TEST(cypher_exec_where_coalesce_multi_alias) {
     ASSERT_EQ(rc, 0);
     ASSERT_EQ(r.row_count, 1);
     ASSERT_STR_EQ(r.rows[0][0], "LogError");
+    cbm_cypher_result_free(&r);
+    cbm_store_close(s);
+    PASS();
+}
+
+TEST(cypher_exec_where_not_target_node) {
+    cbm_store_t *s = setup_cypher_store();
+    cbm_cypher_result_t r = {0};
+    int rc = cbm_cypher_execute(s,
+                                "MATCH (a)-[:CALLS]->(b) WHERE NOT b.name = \"SubmitOrder\" "
+                                "RETURN a.name, b.name",
+                                "test", 0, &r);
+    ASSERT_EQ(rc, 0);
+    ASSERT_EQ(r.row_count, 2);
+    cbm_cypher_result_free(&r);
+    cbm_store_close(s);
+    PASS();
+}
+
+TEST(cypher_exec_where_not_target_relationship) {
+    cbm_store_t *s = setup_cypher_multi_edge_store();
+    cbm_cypher_result_t r = {0};
+    int rc = cbm_cypher_execute(s,
+                                "MATCH (a)-[r:HTTP_CALLS]->(b) WHERE NOT r.url_path = "
+                                "\"/health\" RETURN r.url_path",
+                                "testproj", 0, &r);
+    ASSERT_EQ(rc, 0);
+    ASSERT_EQ(r.row_count, 1);
+    ASSERT_STR_EQ(r.rows[0][0], "/api/orders");
+    cbm_cypher_result_free(&r);
+    cbm_store_close(s);
+    PASS();
+}
+
+TEST(cypher_exec_where_not_source_node) {
+    cbm_store_t *s = setup_cypher_store();
+    cbm_cypher_result_t r = {0};
+    int rc = cbm_cypher_execute(s,
+                                "MATCH (a)-[:CALLS]->(b) WHERE NOT a.name = "
+                                "\"HandleOrder\" RETURN a.name, b.name",
+                                "test", 0, &r);
+    ASSERT_EQ(rc, 0);
+    ASSERT_EQ(r.row_count, 1);
+    ASSERT_STR_EQ(r.rows[0][0], "ValidateOrder");
+    cbm_cypher_result_free(&r);
+    cbm_store_close(s);
+    PASS();
+}
+
+TEST(cypher_exec_where_not_target_node_count) {
+    cbm_store_t *s = setup_cypher_store();
+    cbm_cypher_result_t r = {0};
+    int rc = cbm_cypher_execute(s,
+                                "MATCH (a)-[:CALLS]->(b) WHERE NOT b.name = "
+                                "\"SubmitOrder\" RETURN count(*)",
+                                "test", 0, &r);
+    ASSERT_EQ(rc, 0);
+    ASSERT_EQ(r.row_count, 1);
+    ASSERT_STR_EQ(r.rows[0][0], "2");
+    cbm_cypher_result_free(&r);
+    cbm_store_close(s);
+    PASS();
+}
+
+/* The early WHERE pass must wait for every alias a condition reads. A function
+ * condition is filed under its first argument's alias, so in
+ * coalesce(a.no_such_prop, b.name) the target b hid behind the bound a: the
+ * seed row read coalesce(NULL, <unbound b>) as a definite mismatch and pruned
+ * every row before CALLS expansion, while the same predicate after WITH was
+ * right. */
+TEST(cypher_exec_where_func_arg_on_unbound_target) {
+    cbm_store_t *s = setup_cypher_store();
+    cbm_cypher_result_t r = {0};
+    int rc = cbm_cypher_execute(s,
+                                "MATCH (a)-[:CALLS]->(b) WHERE coalesce(a.no_such_prop, b.name) = "
+                                "\"SubmitOrder\" RETURN a.name",
+                                "test", 0, &r);
+    ASSERT_EQ(rc, 0);
+    ASSERT_EQ(r.row_count, 1);
+    ASSERT_STR_EQ(r.rows[0][0], "ValidateOrder");
     cbm_cypher_result_free(&r);
     cbm_store_close(s);
     PASS();
@@ -6313,6 +6419,11 @@ SUITE(cypher) {
     RUN_TEST(cypher_exec_where_mixed_alias_or);
     RUN_TEST(cypher_exec_where_mixed_alias_xor);
     RUN_TEST(cypher_exec_where_coalesce_multi_alias);
+    RUN_TEST(cypher_exec_where_not_target_node);
+    RUN_TEST(cypher_exec_where_not_target_relationship);
+    RUN_TEST(cypher_exec_where_not_source_node);
+    RUN_TEST(cypher_exec_where_not_target_node_count);
+    RUN_TEST(cypher_exec_where_func_arg_on_unbound_target);
     RUN_TEST(cypher_exec_where_in);
     RUN_TEST(cypher_exec_where_not_in);
     RUN_TEST(cypher_exec_where_is_null);

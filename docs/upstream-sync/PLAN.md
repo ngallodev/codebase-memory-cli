@@ -5,7 +5,7 @@
 13A is now on the authoritative fork main at `27b731cec45e2353303738ac6d8e77acbef42b7c`.
 The pinned continuation target is `a5b248f47272413189746589b9a2c551c6b6c5ec`;
 13B is integrated locally with validation recorded in [13b.md](13b.md), and
-13C–13L remain in sequence. Older campaign inventories and PR bases below are
+13C is integrated locally with validation in [13c.md](13c.md); 13D–13L remain in sequence. Older campaign inventories and PR bases below are
 historical; the continuation run contract governs this stack.
 
 This campaign supplements the [canonical integration ledger](../UPSTREAM_308_CANDIDATE_AUDIT_20260912.md); it does not supersede older unresolved semantic dispositions. Machine status and per-checkpoint acceptance live in [ledger.json](ledger.json). [commits.tsv](commits.tsv) enumerates all 933 reachable campaign commits once, including 578 merges and 355 non-merges. Subsystem tags derive from changed paths; they are triage, not proof of implementation.

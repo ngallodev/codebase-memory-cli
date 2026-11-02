@@ -329,22 +329,37 @@
       "upstream_checkpoint": "3457b21b0a3d75960c07ed3ec666a9e684985ef9",
       "upstream_commits": 80,
       "ancestry_validated": true,
-      "fork_base": null,
+      "fork_base": "45d0b6d37",
       "depends_on": [
         "13B"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_local_review_pending",
+      "branch": "sync/upstream-13c-20261102",
+      "merge_commit": "pending commit",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "adaptations": [
+        "Retained Cypher all-alias wait logic and incoming WHERE regression cases.",
+        "Added Helm chart and Terraform extraction with bounded fail-closed image attribution.",
+        "Retained CLI release packaging, Jenkins test orchestration and only manual/reusable Actions workflows.",
+        "Restored explicit security-events and actions read permissions on reusable security workflow callers."
+      ],
+      "exclusions": [
+        "Deleted .github/workflows/pr.yml, server.json, src/cli/client_adapter.c, src/mcp/mcp.c and tests/test_mcp.c.",
+        "Omitted MCPB packaging, MCP product documentation and automatic Actions triggers."
+      ],
+      "conflicts": [
+        ".github/workflows/_security.yml and codeql.yml: manual/reusable Actions policy and existing Jenkins ownership retained.",
+        "README.md, SECURITY.md, docs/index.html, docs/llms.txt, pkg/npm/README.md: fork CLI identity retained.",
+        "scripts/package-release.sh, scripts/test.sh, tests/test_lane_wiring_contract.sh: retained native CLI and Jenkins contracts.",
+        "src/cypher/cypher.c and tests/test_cypher.c: merged multi-alias fix with all incoming WHERE regression cases.",
+        "tests/test_agent_clients.c and tests/test_security_gate_fail_closed.sh: MCP adapter/PR CodeQL behavior excluded; CLI security checks retained."
+      ],
+      "schema_migrations": "No index format bump; CBM_INDEX_FORMAT_VERSION remains 4.",
+      "policy_gate": "passed: strict manual/reusable-only checker; no Actions invoked.",
       "verification": {
-        "local": "pending",
-        "jenkins": "pending",
+        "production_build": "passed: scripts/build-dev.sh after Helm null guard",
+        "focused": "passed: cypher, daemon_ipc, workspace, ts_lsp 637 ASan/UBSan; grammar_probe_f 184 ASan/UBSan; targeted Helm crash regression 1/1; policy, 60-case lane selector, fail-closed security, lane-wiring and venue-parity contracts passed",
+        "jenkins": "pending final pinned candidate",
         "windows": "not_run"
       },
       "acceptance": [
@@ -354,7 +369,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue with 13D on the 13C ancestry; independent review and acceptance remain pending.",
       "upstream_prs": [
         1786,
         2253,
