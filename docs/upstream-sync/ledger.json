@@ -851,17 +851,29 @@
       "depends_on": [
         "13J"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_provisional",
+      "branch": "sync/upstream-13k-20261102",
+      "merge_commit": "53e3ff9ecdcc0c71df821fe395a9cc7f6bee43e7",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "receipt": "13k.md",
+      "adaptations": [
+        "Retained upstream C# namespace, alias, and cross-file type resolution plus its native tests.",
+        "Retained upstream Elixir clause folding and extraction regressions in the CLI pipeline.",
+        "Adapted Codex skill migration to the CLI skill name while preserving the old owned skill path, exact-file ownership checks, and safe forced replacement.",
+        "Kept upstream workflow jobs manual/reusable to preserve Jenkins as the only automatic CI venue."
+      ],
+      "exclusions": [
+        "Excluded MCP-only server, registration, plugin, and profile behavior; retained shared behavior in native CLI operations."
+      ],
+      "conflicts": [
+        "Retained the fork's CLI-first README and managed native install/uninstall surfaces.",
+        "Kept workflows compatible with the strict workflow_dispatch/workflow_call policy.",
+        "Resolved Codex canonical/legacy skill ownership against their distinct codebase-memory-cli and codebase-memory paths."
+      ],
+      "schema_migrations": "no persistent index/store schema migration; changes are parser, LSP, CLI, and test behavior",
+      "policy_gate": "passed",
       "verification": {
-        "local": "pending",
+        "local": "production build passed; 693 passed across extraction, parallel, cs_lsp, and config_text_edit; 7 targeted Codex migration tests passed",
         "jenkins": "pending",
         "windows": "not_run"
       },
@@ -872,7 +884,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue with 13L at a5b248f47272413189746589b9a2c551c6b6c5ec; final Jenkins and independent review remain pending.",
       "upstream_prs": [
         1731,
         1781,

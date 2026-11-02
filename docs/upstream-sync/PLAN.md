@@ -2,12 +2,13 @@
 
 ## Live continuation — 2026-11-02
 
-13A is now on the authoritative fork main at `27b731cec45e2353303738ac6d8e77acbef42b7c`.
-The pinned continuation target is `a5b248f47272413189746589b9a2c551c6b6c5ec`;
-13B–13E are integrated locally with receipts in [13b.md](13b.md),
-[13c.md](13c.md), [13d.md](13d.md), and [13e.md](13e.md). 13E is provisional;
-13F–13L remain in sequence. Older campaign inventories and PR bases below are
-historical; the continuation run contract governs this stack.
+13A is on the authoritative fork main at `27b731cec45e2353303738ac6d8e77acbef42b7c`.
+The pinned continuation target is `a5b248f47272413189746589b9a2c551c6b6c5ec`.
+13B–13K are integrated provisionally in order; 13K is merge
+`53e3ff9ecdcc0c71df821fe395a9cc7f6bee43e7` with receipt [13k.md](13k.md).
+13L remains the final merge boundary. Current branch/checkpoint state is in
+[ledger.json](ledger.json); older campaign inventory and PR bases below are
+historical, and do not override the continuation run contract.
 
 This campaign supplements the [canonical integration ledger](../UPSTREAM_308_CANDIDATE_AUDIT_20260912.md); it does not supersede older unresolved semantic dispositions. Machine status and per-checkpoint acceptance live in [ledger.json](ledger.json). [commits.tsv](commits.tsv) enumerates all 933 reachable campaign commits once, including 578 merges and 355 non-merges. Subsystem tags derive from changed paths; they are triage, not proof of implementation.
 

@@ -1,5 +1,14 @@
 # Continuation prompt
 
+> Current 2026-11-02 continuation: this file's earlier PR, Jenkins, and pending
+> status below is a historical snapshot. The active baseline is fork main
+> `27b731cec45e2353303738ac6d8e77acbef42b7c`; provisional 13K is
+> `53e3ff9ecdcc0c71df821fe395a9cc7f6bee43e7` (upstream parent
+> `6c0ce230ee26ab8d263eb5235ebf73755558344e`). Continue with true merge 13L at
+> `a5b248f47272413189746589b9a2c551c6b6c5ec`; see [PLAN.md](PLAN.md),
+> [ledger.json](ledger.json), and [13k.md](13k.md). Do not chase later upstream
+> commits or write to main.
+
 Continue the 2026-11-01 CLI-first upstream campaign. Read PLAN.md, ledger.json,
 13a.md and the canonical ../UPSTREAM_308_CANDIDATE_AUDIT_20260912.md first.
 Preserve all unrelated main-checkout artifacts. Do not merge PRs, enable
@@ -38,8 +47,9 @@ use exact source fallback for recorded gaps, without changing allow-roots.
 Keep finite npm/PyPI/Go resource limits: compressed 256 MiB, 64 members,
 member 512 MiB, expanded 512 MiB. Preserve CLI product identity, native operations,
 Jenkins-only automatic CI and valid manual/reusable workflow YAML. Run the strict
-policy checker before every push. Pinned campaign ends at
-6c0ce230ee26ab8d263eb5235ebf73755558344e; the 9 newer observed commits through
-edc2301b022b1f5e1e0ec11e291917e22e9736aa belong to a later campaign. Reconcile
-ledger entries against exact source and ancestry instead of treating history
-membership as semantic completion. 13B–13K remain planned, not implemented.
+policy checker before every push. 13K ends at
+6c0ce230ee26ab8d263eb5235ebf73755558344e; the active pinned final target is
+a5b248f47272413189746589b9a2c551c6b6c5ec, with 19 commits in 13L. Do not chase
+later upstream commits. Reconcile ledger entries against exact source and ancestry
+instead of treating history membership as semantic completion. The older 13B–13K
+pending status above is superseded by the current ledger.

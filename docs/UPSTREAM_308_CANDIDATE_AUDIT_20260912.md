@@ -4,12 +4,11 @@
 
 The [campaign plan](upstream-sync/PLAN.md), [machine ledger](upstream-sync/ledger.json)
 and [933-commit inventory](upstream-sync/commits.tsv) extend this canonical ledger.
-The 2026-11-02 continuation uses the promoted 13A baseline at `27b731cec45e2353303738ac6d8e77acbef42b7c` and pins upstream target `a5b248f47272413189746589b9a2c551c6b6c5ec`; earlier inventory targets and counts below are historical. Receipts link current 13B–13G details in [13b.md](upstream-sync/13b.md), [13c.md](upstream-sync/13c.md), [13d.md](upstream-sync/13d.md), [13e.md](upstream-sync/13e.md), [13f.md](upstream-sync/13f.md), and [13g.md](upstream-sync/13g.md). Batches 13E–13L remain dependent and unaccepted.
-Fork baseline is `ff8b8906c6807953336609cc7f464e7e4ef3cf7b`; common ancestor
-`8df0639c6268afe9888979e72b9797aa2cc1de7c`; pinned upstream target
-`6c0ce230ee26ab8d263eb5235ebf73755558344e`. Live upstream inventory reached
-`edc2301b022b1f5e1e0ec11e291917e22e9736aa` (nine additional commits deferred).
-All historical checkpoint ancestor/count checks passed. The security hotfix,
+The 2026-11-02 continuation uses the promoted 13A baseline at `27b731cec45e2353303738ac6d8e77acbef42b7c` and pins upstream target `a5b248f47272413189746589b9a2c551c6b6c5ec`; earlier inventory targets and counts below are historical. Receipts link current 13B–13K details in [13b.md](upstream-sync/13b.md), [13c.md](upstream-sync/13c.md), [13d.md](upstream-sync/13d.md), [13e.md](upstream-sync/13e.md), [13f.md](upstream-sync/13f.md), [13g.md](upstream-sync/13g.md), [13h.md](upstream-sync/13h.md), [13i.md](upstream-sync/13i.md), [13j.md](upstream-sync/13j.md), and [13k.md](upstream-sync/13k.md). 13B–13K are integrated provisionally; 13L remains. These dependent batches are unaccepted.
+The prior inventory recorded fork baseline `ff8b8906c6807953336609cc7f464e7e4ef3cf7b`, common ancestor
+`8df0639c6268afe9888979e72b9797aa2cc1de7c`, and upstream inventory through
+`edc2301b022b1f5e1e0ec11e291917e22e9736aa`; these are historical facts. The current
+campaign remains pinned at `a5b248f47272413189746589b9a2c551c6b6c5ec`. The security hotfix,
 policy guard and first true merge batch have separate receipts and gate status.
 Unresolved older semantic dispositions below remain unresolved unless a new
 receipt explicitly reconciles their exact behavior. No PR merge or main push
