@@ -469,23 +469,44 @@
       "upstream_checkpoint": "b956413eb49bd38188d060866700a97bc1d622de",
       "upstream_commits": 97,
       "ancestry_validated": true,
-      "fork_base": null,
+      "fork_base": "5c70b960d3e0163d197e0318321c60c95b9a211f",
       "depends_on": [
         "13D"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_local_review_pending",
+      "branch": "sync/upstream-13e-20261102",
+      "merge_commit": "2ef1422ce45cb038434528376783258332190228",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "adaptations": [
+        "Adapted the hook-client fast path to the merged dialect-aware no-op API.",
+        "Converted the Copilot PostToolUse hook regression from an MCP server fixture to a temporary native SQLite project/cache.",
+        "Kept auto-index limit logging numeric and omitted the repository root path.",
+        "Tightened memory-core baseline counts for cli.c and daemon/application.c after the checker confirmed improvement."
+      ],
+      "exclusions": [
+        "No MCP server, JSON-RPC/session transport, registration, MCP-only logging path, or mandatory MCP dependency restored.",
+        "MCP-backed Copilot regression setup was replaced with the existing native store/operation path."
+      ],
+      "conflicts": [
+        "README.md and src/main.c: preserved CLI identity/help; main hook fast path now uses cbm_hook_augment_input_is_noop_for.",
+        "src/cli/cli.h and src/cli/hook_augment.c: retained native hook API and Copilot dialect behavior.",
+        "src/foundation/log.c, src/foundation/log.h, and tests/test_log.c: omitted MCP request logging helpers and tests.",
+        "tests/test_cli.c: replaced MCP server-backed Copilot fixture with a temporary native SQLite project/cache.",
+        "tests/test_grammar_regression.c: combined Properties parallel extraction coverage with ObjectScript scanner round-trip coverage.",
+        "Upstream MCP-only files and workflow entries remained absent from the integrated tree."
+      ],
+      "schema_migrations": "No index format migration; CBM_INDEX_FORMAT_VERSION remains 4. FTS backfill derives body text from existing node properties and does not add a column/table.",
+      "policy_gate": "passed: python3 scripts/ci/check-github-actions-policy.py; manual/reusable only, Jenkins owns automatic CI.",
       "verification": {
-        "local": "pending",
-        "jenkins": "pending",
-        "windows": "not_run"
+        "production_build": "passed: scripts/build-dev.sh",
+        "combined_focused_suites": "1991 passed, 22 failed, 1 skipped under ASan/UBSan across cli, cypher, daemon, daemon_application, daemon_ipc, daemon_runtime, discover, extraction, grammar_regression, pipeline, py_lsp, sqlite_writer, ui, version_cohort. Installer cases failed closed because default worktree build/c is under group-writable ancestors; no guard was weakened.",
+        "targeted_hook": "passed: scripts/test.sh --smart --tests cli:cli_hook_augment_copilot_posttooluse_search BUILD_DIR=/home/nate/.cache/cbm-13e-tests (1 ASan/UBSan test)",
+        "memory_core": "passed: python3 scripts/lint-memory-core.py; 3242 raw sites / 102 files, with two verified improvements tightened in baseline.",
+        "vendored_integrity": "passed: scripts/security-vendored.sh; 1083 files checked.",
+        "policy": "passed: strict GitHub Actions policy checker.",
+        "jenkins": "pending final pinned candidate",
+        "windows": "not_run",
+        "clang_tidy": "not_run"
       },
       "acceptance": [
         "True merge includes exact checkpoint parent, no unresolved conflicts.",
@@ -494,7 +515,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue with true merge 13F from 2796460efea8bef1f9232b6ffff37e2e87e9a193; preserve the final pinned candidate for full Jenkins qualification.",
       "upstream_prs": [
         1730,
         2085,
@@ -523,7 +544,8 @@
         2800,
         2801,
         2802
-      ]
+      ],
+      "receipt": "docs/upstream-sync/13e.md"
     },
     {
       "batch": "13F",
@@ -1488,7 +1510,7 @@
     "state": "deferred",
     "next_action": "Finish pinned campaign before planning another batch."
   },
-  "remaining_pinned_upstream_commits": 590,
+  "remaining_pinned_upstream_commits": 493,
   "lifecycle": {
     "workers": [
       "cbm-sync-security-20261101",
@@ -1550,5 +1572,6 @@
     "current_merge_commit": "fd794deacab617a6ad8d3d2ed39cb114e28b1733",
     "upstream_commits_remaining": 590,
     "status": "provisional_integration_review_pending"
-  }
+  },
+  "upstream_commits_remaining": 493
 }
