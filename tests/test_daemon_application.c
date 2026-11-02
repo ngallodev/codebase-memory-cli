@@ -2515,16 +2515,6 @@ TEST(daemon_application_sensitive_root_blocks_watch_but_preserves_controls) {
     PASS();
 }
 
-static atomic_bool app_auto_index_limit_log_seen;
-
-static void app_auto_index_limit_capture_log(const char *line) {
-    if (line && strstr(line, "msg=daemon.autoindex.skipped") &&
-        strstr(line, "reason=too_many_files") && strstr(line, "files=1") &&
-        strstr(line, "limit=0")) {
-        atomic_store(&app_auto_index_limit_log_seen, true);
-    }
-}
-
 TEST(daemon_application_programmatic_index_injects_resource_policy) {
     char *root = th_mktempdir("cbm_app_policy_root");
     char *cache = th_mktempdir("cbm_app_policy_cache");
@@ -2638,6 +2628,38 @@ TEST(daemon_application_programmatic_index_forwards_set_doc_candidates) {
     ASSERT_EQ(garbage, -1);
     PASS();
 }
+
+/* #1818: the daemon.autoindex.skipped warning must name the effective limit,
+ * like the MCP autoindex.skip event does (#1466). The warning is emitted on the
+ * background-initialize thread, before the release increment of the
+ * background-initialize counter that the test waits for, so the captured line
+ * is complete once that wait returns. */
+static char app_autoindex_skipped_line[1024];
+static atomic_bool app_autoindex_skipped_seen = ATOMIC_VAR_INIT(false);
+
+static void app_autoindex_skipped_sink(const char *line) {
+    if (!line || !strstr(line, "msg=daemon.autoindex.skipped") ||
+        atomic_load_explicit(&app_autoindex_skipped_seen, memory_order_acquire)) {
+        return;
+    }
+    (void)snprintf(app_autoindex_skipped_line, sizeof(app_autoindex_skipped_line), "%s", line);
+    atomic_store_explicit(&app_autoindex_skipped_seen, true, memory_order_release);
+}
+
+/* True when `line` carries the whole key=value field `field` (not a prefix of
+ * a longer value such as limit=00). */
+static bool app_log_line_has_field(const char *line, const char *field) {
+    size_t length = strlen(field);
+    for (const char *at = strstr(line, field); at; at = strstr(at + 1, field)) {
+        bool starts = at == line || at[-1] == ' ';
+        char next = at[length];
+        if (starts && (next == '\0' || next == ' ' || next == '\n' || next == '\r')) {
+            return true;
+        }
+    }
+    return false;
+}
+
 TEST(daemon_application_auto_index_honors_tracked_file_limit) {
     app_env_backup_t cache_environment;
     bool cache_saved = app_env_backup_capture(&cache_environment, "CBM_CACHE_DIR");
@@ -2678,18 +2700,24 @@ TEST(daemon_application_auto_index_honors_tracked_file_limit) {
         cbm_daemon_application_runtime_callbacks(application);
     cbm_daemon_runtime_application_session_t *session =
         application ? app_test_open(&callbacks, 4190) : NULL;
-    CBMLogLevel saved_log_level = cbm_log_get_level();
-    CBMLogFormat saved_log_format = cbm_log_get_format();
-    atomic_store(&app_auto_index_limit_log_seen, false);
-    cbm_log_set_level(CBM_LOG_WARN);
+    app_autoindex_skipped_line[0] = '\0';
+    atomic_store_explicit(&app_autoindex_skipped_seen, false, memory_order_release);
+    CBMLogLevel previous_log_level = cbm_log_get_level();
+    CBMLogFormat previous_log_format = cbm_log_get_format();
+    cbm_log_set_level(CBM_LOG_INFO);
     cbm_log_set_format(CBM_LOG_FORMAT_TEXT);
-    cbm_log_set_sink_ex(app_auto_index_limit_capture_log, CBM_LOG_SINK_REPLACE);
+    cbm_log_set_sink_ex(app_autoindex_skipped_sink, CBM_LOG_SINK_REPLACE);
     int bg_baseline = cbm_daemon_application_background_initializes_for_test();
     bool initialized = app_test_initialize_session(&callbacks, session, root, NULL, NULL);
     bool admission_evaluated = app_wait_for_background_initializes(bg_baseline + 1);
     bool limit_prevented_admission = initialized && admission_evaluated &&
                                      atomic_load(&fake.starts) == 0 &&
                                      cbm_daemon_application_active_jobs(application) == 0;
+    cbm_log_set_sink(NULL);
+    cbm_log_set_format(previous_log_format);
+    cbm_log_set_level(previous_log_level);
+    bool skip_logged = admission_evaluated &&
+                       atomic_load_explicit(&app_autoindex_skipped_seen, memory_order_acquire);
 
     if (session) {
         callbacks.session_cancel(callbacks.context, session);
@@ -2697,10 +2725,6 @@ TEST(daemon_application_auto_index_honors_tracked_file_limit) {
     }
     bool stopped = application && cbm_daemon_application_shutdown(application, APP_TEST_TIMEOUT_MS);
     cbm_daemon_application_free(application);
-    cbm_log_set_sink(NULL);
-    cbm_log_set_level(saved_log_level);
-    cbm_log_set_format(saved_log_format);
-    bool limit_logged = atomic_load(&app_auto_index_limit_log_seen);
     cbm_config_close(stored_config);
     (void)th_rmtree(root);
     (void)th_rmtree(cache);
@@ -2713,14 +2737,14 @@ TEST(daemon_application_auto_index_honors_tracked_file_limit) {
     ASSERT_TRUE(config_ready);
     ASSERT_TRUE(initialized);
     ASSERT_TRUE(limit_prevented_admission);
-    ASSERT_TRUE(limit_logged);
+    ASSERT_TRUE(skip_logged);
+    ASSERT_TRUE(app_log_line_has_field(app_autoindex_skipped_line, "reason=too_many_files"));
+    ASSERT_TRUE(app_log_line_has_field(app_autoindex_skipped_line, "files=1"));
+    ASSERT_TRUE(app_log_line_has_field(app_autoindex_skipped_line, "limit=0"));
     ASSERT_TRUE(stopped);
     ASSERT_TRUE(cache_restored);
     PASS();
 }
-
-/* Native discovery never interprets a repository path as command text. Valid
- * non-Git paths containing shell metacharacters remain countable literally. */
 
 /* Native discovery never interprets a repository path as command text. Valid
  * non-Git paths containing shell metacharacters remain countable literally. */

@@ -215,6 +215,7 @@ TEST(log_operational_helpers) {
     ASSERT(cbm_str_contains_raw(output, "method=GET"));
     ASSERT(cbm_str_contains_raw(output, "path=/api/layout"));
     ASSERT(cbm_str_contains_raw(output, "status=200"));
+
     PASS();
 }
 

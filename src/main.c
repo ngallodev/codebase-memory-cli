@@ -3283,7 +3283,7 @@ int main(int argc, char **argv) {
             if (!hook_input) {
                 return EXIT_SUCCESS; /* fail open, nothing to augment */
             }
-            if (cbm_hook_augment_input_is_noop_bash(hook_input)) {
+            if (cbm_hook_augment_input_is_noop_for(hook_input, NULL, hook_dialect)) {
                 free(hook_input);
                 return EXIT_SUCCESS;
             }
