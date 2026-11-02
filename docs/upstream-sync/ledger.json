@@ -114,7 +114,7 @@
         "security_hotfix",
         "ci_guard"
       ],
-      "state": "draft_pr_open_full_gate_pending",
+      "state": "draft_pr_open_existing_jenkins_qualification_pending",
       "branch": "sync/upstream-13a-20261101",
       "merge_commit": "a03f1f8ab85e8861d8d6820061ccfd88797efae1",
       "draft_pr": "https://github.com/ngallodev/codebase-memory-cli/pull/29",
@@ -147,10 +147,12 @@
         "clang_tidy_diff": "failed; out-of-range diagnostics observed, cause unverified",
         "additional_changed_subsystems": "initial combined command failed on 2 stale image expectations with early-exit leak; corrected 2/2 ASan/UBSan regressions pass; combined union pending Jenkins",
         "jenkins": {
-          "build_1": "failed before pipeline: lightweight SCM treated SHA as branch",
-          "build_2": "running at receipt capture; full checkout confirms pinned SHA",
-          "url": "http://192.168.88.146:8080/job/codebase-memory-cli-sync-13a-20261101/2/",
-          "source_revision": "3019aecc1c9318819d07558c4bdf66f4e10c2665"
+          "special_build_1": "checkout configuration failed before pipeline",
+          "special_build_2": "failed Step 0e: Windows bundle contract required retired pr.yml; lint, security, license and production build completed",
+          "follow_up": "stale workflow and mixed-origin tag contracts repaired; full local preparation passed",
+          "existing_job": "codebase-memory-cli-release-tooling",
+          "existing_job_suites": "empty = full gate",
+          "existing_job_status": "pending submission on fast-forwarded release-tooling"
         },
         "windows": "not_run",
         "test_impact_policy": "21 passed after native/conservative policy adaptation"
@@ -223,7 +225,7 @@
         "CONFLICT (content): Merge conflict in tests/windows/test_daemon_stability.py"
       ],
       "jenkins_job": "codebase-memory-cli-sync-13a-20261101",
-      "qualification_source_revision": "3019aecc1c9318819d07558c4bdf66f4e10c2665"
+      "previous_qualification_source_revision": "3019aecc1c9318819d07558c4bdf66f4e10c2665"
     },
     {
       "batch": "13B",

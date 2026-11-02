@@ -417,6 +417,7 @@ bash "$ROOT/tests/test_language_count_contract.sh"
 
 echo "=== Step 0x: packaging version-metadata contract ==="
 bash "$ROOT/tests/test_version_metadata_contract.sh"
+bash "$ROOT/tests/test_version_metadata_contract_regression.sh"
 
 if [ "$PHASE" = "prepare" ]; then
     echo "=== Jenkins test preparation: build shared test runner ==="

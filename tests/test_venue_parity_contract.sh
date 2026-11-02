@@ -83,7 +83,7 @@ FORBIDDEN = [
 
 # ── Layer 2: the whitelist walk over VENUE workflows ──
 VENUE_WORKFLOWS = [
-    "pr.yml", "dry-run.yml", "release.yml", "nightly-soak.yml",
+    "dry-run.yml", "release.yml", "nightly-soak.yml",
     "_test.yml", "_smoke.yml", "_soak.yml", "_build.yml", "_lint.yml",
     "smoke.yml", "_memwaste.yml",
 ]
@@ -252,7 +252,6 @@ REQUIRED = [
     ("_soak.yml", r"scripts/ci/new-protected-temp-root\.ps1", "Windows soak uses the shared temp root"),
     ("_test.yml", r"scripts/ci/new-protected-temp-root\.ps1", "Windows tests use the shared temp root"),
     ("_test.yml", r"scripts/test\.sh", "the test legs run the canonical entry"),
-    ("pr.yml", r"vm-smoke\.sh", "PR CI smokes through the shared wrapper"),
     ("_build.yml", r"scripts/package-release\.sh",
      "release archives are produced by the canonical packaging entry"),
 ]

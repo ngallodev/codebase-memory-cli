@@ -109,10 +109,9 @@ callers = sorted(
     if "uses: ./.github/workflows/_security.yml" in path.read_text(encoding="utf-8")
 )
 require(
-    len(callers) >= 3,
-    "expected at least 3 callers of _security.yml, found: "
-    + (", ".join(callers) or "none")
-    + " -- if a caller was deliberately removed, lower this floor on purpose",
+    {"dry-run.yml", "release.yml"} <= set(callers),
+    "retained manual release/dry-run workflows must call _security.yml, found: "
+    + (", ".join(callers) or "none"),
 )
 
 for caller_name in callers:

@@ -11,6 +11,9 @@ for required in \
   "stage('Install Python CI tools')" \
   "stage('License gate')" \
   "stage('Package wrappers')" \
+  "stage('Prepare test runner')" \
+  "CBM_TEST_PHASE=prepare" \
+  "scripts/ci/check-github-actions-policy.py" \
   "stage('Thread sanitizer')" \
   "Archive Linux CLI artifact" \
   "codebase-memory-cli-linux-amd64" \
