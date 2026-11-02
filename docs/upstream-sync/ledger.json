@@ -152,10 +152,12 @@
           "follow_up": "stale workflow and mixed-origin tag contracts repaired; full local preparation passed",
           "existing_job": "codebase-memory-cli-release-tooling",
           "existing_job_suites": "empty = full gate",
-          "existing_job_status": "pending submission on fast-forwarded release-tooling"
+          "existing_job_status": "pending submission on fast-forwarded release-tooling",
+          "existing_build_84": "source 598d7c71; full suite exposed stale test_impact mapping; retry required for correction"
         },
         "windows": "not_run",
-        "test_impact_policy": "21 passed after native/conservative policy adaptation"
+        "test_impact_policy": "21 passed after native/conservative policy adaptation",
+        "test_impact_repository_policy": "89 ASan/UBSan cases passed after stale fixture mapping repair; intentionally wrong mapping still fails with no leak"
       },
       "acceptance": [
         "True merge includes exact checkpoint parent, no unresolved conflicts.",

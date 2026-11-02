@@ -2677,8 +2677,8 @@ TEST(test_policy_config_change_runs_all) {
 }
 
 TEST(test_policy_repository_rules_map_every_kind_of_path) {
-    /* This repository's own rules: a path no rule maps runs every test (unmapped_files), so
-     * each kind of tracked file has a rule, and only real build inputs run everything. */
+    /* Keep the fork's conservative build coverage and native CLI engine paths.
+     * Unmapped source paths still run every test via unmapped_files. */
     cbm_test_config_t *config = cbm_test_config_load(".codebase-memory.json", false);
     ASSERT_NOT_NULL(config);
     cbm_test_policy_t *policy = cbm_test_policy_new(config);
@@ -2691,24 +2691,29 @@ TEST(test_policy_repository_rules_map_every_kind_of_path) {
         {"flake.nix", "repo-data"},
         {"DCO", "repo-data"},
         {"server.json", "repo-data"},
-        {"scripts/security-ui.sh", "repo-data"},
+        {"scripts/security-ui.sh", "build"},
+        {"pkg/npm/install.js", "build"},
+        {"test-infrastructure/docker-compose.yml", "build"},
         {"tests/test_windows_preflight_contract.ps1", "contracts"},
         {".gitattributes", "build"},
         {"scripts/build.sh", "build"},
         {"Makefile.cbm", "builtin:build"},
         {"tests/test_main.c", "harness"},
-        {"src/mcp/test_impact_engine.c", "engine"},
+        {"src/operations/test_impact_engine.c", "engine"},
+        {"src/mcp/test_impact_engine.c", NULL},
         {"src/pipeline/pipeline.c", NULL},
         {"src/server.json", NULL},
     };
+    bool mappings_match = true;
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
         if (!policy_matches(policy, cases[i][0], cases[i][1])) {
             printf("  %s: expected rule %s\n", cases[i][0], cases[i][1] ? cases[i][1] : "(none)");
-            FAIL("repository rule mapping");
+            mappings_match = false;
         }
     }
     cbm_test_policy_free(policy);
     cbm_test_config_free(config);
+    ASSERT_TRUE(mappings_match);
     PASS();
 }
 
