@@ -262,7 +262,7 @@
       ],
       "state": "integrated_local_review_pending",
       "branch": "sync/upstream-13b-20261102",
-      "merge_commit": "pending commit",
+      "merge_commit": "408d24dfb657c280ec36e7e7cc913c1ef1612b6a",
       "draft_pr": null,
       "adaptations": [
         "Merged Python namespace/import and C3 resolution, PHP traits/global use, Go receiver identity and multi-return, ASP.NET route registration, and test-file scope correction.",
