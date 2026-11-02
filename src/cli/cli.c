@@ -149,6 +149,74 @@ int cbm_cli_exit_status_after_maintenance(int exit_status, bool maintenance_canc
     return maintenance_cancelled && exit_status == EXIT_SUCCESS ? EXIT_FAILURE : exit_status;
 }
 
+/* One override, parsed strictly: a typo must not silently disable a gate, so
+ * anything that is not a whole number falls back to the documented default.
+ * cbm_env_long is the project's strict reader for exactly this case: it
+ * refuses empty text, blanks, trailing junk and values too large for a long
+ * (strtol would clamp those to LONG_MAX, a ceiling no run can exceed), and it
+ * reads the Windows environment the same way every other setting does. */
+static long cli_gate_threshold(const char *name, long fallback) {
+    long value = 0;
+    return cbm_env_long(name, &value) ? value : fallback;
+}
+
+/* The contract is opt-in. Unset, empty, or "0" leaves the historical 0/1
+ * status untouched, so no existing caller sees a new code until it asks. */
+static bool cli_gate_enabled(void) {
+    const char *raw = getenv("CBM_GATE");
+    return raw && raw[0] && strcmp(raw, "0") != 0;
+}
+
+int cbm_cli_index_exit_status(const char *result, int base_status) {
+    if (!result || !cli_gate_enabled()) {
+        return base_status;
+    }
+    yyjson_doc *envelope = yyjson_read(result, strlen(result), 0);
+    if (!envelope) {
+        return base_status;
+    }
+    yyjson_val *root = yyjson_doc_get_root(envelope);
+    yyjson_val *content = yyjson_is_obj(root) ? yyjson_obj_get(root, "content") : NULL;
+    yyjson_val *first = yyjson_is_arr(content) ? yyjson_arr_get_first(content) : NULL;
+    const char *text = first ? yyjson_get_str(yyjson_obj_get(first, "text")) : NULL;
+
+    int status = base_status;
+    yyjson_doc *payload = text ? yyjson_read(text, strlen(text), 0) : NULL;
+    yyjson_val *proot = payload ? yyjson_doc_get_root(payload) : NULL;
+    if (yyjson_is_obj(proot)) {
+        const char *state = yyjson_get_str(yyjson_obj_get(proot, "status"));
+        const char *reason = yyjson_get_str(yyjson_obj_get(proot, "reason"));
+        if (state && strcmp(state, "error") == 0) {
+            status = (reason && strcmp(reason, "target_unavailable") == 0)
+                         ? CBM_CLI_EXIT_TARGET
+                         : (base_status != CBM_CLI_EXIT_OK ? base_status : CBM_CLI_EXIT_FAILURE);
+        } else if (base_status == CBM_CLI_EXIT_OK) {
+            long unusable = (long)yyjson_get_int(yyjson_obj_get(proot, "parse_unusable_count"));
+            long partial = (long)yyjson_get_int(yyjson_obj_get(proot, "parse_partial_count"));
+            long files = (long)yyjson_get_int(yyjson_obj_get(proot, "files_indexed"));
+            long max_unusable = cli_gate_threshold("CBM_GATE_MAX_UNUSABLE", 0);
+            long max_partial_pct = cli_gate_threshold("CBM_GATE_MAX_PARTIAL_PCT", 10);
+            /* "degraded" is the pipeline's own verdict that the graph came out
+             * far smaller than the run expected — a quality failure by any
+             * reading, so it joins the two parse thresholds. */
+            bool degraded = strcmp(state ? state : "", "degraded") == 0;
+            bool too_many_unusable = max_unusable >= 0 && unusable > max_unusable;
+            /* Integer arithmetic on purpose: a percentage compared through a
+             * double would make the threshold depend on rounding. */
+            bool too_many_partial =
+                max_partial_pct >= 0 && files > 0 && partial * 100 > max_partial_pct * files;
+            if (degraded || too_many_unusable || too_many_partial) {
+                status = CBM_CLI_EXIT_QUALITY;
+            }
+        }
+    }
+    if (payload) {
+        yyjson_doc_free(payload);
+    }
+    yyjson_doc_free(envelope);
+    return status;
+}
+
 /* #1537. Two very different failures reached this one message: the cohort was
  * BUSY (real sessions are running — the reader can close them), or the
  * reservation failed outright (lock I/O, stale coordination state, permissions
@@ -1541,6 +1609,232 @@ int cbm_replace_binary(const char *path, const unsigned char *data, int len, int
 /* Consolidated from 4 separate skills into 1 with progressive disclosure.
  * This embedded version is the single source of truth for the CLI installer.
  * Based on PR #81 by @gdilla — factual corrections applied. */
+static const char released_skill_content_v0_6_0[] =
+    "---\n"
+    "name: codebase-memory\n"
+    "description: Use the codebase knowledge graph for structural code queries. "
+    "Triggers on: explore the codebase, understand the architecture, what functions exist, "
+    "show me the structure, who calls this function, what does X call, trace the call chain, "
+    "find callers of, show dependencies, impact analysis, dead code, unused functions, "
+    "high fan-out, refactor candidates, code quality audit, graph query syntax, "
+    "Cypher query examples, edge types, how to use search_graph.\n"
+    "---\n"
+    "\n"
+    "# Codebase Memory — Knowledge Graph Tools\n"
+    "\n"
+    "Graph tools return precise structural results in ~500 tokens vs ~80K for grep.\n"
+    "\n"
+    "## Quick Decision Matrix\n"
+    "\n"
+    "| Question | Tool call |\n"
+    "|----------|----------|\n"
+    "| Who calls X? | `trace_path(direction=\"inbound\")` |\n"
+    "| What does X call? | `trace_path(direction=\"outbound\")` |\n"
+    "| Full call context | `trace_path(direction=\"both\")` |\n"
+    "| Find by name pattern | `search_graph(name_pattern=\"...\")` |\n"
+    "| Dead code | `search_graph(max_degree=0, exclude_entry_points=true)` |\n"
+    "| Cross-service edges | `query_graph` with Cypher |\n"
+    "| Impact of local changes | `detect_changes()` |\n"
+    "| Risk-classified trace | `trace_path(risk_labels=true)` |\n"
+    "| Text search | `search_code` or Grep |\n"
+    "\n"
+    "## Exploration Workflow\n"
+    "1. `list_projects` — check if project is indexed\n"
+    "2. `get_graph_schema` — understand node/edge types\n"
+    "3. `search_graph(label=\"Function\", name_pattern=\".*Pattern.*\")` — find code\n"
+    "4. `get_code_snippet(qualified_name=\"project.path.FuncName\")` — read source\n"
+    "\n"
+    "## Tracing Workflow\n"
+    "1. `search_graph(name_pattern=\".*FuncName.*\")` — discover exact name\n"
+    "2. `trace_path(function_name=\"FuncName\", direction=\"both\", depth=3)` — trace\n"
+    "3. `detect_changes()` — map git diff to affected symbols\n"
+    "\n"
+    "## Quality Analysis\n"
+    "- Dead code: `search_graph(max_degree=0, exclude_entry_points=true)`\n"
+    "- High fan-out: `search_graph(min_degree=10, relationship=\"CALLS\", "
+    "direction=\"outbound\")`\n"
+    "- High fan-in: `search_graph(min_degree=10, relationship=\"CALLS\", "
+    "direction=\"inbound\")`\n"
+    "\n"
+    "## 14 MCP Tools\n"
+    "`index_repository`, `index_status`, `list_projects`, `delete_project`,\n"
+    "`search_graph`, `search_code`, `trace_path`, `detect_changes`,\n"
+    "`query_graph`, `get_graph_schema`, `get_code_snippet`, `get_architecture`,\n"
+    "`manage_adr`, `ingest_traces`\n"
+    "\n"
+    "## Edge Types\n"
+    "CALLS, HTTP_CALLS, ASYNC_CALLS, IMPORTS, DEFINES, DEFINES_METHOD,\n"
+    "HANDLES, IMPLEMENTS, OVERRIDE, USAGE, FILE_CHANGES_WITH,\n"
+    "CONTAINS_FILE, CONTAINS_FOLDER, CONTAINS_PACKAGE\n"
+    "\n"
+    "## Cypher Examples (for query_graph)\n"
+    "```\n"
+    "MATCH (a)-[r:HTTP_CALLS]->(b) RETURN a.name, b.name, r.url_path, "
+    "r.confidence LIMIT 20\n"
+    "MATCH (f:Function) WHERE f.name =~ '.*Handler.*' RETURN f.name, f.file_path\n"
+    "MATCH (a)-[r:CALLS]->(b) WHERE a.name = 'main' RETURN b.name\n"
+    "```\n"
+    "\n"
+    "## Gotchas\n"
+    "1. `search_graph(relationship=\"HTTP_CALLS\")` filters nodes by degree — "
+    "use `query_graph` with Cypher to see actual edges.\n"
+    "2. `query_graph` has a 200-row cap — use `search_graph` with degree filters "
+    "for counting.\n"
+    "3. `trace_path` needs exact names — use `search_graph(name_pattern=...)` first.\n"
+    "4. `direction=\"outbound\"` misses cross-service callers — use "
+    "`direction=\"both\"`.\n"
+    "5. Results default to 10 per page — check `has_more` and use `offset`.\n";
+
+#define CBM_RELEASED_SKILL_HEADER_UNQUOTED                                                     \
+    "---\n"                                                                                    \
+    "name: codebase-memory\n"                                                                  \
+    "description: Use the codebase knowledge graph for structural code queries. "              \
+    "Triggers on: explore the codebase, understand the architecture, what functions exist, "   \
+    "show me the structure, who calls this function, what does X call, trace the call chain, " \
+    "find callers of, show dependencies, impact analysis, dead code, unused functions, "       \
+    "high fan-out, refactor candidates, code quality audit, graph query syntax, "              \
+    "Cypher query examples, edge types, how to use search_graph.\n"                            \
+    "---\n"
+
+#define CBM_RELEASED_SKILL_HEADER_QUOTED                                                       \
+    "---\n"                                                                                    \
+    "name: codebase-memory\n"                                                                  \
+    "description: \"Use the codebase knowledge graph for structural code queries. "            \
+    "Triggers on: explore the codebase, understand the architecture, what functions exist, "   \
+    "show me the structure, who calls this function, what does X call, trace the call chain, " \
+    "find callers of, show dependencies, impact analysis, dead code, unused functions, "       \
+    "high fan-out, refactor candidates, code quality audit, graph query syntax, "              \
+    "Cypher query examples, edge types, how to use search_graph.\"\n"                          \
+    "---\n"
+
+#define CBM_RELEASED_SKILL_BODY_BEFORE_EDGE_TYPES                                                  \
+    "\n"                                                                                           \
+    "# Codebase Memory — Knowledge Graph Tools\n"                                                  \
+    "\n"                                                                                           \
+    "Graph tools return precise structural results in ~500 tokens vs ~80K for grep.\n"             \
+    "\n"                                                                                           \
+    "## Quick Decision Matrix\n"                                                                   \
+    "\n"                                                                                           \
+    "| Question | Tool call |\n"                                                                   \
+    "|----------|----------|\n"                                                                    \
+    "| Who calls X? | `trace_path(direction=\"inbound\")` |\n"                                     \
+    "| What does X call? | `trace_path(direction=\"outbound\")` |\n"                               \
+    "| Full call context | `trace_path(direction=\"both\")` |\n"                                   \
+    "| Find by name pattern | `search_graph(name_pattern=\"...\")` |\n"                            \
+    "| Dead code | `search_graph(max_degree=0, exclude_entry_points=true)` |\n"                    \
+    "| Cross-service edges | `query_graph` with Cypher |\n"                                        \
+    "| Impact of local changes | `detect_changes()` |\n"                                           \
+    "| Risk-classified trace | `trace_path(risk_labels=true)` |\n"                                 \
+    "| Text search | `search_code` or Grep |\n"                                                    \
+    "\n"                                                                                           \
+    "## Exploration Workflow\n"                                                                    \
+    "1. `list_projects` — check if project is indexed\n"                                           \
+    "2. `get_graph_schema` — understand node/edge types\n"                                         \
+    "3. `search_graph(label=\"Function\", name_pattern=\".*Pattern.*\")` — find code\n"            \
+    "4. `get_code_snippet(qualified_name=\"project.path.FuncName\")` — read source\n"              \
+    "\n"                                                                                           \
+    "## Tracing Workflow\n"                                                                        \
+    "1. `search_graph(name_pattern=\".*FuncName.*\")` — discover exact name\n"                     \
+    "2. `trace_path(function_name=\"FuncName\", direction=\"both\", depth=3)` — trace\n"           \
+    "3. `detect_changes()` — map git diff to affected symbols\n"                                   \
+    "\n"                                                                                           \
+    "## Evidence Tiers\n"                                                                          \
+    "- **Scout (Tier 1):** fast positive lookup with few graph calls and targeted source checks. " \
+    "Treat results as provisional; never make absence, exhaustive, dead-code, or complete-impact " \
+    "claims.\n"                                                                                    \
+    "- **Verify (Tier 2, default):** task-directed searches, relevant trace directions, exact "    \
+    "snippets for material claims, and all relevant result pages.\n"                               \
+    "- **Auditor (Tier 3):** bounded-scope full verification with a current graph generation, "    \
+    "complete relevant pagination, both call directions and broader relationships when material, " \
+    "plus explicit unresolved limitations.\n"                                                      \
+    "- **Every tier:** after candidate paths are known, call `check_index_coverage` once with "    \
+    "every "                                                                                       \
+    "evidence path. For negative or exhaustive claims also include the relevant scopes. A clean "  \
+    "result means no recorded gap, not proof of completeness. For partial, skipped, excluded, "    \
+    "stale, pending, or unknown coverage, read/grep the reported ranges or scope before relying "  \
+    "on "                                                                                          \
+    "the graph.\n"                                                                                 \
+    "\n"                                                                                           \
+    "## Sessions and Subagents\n"                                                                  \
+    "- At session start or after compaction, call `list_projects`/`index_status` before "          \
+    "structural exploration, then choose Scout, Verify, or Auditor for the task.\n"                \
+    "- Before delegating, query the graph and coverage in the parent. Pass the tier, exact "       \
+    "project, "                                                                                    \
+    "generation/freshness, bounded scope, queries and pagination state, qualified symbols, "       \
+    "paths, "                                                                                      \
+    "call-chain findings, coverage ranges/reasons, source fallback already performed, and "        \
+    "unresolved "                                                                                  \
+    "questions to the child.\n"                                                                    \
+    "- Runtimes such as Hermes isolate child context: put those graph findings in the "            \
+    "`context` argument to `delegate_task`; do not assume the child inherits MCP access or "       \
+    "the parent's conversation.\n"                                                                 \
+    "- A child without MCP tools must not call or claim MCP access. It should work from the "      \
+    "supplied "                                                                                    \
+    "evidence and use read/grep on exact source, especially every reported missed-coverage "       \
+    "range.\n"                                                                                     \
+    "\n"                                                                                           \
+    "## Quality Analysis\n"                                                                        \
+    "- Dead code: `search_graph(max_degree=0, exclude_entry_points=true)`\n"                       \
+    "- High fan-out: `search_graph(min_degree=10, relationship=\"CALLS\", "                        \
+    "direction=\"outbound\")`\n"                                                                   \
+    "- High fan-in: `search_graph(min_degree=10, relationship=\"CALLS\", "                         \
+    "direction=\"inbound\")`\n"                                                                    \
+    "\n"                                                                                           \
+    "## 15 MCP Tools\n"                                                                            \
+    "`index_repository`, `index_status`, `list_projects`, `delete_project`,\n"                     \
+    "`search_graph`, `search_code`, `trace_path`, `detect_changes`,\n"                             \
+    "`query_graph`, `get_graph_schema`, `get_code_snippet`, `get_architecture`,\n"                 \
+    "`check_index_coverage`, `manage_adr`, `ingest_traces`\n"                                      \
+    "\n"                                                                                           \
+    "## Edge Types\n"                                                                              \
+    "CALLS, HTTP_CALLS, ASYNC_CALLS, DATA_FLOWS, IMPORTS, DEFINES, DEFINES_METHOD,\n"
+
+#define CBM_RELEASED_SKILL_EDGE_TYPES_PRE_V0_10 \
+    "HANDLES, IMPLEMENTS, OVERRIDE, USAGE, CONFIGURES, FILE_CHANGES_WITH,\n"
+
+#define CBM_RELEASED_SKILL_EDGE_TYPES_V0_10 \
+    "HANDLES, IMPLEMENTS, OVERRIDE, USAGE, CALL_REFERENCE, CONFIGURES, FILE_CHANGES_WITH,\n"
+
+#define CBM_RELEASED_SKILL_BODY_AFTER_EDGE_TYPES                                        \
+    "SIMILAR_TO, SEMANTICALLY_RELATED, CONTAINS_FILE, CONTAINS_FOLDER,\n"               \
+    "CONTAINS_PACKAGE\n"                                                                \
+    "\n"                                                                                \
+    "## Cypher Examples (for query_graph)\n"                                            \
+    "```\n"                                                                             \
+    "MATCH (a)-[r:HTTP_CALLS]->(b) RETURN a.name, b.name, r.url_path, "                 \
+    "r.confidence LIMIT 20\n"                                                           \
+    "MATCH (f:Function) WHERE f.name =~ '.*Handler.*' RETURN f.name, f.file_path\n"     \
+    "MATCH (a)-[r:CALLS]->(b) WHERE a.name = 'main' RETURN b.name\n"                    \
+    "```\n"                                                                             \
+    "\n"                                                                                \
+    "## Gotchas\n"                                                                      \
+    "1. `search_graph(relationship=\"HTTP_CALLS\")` filters nodes by degree — "         \
+    "use `query_graph` with Cypher to see actual edges.\n"                              \
+    "2. `query_graph` has a 100k row ceiling — add a Cypher `LIMIT` for broad queries " \
+    "or use `search_graph` pagination.\n"                                               \
+    "3. `trace_path` needs exact names — use `search_graph(name_pattern=...)` first.\n" \
+    "4. `direction=\"outbound\"` misses cross-service callers — use "                   \
+    "`direction=\"both\"`.\n"                                                           \
+    "5. `search_graph` results default to 50 per page — check `has_more` and use `offset`.\n"
+
+/* Exact payload generations shipped before the current skill text. */
+static const char released_skill_content_v0_9_1[] =
+    CBM_RELEASED_SKILL_HEADER_UNQUOTED CBM_RELEASED_SKILL_BODY_BEFORE_EDGE_TYPES
+        CBM_RELEASED_SKILL_EDGE_TYPES_PRE_V0_10 CBM_RELEASED_SKILL_BODY_AFTER_EDGE_TYPES;
+static const char released_skill_content_v0_10_0[] =
+    CBM_RELEASED_SKILL_HEADER_UNQUOTED CBM_RELEASED_SKILL_BODY_BEFORE_EDGE_TYPES
+        CBM_RELEASED_SKILL_EDGE_TYPES_V0_10 CBM_RELEASED_SKILL_BODY_AFTER_EDGE_TYPES;
+static const char released_skill_content_v0_10_3[] =
+    CBM_RELEASED_SKILL_HEADER_QUOTED CBM_RELEASED_SKILL_BODY_BEFORE_EDGE_TYPES
+        CBM_RELEASED_SKILL_EDGE_TYPES_V0_10 CBM_RELEASED_SKILL_BODY_AFTER_EDGE_TYPES;
+
+#undef CBM_RELEASED_SKILL_BODY_AFTER_EDGE_TYPES
+#undef CBM_RELEASED_SKILL_EDGE_TYPES_V0_10
+#undef CBM_RELEASED_SKILL_EDGE_TYPES_PRE_V0_10
+#undef CBM_RELEASED_SKILL_BODY_BEFORE_EDGE_TYPES
+#undef CBM_RELEASED_SKILL_HEADER_QUOTED
+#undef CBM_RELEASED_SKILL_HEADER_UNQUOTED
+
 static const char skill_content[] =
     "---\n"
     "name: codebase-memory\n"
@@ -1644,6 +1938,19 @@ static const char skill_content[] =
     "and must not be widened by an agent. Prefer read-only exploration commands unless the task "
     "explicitly requires indexing or another mutation.\n";
 
+/* Byte-exact consolidated skill payloads shipped by each release range. */
+static const char *const released_skill_contents[] = {
+    /* 0.6.0 through v0.9.0 */
+    released_skill_content_v0_6_0,
+    /* v0.9.1-rc.1 */
+    released_skill_content_v0_9_1,
+    /* v0.10.0 through v0.10.2 */
+    released_skill_content_v0_10_0,
+    /* v0.10.3 through v0.10.8 */
+    released_skill_content_v0_10_3,
+};
+enum { RELEASED_SKILL_CONTENT_COUNT = 4 };
+
 static const char codex_instructions_content[] =
     "# Codebase Memory\n"
     "\n"
@@ -1662,6 +1969,16 @@ static const cbm_skill_t skills[CBM_SKILL_COUNT] = {
 const cbm_skill_t *cbm_get_skills(void) {
     return skills;
 }
+
+#ifdef CBM_CLI_ENABLE_TEST_API
+size_t cbm_cli_released_skill_content_count(void) {
+    return RELEASED_SKILL_CONTENT_COUNT;
+}
+
+const char *cbm_cli_released_skill_content_at(size_t index) {
+    return index < RELEASED_SKILL_CONTENT_COUNT ? released_skill_contents[index] : NULL;
+}
+#endif
 
 const char *cbm_get_codex_instructions(void) {
     return codex_instructions_content;
@@ -8281,6 +8598,24 @@ static bool install_generic_agent_config(const char *label, const char *instr_pa
     return true;
 }
 
+static bool install_codex_activation_pointer(const char *path, bool dry_run) {
+    if (!path) {
+        return false;
+    }
+    if (g_install_plan) {
+        plan_record("Codex CLI", "instructions", path);
+        return true;
+    }
+    return dry_run || cbm_upsert_instructions(path, codex_instructions_content) == CLI_OK;
+}
+
+static void report_codex_activation_pointer_install(const char *path, bool installed) {
+    printf("  instructions: %s (managed activation pointer)\n", path);
+    if (!installed) {
+        record_agent_config_error(false, "Codex CLI", "instructions_install", path);
+    }
+}
+
 static void install_windsurf_config(const char *rules_path, bool dry_run) {
     if (!cbm_installing_assets()) {
         return;
@@ -8329,6 +8664,413 @@ static void install_agent_skill(const char *label, const char *skills_dir, bool 
     }
     int installed = cbm_install_skills(skills_dir, force, dry_run);
     printf("  skill: %s (%d installed)\n", skill_path, installed);
+}
+
+typedef enum {
+    CBM_CODEX_SKILL_ABSENT,
+    CBM_CODEX_SKILL_MANAGED,
+    CBM_CODEX_SKILL_UNOWNED,
+    CBM_CODEX_SKILL_UNSAFE,
+} cbm_codex_skill_state_t;
+
+typedef struct {
+    char canonical_dir[CLI_BUF_1K];
+    char legacy_dir[CLI_BUF_1K];
+    char canonical_file[CLI_BUF_1K];
+    char legacy_file[CLI_BUF_1K];
+    bool same_dir;
+} cbm_codex_skill_paths_t;
+
+static bool cbm_codex_skill_paths_init(const char *home, const char *config_dir,
+                                       cbm_codex_skill_paths_t *paths) {
+    if (!home || !home[0] || !config_dir || !config_dir[0] || !paths) {
+        return false;
+    }
+    memset(paths, 0, sizeof(*paths));
+    int canonical_dir =
+        snprintf(paths->canonical_dir, sizeof(paths->canonical_dir), "%s/.agents/skills", home);
+    int legacy_dir =
+        snprintf(paths->legacy_dir, sizeof(paths->legacy_dir), "%s/skills", config_dir);
+    int canonical_file = snprintf(paths->canonical_file, sizeof(paths->canonical_file),
+                                  "%s/codebase-memory-cli/SKILL.md", paths->canonical_dir);
+    int legacy_file = snprintf(paths->legacy_file, sizeof(paths->legacy_file),
+                               "%s/codebase-memory/SKILL.md", paths->legacy_dir);
+    if (canonical_dir < 0 || (size_t)canonical_dir >= sizeof(paths->canonical_dir) ||
+        legacy_dir < 0 || (size_t)legacy_dir >= sizeof(paths->legacy_dir) || canonical_file < 0 ||
+        (size_t)canonical_file >= sizeof(paths->canonical_file) || legacy_file < 0 ||
+        (size_t)legacy_file >= sizeof(paths->legacy_file)) {
+        return false;
+    }
+    paths->same_dir = cbm_json_mcp_paths_equal(paths->canonical_file, paths->legacy_file) ||
+                      cbm_same_file(paths->canonical_file, paths->legacy_file);
+    return true;
+}
+
+static bool cbm_codex_skill_parent(const char *skill_file, char *skill_dir, size_t size) {
+    if (!skill_file || !skill_dir || size == 0U) {
+        return false;
+    }
+    const char *slash = strrchr(skill_file, '/');
+    const char *backslash = strrchr(skill_file, '\\');
+    const char *separator = backslash && (!slash || backslash > slash) ? backslash : slash;
+    if (!separator || separator == skill_file) {
+        return false;
+    }
+    size_t length = (size_t)(separator - skill_file);
+    if (length >= size) {
+        return false;
+    }
+    memcpy(skill_dir, skill_file, length);
+    skill_dir[length] = '\0';
+    return true;
+}
+
+static cbm_codex_skill_state_t cbm_codex_skill_state(const char *skill_file) {
+    char skill_dir[CLI_BUF_1K];
+    if (!cbm_codex_skill_parent(skill_file, skill_dir, sizeof(skill_dir))) {
+        return CBM_CODEX_SKILL_UNSAFE;
+    }
+
+    struct stat state;
+    errno = 0;
+#ifndef _WIN32
+    int result = lstat(skill_dir, &state);
+#else
+    int result = stat(skill_dir, &state);
+#endif
+    if (result != 0) {
+        return errno == ENOENT ? CBM_CODEX_SKILL_ABSENT : CBM_CODEX_SKILL_UNSAFE;
+    }
+    if (!S_ISDIR(state.st_mode)) {
+        return CBM_CODEX_SKILL_UNSAFE;
+    }
+
+    errno = 0;
+#ifndef _WIN32
+    result = lstat(skill_file, &state);
+#else
+    result = stat(skill_file, &state);
+#endif
+    if (result != 0) {
+        return errno == ENOENT ? CBM_CODEX_SKILL_ABSENT : CBM_CODEX_SKILL_UNSAFE;
+    }
+    if (!S_ISREG(state.st_mode)) {
+        return CBM_CODEX_SKILL_UNSAFE;
+    }
+
+    int ownership = cbm_text_owned_document_status(
+        skill_file, skill_content, released_skill_contents, RELEASED_SKILL_CONTENT_COUNT);
+    if (ownership == CLI_OK) {
+        return CBM_CODEX_SKILL_MANAGED;
+    }
+    return ownership == CLI_TRUE ? CBM_CODEX_SKILL_UNOWNED : CBM_CODEX_SKILL_UNSAFE;
+}
+
+static void cbm_warn_codex_skill_conflict(const cbm_codex_skill_paths_t *paths,
+                                          const char *reason) {
+    (void)fprintf(stderr,
+                  "warning: Codex skill migration skipped: %s; documented_location=%s legacy=%s\n",
+                  reason, paths->canonical_file, paths->legacy_file);
+}
+
+static bool cbm_refresh_codex_managed_skill(const cbm_codex_skill_paths_t *paths, bool dry_run) {
+    if (dry_run) {
+        return true;
+    }
+    int result =
+        cbm_text_migrate_owned_document(paths->canonical_file, skill_content,
+                                        released_skill_contents, RELEASED_SKILL_CONTENT_COUNT);
+    if (result == CLI_OK) {
+        return true;
+    }
+    record_agent_config_error(false, "Codex CLI", "skill_install", paths->canonical_file);
+    return false;
+}
+
+static bool cbm_remove_codex_managed_skill(const char *skill_file, bool dry_run, bool uninstalling,
+                                           const char *operation) {
+    cbm_codex_skill_state_t state = cbm_codex_skill_state(skill_file);
+    if (state == CBM_CODEX_SKILL_ABSENT) {
+        return true;
+    }
+    if (state != CBM_CODEX_SKILL_MANAGED) {
+        if (state == CBM_CODEX_SKILL_UNOWNED) {
+            printf("  preserved non-owned Codex skill: %s\n", skill_file);
+        } else if (dry_run) {
+            printf("  preserved unsafe Codex skill path: %s\n", skill_file);
+        } else {
+            record_agent_config_error(uninstalling, "Codex CLI", operation, skill_file);
+        }
+        return state == CBM_CODEX_SKILL_UNOWNED;
+    }
+    if (dry_run) {
+        printf("  Codex skill: %s (would remove)\n", skill_file);
+        return true;
+    }
+    int removed = cbm_text_remove_owned_document_any(
+        skill_file, skill_content, released_skill_contents, RELEASED_SKILL_CONTENT_COUNT);
+    if (removed == CLI_OK && cbm_codex_skill_state(skill_file) == CBM_CODEX_SKILL_ABSENT) {
+        char skill_dir[CLI_BUF_1K];
+        if (cbm_codex_skill_parent(skill_file, skill_dir, sizeof(skill_dir))) {
+            (void)cbm_rmdir(skill_dir);
+        }
+        return true;
+    }
+    record_agent_config_error(uninstalling, "Codex CLI", operation, skill_file);
+    return false;
+}
+
+static void install_codex_skill(const char *home, const char *config_dir, bool force,
+                                bool dry_run) {
+    cbm_codex_skill_paths_t paths;
+    if (!cbm_codex_skill_paths_init(home, config_dir, &paths)) {
+        if (!g_install_plan) {
+            record_agent_config_error(false, "Codex CLI", "skill_path", config_dir);
+        }
+        return;
+    }
+
+    cbm_codex_skill_state_t canonical = cbm_codex_skill_state(paths.canonical_file);
+    cbm_codex_skill_state_t legacy =
+        paths.same_dir ? canonical : cbm_codex_skill_state(paths.legacy_file);
+
+    if (g_install_plan) {
+        if (canonical == CBM_CODEX_SKILL_ABSENT &&
+            (paths.same_dir || legacy == CBM_CODEX_SKILL_ABSENT ||
+             legacy == CBM_CODEX_SKILL_MANAGED)) {
+            plan_record("Codex CLI", "skill", paths.canonical_file);
+        }
+        if (!paths.same_dir && legacy == CBM_CODEX_SKILL_MANAGED &&
+            (canonical == CBM_CODEX_SKILL_ABSENT || canonical == CBM_CODEX_SKILL_MANAGED)) {
+            plan_record("Codex CLI", "cleanup_skill", paths.legacy_file);
+        }
+        return;
+    }
+
+    if (paths.same_dir) {
+        if (canonical == CBM_CODEX_SKILL_UNSAFE) {
+            record_agent_config_error(false, "Codex CLI", "skill_install", paths.canonical_file);
+            return;
+        }
+        if (!force && canonical == CBM_CODEX_SKILL_UNOWNED) {
+            printf("  preserved non-owned Codex skill: %s\n", paths.canonical_file);
+            return;
+        }
+        install_agent_skill("Codex CLI", paths.canonical_dir, force, dry_run);
+        if (!cbm_refresh_codex_managed_skill(&paths, dry_run)) {
+            return;
+        }
+        if (!dry_run && cbm_codex_skill_state(paths.canonical_file) != CBM_CODEX_SKILL_MANAGED) {
+            record_agent_config_error(false, "Codex CLI", "skill_install", paths.canonical_file);
+        }
+        return;
+    }
+
+    if (canonical == CBM_CODEX_SKILL_UNSAFE) {
+        if (dry_run) {
+            cbm_warn_codex_skill_conflict(&paths, "the canonical skill path is unsafe");
+        } else {
+            record_agent_config_error(false, "Codex CLI", "skill_install", paths.canonical_file);
+        }
+        return;
+    }
+    if (legacy == CBM_CODEX_SKILL_UNSAFE) {
+        if (force && !dry_run) {
+            record_agent_config_error(false, "Codex CLI", "legacy_skill_migration",
+                                      paths.legacy_file);
+        } else {
+            cbm_warn_codex_skill_conflict(&paths, "the legacy skill path is unsafe");
+        }
+        return;
+    }
+
+    if (!force && legacy == CBM_CODEX_SKILL_UNOWNED) {
+        cbm_warn_codex_skill_conflict(&paths, "the legacy skill is not installer-owned");
+        return;
+    }
+    if (!force && canonical == CBM_CODEX_SKILL_UNOWNED) {
+        if (legacy == CBM_CODEX_SKILL_MANAGED) {
+            cbm_warn_codex_skill_conflict(&paths, "the canonical skill is not installer-owned");
+        } else {
+            printf("  preserved non-owned Codex skill: %s\n", paths.canonical_file);
+        }
+        return;
+    }
+
+    bool remove_legacy = legacy == CBM_CODEX_SKILL_MANAGED;
+    if (force && legacy == CBM_CODEX_SKILL_UNOWNED) {
+        remove_legacy = true;
+        if (dry_run) {
+            printf("  legacy Codex skill: %s (would replace for migration)\n", paths.legacy_file);
+        } else {
+            int replaced = cbm_text_write_owned_document(paths.legacy_file, skill_content);
+            printf("  legacy Codex skill: %s (%s for migration)\n", paths.legacy_file,
+                   replaced == CLI_OK ? "updated" : "failed to update");
+            if (cbm_codex_skill_state(paths.legacy_file) != CBM_CODEX_SKILL_MANAGED) {
+                record_agent_config_error(false, "Codex CLI", "legacy_skill_migration",
+                                          paths.legacy_file);
+                return;
+            }
+        }
+    }
+
+    bool install_canonical = force || canonical == CBM_CODEX_SKILL_ABSENT;
+    if (install_canonical) {
+        install_agent_skill("Codex CLI", paths.canonical_dir, force, dry_run);
+    } else {
+        printf("  skill: %s (0 installed)\n", paths.canonical_file);
+    }
+
+    if (dry_run) {
+        if (remove_legacy) {
+            printf("  legacy Codex skill: %s (would remove after canonical install)\n",
+                   paths.legacy_file);
+        }
+        return;
+    }
+    if (!cbm_refresh_codex_managed_skill(&paths, false)) {
+        return;
+    }
+    if (cbm_codex_skill_state(paths.canonical_file) != CBM_CODEX_SKILL_MANAGED) {
+        record_agent_config_error(false, "Codex CLI", "skill_install", paths.canonical_file);
+        return;
+    }
+    if (remove_legacy &&
+        cbm_remove_codex_managed_skill(paths.legacy_file, false, false, "legacy_skill_cleanup")) {
+        printf("  legacy Codex skill: %s (removed)\n", paths.legacy_file);
+    }
+}
+
+/* Derive tier siblings only from the exact shipped Verify basename. This keeps
+ * vendor-specific suffixes such as .agent.md, .toml, and .json intact. */
+static int cbm_tiered_profile_path(const char *verify_path, cbm_graph_tier_t tier, char *output,
+                                   size_t output_size) {
+    static const char verify_basename[] = "codebase-memory";
+    if (!verify_path || !verify_path[0] || !output || output_size == 0U) {
+        return CLI_ERR;
+    }
+    const char *basename = strrchr(verify_path, '/');
+    const char *backslash = strrchr(verify_path, '\\');
+    if (backslash && (!basename || backslash > basename)) {
+        basename = backslash;
+    }
+    basename = basename ? basename + 1U : verify_path;
+    size_t verify_len = strlen(verify_basename);
+    if (strncmp(basename, verify_basename, verify_len) != 0 || basename[verify_len] != '.') {
+        return CLI_ERR;
+    }
+    const char *slug = cbm_graph_tier_slug(tier);
+    if (!slug) {
+        return CLI_ERR;
+    }
+    const char *suffix = basename + verify_len;
+    size_t directory_len = (size_t)(basename - verify_path);
+    size_t slug_len = strlen(slug);
+    size_t suffix_len = strlen(suffix);
+    if (directory_len >= output_size || slug_len > output_size - directory_len - 1U ||
+        suffix_len > output_size - directory_len - slug_len - 1U) {
+        return CLI_ERR;
+    }
+    memcpy(output, verify_path, directory_len);
+    memcpy(output + directory_len, slug, slug_len);
+    memcpy(output + directory_len + slug_len, suffix, suffix_len + 1U);
+    return CLI_OK;
+}
+
+static cbm_graph_access_t cbm_tiered_profile_set_access(cbm_tiered_profile_set_t profiles) {
+    return !profiles.force_handoff && cbm_graph_dialect_direct_capable(profiles.dialect)
+               ? CBM_GRAPH_ACCESS_DIRECT
+               : CBM_GRAPH_ACCESS_HANDOFF;
+}
+
+/* Every earlier rendering of one tier's profile that install/uninstall must
+ * still recognise as ours: the other access mode, the v0.9.1-rc.1 Codex
+ * shape, the pre-tier Verify file, and the v0.10.8 OpenCode shape (#2264). */
+typedef struct {
+    char *owned[4];
+    size_t owned_count;
+    const char *content[5];
+    size_t count;
+} tiered_released_profiles_t;
+
+static void tiered_released_profiles_keep(tiered_released_profiles_t *released, char *rendered) {
+    if (rendered) {
+        released->owned[released->owned_count++] = rendered;
+        released->content[released->count++] = rendered;
+    }
+}
+
+static void tiered_released_profiles_collect(cbm_tiered_profile_set_t profiles,
+                                             cbm_graph_tier_t tier, cbm_graph_access_t access,
+                                             tiered_released_profiles_t *released) {
+    memset(released, 0, sizeof(*released));
+    cbm_graph_access_t alternate_access =
+        access == CBM_GRAPH_ACCESS_DIRECT ? CBM_GRAPH_ACCESS_HANDOFF : CBM_GRAPH_ACCESS_DIRECT;
+    tiered_released_profiles_keep(
+        released,
+        cbm_render_graph_profile(profiles.dialect, tier, alternate_access, profiles.binary_path));
+    if (profiles.dialect == CBM_GRAPH_DIALECT_CODEX && access == CBM_GRAPH_ACCESS_DIRECT) {
+        tiered_released_profiles_keep(released, cbm_render_graph_profile_codex_rc1(tier));
+    }
+    if (profiles.dialect == CBM_GRAPH_DIALECT_OPENCODE) {
+        tiered_released_profiles_keep(released,
+                                      cbm_render_graph_profile_opencode_v0108(tier, access));
+        tiered_released_profiles_keep(
+            released, cbm_render_graph_profile_opencode_v0108(tier, alternate_access));
+    }
+    if (tier == CBM_GRAPH_TIER_VERIFY && profiles.legacy_verify_content) {
+        released->content[released->count++] = profiles.legacy_verify_content;
+    }
+}
+
+static void tiered_released_profiles_free(tiered_released_profiles_t *released) {
+    for (size_t i = 0U; i < released->owned_count; i++) {
+        free(released->owned[i]);
+    }
+    released->owned_count = 0U;
+    released->count = 0U;
+}
+
+static void install_tiered_agent_profiles(cbm_tiered_profile_set_t profiles, bool dry_run) {
+    cbm_graph_access_t access = cbm_tiered_profile_set_access(profiles);
+    for (int value = 0; value < (int)CBM_GRAPH_TIER_COUNT; value++) {
+        cbm_graph_tier_t tier = (cbm_graph_tier_t)value;
+        char path[CLI_BUF_1K];
+        if (cbm_tiered_profile_path(profiles.verify_path, tier, path, sizeof(path)) != CLI_OK) {
+            record_agent_config_error(false, profiles.label, "agent_path", profiles.verify_path);
+            continue;
+        }
+        if (g_install_plan) {
+            plan_record(profiles.label, "agent", path);
+            continue;
+        }
+        if (dry_run) {
+            printf("  agent: %s\n", path);
+            continue;
+        }
+        char *current =
+            cbm_render_graph_profile(profiles.dialect, tier, access, profiles.binary_path);
+        if (!current) {
+            record_agent_config_error(false, profiles.label, "agent_render", path);
+            continue;
+        }
+        tiered_released_profiles_t released;
+        tiered_released_profiles_collect(profiles, tier, access, &released);
+        int result =
+            prepare_config_parent(path)
+                ? cbm_text_migrate_owned_document(path, current, released.content, released.count)
+                : CLI_ERR;
+        tiered_released_profiles_free(&released);
+        free(current);
+        if (result != CLI_OK) {
+            if (result > CLI_OK) {
+                printf("  agent: preserved modified profile %s\n", path);
+            }
+            record_agent_config_error(false, profiles.label, "agent_install", path);
+            continue;
+        }
+        printf("  agent: %s\n", path);
+    }
 }
 
 static void uninstall_tiered_agent_profiles(cbm_tiered_profile_set_t profiles, bool dry_run) {
@@ -8887,82 +9629,90 @@ static void install_cli_agent_configs(const cbm_detected_agents_t *agents, const
         char config_dir[CLI_BUF_1K];
         char cp[CLI_BUF_1K];
         char ip[CLI_BUF_1K];
-        char skills_dir[CLI_BUF_1K];
+        char ap[CLI_BUF_1K];
         cbm_codex_config_dir(home, config_dir, sizeof(config_dir));
         snprintf(cp, sizeof(cp), "%s/config.toml", config_dir);
         snprintf(ip, sizeof(ip), "%s/AGENTS.md", config_dir);
-        snprintf(skills_dir, sizeof(skills_dir), "%s/skills", config_dir);
-        char ap[CLI_BUF_1K];
         snprintf(ap, sizeof(ap), "%s/agents/codebase-memory.toml", config_dir);
-        install_generic_agent_config("Codex CLI", ip, dry_run);
-        install_agent_skill("Codex CLI", skills_dir, force, dry_run);
-
-        if (cbm_installing_hooks()) {
-            char command[CLI_BUF_8K];
-            char command_windows[CLI_BUF_8K];
-            char hooks_json[CLI_BUF_1K];
-            snprintf(hooks_json, sizeof(hooks_json), "%s/hooks.json", config_dir);
-            bool use_hooks_json = cbm_file_exists(hooks_json);
-            bool commands_ok =
-                cbm_build_augment_command(binary_path, command, sizeof(command)) == CLI_OK &&
-                cbm_build_augment_command_windows(binary_path, command_windows,
-                                                  sizeof(command_windows)) == CLI_OK;
-            cbm_toml_codex_hook_action_t preflight_action =
-                use_hooks_json ? CBM_TOML_CODEX_HOOK_REMOVE : CBM_TOML_CODEX_HOOK_UPSERT;
-            cbm_toml_codex_hook_failure_t preflight_failure = CBM_TOML_CODEX_HOOK_FAILURE_NONE;
-            int preflight_result = commands_ok ? cbm_reconcile_codex_hooks_command_detailed(
-                                                     cp, command, command_windows, preflight_action,
-                                                     true, &preflight_failure, NULL)
-                                               : CLI_ERR;
-            if (preflight_result != CLI_OK) {
-                if (!g_install_plan) {
-                    printf("Codex CLI:\n");
-                    fflush(stdout);
-                }
-                const char *reason = preflight_failure == CBM_TOML_CODEX_HOOK_FAILURE_NONE
-                                         ? NULL
-                                         : cbm_toml_codex_hook_failure_name(preflight_failure);
-                record_agent_config_error_with_reason(
-                    false, "Codex CLI", commands_ok ? "hook_preflight" : "hook_command_build", cp,
-                    reason);
+        bool pointer_installed = install_codex_activation_pointer(ip, dry_run);
+        install_codex_skill(home, config_dir, force, dry_run);
+        install_tiered_agent_profiles(
+            (cbm_tiered_profile_set_t){
+                .label = "Codex CLI",
+                .verify_path = ap,
+                .binary_path = binary_path,
+                .legacy_verify_content = legacy_codex_verify_agent_content,
+                .dialect = CBM_GRAPH_DIALECT_CODEX,
+            },
+            dry_run);
+        char command[CLI_BUF_8K];
+        char command_windows[CLI_BUF_8K];
+        char hooks_json[CLI_BUF_1K];
+        snprintf(hooks_json, sizeof(hooks_json), "%s/hooks.json", config_dir);
+        bool use_hooks_json = cbm_file_exists(hooks_json);
+        bool commands_ok =
+            cbm_build_augment_command(binary_path, command, sizeof(command)) == CLI_OK &&
+            cbm_build_augment_command_windows(binary_path, command_windows,
+                                              sizeof(command_windows)) == CLI_OK;
+        cbm_toml_codex_hook_action_t preflight_action =
+            use_hooks_json ? CBM_TOML_CODEX_HOOK_REMOVE : CBM_TOML_CODEX_HOOK_UPSERT;
+        cbm_toml_codex_hook_failure_t preflight_failure = CBM_TOML_CODEX_HOOK_FAILURE_NONE;
+        int preflight_result = commands_ok ? cbm_reconcile_codex_hooks_command_detailed(
+                                                 cp, command, command_windows, preflight_action,
+                                                 true, &preflight_failure, NULL)
+                                           : CLI_ERR;
+        if (preflight_result != CLI_OK) {
+            if (!g_install_plan) {
+                printf("Codex CLI:\n");
+                fflush(stdout);
+            }
+            const char *reason = preflight_failure == CBM_TOML_CODEX_HOOK_FAILURE_NONE
+                                     ? NULL
+                                     : cbm_toml_codex_hook_failure_name(preflight_failure);
+            record_agent_config_error_with_reason(
+                false, "Codex CLI", commands_ok ? "hook_preflight" : "hook_command_build", cp,
+                reason);
+            if (!g_install_plan) {
+                report_codex_activation_pointer_install(ip, pointer_installed);
+            }
+            goto codex_install_done;
+        }
+        if (!g_install_plan) {
+            report_codex_activation_pointer_install(ip, pointer_installed);
+        }
+        const char *hook_target = use_hooks_json ? hooks_json : cp;
+        if (g_install_plan) {
+            plan_record("Codex CLI", "hook", hook_target);
+        } else {
+            bool hook_ok = true;
+            int pretool_written = 1;
+            if (!dry_run && use_hooks_json) {
+                hook_ok =
+                    cbm_upsert_paired_lifecycle_hooks_json(hooks_json, command, command_windows,
+                                                           NULL, CMM_HOOK_TIMEOUT_SEC) == CLI_OK &&
+                    cbm_upsert_codex_pretool_hooks_json(hooks_json, command, command_windows) ==
+                        CLI_OK &&
+                    cbm_reconcile_codex_hooks_command(cp, command, command_windows,
+                                                      CBM_TOML_CODEX_HOOK_REMOVE, false) == CLI_OK;
+            } else if (!dry_run) {
+                hook_ok = cbm_reconcile_codex_hooks_command_detailed(
+                              cp, command, command_windows, CBM_TOML_CODEX_HOOK_UPSERT, false, NULL,
+                              &pretool_written) == CLI_OK;
+            }
+            if (!hook_ok) {
+                record_agent_config_error(false, "Codex CLI", "hook_install", hook_target);
             } else {
-                const char *hook_target = use_hooks_json ? hooks_json : cp;
-                if (g_install_plan) {
-                    plan_record("Codex CLI", "hook", hook_target);
-                } else {
-                    bool hook_ok = true;
-                    int pretool_written = 1;
-                    if (!dry_run && use_hooks_json) {
-                        hook_ok = cbm_upsert_paired_lifecycle_hooks_json(
-                                      hooks_json, command, command_windows, NULL,
-                                      CMM_HOOK_TIMEOUT_SEC) == CLI_OK &&
-                                  cbm_upsert_codex_pretool_hooks_json(hooks_json, command,
-                                                                      command_windows) == CLI_OK &&
-                                  cbm_reconcile_codex_hooks_command(cp, command, command_windows,
-                                                                    CBM_TOML_CODEX_HOOK_REMOVE,
-                                                                    false) == CLI_OK;
-                    } else if (!dry_run) {
-                        hook_ok = cbm_reconcile_codex_hooks_command_detailed(
-                                      cp, command, command_windows, CBM_TOML_CODEX_HOOK_UPSERT,
-                                      false, NULL, &pretool_written) == CLI_OK;
-                    }
-                    if (!hook_ok) {
-                        record_agent_config_error(false, "Codex CLI", "hook_install", hook_target);
-                    } else {
-                        printf(
-                            pretool_written
-                                ? "  hooks: SessionStart + SubagentStart + PreToolUse Bash "
-                                  "(dynamic "
-                                  "graph context)\n"
-                                : "  hooks: SessionStart + SubagentStart (dynamic graph context); "
-                                  "PreToolUse skipped: config.toml already has an inline "
-                                  "hooks.PreToolUse\n");
-                        printf("  note: non-managed hooks require /hooks trust; definition changes "
-                               "require re-trust\n");
-                    }
-                }
+                printf(pretool_written
+                           ? "  hooks: SessionStart + SubagentStart + PreToolUse Bash (dynamic "
+                             "graph context)\n"
+                           : "  hooks: SessionStart + SubagentStart (dynamic graph context); "
+                             "PreToolUse skipped: config.toml already has an inline "
+                             "hooks.PreToolUse\n");
+                printf("  note: non-managed hooks require /hooks trust; definition changes "
+                       "require re-trust\n");
             }
         }
+    codex_install_done:;
     }
     if (agents->gemini) {
         install_gemini_config(home, binary_path, dry_run);
@@ -9998,6 +10748,7 @@ static char *cbm_build_install_plan_json_options(const char *home, const char *b
     yyjson_mut_val *prompt_files = yyjson_mut_arr(doc);
     yyjson_mut_val *hooks = yyjson_mut_arr(doc);
     yyjson_mut_val *warnings = yyjson_mut_arr(doc);
+    yyjson_mut_val *cleanup_actions = yyjson_mut_arr(doc);
     for (int i = 0; i < plan.count; i++) {
         cbm_plan_entry_t *e = &plan.items[i];
         if (strcmp(e->kind, "config") == 0 || strcmp(e->kind, "mcp_config") == 0) {
@@ -10018,6 +10769,14 @@ static char *cbm_build_install_plan_json_options(const char *home, const char *b
             yyjson_mut_arr_add_strcpy(doc, instrs, e->path);
         } else if (strcmp(e->kind, "warning") == 0) {
             yyjson_mut_arr_add_strcpy(doc, warnings, e->path);
+        } else if (strcmp(e->kind, "cleanup_skill") == 0) {
+            yyjson_mut_val *cleanup = yyjson_mut_obj(doc);
+            yyjson_mut_obj_add_strcpy(doc, cleanup, "agent", e->agent);
+            yyjson_mut_obj_add_str(doc, cleanup, "kind", "skill");
+            yyjson_mut_obj_add_str(doc, cleanup, "operation",
+                                   "remove_owned_legacy_copy_if_migrated");
+            yyjson_mut_obj_add_strcpy(doc, cleanup, "path", e->path);
+            yyjson_mut_arr_add_val(cleanup_actions, cleanup);
         } else {
             yyjson_mut_arr_add_strcpy(doc, instrs, e->path);
         }
@@ -10029,6 +10788,7 @@ static char *cbm_build_install_plan_json_options(const char *home, const char *b
     yyjson_mut_obj_add_val(doc, root, "prompt_files_planned", prompt_files);
     yyjson_mut_obj_add_val(doc, root, "hooks_planned", hooks);
     yyjson_mut_obj_add_val(doc, root, "warnings", warnings);
+    yyjson_mut_obj_add_val(doc, root, "cleanup_actions_planned", cleanup_actions);
     yyjson_mut_obj_add_bool(doc, root, "writes_started", false);
     yyjson_mut_obj_add_bool(doc, root, "network_after_install", false);
     yyjson_mut_obj_add_str(doc, root, "next_safe_command",
@@ -10787,6 +11547,38 @@ static void uninstall_agent_skill(const char *label, const char *skills_dir, boo
     printf("  %s skill: %d removed\n", label, removed);
 }
 
+static void uninstall_codex_skills(const char *home, const char *config_dir, bool dry_run) {
+    cbm_codex_skill_paths_t paths;
+    if (!cbm_codex_skill_paths_init(home, config_dir, &paths)) {
+        if (!dry_run) {
+            record_agent_config_error(true, "Codex CLI", "skill_path", config_dir);
+        }
+        return;
+    }
+
+    int removed = 0;
+    if (cbm_codex_skill_state(paths.canonical_file) == CBM_CODEX_SKILL_MANAGED) {
+        if (cbm_remove_codex_managed_skill(paths.canonical_file, dry_run, true,
+                                           "skill_uninstall")) {
+            removed++;
+        }
+    } else {
+        (void)cbm_remove_codex_managed_skill(paths.canonical_file, dry_run, true,
+                                             "skill_uninstall");
+    }
+
+    if (!paths.same_dir && cbm_codex_skill_state(paths.legacy_file) == CBM_CODEX_SKILL_MANAGED) {
+        if (cbm_remove_codex_managed_skill(paths.legacy_file, dry_run, true,
+                                           "legacy_skill_uninstall")) {
+            removed++;
+        }
+    } else if (!paths.same_dir) {
+        (void)cbm_remove_codex_managed_skill(paths.legacy_file, dry_run, true,
+                                             "legacy_skill_uninstall");
+    }
+    printf("  Codex CLI skills: %d removed\n", removed);
+}
+
 static void uninstall_copilot_durable_context(const char *home, bool dry_run) {
     char config_dir[CLI_BUF_1K];
     char hook_path[CLI_BUF_1K];
@@ -11181,13 +11973,11 @@ static void uninstall_cli_agents(const cbm_detected_agents_t *agents, const char
         char config_dir[CLI_BUF_1K];
         char cp[CLI_BUF_1K];
         char ip[CLI_BUF_1K];
-        char skills_dir[CLI_BUF_1K];
         char ap[CLI_BUF_1K];
         char installed_binary[CLI_BUF_1K];
         cbm_codex_config_dir(home, config_dir, sizeof(config_dir));
         snprintf(cp, sizeof(cp), "%s/config.toml", config_dir);
         snprintf(ip, sizeof(ip), "%s/AGENTS.md", config_dir);
-        snprintf(skills_dir, sizeof(skills_dir), "%s/skills", config_dir);
         snprintf(ap, sizeof(ap), "%s/agents/codebase-memory.toml", config_dir);
         /* The Codex branch removes instructions through its own activation
          * pointer helper instead of uninstall_agent_mcp_instr, so it has to
@@ -11227,7 +12017,7 @@ static void uninstall_cli_agents(const cbm_detected_agents_t *agents, const char
             record_agent_config_error(true, "Codex CLI", "hook_uninstall", cp);
         }
     codex_toml_done:
-        uninstall_agent_skill("Codex CLI", skills_dir, dry_run);
+        uninstall_codex_skills(home, config_dir, dry_run);
         uninstall_tiered_agent_profiles(
             (cbm_tiered_profile_set_t){
                 .label = "Codex CLI",
