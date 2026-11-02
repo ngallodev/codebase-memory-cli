@@ -554,23 +554,43 @@
       "upstream_checkpoint": "2796460efea8bef1f9232b6ffff37e2e87e9a193",
       "upstream_commits": 51,
       "ancestry_validated": true,
-      "fork_base": null,
+      "fork_base": "99cc9e9f0fdcc808b796cd0540332651d247b95c",
       "depends_on": [
         "13E"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_local_review_pending",
+      "branch": "sync/upstream-13f-20261102",
+      "merge_commit": "e108d277fa53bff715e593c051eb3e57f88b2698",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "adaptations": [
+        "Captured unresolved-call coverage through full and incremental pipeline execution and indexed store queries.",
+        "Retained coverage metadata version 5 and index format version 4; added compatible schema metadata and indexes without changing the index format.",
+        "Adapted the Claude drift reminder reset from MCP tool calls to native CLI graph commands and a native SQLite test fixture.",
+        "Combined fork operation-argument memory accounting with upstream resolver accounting."
+      ],
+      "exclusions": [
+        "No MCP server, JSON-RPC/session transport, registration, MCP-only test or mandatory MCP dependency restored.",
+        "Preserved the fork README, CLI identity and smoke-test contract."
+      ],
+      "conflicts": [
+        "README.md and scripts/smoke-test.sh: retained fork-native CLI identity and smoke interface.",
+        "src/cli/hook_augment.c and tests/test_cli.c: adapted drift reminder state reset from MCP graph-tool events to native CLI Bash graph commands.",
+        "src/foundation/mem_core.c and .h: merged operation-argument and resolver allocation classes.",
+        "MCP server source and MCP-only tests remained absent."
+      ],
+      "schema_migrations": "Coverage metadata now records unresolved-call completeness at coverage version 5 with additive compatible columns/indexes; CBM_INDEX_FORMAT_VERSION remains 4.",
+      "policy_gate": "passed: python3 scripts/ci/check-github-actions-policy.py; manual/reusable only, Jenkins owns automatic CI.",
       "verification": {
-        "local": "pending",
-        "jenkins": "pending",
-        "windows": "not_run"
+        "production_build": "passed: scripts/build-dev.sh after merge resolution/formatting",
+        "combined_focused_suites": "802 passed, 23 failed, 1 skipped under ASan/UBSan for scripts/test.sh --suites cli pipeline store_bulk store_nodes; installer/uninstaller safety failures report group-writable worktree ancestors at default build/c.",
+        "drift_hook": "passed 1/1: scripts/test.sh --smart --tests cli:cli_hook_augment_drift_reminder_counts_searches BUILD_DIR=/home/nate/.cache/cbm-13f-tests",
+        "unresolved_coverage": "coverage metadata, completeness, indexed query, and candidate-index replacement/pruning tests reported PASS in combined run.",
+        "memory_core": "passed: python3 scripts/lint-memory-core.py; 3242 raw sites / 102 files.",
+        "vendored_integrity": "passed: scripts/security-vendored.sh; 1083 files checked.",
+        "jenkins": "pending final pinned candidate",
+        "windows": "not_run",
+        "clang_tidy": "not_run",
+        "codebase_memory": "post-merge exact-worktree full nonpersistent index failed with cache-resolve; Git porcelain unchanged; parent owns canonical backlog update."
       },
       "acceptance": [
         "True merge includes exact checkpoint parent, no unresolved conflicts.",
@@ -579,13 +599,14 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue with true merge 13G at 2658a181b50ad65cf855e91542e16ef101a1767e; preserve the final pinned candidate for full Jenkins qualification.",
       "upstream_prs": [
         2161,
         2305,
         2774,
         2817
-      ]
+      ],
+      "receipt": "docs/upstream-sync/13f.md"
     },
     {
       "batch": "13G",
