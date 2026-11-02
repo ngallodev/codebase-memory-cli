@@ -5,8 +5,7 @@
 13A is now on the authoritative fork main at `27b731cec45e2353303738ac6d8e77acbef42b7c`.
 The pinned continuation target is `a5b248f47272413189746589b9a2c551c6b6c5ec`;
 13B is integrated locally with validation recorded in [13b.md](13b.md), and
-13C is integrated locally with validation in [13c.md](13c.md); 13D–13L remain in sequence. Older campaign inventories and PR bases below are
-historical; the continuation run contract governs this stack.
+13C is integrated locally with validation in [13c.md](13c.md), and 13D is integrated provisionally in [13d.md](13d.md). Batches 13E–13L remain in sequence. Older campaign inventories and PR bases below are historical; the continuation run contract governs this stack.
 
 This campaign supplements the [canonical integration ledger](../UPSTREAM_308_CANDIDATE_AUDIT_20260912.md); it does not supersede older unresolved semantic dispositions. Machine status and per-checkpoint acceptance live in [ledger.json](ledger.json). [commits.tsv](commits.tsv) enumerates all 933 reachable campaign commits once, including 578 merges and 355 non-merges. Subsystem tags derive from changed paths; they are triage, not proof of implementation.
 
@@ -27,7 +26,7 @@ This campaign supplements the [canonical integration ledger](../UPSTREAM_308_CAN
 1. Finish narrow security/dependency fixes and verify actual advisories, versions and fork applicability. Preserve installer download/extraction limits and explicit workspace authorization.
 2. Harden the local/Jenkins Actions policy guard and add ancestry verification with positive/negative checks.
 3. Complete true merge of upstream `5dc83ac9fa363d51706a70977840b61ea59ce9db` (13A, 79 commits); reconcile reviewed hotfix/guard commits, retaining upstream merge ancestry. Publish only sanitized draft branches.
-4. Later batches 13B–13K must build on the previous reviewed integration result. Open stacked draft PRs with explicit dependency targets, or leave subsequent checkpoints locally planned. Never open independent PRs based on stale main.
+4. Batches 13E–13L build sequentially on the latest provisional checkpoint. They remain dependent and unaccepted until independent review. Publish only sanitized stacked draft PRs with explicit dependencies; never base them on stale main.
 5. Run focused checks after each completed batch, then full exact-SHA Jenkins qualification before recommending merge. Native Windows, >4 GiB SQLite offsets, graph determinism and sanitizer/recovery checks remain explicit gates when affected. Pending gates are not successful gates.
 
 Every batch must preserve CLI JSON/compact contracts, native HTTP, daemon ownership, durable storage and source provenance. No MCP server, transport/session registration or mandatory MCP dependencies. Retain useful shared changes via native CLI operations. Record every material exclusion/adaptation and schema migration in its batch receipt.
@@ -44,14 +43,9 @@ To verify PRs automatically, an operator should configure a Jenkins GitHub Branc
 
 Use the existing pinned corpus at `benchmark-runs/linux/20260911T045124Z/BENCHMARK_CORPUS.frozen.json` for Linux/Windows parity: codebase-memory-cli `0c6d00d6011c1fdb50b90c53538f536cc3b5e4d9`, specgen-aw `466debfec788c7aeeee858c6b51e98b1b9afe653`, agent-workflow `e84925205301ff7169aff5a8cb14d10680c3739c`, agent-workflow-spec-contracts `0b32e556ef33bd00c0111d30a8b9225eb5196fcd`, and herdr `61ca85d5895bb530b59da85beeccdd767f4720d2`. Preserve these manifest pins; candidate version and platform evidence are separate. No current benchmark or Windows result is implied by this inventory.
 
-## Delivery checkpoint
+## Historical delivery checkpoint (2026-11-01)
 
-Security PR #27 targets main. CI-policy PR #28 targets the security branch.
-The 13A integration branch targets the CI-policy branch and preserves upstream
-merge `a03f1f8ab85e8861d8d6820061ccfd88797efae1`. Its source and regression
-receipts are in [13a.md](13a.md). 854 pinned upstream commits remain after 13A;
-13B–13K have not been implemented. The next checkpoint is
-`4c80d89edf1283cfeaa7e60ecbf40c9d2eb2b689` (119 commits after 13A).
+At that historical checkpoint, security PR #27 targeted main, CI-policy PR #28 targeted the security branch, and the 13A integration branch targeted the CI-policy branch while preserving upstream merge `a03f1f8ab85e8861d8d6820061ccfd88797efae1`. Its source and regression receipts are in [13a.md](13a.md). The inventory recorded 854 pinned upstream commits after 13A. The user later authorized and completed promotion of 13A; current authoritative main is `27b731cec45e2353303738ac6d8e77acbef42b7c`. The 2026-11-02 continuation receipts supersede the old pending status; the next checkpoint after provisional 13D is `b956413eb49bd38188d060866700a97bc1d622de`.
 
 A dedicated Jenkins job `codebase-memory-cli-sync-13a-20261101` is prepared for
 an exact integration SHA, with no automatic triggers. Existing main/release jobs

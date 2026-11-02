@@ -404,17 +404,30 @@
       "depends_on": [
         "13C"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_local_review_pending",
+      "branch": "sync/upstream-13d-20261102",
+      "merge_commit": "fd794deacab617a6ad8d3d2ed39cb114e28b1733",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "adaptations": [
+        "Preserved native operation context, session-owned watch subscriptions, async host guard, and portable watch-root comparison",
+        "Kept generic Codex instructions, skills, and native PreToolUse hook; omitted unavailable activation-pointer and tiered-profile calls",
+        "Retained fork identity, Vite 6.4.5, cppcheck worker bound, and temporary build cleanup",
+        "Merged TypeScript LSP, extraction, registry, language, platform, pipeline, and regression-test updates"
+      ],
+      "exclusions": [
+        "MCP server, JSON-RPC/session transport, MCP client adapter/tests/product manifest",
+        "Automatic GitHub Actions triggers; Jenkins remains automatic CI"
+      ],
+      "conflicts": [
+        "src/daemon/application.c",
+        "src/cli/cli.c",
+        "README.md and docs/CONFIGURATION.md",
+        "Makefile.cbm and graph-ui package manifests"
+      ],
+      "schema_migrations": "None; CBM_INDEX_FORMAT_VERSION remains 4.",
+      "policy_gate": "passed: python3 scripts/ci/check-github-actions-policy.py; manual/reusable workflows only",
       "verification": {
-        "local": "pending",
+        "local": "passed: production build; 485 ASan/UBSan tests across daemon_application, daemon_ipc, ts_lsp, workspace; targeted Codex hook test 1/1",
         "jenkins": "pending",
         "windows": "not_run"
       },
@@ -425,7 +438,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue with 13E on this provisional checkpoint; all later checkpoints remain review and acceptance pending.",
       "upstream_prs": [
         221,
         1115,
@@ -447,7 +460,8 @@
         2757,
         2761,
         2762
-      ]
+      ],
+      "receipt": "docs/upstream-sync/13d.md"
     },
     {
       "batch": "13E",
@@ -783,6 +797,40 @@
         2867,
         2872
       ]
+    },
+    {
+      "batch": "13L",
+      "upstream_start": "6c0ce230ee26ab8d263eb5235ebf73755558344e",
+      "upstream_checkpoint": "a5b248f47272413189746589b9a2c551c6b6c5ec",
+      "upstream_commits": 19,
+      "ancestry_validated": true,
+      "fork_base": null,
+      "depends_on": [
+        "13K"
+      ],
+      "state": "not_started",
+      "branch": null,
+      "merge_commit": null,
+      "draft_pr": null,
+      "receipt": null,
+      "adaptations": [],
+      "exclusions": [],
+      "conflicts": [],
+      "schema_migrations": "pending source verification",
+      "policy_gate": "pending",
+      "verification": {
+        "local": "pending",
+        "jenkins": "pending",
+        "windows": "not_run"
+      },
+      "acceptance": [
+        "True merge includes exact checkpoint parent, no unresolved conflicts.",
+        "Native CLI/HTTP contracts, authorization, installer bounds, and security fixes preserved; no MCP runtime restored.",
+        "Strict Actions policy passes before each push.",
+        "Focused affected-subsystem tests pass; record unavailable native Windows gates.",
+        "Full Jenkins release-tooling archive qualifies the exact final candidate."
+      ],
+      "next_action": "After 13K, merge the pinned final checkpoint and prove zero pinned upstream-only commits."
     }
   ],
   "reconciliation": [
@@ -1440,7 +1488,7 @@
     "state": "deferred",
     "next_action": "Finish pinned campaign before planning another batch."
   },
-  "remaining_pinned_upstream_commits": 854,
+  "remaining_pinned_upstream_commits": 590,
   "lifecycle": {
     "workers": [
       "cbm-sync-security-20261101",
@@ -1494,5 +1542,13 @@
     "main_pushed": false,
     "integration_actions_runs_observed": [],
     "repaired_security_ci_pushes": "no new Actions runs; prior invalid-YAML records had zero jobs"
+  },
+  "current_continuation": {
+    "baseline": "27b731cec45e2353303738ac6d8e77acbef42b7c",
+    "pinned_target": "a5b248f47272413189746589b9a2c551c6b6c5ec",
+    "integrated_through": "31ba586de4589e6e5749ece3aaaf4ca06d8853ce",
+    "current_merge_commit": "fd794deacab617a6ad8d3d2ed39cb114e28b1733",
+    "upstream_commits_remaining": 590,
+    "status": "provisional_integration_review_pending"
   }
 }
