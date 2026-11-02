@@ -116,91 +116,94 @@ TEST(invariant_discovery_always_skip_dirs) {
      *
      * Source: src/discover/discover.c ALWAYS_SKIP_DIRS array (as of this writing).
      */
-    struct { const char *name; int expected_green; } cases[] = {
+    struct {
+        const char *name;
+        int expected_green;
+    } cases[] = {
         /* VCS */
-        { ".git",                    1 }, /* GREEN — in ALWAYS_SKIP_DIRS */
-        { ".hg",                     1 }, /* GREEN */
-        { ".svn",                    1 }, /* GREEN */
-        { ".worktrees",              1 }, /* GREEN — bare .worktrees IS in the list */
+        {".git", 1},       /* GREEN — in ALWAYS_SKIP_DIRS */
+        {".hg", 1},        /* GREEN */
+        {".svn", 1},       /* GREEN */
+        {".worktrees", 1}, /* GREEN — bare .worktrees IS in the list */
 
         /* IDE */
-        { ".idea",                   1 }, /* GREEN */
-        { ".vscode",                 1 }, /* GREEN */
-        { ".claude",                 1 }, /* GREEN */
+        {".idea", 1},   /* GREEN */
+        {".vscode", 1}, /* GREEN */
+        {".claude", 1}, /* GREEN */
 
         /* Python */
-        { ".venv",                   1 }, /* GREEN */
-        { "venv",                    1 }, /* GREEN */
-        { "__pycache__",             1 }, /* GREEN */
-        { ".mypy_cache",             1 }, /* GREEN */
-        { ".pytest_cache",           1 }, /* GREEN */
-        { ".cache",                  1 }, /* GREEN */
-        { ".tox",                    1 }, /* GREEN */
-        { ".nox",                    1 }, /* GREEN */
-        { ".ruff_cache",             1 }, /* GREEN */
-        { ".eggs",                   1 }, /* GREEN */
-        { ".env",                    1 }, /* GREEN */
-        { "env",                     1 }, /* GREEN */
-        { "htmlcov",                 1 }, /* GREEN */
-        { "site-packages",           1 }, /* GREEN */
+        {".venv", 1},         /* GREEN */
+        {"venv", 1},          /* GREEN */
+        {"__pycache__", 1},   /* GREEN */
+        {".mypy_cache", 1},   /* GREEN */
+        {".pytest_cache", 1}, /* GREEN */
+        {".cache", 1},        /* GREEN */
+        {".tox", 1},          /* GREEN */
+        {".nox", 1},          /* GREEN */
+        {".ruff_cache", 1},   /* GREEN */
+        {".eggs", 1},         /* GREEN */
+        {".env", 1},          /* GREEN */
+        {"env", 1},           /* GREEN */
+        {"htmlcov", 1},       /* GREEN */
+        {"site-packages", 1}, /* GREEN */
 
         /* JS/TS */
-        { "node_modules",            1 }, /* GREEN */
-        { ".npm",                    1 }, /* GREEN */
-        { ".yarn",                   1 }, /* GREEN */
-        { ".next",                   1 }, /* GREEN */
-        { ".nuxt",                   1 }, /* GREEN */
-        { ".svelte-kit",             1 }, /* GREEN */
-        { ".angular",                1 }, /* GREEN */
-        { ".turbo",                  1 }, /* GREEN */
-        { ".parcel-cache",           1 }, /* GREEN */
-        { ".docusaurus",             1 }, /* GREEN */
-        { ".expo",                   1 }, /* GREEN */
-        { "bower_components",        1 }, /* GREEN */
-        { "coverage",                1 }, /* GREEN */
-        { ".nyc_output",             1 }, /* GREEN */
-        { ".pnpm-store",             1 }, /* GREEN */
+        {"node_modules", 1},     /* GREEN */
+        {".npm", 1},             /* GREEN */
+        {".yarn", 1},            /* GREEN */
+        {".next", 1},            /* GREEN */
+        {".nuxt", 1},            /* GREEN */
+        {".svelte-kit", 1},      /* GREEN */
+        {".angular", 1},         /* GREEN */
+        {".turbo", 1},           /* GREEN */
+        {".parcel-cache", 1},    /* GREEN */
+        {".docusaurus", 1},      /* GREEN */
+        {".expo", 1},            /* GREEN */
+        {"bower_components", 1}, /* GREEN */
+        {"coverage", 1},         /* GREEN */
+        {".nyc_output", 1},      /* GREEN */
+        {".pnpm-store", 1},      /* GREEN */
 
         /* Build artifacts */
-        { "target",                  1 }, /* GREEN */
-        { "dist",                    1 }, /* GREEN */
-        { "obj",                     1 }, /* GREEN */
-        { "Pods",                    1 }, /* GREEN */
-        { "temp",                    1 }, /* GREEN */
-        { "tmp",                     1 }, /* GREEN */
-        { ".terraform",              1 }, /* GREEN */
-        { ".serverless",             1 }, /* GREEN */
-        { "bazel-bin",               1 }, /* GREEN */
-        { "bazel-out",               1 }, /* GREEN */
-        { "bazel-testlogs",          1 }, /* GREEN */
+        {"target", 1},         /* GREEN */
+        {"dist", 1},           /* GREEN */
+        {"obj", 1},            /* GREEN */
+        {"Pods", 1},           /* GREEN */
+        {"temp", 1},           /* GREEN */
+        {"tmp", 1},            /* GREEN */
+        {".terraform", 1},     /* GREEN */
+        {".serverless", 1},    /* GREEN */
+        {"bazel-bin", 1},      /* GREEN */
+        {"bazel-out", 1},      /* GREEN */
+        {"bazel-testlogs", 1}, /* GREEN */
 
         /* Language caches */
-        { ".cargo",                  1 }, /* GREEN */
-        { ".stack-work",             1 }, /* GREEN */
-        { ".dart_tool",              1 }, /* GREEN */
-        { "zig-cache",               1 }, /* GREEN */
-        { "zig-out",                 1 }, /* GREEN */
-        { ".metals",                 1 }, /* GREEN */
-        { ".bloop",                  1 }, /* GREEN */
-        { ".bsp",                    1 }, /* GREEN */
-        { ".ccls-cache",             1 }, /* GREEN */
-        { ".clangd",                 1 }, /* GREEN */
-        { "elm-stuff",               1 }, /* GREEN */
-        { "_opam",                   1 }, /* GREEN */
-        { ".cpcache",                1 }, /* GREEN */
-        { ".shadow-cljs",            1 }, /* GREEN */
+        {".cargo", 1},       /* GREEN */
+        {".stack-work", 1},  /* GREEN */
+        {".dart_tool", 1},   /* GREEN */
+        {"zig-cache", 1},    /* GREEN */
+        {"zig-out", 1},      /* GREEN */
+        {".metals", 1},      /* GREEN */
+        {".bloop", 1},       /* GREEN */
+        {".bsp", 1},         /* GREEN */
+        {".ccls-cache", 1},  /* GREEN */
+        {".clangd", 1},      /* GREEN */
+        {"elm-stuff", 1},    /* GREEN */
+        {"_opam", 1},        /* GREEN */
+        {".cpcache", 1},     /* GREEN */
+        {".shadow-cljs", 1}, /* GREEN */
 
         /* Deploy */
-        { ".vercel",                 1 }, /* GREEN */
-        { ".netlify",                1 }, /* GREEN */
-        { "deploy",                  1 }, /* GREEN */
-        { "deployed",                1 }, /* GREEN */
+        {".vercel", 1},  /* GREEN */
+        {".netlify", 1}, /* GREEN */
+        {"deploy", 1},   /* GREEN */
+        {"deployed", 1}, /* GREEN */
 
         /* Misc */
-        { ".tmp",                    1 }, /* GREEN */
-        { "vendor",                  1 }, /* GREEN */
-        { "vendored",                1 }, /* GREEN */
-        { ".qdrant_code_embeddings", 1 }, /* GREEN */
+        {".tmp", 1},                    /* GREEN */
+        {"vendor", 1},                  /* GREEN */
+        {"vendored", 1},                /* GREEN */
+        {".qdrant_code_embeddings", 1}, /* GREEN */
 
         /*
          * .claude-worktrees was QUALITY_ANALYSIS gap #1 (a RED reproduction): the
@@ -209,7 +212,7 @@ TEST(invariant_discovery_always_skip_dirs) {
          * ALWAYS_SKIP_DIRS (next to ".claude"), so the canary is correctly skipped
          * — the bug is fixed and this is now a GREEN guard against regressing it.
          */
-        { ".claude-worktrees",       1 }, /* GREEN — gap #1 fixed */
+        {".claude-worktrees", 1}, /* GREEN — gap #1 fixed */
     };
 
     int n = (int)(sizeof(cases) / sizeof(cases[0]));
@@ -219,8 +222,7 @@ TEST(invariant_discovery_always_skip_dirs) {
         int result = check_dir_skipped(cases[i].name, CBM_MODE_FULL);
 
         if (result < 0) {
-            printf("    SETUP-ERROR  %-32s (could not create fixture)\n",
-                   cases[i].name);
+            printf("    SETUP-ERROR  %-32s (could not create fixture)\n", cases[i].name);
             failures++;
             continue;
         }
@@ -271,39 +273,16 @@ TEST(invariant_discovery_always_skip_dirs) {
  * (so the test shows they are mode-gated, not universally skipped).
  */
 TEST(invariant_discovery_fast_skip_dirs) {
-    struct { const char *name; } fast_cases[] = {
-        { "generated" },
-        { "gen" },
-        { "fixtures" },
-        { "testdata" },
-        { "test_data" },
-        { "__tests__" },
-        { "__mocks__" },
-        { "__snapshots__" },
-        { "docs" },
-        { "doc" },
-        { "examples" },
-        { "assets" },
-        { "static" },
-        { "public" },
-        { "third_party" },
-        { "thirdparty" },
-        { "external" },
-        { "migrations" },
-        { "build" },  /* build is in FAST_SKIP_DIRS, not ALWAYS */
-        { "bin" },
-        { "out" },
-        { "tools" },
-        { "scripts" },
-        { "samples" },
-        { "e2e" },
-        { "integration" },
-        { "hack" },
-        { "locale" },
-        { "locales" },
-        { "i18n" },
-        { "l10n" },
-        { "media" },
+    struct {
+        const char *name;
+    } fast_cases[] = {
+        {"generated"},  {"gen"},         {"fixtures"},      {"testdata"}, {"test_data"},
+        {"__tests__"},  {"__mocks__"},   {"__snapshots__"}, {"docs"},     {"doc"},
+        {"examples"},   {"assets"},      {"static"},        {"public"},   {"third_party"},
+        {"thirdparty"}, {"migrations"},  {"build"}, /* build is in FAST_SKIP_DIRS, not ALWAYS */
+        {"bin"},        {"out"},         {"tools"},         {"scripts"},  {"samples"},
+        {"e2e"},        {"integration"}, {"hack"},          {"locale"},   {"locales"},
+        {"i18n"},       {"l10n"},        {"media"},
     };
 
     int n = (int)(sizeof(fast_cases) / sizeof(fast_cases[0]));
@@ -318,8 +297,7 @@ TEST(invariant_discovery_fast_skip_dirs) {
             continue;
         }
         if (moderate != 0) {
-            printf("    REGRESSION   %-32s not skipped in MODERATE mode\n",
-                   fast_cases[i].name);
+            printf("    REGRESSION   %-32s not skipped in MODERATE mode\n", fast_cases[i].name);
             failures++;
         }
 
@@ -349,16 +327,12 @@ TEST(invariant_discovery_control_always_found) {
     snprintf(tmpdir, sizeof(tmpdir), "%s/cbm_ctrl_XXXXXX", cbm_tmpdir());
     ASSERT_NOT_NULL(cbm_mkdtemp(tmpdir));
 
-    ASSERT_EQ(0, th_write_file(TH_PATH(tmpdir, "src/main.py"),
-                               "def main(): pass\n"));
+    ASSERT_EQ(0, th_write_file(TH_PATH(tmpdir, "src/main.py"), "def main(): pass\n"));
 
     /* Throw in a few skip-dirs alongside to confirm they don't interfere */
-    ASSERT_EQ(0, th_write_file(TH_PATH(tmpdir, "node_modules/a/b.js"),
-                               "module.exports = {};\n"));
-    ASSERT_EQ(0, th_write_file(TH_PATH(tmpdir, ".git/config"),
-                               "[core]\n"));
-    ASSERT_EQ(0, th_write_file(TH_PATH(tmpdir, "vendor/dep/lib.c"),
-                               "int x = 0;\n"));
+    ASSERT_EQ(0, th_write_file(TH_PATH(tmpdir, "node_modules/a/b.js"), "module.exports = {};\n"));
+    ASSERT_EQ(0, th_write_file(TH_PATH(tmpdir, ".git/config"), "[core]\n"));
+    ASSERT_EQ(0, th_write_file(TH_PATH(tmpdir, "vendor/dep/lib.c"), "int x = 0;\n"));
 
     cbm_file_info_t *files = NULL;
     int count = 0;
@@ -414,12 +388,10 @@ TEST(invariant_discovery_control_always_found) {
  */
 
 /* ── Helper: count distinct nodes by name for a project ─────────────────── */
-static int count_nodes_by_name(cbm_store_t *store, const char *project,
-                               const char *sym_name) {
+static int count_nodes_by_name(cbm_store_t *store, const char *project, const char *sym_name) {
     cbm_node_t *nodes = NULL;
     int node_count = 0;
-    int rc = cbm_store_find_nodes_by_name(store, project, sym_name,
-                                          &nodes, &node_count);
+    int rc = cbm_store_find_nodes_by_name(store, project, sym_name, &nodes, &node_count);
     if (rc != CBM_STORE_OK) {
         return -1;
     }
@@ -430,12 +402,10 @@ static int count_nodes_by_name(cbm_store_t *store, const char *project,
 /* ── Helper: count distinct qualified_names among nodes by name ─────────── */
 /* Returns the number of DISTINCT qualified_name strings found. */
 /* This catches the case where node_count > 1 but QNs collapsed to the same. */
-static int count_distinct_qns(cbm_store_t *store, const char *project,
-                               const char *sym_name) {
+static int count_distinct_qns(cbm_store_t *store, const char *project, const char *sym_name) {
     cbm_node_t *nodes = NULL;
     int node_count = 0;
-    int rc = cbm_store_find_nodes_by_name(store, project, sym_name,
-                                          &nodes, &node_count);
+    int rc = cbm_store_find_nodes_by_name(store, project, sym_name, &nodes, &node_count);
     if (rc != CBM_STORE_OK) {
         return -1;
     }
@@ -489,13 +459,11 @@ TEST(invariant_fqn_api_h_api_c) {
            "change)\n",
            tf_dim(), tf_reset());
     return -1; /* skip — not counted as pass or fail */
-    static const char api_h[] =
-        "void api_init(void);\n"
-        "void api_shutdown(void);\n";
+    static const char api_h[] = "void api_init(void);\n"
+                                "void api_shutdown(void);\n";
 
-    static const char api_c[] =
-        "void api_init(void) {}\n"
-        "void api_shutdown(void) {}\n";
+    static const char api_c[] = "void api_init(void) {}\n"
+                                "void api_shutdown(void) {}\n";
 
     static const RFile files[] = {
         {"api.h", api_h},
@@ -540,16 +508,14 @@ TEST(invariant_fqn_svc_h_svc_cpp) {
            "change)\n",
            tf_dim(), tf_reset());
     return -1; /* skip — not counted as pass or fail */
-    static const char svc_h[] =
-        "void svc_start(void);\n"
-        "void svc_stop(void);\n";
+    static const char svc_h[] = "void svc_start(void);\n"
+                                "void svc_stop(void);\n";
 
-    static const char svc_cpp[] =
-        "void svc_start(void) {}\n"
-        "void svc_stop(void) {}\n";
+    static const char svc_cpp[] = "void svc_start(void) {}\n"
+                                  "void svc_stop(void) {}\n";
 
     static const RFile files[] = {
-        {"svc.h",   svc_h},
+        {"svc.h", svc_h},
         {"svc.cpp", svc_cpp},
     };
     static const int nfiles = (int)(sizeof(files) / sizeof(files[0]));
@@ -584,13 +550,11 @@ TEST(invariant_fqn_svc_h_svc_cpp) {
  * If this fires RED, the path-prefix component was accidentally collapsed.
  */
 TEST(invariant_fqn_different_dirs_same_stem) {
-    static const char util_a[] =
-        "void util_init(void) {}\n"
-        "void util_free(void) {}\n";
+    static const char util_a[] = "void util_init(void) {}\n"
+                                 "void util_free(void) {}\n";
 
-    static const char util_b[] =
-        "void util_init(void) {}\n"
-        "void util_free(void) {}\n";
+    static const char util_b[] = "void util_init(void) {}\n"
+                                 "void util_free(void) {}\n";
 
     static const RFile files[] = {
         {"a/util.c", util_a},
@@ -641,16 +605,14 @@ TEST(invariant_fqn_different_dirs_same_stem) {
  * QN check: IF both are indexed, QNs must differ.
  */
 TEST(invariant_fqn_ts_vs_dts) {
-    static const char widget_ts[] =
-        "export function widget_fn(): void {}\n"
-        "export function widget_init(): void {}\n";
+    static const char widget_ts[] = "export function widget_fn(): void {}\n"
+                                    "export function widget_init(): void {}\n";
 
-    static const char widget_dts[] =
-        "export function widget_fn(): void;\n"
-        "export function widget_init(): void;\n";
+    static const char widget_dts[] = "export function widget_fn(): void;\n"
+                                     "export function widget_init(): void;\n";
 
     static const RFile files[] = {
-        {"widget.ts",   widget_ts},
+        {"widget.ts", widget_ts},
         {"widget.d.ts", widget_dts},
     };
     static const int nfiles = (int)(sizeof(files) / sizeof(files[0]));
@@ -661,15 +623,13 @@ TEST(invariant_fqn_ts_vs_dts) {
 
     cbm_node_t *nodes = NULL;
     int node_count = 0;
-    int rc = cbm_store_find_nodes_by_name(store, lp.project, "widget_fn",
-                                          &nodes, &node_count);
+    int rc = cbm_store_find_nodes_by_name(store, lp.project, "widget_fn", &nodes, &node_count);
     int distinct = 0;
     if (rc == CBM_STORE_OK && node_count > 1) {
         /* Verify all found nodes have DISTINCT qualified_names */
         const char *first_qn = nodes[0].qualified_name;
         for (int i = 1; i < node_count; i++) {
-            if (nodes[i].qualified_name &&
-                first_qn &&
+            if (nodes[i].qualified_name && first_qn &&
                 strcmp(nodes[i].qualified_name, first_qn) != 0) {
                 distinct++;
             }
@@ -707,13 +667,11 @@ TEST(invariant_fqn_ts_vs_dts) {
  * is broken.
  */
 TEST(invariant_fqn_python_same_module_different_packages) {
-    static const char mod_a[] =
-        "def process():\n"
-        "    return 'a'\n";
+    static const char mod_a[] = "def process():\n"
+                                "    return 'a'\n";
 
-    static const char mod_b[] =
-        "def process():\n"
-        "    return 'b'\n";
+    static const char mod_b[] = "def process():\n"
+                                "    return 'b'\n";
 
     static const RFile files[] = {
         {"pkg_a/mod.py", mod_a},
@@ -747,18 +705,16 @@ TEST(invariant_fqn_python_same_module_different_packages) {
  * GREEN guard for stem-with-underscore correctness.
  */
 TEST(invariant_fqn_go_test_file_stem) {
-    static const char mod_go[] =
-        "package mod\n"
-        "\n"
-        "func Setup() {}\n";
+    static const char mod_go[] = "package mod\n"
+                                 "\n"
+                                 "func Setup() {}\n";
 
-    static const char mod_test_go[] =
-        "package mod\n"
-        "\n"
-        "func Setup() {}\n";
+    static const char mod_test_go[] = "package mod\n"
+                                      "\n"
+                                      "func Setup() {}\n";
 
     static const RFile files[] = {
-        {"mod.go",      mod_go},
+        {"mod.go", mod_go},
         {"mod_test.go", mod_test_go},
     };
     static const int nfiles = (int)(sizeof(files) / sizeof(files[0]));
@@ -797,10 +753,10 @@ SUITE(repro_invariant_discovery_fqn) {
     RUN_TEST(invariant_discovery_fast_skip_dirs);
 
     /* Part B — FQN same-stem distinctness */
-    RUN_TEST(invariant_fqn_api_h_api_c);         /* RED  — gap #4 */
-    RUN_TEST(invariant_fqn_svc_h_svc_cpp);       /* RED  — gap #4 */
-    RUN_TEST(invariant_fqn_different_dirs_same_stem); /* GREEN guard */
-    RUN_TEST(invariant_fqn_ts_vs_dts);           /* GREEN guard */
+    RUN_TEST(invariant_fqn_api_h_api_c);                           /* RED  — gap #4 */
+    RUN_TEST(invariant_fqn_svc_h_svc_cpp);                         /* RED  — gap #4 */
+    RUN_TEST(invariant_fqn_different_dirs_same_stem);              /* GREEN guard */
+    RUN_TEST(invariant_fqn_ts_vs_dts);                             /* GREEN guard */
     RUN_TEST(invariant_fqn_python_same_module_different_packages); /* GREEN guard */
-    RUN_TEST(invariant_fqn_go_test_file_stem);   /* GREEN guard */
+    RUN_TEST(invariant_fqn_go_test_file_stem);                     /* GREEN guard */
 }
