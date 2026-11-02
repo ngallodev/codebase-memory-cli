@@ -270,6 +270,14 @@ cbm_resolution_t cbm_registry_resolve_call_scoped(const cbm_registry_t *r, const
                                                   const char **import_map_vals,
                                                   int import_map_count, CBMLanguage lang,
                                                   const char *scope_qn);
+/* Python: the bare base `base` of the class `class_qn` nested in a class body
+ * binds the sibling class of that body (`<enclosing class>.<base>`) when the
+ * sibling is defined earlier in the same file (Python evaluates the bases in
+ * the class body). Exact lookups only; the registry-owned sibling QN, or NULL
+ * to resolve the base as before. Every base-class resolver asks this first. */
+const char *cbm_registry_resolve_python_class_body_base(const cbm_registry_t *r,
+                                                        const cbm_gbuf_t *gb, const char *class_qn,
+                                                        const char *base, CBMLanguage lang);
 #ifdef CBM_ENABLE_TEST_SEAMS
 void cbm_pxc_test_import_probe_fail_after(int successful_allocations);
 #endif
@@ -309,6 +317,15 @@ char *cbm_def_props_buf(const CBMDefinition *def, char *stack, size_t *size);
 /* Add a file's own doc (Go package comment, Rust inner docs) to its File node
  * as "docstring". */
 void cbm_def_file_doc(const cbm_gbuf_node_t *file_node, const char *doc);
+
+/* A definition's decorator route (def->route_path, e.g. an ASP.NET [HttpGet("x")]
+ * action): upsert its Route node and the definition -> Route HANDLES edge. Both
+ * resolvers call it per DEFINITION at node creation (pass_parallel.c,
+ * pass_definitions.c), so overloads sharing one QN -- a GET form action and its
+ * POST submit -- each keep their route; the merged node properties hold only one
+ * of them. Defined in pass_route_nodes.c. */
+void cbm_pipeline_emit_def_route(cbm_gbuf_t *gb, int64_t func_id, const CBMDefinition *def,
+                                 const char *rel);
 /* A file and the directory beside it share a stem (`pkg/foo.sh` beside
  * `pkg/foo/`): the file's Module QN equals the directory's Folder QN, and the
  * graph buffer keeps only the Folder. One side yields:

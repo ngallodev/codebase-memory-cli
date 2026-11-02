@@ -750,6 +750,35 @@ bool cbm_suppress_weak_local_binding_call(bool enabled, bool callee_is_locally_b
     return weak_short_name_strategy(strategy);
 }
 
+bool cbm_go_suppress_weak_method_match(bool is_go, bool is_method, const char *strategy,
+                                       double confidence) {
+    /* Go analog of the TS/JS guard above, same failure class: a selector call
+     * whose receiver the Go LSP could not type reaches the registry and a bare
+     * short-name strategy binds it to an arbitrary same-named project symbol
+     * (`f.Close()` on an os.File -> a project `Close`, suffix_match over 15
+     * candidates). Built on the shared drop-list so "weak" means one thing
+     * for every guard; Go narrows it in one place only (unique_name below).
+     * field_type_hint stays weak: it is a receiver-NAME substring match, not
+     * a declared-type lookup (the parallel resolver no longer produces it for
+     * Go; a typed field call such as lrp_go_s8's `s.repo.Find()` resolves
+     * through the Go LSP). */
+    if (!is_go || !is_method || !weak_short_name_strategy(strategy)) {
+        return false;
+    }
+    if (strcmp(strategy, "unique_name") != 0) {
+        return true; /* suffix_match, field_type_hint, fuzzy */
+    }
+    /* unique_name is dropped only when PENALIZED: resolve_name_lookup scales
+     * CONF_UNIQUE_NAME by DEFAULT_CONFIDENCE exactly when the lone candidate
+     * is not reachable through the caller's imports — the stdlib/vendor
+     * hijack shape (`io.Copy` -> a project `Copy`). An unpenalized
+     * unique_name target sits inside the caller's import closure (or the
+     * file has no imports, e.g. a same-package call) and must be kept —
+     * dropping it kills genuinely-typed lone-candidate calls that never
+     * enter the field-type-hint upgrade (candidate_count == 1). */
+    return confidence < CONF_UNIQUE_NAME;
+}
+
 /* Import-binding counterpart of the parameter guard above (#2127). An import
  * binds the identifier for the whole module; when that import is external it
  * never materializes, and the chain falls through to project-wide short-name
@@ -1381,6 +1410,47 @@ const char *cbm_registry_value_target(const cbm_registry_t *r, const char *qn) {
     }
     const char *owned = cbm_ht_get_key(r->exact, twin);
     return owned ? owned : qn;
+}
+
+/* Python evaluates a class statement's bases in the namespace of the body
+ * that encloses it. For a class nested in a class, a bare base naming a class
+ * defined EARLIER in that same class body is that sibling
+ * (`class IntegrityError(DatabaseError)` in sqlalchemy's asyncpg adapter),
+ * whatever same-named classes the project has elsewhere. A sibling defined
+ * later is not bound yet when the base is evaluated. Exact lookups only. */
+const char *cbm_registry_resolve_python_class_body_base(const cbm_registry_t *r,
+                                                        const cbm_gbuf_t *gb, const char *class_qn,
+                                                        const char *base, CBMLanguage lang) {
+    if (lang != CBM_LANG_PYTHON || !r || !gb || !class_qn || !base || !base[0] ||
+        strchr(base, '.')) {
+        return NULL;
+    }
+    const char *dot = strrchr(class_qn, '.');
+    if (!dot || dot == class_qn) {
+        return NULL;
+    }
+    char sibling[CBM_SZ_1K];
+    int enclosing_len = (int)(dot - class_qn);
+    int n = snprintf(sibling, sizeof(sibling), "%.*s", enclosing_len, class_qn);
+    if (n < 0 || (size_t)n >= sizeof(sibling) ||
+        !cbm_label_is_type_like(cbm_registry_label_of(r, sibling))) {
+        return NULL; /* not nested in a class body (module level, or a def) */
+    }
+    n = snprintf(sibling, sizeof(sibling), "%.*s.%s", enclosing_len, class_qn, base);
+    if (n < 0 || (size_t)n >= sizeof(sibling) || strcmp(sibling, class_qn) == 0) {
+        return NULL;
+    }
+    const char *owned = cbm_ht_get_key(r->exact, sibling);
+    if (!owned || !cbm_label_is_type_like(cbm_registry_label_of(r, owned))) {
+        return NULL;
+    }
+    const cbm_gbuf_node_t *cls = cbm_gbuf_find_by_qn(gb, class_qn);
+    const cbm_gbuf_node_t *sib = cbm_gbuf_find_by_qn(gb, owned);
+    if (!cls || !sib || !cls->file_path || !sib->file_path ||
+        strcmp(cls->file_path, sib->file_path) != 0 || sib->start_line >= cls->start_line) {
+        return NULL;
+    }
+    return owned;
 }
 
 int cbm_registry_find_by_name(const cbm_registry_t *r, const char *name, const char ***out,

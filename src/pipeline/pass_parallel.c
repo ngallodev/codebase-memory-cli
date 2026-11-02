@@ -510,23 +510,7 @@ static void insert_def_into_gbuf(extract_worker_state_t *ws, const cbm_stem_mark
         cbm_free(CBM_MEM_CLASS_GBUF_STRING, props);
     }
     ws->nodes_created++;
-    if (def->route_path && def->route_path[0] != '\0') {
-        const char *rm = def->route_method ? def->route_method : "ANY";
-        char route_qn[CBM_ROUTE_QN_SIZE];
-        char cpath[CBM_SZ_256];
-        snprintf(route_qn, sizeof(route_qn), "__route__%s__%s", rm,
-                 cbm_route_canon_path(def->route_path, cpath, sizeof(cpath)));
-        char rprops[CBM_SZ_256];
-        snprintf(rprops, sizeof(rprops), "{\"method\":\"%s\",\"source\":\"decorator\"}", rm);
-        int64_t route_id =
-            cbm_gbuf_upsert_node(ws->local_gbuf, "Route", def->route_path, route_qn,
-                                 def->file_path ? def->file_path : fi->rel_path, 0, 0, rprops);
-        char hprops[CBM_SZ_512];
-        char esc_h[CBM_SZ_512];
-        cbm_json_escape(esc_h, sizeof(esc_h), def->qualified_name);
-        snprintf(hprops, sizeof(hprops), "{\"handler\":\"%s\"}", esc_h);
-        cbm_gbuf_insert_edge(ws->local_gbuf, func_id, route_id, "HANDLES", hprops);
-    }
+    cbm_pipeline_emit_def_route(ws->local_gbuf, func_id, def, fi->rel_path);
 }
 
 static void log_extract_fail(int pos, uint64_t ms, const char *path) {
@@ -3016,7 +3000,15 @@ static void resolve_file_calls(resolve_ctx_t *rc, resolve_worker_state_t *ws, CB
         }
 
         _rc_t0 = extract_now_ns();
-        try_field_type_hint(rc, &res, call->callee_name, source_node->id);
+        /* Not for Go (F-G9): the hint matches the capitalized receiver
+         * VARIABLE name as a substring of a candidate QN (`t.Run` -> any
+         * `...T...Run`), with no type evidence. The sequential resolver has no
+         * such step, so for Go it produced parallel-only edges (par/seq CALLS
+         * diverged), and the Go selector guard could not see them as the weak
+         * pick they are. SCIP precision of Go field_type_hint: 0.016. */
+        if (lang != CBM_LANG_GO) {
+            try_field_type_hint(rc, &res, call->callee_name, source_node->id);
+        }
         /* Cross-language veto — the same predicate as pass_calls.c, applied
          * AFTER the field-type hint so the hint may still re-pick a compatible
          * candidate first, and BEFORE the empty-resolution fallbacks below so a
@@ -3053,7 +3045,9 @@ static void resolve_file_calls(resolve_ctx_t *rc, resolve_worker_state_t *ws, CB
          * #606 direction.
          *
          * This language set MUST match the one in pass_calls.c exactly — see the
-         * note there. ArkTS belongs to the JS/TS family (#1842). */
+         * note there. ArkTS belongs to the JS/TS family (#1842). Go (#1906)
+         * composes via its own predicate (different drop-list — see
+         * cbm_go_suppress_weak_method_match), mirrored in pass_calls.c. */
         bool suppress_weak_member = lang == CBM_LANG_PYTHON || lang == CBM_LANG_JAVASCRIPT ||
                                     lang == CBM_LANG_TYPESCRIPT || lang == CBM_LANG_TSX ||
                                     lang == CBM_LANG_ARKTS ||
@@ -3071,6 +3065,8 @@ static void resolve_file_calls(resolve_ctx_t *rc, resolve_worker_state_t *ws, CB
                                                  call->callee_name, res.strategy)) ||
             cbm_suppress_weak_local_binding_call(suppress_weak_local_binding,
                                                  call->callee_is_locally_bound, res.strategy) ||
+            cbm_go_suppress_weak_method_match(lang == CBM_LANG_GO, call->is_method, res.strategy,
+                                              res.confidence) ||
             /* Import-binding suppression (#2127) — see pass_calls.c; this gate
              * MUST stay identical to the one there. */
             (lang == CBM_LANG_PYTHON &&
@@ -3562,13 +3558,17 @@ static void resolve_def_inherits(resolve_ctx_t *rc, resolve_worker_state_t *ws,
         if (cbm_pipeline_php_vendor_bound(php_vendor, def->base_classes[b])) {
             continue;
         }
-        const char *bqn =
-            resolve_as_class(rc->registry, def->base_classes[b], mq, ik, iv, ic, fs->lang);
-        /* Same external-base gate as the sequential semantic pass. */
-        if (!bqn ||
-            cbm_python_external_base_contradicts(fs->lang, fs->imports, def->base_classes[b], bqn,
-                                                 rc->main_gbuf, rc->project_name, fs->rel)) {
-            continue;
+        /* Same order as the sequential semantic pass: an earlier sibling of
+         * the class body first (no external-base gate), then the registry. */
+        const char *bqn = cbm_registry_resolve_python_class_body_base(
+            rc->registry, rc->main_gbuf, def->qualified_name, def->base_classes[b], fs->lang);
+        if (!bqn) {
+            bqn = resolve_as_class(rc->registry, def->base_classes[b], mq, ik, iv, ic, fs->lang);
+            if (!bqn || cbm_python_external_base_contradicts(
+                            fs->lang, fs->imports, def->base_classes[b], bqn, rc->main_gbuf,
+                            rc->project_name, fs->rel)) {
+                continue;
+            }
         }
         const cbm_gbuf_node_t *bn = cbm_gbuf_find_by_qn(rc->main_gbuf, bqn);
         if (bn && node->id != bn->id) {
@@ -4022,10 +4022,27 @@ static void resolve_worker(int worker_id, void *ctx_ptr) {
                  * this file, not to a stale extraction marker. */
                 cbm_index_mark_start(rel);
                 bool had_error = result->has_error;
+                /* The LSP map also binds annotation-only imports (#1277);
+                 * only a file that records one needs its own map, every
+                 * other file passes the CALLS map unchanged. MUST match the
+                 * sequential dispatch in pass_lsp_cross.c. */
+                const char **lsp_keys = NULL;
+                const char **lsp_vals = NULL;
+                int lsp_count = 0;
+                bool own_lsp_map = cbm_pxc_result_has_type_only_import(result);
+                if (own_lsp_map) {
+                    cbm_pxc_build_import_map_ex(rc->main_gbuf, rc->project_name, rel, lang, result,
+                                                true, &lsp_keys, &lsp_vals, &lsp_count);
+                }
                 cbm_pxc_dispatch_file_with_php_bindings(
                     lang, result, lsp_source, lsp_source_len, rel, def_module, rc->cross_registries,
-                    rc->module_def_index, rc->all_defs, rc->def_count, imp_keys, imp_vals,
-                    imp_count, pp_rust_shared_registry_get, rc, &php_vendor);
+                    rc->module_def_index, rc->all_defs, rc->def_count,
+                    own_lsp_map ? lsp_keys : imp_keys, own_lsp_map ? lsp_vals : imp_vals,
+                    own_lsp_map ? lsp_count : imp_count, pp_rust_shared_registry_get, rc,
+                    &php_vendor);
+                if (own_lsp_map) {
+                    cbm_pxc_free_import_map(lsp_keys, lsp_vals, lsp_count);
+                }
                 cbm_index_mark_done(rel);
                 if (!had_error && result->has_error && result->error_msg &&
                     (strcmp(result->error_msg, CBM_C_LSP_MEMO_ERROR) == 0 ||

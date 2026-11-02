@@ -256,22 +256,33 @@
       "upstream_checkpoint": "4c80d89edf1283cfeaa7e60ecbf40c9d2eb2b689",
       "upstream_commits": 119,
       "ancestry_validated": true,
-      "fork_base": null,
+      "fork_base": "27b731cec45e2353303738ac6d8e77acbef42b7c",
       "depends_on": [
         "13A"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_local_review_pending",
+      "branch": "sync/upstream-13b-20261102",
+      "merge_commit": "pending commit",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "adaptations": [
+        "Merged Python namespace/import and C3 resolution, PHP traits/global use, Go receiver identity and multi-return, ASP.NET route registration, and test-file scope correction.",
+        "Adapted hook search follow-up guidance to native trace/snippet/search commands.",
+        "Folded MCP-backed follow-up assertions into the native operation-host hook regression."
+      ],
+      "exclusions": [
+        "Removed upstream modifications to src/mcp/mcp.c and tests/test_mcp.c; no MCP server or transport restored."
+      ],
+      "conflicts": [
+        "src/cli/hook_augment.c: retained neutral operation payload parsing and added native CLI follow-up guidance.",
+        "src/pipeline/pipeline_internal.h: retained both definition-property and route declarations.",
+        "src/mcp/mcp.c and tests/test_mcp.c: modify/delete retained CLI-side deletion."
+      ],
+      "schema_migrations": "No index format bump; CBM_INDEX_FORMAT_VERSION remains 4. Semantic coverage version is 9.",
+      "policy_gate": "passed: python3 scripts/ci/check-github-actions-policy.py; manual/reusable only, Jenkins automatic CI.",
       "verification": {
-        "local": "pending",
-        "jenkins": "pending",
+        "production_build": "passed: scripts/build-dev.sh",
+        "focused": "passed: 1502 ASan/UBSan tests across extraction, parallel, pipeline, php_lsp, registry, edge_types_probe, doc_mentions_go, doc_links_pdf; targeted native hook and LSP surface regressions 1/1 each",
+        "jenkins": "pending final pinned candidate",
         "windows": "not_run"
       },
       "acceptance": [
@@ -281,7 +292,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue at 13C on this ancestry-preserving integration; review and acceptance remain pending.",
       "upstream_prs": [
         1041,
         1265,
