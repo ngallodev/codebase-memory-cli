@@ -572,15 +572,6 @@ static bool test_plan_has_hook_for_agent(yyjson_val *root, const char *agent) {
 
 static const char test_cli_managed_block_start[] = "<!-- codebase-memory-cli:start -->";
 
-/* Return `text` with the managed CLI instruction block (markers included, plus
- * the newline that closes the end marker) removed, or NULL when there is no
- * complete block. Lets tests compare the foreign bytes around the block without
- * pinning the block's wording. */
-static const char test_codex_activation_block[] =
-    "<!-- codebase-memory-mcp:start -->\n"
-    "For structural codebase exploration, use the installed `codebase-memory` skill.\n"
-    "<!-- codebase-memory-mcp:end -->\n";
-
 static size_t test_count_substring(const char *text, const char *needle) {
     size_t count = 0U;
     size_t needle_len = strlen(needle);
@@ -7559,14 +7550,8 @@ TEST(cli_dry_run_predicts_refused_hook_script_issue1387) {
     PASS();
 }
 
-/* #2204: the OpenCode adapter is an auto-loaded module, and the generated block
- * tells readers to "remove the markers to take ownership". A marker-less file
- * with content is the user's: appending the block to a hand-ported module
- * produces a file the client cannot even parse (the prelude redeclares the
- * user's own import and const names, and both sides declare a default export).
- * The installer must leave that file alone, and the dry run must say so instead
- * of promising a write it will not make. A dry run never writes, so the byte
- * check below follows a REAL install: that is the run that appended. */
+/* The CLI-only fork does not install the historical MCP OpenCode plugin.
+ * Preserve a user's copy and keep it out of the CLI asset plan. */
 TEST(cli_extension_leaves_user_owned_module_untouched_issue2204) {
     char home[256];
     char bin[320];
@@ -7591,33 +7576,8 @@ TEST(cli_extension_leaves_user_owned_module_untouched_issue2204) {
         FAIL("foreign module fixture failed");
 
     client_detect_env_t saved = client_detect_env_isolate(bin);
-    FILE *capture = tmpfile();
-    int saved_stdout = capture ? dup(STDOUT_FILENO) : -1;
-    bool redirected = false;
-    if (capture && saved_stdout >= 0) {
-        fflush(stdout);
-        redirected = dup2(fileno(capture), STDOUT_FILENO) >= 0;
-    }
-    long plan_output_start = -1;
-    long plan_output_end = -1;
-    char *plan = NULL;
-    if (redirected) {
-        (void)cbm_install_agent_configs(home, "/opt/other/codebase-memory-mcp", false, true);
-        fflush(stdout);
-        /* The --plan receipt (#388) replays the same path with writes off. It
-         * must not list a module the run leaves alone, and it must print
-         * nothing: stdout carries the receipt JSON. */
-        plan_output_start = (long)lseek(STDOUT_FILENO, 0, SEEK_CUR);
-        plan = cbm_build_install_plan_json(home, "/opt/other/codebase-memory-mcp");
-        fflush(stdout);
-        /* The real install, the run #2204 is about. */
-        plan_output_end = (long)lseek(STDOUT_FILENO, 0, SEEK_CUR);
-        (void)cbm_install_agent_configs(home, "/opt/other/codebase-memory-mcp", false, false);
-        fflush(stdout);
-        (void)dup2(saved_stdout, STDOUT_FILENO);
-    }
-    if (saved_stdout >= 0)
-        close(saved_stdout);
+    int install_rc = cbm_install_agent_configs(home, "/opt/codebase-memory-cli", false, false);
+    char *plan = cbm_build_install_plan_json(home, "/opt/codebase-memory-cli");
 
     char bytes[512] = {0};
     FILE *file = cbm_fopen(plugin_path, "rb");
@@ -7625,58 +7585,18 @@ TEST(cli_extension_leaves_user_owned_module_untouched_issue2204) {
     if (file)
         fclose(file);
 
-    /* Control: with the user's module gone the receipt does list the path, so
-     * the omission above cannot pass just because OpenCode went undetected. */
-    char *control_plan = NULL;
-    if (unlink(plugin_path) == 0)
-        control_plan = cbm_build_install_plan_json(home, "/opt/other/codebase-memory-mcp");
     client_detect_env_restore(&saved);
-
-    char output[16384] = {0};
-    if (capture) {
-        rewind(capture);
-        size_t count = fread(output, 1, sizeof(output) - 1U, capture);
-        output[count] = '\0';
-        fclose(capture);
-    }
-
-    /* Each phase owns its slice of stdout: [0, start) dry run, [start, end)
-     * plan mode, [end, len) real install, so no phase passes on another's
-     * line. Checked back to front, cutting the buffer at each boundary. */
-    bool sliced = plan_output_start >= 0 && plan_output_end >= plan_output_start &&
-                  (size_t)plan_output_end <= strlen(output);
-    bool reported =
-        sliced && strstr(output + plan_output_end, "cbm-augment.ts left untouched") != NULL;
-    if (sliced)
-        output[plan_output_end] = '\0';
-    bool plan_silent = sliced && strstr(output + plan_output_start, "cbm-augment.ts") == NULL;
-    if (sliced)
-        output[plan_output_start] = '\0';
-    bool warned =
-        sliced && strstr(output, "cbm-augment.ts") != NULL && strstr(output, "not ours") != NULL;
     bool untouched = got == sizeof(foreign) - 1U && memcmp(bytes, foreign, got) == 0;
     bool plan_omits = plan && strstr(plan, "cbm-augment.ts") == NULL;
-    bool control_lists = control_plan && strstr(control_plan, "cbm-augment.ts") != NULL;
     free(plan);
-    free(control_plan);
 
     test_rmdir_r(home);
-    if (!redirected)
-        FAIL("stdout capture failed");
-    if (!sliced)
-        FAIL("stdout capture lost a phase boundary");
-    if (!warned)
-        FAIL("dry-run must predict an untouched user-owned OpenCode module (#2204)");
+    if (install_rc != 0)
+        FAIL("CLI-only OpenCode installation must succeed without its retired MCP plugin");
     if (!untouched)
-        FAIL("a real install must leave the user-owned OpenCode module byte-identical (#2204)");
-    if (!reported)
-        FAIL("a real install must report the user-owned OpenCode module as left untouched (#2204)");
+        FAIL("installation must leave a historical user-owned OpenCode module byte-identical");
     if (!plan_omits)
-        FAIL("the install plan must not list a module the run leaves untouched (#2204)");
-    if (!plan_silent)
-        FAIL("plan mode must keep stdout for the receipt JSON (#2204)");
-    if (!control_lists)
-        FAIL("control: the install plan must list the module once it is not user-owned");
+        FAIL("CLI asset plan must omit the retired MCP OpenCode plugin");
     PASS();
 }
 #endif
@@ -8752,8 +8672,19 @@ TEST(cli_codex_respects_codex_home) {
     snprintf(legacy_skill, sizeof(legacy_skill), "%s/skills/codebase-memory/SKILL.md", codex_home);
     yyjson_doc *plan_doc = json ? yyjson_read(json, strlen(json), 0) : NULL;
     yyjson_val *plan_root = plan_doc ? yyjson_doc_get_root(plan_doc) : NULL;
-    bool plans_config =
-        test_json_string_array_contains(plan_root, "config_files_planned", expected_config);
+    yyjson_doc *hook_doc = hook_json ? yyjson_read(hook_json, strlen(hook_json), 0) : NULL;
+    yyjson_val *hook_root = hook_doc ? yyjson_doc_get_root(hook_doc) : NULL;
+    bool plans_hook_config = false;
+    yyjson_val *planned_hooks = hook_root ? yyjson_obj_get(hook_root, "hooks_planned") : NULL;
+    size_t planned_hooks_len = yyjson_arr_size(planned_hooks);
+    for (size_t i = 0U; i < planned_hooks_len; i++) {
+        yyjson_val *hook = yyjson_arr_get(planned_hooks, i);
+        yyjson_val *path = hook ? yyjson_obj_get(hook, "path") : NULL;
+        if (yyjson_is_str(path) && strcmp(yyjson_get_str(path), expected_config) == 0) {
+            plans_hook_config = true;
+            break;
+        }
+    }
     bool plans_instructions = test_json_string_array_contains(
         plan_root, "instruction_files_planned", expected_instructions);
     bool plans_canonical_skill =
@@ -8765,6 +8696,13 @@ TEST(cli_codex_respects_codex_home) {
     bool plan_preserved_user_file =
         instructions_after && strcmp(instructions_after, user_instructions) == 0;
 
+    if (plan_doc) {
+        yyjson_doc_free(plan_doc);
+    }
+    if (hook_doc) {
+        yyjson_doc_free(hook_doc);
+    }
+
     free(instructions_after);
     free(json);
     free(hook_json);
@@ -8773,10 +8711,10 @@ TEST(cli_codex_respects_codex_home) {
 
     if (!agents.codex)
         FAIL("Codex detection must honor CODEX_HOME");
-    if (!plans_config || !plans_instructions || !plans_canonical_skill || plans_legacy_skill ||
+    if (!plans_hook_config || !plans_instructions || !plans_canonical_skill || plans_legacy_skill ||
         plans_cleanup || !plan_preserved_user_file)
-        FAIL("Codex plan must include the managed activation pointer under CODEX_HOME without "
-             "mutating existing user content, and use HOME/.agents for the skill");
+        FAIL("Codex assets plan must honor CODEX_HOME and preserve user content, while its hook "
+             "plan identifies the hook config");
     PASS();
 }
 
@@ -11644,16 +11582,26 @@ TEST(cli_codex_migrates_to_single_hook_representation) {
     snprintf(codex_dir, sizeof(codex_dir), "%s/.codex", tmpdir);
     test_mkdirp(codex_dir);
 
+    char install_dir[512];
     char binary_dir[512];
     char binary_path[640];
+    snprintf(install_dir, sizeof(install_dir), "%s/.local", tmpdir);
     snprintf(binary_dir, sizeof(binary_dir), "%s/.local/bin", tmpdir);
+    test_mkdirp(install_dir);
+    if (chmod(install_dir, 0700) != 0)
+        FAIL("private Codex install directory fixture failed");
     test_mkdirp(binary_dir);
+    if (chmod(binary_dir, 0700) != 0)
+        FAIL("private Codex binary directory fixture failed");
 #ifdef _WIN32
     snprintf(binary_path, sizeof(binary_path), "%s/codebase-memory-cli.exe", binary_dir);
 #else
     snprintf(binary_path, sizeof(binary_path), "%s/codebase-memory-cli", binary_dir);
 #endif
-    write_test_file(binary_path, "installed binary goes even when a config cannot be cleaned\n");
+    if (write_test_file(binary_path,
+                        "installed binary goes even when a config cannot be cleaned\n") != 0 ||
+        chmod(binary_path, 0700) != 0)
+        FAIL("private Codex binary fixture failed");
 
     char *saved_home = save_test_env("HOME");
     char *saved_path = save_test_env("PATH");
@@ -11702,7 +11650,8 @@ TEST(cli_codex_migrates_to_single_hook_representation) {
     int uninstall_rc = cli_test_cmd_uninstall(1, uninstall_argv);
     char skill_path[768];
     char agent_path[768];
-    snprintf(skill_path, sizeof(skill_path), "%s/.agents/skills/codebase-memory/SKILL.md", tmpdir);
+    snprintf(skill_path, sizeof(skill_path), "%s/.agents/skills/codebase-memory-cli/SKILL.md",
+             tmpdir);
     snprintf(agent_path, sizeof(agent_path), "%s/agents/codebase-memory.toml", codex_dir);
     struct stat state;
     hooks = read_test_file_alloc(hooks_path);
@@ -11710,6 +11659,14 @@ TEST(cli_codex_migrates_to_single_hook_representation) {
     bool independent_cleanup = uninstall_rc != 0 && stat(binary_path, &state) != 0 &&
                                stat(skill_path, &state) != 0 && stat(agent_path, &state) != 0 &&
                                hooks && !strstr(hooks, "hook-augment");
+    if (!independent_cleanup) {
+        fprintf(stderr,
+                "Codex hook cleanup: rc=%d binary=%d skill=%d profile=%d refusal=%s "
+                "hooks=%s\n",
+                uninstall_rc, stat(binary_path, &state) == 0, stat(skill_path, &state) == 0,
+                stat(agent_path, &state) == 0, cbm_activation_transaction_refusal_note(),
+                hooks ? hooks : "(missing)");
+    }
     free(hooks);
 
     char bad_home[256];
@@ -11751,9 +11708,14 @@ TEST(cli_codex_migrates_to_single_hook_representation) {
     restore_test_env("CODEX_HOME", saved_codex);
     test_rmdir_r(tmpdir);
     if (!lifecycle_ok || !migrated || !independent_cleanup ||
-        !instructions_independent_of_preflight)
+        !instructions_independent_of_preflight) {
+        fprintf(stderr,
+                "Codex hook lifecycle: idempotent=%d migrated=%d cleanup=%d "
+                "asset_independent=%d\n",
+                lifecycle_ok, migrated, independent_cleanup, instructions_independent_of_preflight);
         FAIL("Codex lifecycle preflight must be idempotent, keep instructions independent of "
              "hook preflight, and independently clean owned side files");
+    }
     PASS();
 }
 
@@ -11770,7 +11732,8 @@ TEST(cli_codex_instruction_block_install_ignores_broken_hook_config_issue1689) {
     snprintf(codex_dir, sizeof(codex_dir), "%s/.codex", tmpdir);
     snprintf(config_path, sizeof(config_path), "%s/config.toml", codex_dir);
     snprintf(agents_path, sizeof(agents_path), "%s/AGENTS.md", codex_dir);
-    snprintf(skill_path, sizeof(skill_path), "%s/skills/codebase-memory-cli/SKILL.md", codex_dir);
+    snprintf(skill_path, sizeof(skill_path), "%s/.agents/skills/codebase-memory-cli/SKILL.md",
+             tmpdir);
     if (test_mkdirp(codex_dir) != 0) {
         test_rmdir_r(tmpdir);
         FAIL("failed to create Codex cleanup preflight fixture directory");
@@ -11833,9 +11796,15 @@ TEST(cli_codex_instruction_block_install_ignores_broken_hook_config_issue1689) {
     restore_test_env("CODEX_HOME", saved_codex);
     test_rmdir_r(tmpdir);
 
-    if (!plans_instructions || !plan_preserved_files || !assets_independent || !block_replaced)
+    if (!plans_instructions || !plan_preserved_files || !assets_independent || !block_replaced) {
+        fprintf(stderr,
+                "Codex broken-config assets: plan=%d preserve=%d independent=%d "
+                "block=%d install_rc=%d\n",
+                plans_instructions, plan_preserved_files, assets_independent, block_replaced,
+                install_rc);
         FAIL("Codex instruction block must install independently of a broken hook config while "
              "the plan itself stays non-mutating");
+    }
     PASS();
 }
 
@@ -11921,8 +11890,7 @@ TEST(cli_codex_preflight_reports_heading_and_reason) {
     char *after = read_test_file_alloc(config_path);
     char *agents_after = read_test_file_alloc(agents_path);
     struct stat state;
-    bool unchanged = after && strcmp(after, ambiguous) == 0 && agents_after &&
-                     strcmp(agents_after, test_codex_activation_block) == 0 &&
+    bool unchanged = after && strcmp(after, ambiguous) == 0 && !agents_after &&
                      stat(canonical_file, &state) != 0 &&
                      cli_test_file_equals(legacy_file, cbm_get_skills()[0].content);
     bool diagnostic =

@@ -8606,6 +8606,7 @@ static bool install_codex_activation_pointer(const char *path, bool dry_run) {
         plan_record("Codex CLI", "instructions", path);
         return true;
     }
+    cbm_warn_legacy_mcp_block(path);
     return dry_run || cbm_upsert_instructions(path, codex_instructions_content) == CLI_OK;
 }
 
@@ -9634,85 +9635,88 @@ static void install_cli_agent_configs(const cbm_detected_agents_t *agents, const
         snprintf(cp, sizeof(cp), "%s/config.toml", config_dir);
         snprintf(ip, sizeof(ip), "%s/AGENTS.md", config_dir);
         snprintf(ap, sizeof(ap), "%s/agents/codebase-memory.toml", config_dir);
-        bool pointer_installed = install_codex_activation_pointer(ip, dry_run);
-        install_codex_skill(home, config_dir, force, dry_run);
-        install_tiered_agent_profiles(
-            (cbm_tiered_profile_set_t){
-                .label = "Codex CLI",
-                .verify_path = ap,
-                .binary_path = binary_path,
-                .legacy_verify_content = legacy_codex_verify_agent_content,
-                .dialect = CBM_GRAPH_DIALECT_CODEX,
-            },
-            dry_run);
-        char command[CLI_BUF_8K];
-        char command_windows[CLI_BUF_8K];
-        char hooks_json[CLI_BUF_1K];
-        snprintf(hooks_json, sizeof(hooks_json), "%s/hooks.json", config_dir);
-        bool use_hooks_json = cbm_file_exists(hooks_json);
-        bool commands_ok =
-            cbm_build_augment_command(binary_path, command, sizeof(command)) == CLI_OK &&
-            cbm_build_augment_command_windows(binary_path, command_windows,
-                                              sizeof(command_windows)) == CLI_OK;
-        cbm_toml_codex_hook_action_t preflight_action =
-            use_hooks_json ? CBM_TOML_CODEX_HOOK_REMOVE : CBM_TOML_CODEX_HOOK_UPSERT;
-        cbm_toml_codex_hook_failure_t preflight_failure = CBM_TOML_CODEX_HOOK_FAILURE_NONE;
-        int preflight_result = commands_ok ? cbm_reconcile_codex_hooks_command_detailed(
-                                                 cp, command, command_windows, preflight_action,
-                                                 true, &preflight_failure, NULL)
-                                           : CLI_ERR;
-        if (preflight_result != CLI_OK) {
-            if (!g_install_plan) {
-                printf("Codex CLI:\n");
-                fflush(stdout);
-            }
-            const char *reason = preflight_failure == CBM_TOML_CODEX_HOOK_FAILURE_NONE
-                                     ? NULL
-                                     : cbm_toml_codex_hook_failure_name(preflight_failure);
-            record_agent_config_error_with_reason(
-                false, "Codex CLI", commands_ok ? "hook_preflight" : "hook_command_build", cp,
-                reason);
+        if (cbm_installing_assets()) {
+            bool pointer_installed = install_codex_activation_pointer(ip, dry_run);
             if (!g_install_plan) {
                 report_codex_activation_pointer_install(ip, pointer_installed);
             }
-            goto codex_install_done;
+            install_codex_skill(home, config_dir, force, dry_run);
+            install_tiered_agent_profiles(
+                (cbm_tiered_profile_set_t){
+                    .label = "Codex CLI",
+                    .verify_path = ap,
+                    .binary_path = binary_path,
+                    .legacy_verify_content = legacy_codex_verify_agent_content,
+                    .dialect = CBM_GRAPH_DIALECT_CODEX,
+                },
+                dry_run);
         }
-        if (!g_install_plan) {
-            report_codex_activation_pointer_install(ip, pointer_installed);
-        }
-        const char *hook_target = use_hooks_json ? hooks_json : cp;
-        if (g_install_plan) {
-            plan_record("Codex CLI", "hook", hook_target);
-        } else {
-            bool hook_ok = true;
-            int pretool_written = 1;
-            if (!dry_run && use_hooks_json) {
-                hook_ok =
-                    cbm_upsert_paired_lifecycle_hooks_json(hooks_json, command, command_windows,
-                                                           NULL, CMM_HOOK_TIMEOUT_SEC) == CLI_OK &&
-                    cbm_upsert_codex_pretool_hooks_json(hooks_json, command, command_windows) ==
-                        CLI_OK &&
-                    cbm_reconcile_codex_hooks_command(cp, command, command_windows,
-                                                      CBM_TOML_CODEX_HOOK_REMOVE, false) == CLI_OK;
-            } else if (!dry_run) {
-                hook_ok = cbm_reconcile_codex_hooks_command_detailed(
-                              cp, command, command_windows, CBM_TOML_CODEX_HOOK_UPSERT, false, NULL,
-                              &pretool_written) == CLI_OK;
+        if (cbm_installing_hooks()) {
+            char command[CLI_BUF_8K];
+            char command_windows[CLI_BUF_8K];
+            char hooks_json[CLI_BUF_1K];
+            snprintf(hooks_json, sizeof(hooks_json), "%s/hooks.json", config_dir);
+            bool use_hooks_json = cbm_file_exists(hooks_json);
+            bool commands_ok =
+                cbm_build_augment_command(binary_path, command, sizeof(command)) == CLI_OK &&
+                cbm_build_augment_command_windows(binary_path, command_windows,
+                                                  sizeof(command_windows)) == CLI_OK;
+            cbm_toml_codex_hook_action_t preflight_action =
+                use_hooks_json ? CBM_TOML_CODEX_HOOK_REMOVE : CBM_TOML_CODEX_HOOK_UPSERT;
+            cbm_toml_codex_hook_failure_t preflight_failure = CBM_TOML_CODEX_HOOK_FAILURE_NONE;
+            int preflight_result = commands_ok ? cbm_reconcile_codex_hooks_command_detailed(
+                                                     cp, command, command_windows, preflight_action,
+                                                     true, &preflight_failure, NULL)
+                                               : CLI_ERR;
+            if (preflight_result != CLI_OK) {
+                if (!g_install_plan) {
+                    printf("Codex CLI:\n");
+                    fflush(stdout);
+                }
+                const char *reason = preflight_failure == CBM_TOML_CODEX_HOOK_FAILURE_NONE
+                                         ? NULL
+                                         : cbm_toml_codex_hook_failure_name(preflight_failure);
+                record_agent_config_error_with_reason(
+                    false, "Codex CLI", commands_ok ? "hook_preflight" : "hook_command_build", cp,
+                    reason);
+                goto codex_install_done;
             }
-            if (!hook_ok) {
-                record_agent_config_error(false, "Codex CLI", "hook_install", hook_target);
+            const char *hook_target = use_hooks_json ? hooks_json : cp;
+            if (g_install_plan) {
+                plan_record("Codex CLI", "hook", hook_target);
             } else {
-                printf(pretool_written
-                           ? "  hooks: SessionStart + SubagentStart + PreToolUse Bash (dynamic "
-                             "graph context)\n"
-                           : "  hooks: SessionStart + SubagentStart (dynamic graph context); "
-                             "PreToolUse skipped: config.toml already has an inline "
-                             "hooks.PreToolUse\n");
-                printf("  note: non-managed hooks require /hooks trust; definition changes "
-                       "require re-trust\n");
+                bool hook_ok = true;
+                int pretool_written = 1;
+                if (!dry_run && use_hooks_json) {
+                    hook_ok =
+                        cbm_upsert_paired_lifecycle_hooks_json(hooks_json, command, command_windows,
+                                                               NULL,
+                                                               CMM_HOOK_TIMEOUT_SEC) == CLI_OK &&
+                        cbm_upsert_codex_pretool_hooks_json(hooks_json, command, command_windows) ==
+                            CLI_OK &&
+                        cbm_reconcile_codex_hooks_command(cp, command, command_windows,
+                                                          CBM_TOML_CODEX_HOOK_REMOVE,
+                                                          false) == CLI_OK;
+                } else if (!dry_run) {
+                    hook_ok = cbm_reconcile_codex_hooks_command_detailed(
+                                  cp, command, command_windows, CBM_TOML_CODEX_HOOK_UPSERT, false,
+                                  NULL, &pretool_written) == CLI_OK;
+                }
+                if (!hook_ok) {
+                    record_agent_config_error(false, "Codex CLI", "hook_install", hook_target);
+                } else {
+                    printf(pretool_written
+                               ? "  hooks: SessionStart + SubagentStart + PreToolUse Bash (dynamic "
+                                 "graph context)\n"
+                               : "  hooks: SessionStart + SubagentStart (dynamic graph context); "
+                                 "PreToolUse skipped: config.toml already has an inline "
+                                 "hooks.PreToolUse\n");
+                    printf("  note: non-managed hooks require /hooks trust; definition changes "
+                           "require re-trust\n");
+                }
             }
+        codex_install_done:;
         }
-    codex_install_done:;
     }
     if (agents->gemini) {
         install_gemini_config(home, binary_path, dry_run);
