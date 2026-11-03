@@ -53,6 +53,7 @@ extern const char *cbm_test_program_path;
 #include <sys/wait.h>
 #include <pwd.h>
 #include <pthread.h>
+#include <time.h>
 #include <unistd.h>
 #ifdef __linux__
 #include <sched.h> /* #1830 userns real smoke: unshare(CLONE_NEWUSER). */
@@ -3507,8 +3508,8 @@ TEST(daemon_ipc_posix_lifetime_reservation_concurrent_queries_preserve_kernel_lo
     if (reservation) {
         probe_worker.endpoint = endpoint;
         acquire_worker.endpoint = endpoint;
-        probe_started = pthread_create(&probe_thread, NULL, ipc_lifetime_concurrent_worker,
-                                       &probe_worker) == 0;
+        probe_started =
+            pthread_create(&probe_thread, NULL, ipc_lifetime_concurrent_worker, &probe_worker) == 0;
         acquire_started = pthread_create(&acquire_thread, NULL, ipc_lifetime_concurrent_worker,
                                          &acquire_worker) == 0;
     }
@@ -3563,6 +3564,180 @@ TEST(daemon_ipc_posix_lifetime_reservation_concurrent_queries_preserve_kernel_lo
     ASSERT_TRUE(WIFEXITED(child_status));
     ASSERT_EQ(WEXITSTATUS(child_status), 0);
     ASSERT_EQ(child_result, IPC_TEST_LOCK_HELD);
+    ASSERT_EQ(free_after_release, 0);
+    PASS();
+}
+
+typedef struct {
+    const cbm_daemon_ipc_endpoint_t *endpoint;
+    pthread_mutex_t mutex;
+    pthread_cond_t condition;
+    bool probe_parked;
+    bool release_probe;
+    atomic_bool acquire_started;
+    atomic_bool acquire_done;
+    cbm_daemon_ipc_lifetime_reservation_t *reservation;
+    int acquire_result;
+    int probe_result;
+} ipc_lifetime_interleave_t;
+
+static void ipc_test_pause_lifetime_probe(void *opaque) {
+    ipc_lifetime_interleave_t *state = opaque;
+    (void)pthread_mutex_lock(&state->mutex);
+    state->probe_parked = true;
+    (void)pthread_cond_broadcast(&state->condition);
+    while (!state->release_probe) {
+        (void)pthread_cond_wait(&state->condition, &state->mutex);
+    }
+    (void)pthread_mutex_unlock(&state->mutex);
+}
+
+static void *ipc_test_lifetime_probe_interleave(void *opaque) {
+    ipc_lifetime_interleave_t *state = opaque;
+    state->probe_result = cbm_daemon_ipc_lifetime_reservation_probe(state->endpoint);
+    return NULL;
+}
+
+static void *ipc_test_lifetime_acquire_interleave(void *opaque) {
+    ipc_lifetime_interleave_t *state = opaque;
+    atomic_store_explicit(&state->acquire_started, true, memory_order_release);
+    state->acquire_result =
+        cbm_daemon_ipc_lifetime_reservation_try_acquire(state->endpoint, &state->reservation);
+    atomic_store_explicit(&state->acquire_done, true, memory_order_release);
+    (void)pthread_mutex_lock(&state->mutex);
+    (void)pthread_cond_broadcast(&state->condition);
+    (void)pthread_mutex_unlock(&state->mutex);
+    return NULL;
+}
+
+TEST(daemon_ipc_posix_first_lifetime_acquire_serializes_with_probe) {
+    static const char key[] = "a1a1b2b2c3c3d4d4";
+    char parent[TEST_PATH_CAP] = {0}, runtime_dir[TEST_PATH_CAP] = {0};
+    char lock_path[TEST_PATH_CAP] = {0};
+    cbm_daemon_ipc_endpoint_t *endpoint = NULL;
+    ipc_lifetime_interleave_t state = {0};
+    pthread_t probe_thread, acquire_thread;
+    bool mutex_ready = false, condition_ready = false;
+    bool probe_started = false, acquire_started = false;
+    bool probe_joined = false, acquire_joined = false, acquire_blocked = false;
+    pid_t child = -1;
+    int child_status = -1, result_pipe[2] = {-1, -1};
+    uint8_t child_result = IPC_TEST_LOCK_ERROR;
+    int free_after_release = -1;
+
+    if (ipc_test_parent_new(parent, "first-lifetime-interleave")) {
+        endpoint = cbm_daemon_ipc_endpoint_new(key, parent);
+    }
+    if (endpoint) {
+        ipc_test_copy_path(runtime_dir, cbm_daemon_ipc_endpoint_runtime_dir(endpoint));
+        state.endpoint = endpoint;
+    }
+    if (endpoint && ipc_test_lifetime_lock_path(lock_path, runtime_dir, key) &&
+        pthread_mutex_init(&state.mutex, NULL) == 0) {
+        mutex_ready = true;
+        if (pthread_cond_init(&state.condition, NULL) == 0) {
+            condition_ready = true;
+            atomic_init(&state.acquire_started, false);
+            atomic_init(&state.acquire_done, false);
+            cbm_daemon_ipc_posix_lifetime_probe_hook_set_for_test(ipc_test_pause_lifetime_probe,
+                                                                  &state);
+            probe_started = pthread_create(&probe_thread, NULL, ipc_test_lifetime_probe_interleave,
+                                           &state) == 0;
+            if (probe_started) {
+                (void)pthread_mutex_lock(&state.mutex);
+                while (!state.probe_parked) {
+                    (void)pthread_cond_wait(&state.condition, &state.mutex);
+                }
+                (void)pthread_mutex_unlock(&state.mutex);
+                acquire_started = pthread_create(&acquire_thread, NULL,
+                                                 ipc_test_lifetime_acquire_interleave, &state) == 0;
+                if (acquire_started) {
+                    while (!atomic_load_explicit(&state.acquire_started, memory_order_acquire)) {}
+                    struct timespec deadline;
+                    (void)clock_gettime(CLOCK_REALTIME, &deadline);
+                    deadline.tv_nsec += 250000000L;
+                    if (deadline.tv_nsec >= 1000000000L) {
+                        deadline.tv_sec++;
+                        deadline.tv_nsec -= 1000000000L;
+                    }
+                    (void)pthread_mutex_lock(&state.mutex);
+                    int wait_status = 0;
+                    while (!atomic_load_explicit(&state.acquire_done, memory_order_acquire) &&
+                           wait_status == 0) {
+                        wait_status =
+                            pthread_cond_timedwait(&state.condition, &state.mutex, &deadline);
+                    }
+                    acquire_blocked =
+                        !atomic_load_explicit(&state.acquire_done, memory_order_acquire);
+                    state.release_probe = true;
+                    (void)pthread_cond_broadcast(&state.condition);
+                    (void)pthread_mutex_unlock(&state.mutex);
+                } else {
+                    (void)pthread_mutex_lock(&state.mutex);
+                    state.release_probe = true;
+                    (void)pthread_cond_broadcast(&state.condition);
+                    (void)pthread_mutex_unlock(&state.mutex);
+                }
+            }
+            if (probe_started) {
+                probe_joined = pthread_join(probe_thread, NULL) == 0;
+            }
+            if (acquire_started) {
+                acquire_joined = pthread_join(acquire_thread, NULL) == 0;
+            }
+            cbm_daemon_ipc_posix_lifetime_probe_hook_set_for_test(NULL, NULL);
+        }
+    }
+    if (state.reservation && pipe(result_pipe) == 0) {
+        child = fork();
+    }
+    if (child == 0) {
+        (void)close(result_pipe[0]);
+        child_result = ipc_test_lock_child_verdict(lock_path);
+        bool sent = ipc_test_fd_write_all(result_pipe[1], &child_result, sizeof(child_result));
+        (void)close(result_pipe[1]);
+        _exit(sent ? 0 : 1);
+    }
+    if (child > 0) {
+        (void)close(result_pipe[1]);
+        result_pipe[1] = -1;
+        bool received = ipc_test_fd_read_all(result_pipe[0], &child_result, sizeof(child_result));
+        (void)close(result_pipe[0]);
+        result_pipe[0] = -1;
+        if (!received) {
+            child_result = IPC_TEST_LOCK_ERROR;
+        }
+        while (waitpid(child, &child_status, 0) < 0 && errno == EINTR) {}
+    }
+    cbm_daemon_ipc_lifetime_reservation_release(state.reservation);
+    if (endpoint) {
+        free_after_release = cbm_daemon_ipc_lifetime_reservation_probe(endpoint);
+    }
+    for (size_t index = 0; index < 2; index++) {
+        if (result_pipe[index] >= 0) {
+            (void)close(result_pipe[index]);
+        }
+    }
+    if (condition_ready) {
+        (void)pthread_cond_destroy(&state.condition);
+    }
+    if (mutex_ready) {
+        (void)pthread_mutex_destroy(&state.mutex);
+    }
+    cbm_daemon_ipc_endpoint_free(endpoint);
+    ipc_test_remove_tree(runtime_dir, parent);
+
+    ASSERT_TRUE(probe_started);
+    ASSERT_TRUE(acquire_started);
+    ASSERT_TRUE(probe_joined);
+    ASSERT_TRUE(acquire_joined);
+    ASSERT_EQ(state.probe_result, 0);
+    ASSERT_EQ(state.acquire_result, 1);
+    ASSERT_GT(child, 0);
+    ASSERT_TRUE(WIFEXITED(child_status));
+    ASSERT_EQ(WEXITSTATUS(child_status), 0);
+    ASSERT_EQ(child_result, IPC_TEST_LOCK_HELD);
+    ASSERT_TRUE(acquire_blocked);
     ASSERT_EQ(free_after_release, 0);
     PASS();
 }
@@ -6163,6 +6338,7 @@ SUITE(daemon_ipc) {
     RUN_TEST(daemon_ipc_posix_lifetime_reservation_rejects_fork_inheritance);
     RUN_TEST(daemon_ipc_posix_lifetime_reservation_probe_does_not_drop_held_lock);
     RUN_TEST(daemon_ipc_posix_lifetime_reservation_concurrent_queries_preserve_kernel_lock);
+    RUN_TEST(daemon_ipc_posix_first_lifetime_acquire_serializes_with_probe);
     RUN_TEST(daemon_ipc_posix_lifetime_reservation_try_acquire_again_does_not_drop_held_lock);
     RUN_TEST(daemon_ipc_posix_child_participant_handoff_retains_legacy_bridge);
     RUN_TEST(daemon_ipc_posix_publication_boundaries_recover_from_crash);

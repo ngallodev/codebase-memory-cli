@@ -110,6 +110,9 @@ typedef void (*cbm_daemon_ipc_posix_publication_hook_fn)(
 
 void cbm_daemon_ipc_posix_publication_hook_set_for_test(
     cbm_daemon_ipc_posix_publication_hook_fn hook, void *context);
+typedef void (*cbm_daemon_ipc_posix_lifetime_probe_hook_fn)(void *context);
+void cbm_daemon_ipc_posix_lifetime_probe_hook_set_for_test(
+    cbm_daemon_ipc_posix_lifetime_probe_hook_fn hook, void *context);
 void cbm_daemon_ipc_windows_legacy_guard_release_failures_set_for_test(unsigned int count);
 /* #1828: while non-zero, every POSIX socket-record publication write fails
  * with this errno. This is the deterministic stand-in for a full runtime
