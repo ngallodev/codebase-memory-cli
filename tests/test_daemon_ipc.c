@@ -52,6 +52,7 @@ extern const char *cbm_test_program_path;
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <pwd.h>
+#include <pthread.h>
 #include <unistd.h>
 #ifdef __linux__
 #include <sched.h> /* #1830 userns real smoke: unshare(CLONE_NEWUSER). */
@@ -3446,6 +3447,126 @@ static uint8_t ipc_test_lock_child_verdict(const char *lock_path) {
     return lock_errno == EACCES || lock_errno == EAGAIN ? IPC_TEST_LOCK_HELD : IPC_TEST_LOCK_ERROR;
 }
 
+/* Exercise concurrent same-process queries while a real fcntl lifetime lock
+ * remains held. The child verdict below detects a lost kernel lock even when
+ * the in-process claim registry still reports ownership. */
+typedef struct {
+    const cbm_daemon_ipc_endpoint_t *endpoint;
+    bool probe;
+    atomic_int failures;
+} ipc_lifetime_concurrent_worker_t;
+
+static void *ipc_lifetime_concurrent_worker(void *opaque) {
+    ipc_lifetime_concurrent_worker_t *worker = opaque;
+    for (int i = 0; i < 2000; ++i) {
+        if (worker->probe) {
+            if (cbm_daemon_ipc_lifetime_reservation_probe(worker->endpoint) != 1) {
+                atomic_fetch_add(&worker->failures, 1);
+            }
+        } else {
+            cbm_daemon_ipc_lifetime_reservation_t *extra = NULL;
+            int result = cbm_daemon_ipc_lifetime_reservation_try_acquire(worker->endpoint, &extra);
+            if (result != 0 || extra != NULL) {
+                atomic_fetch_add(&worker->failures, 1);
+                if (extra) {
+                    cbm_daemon_ipc_lifetime_reservation_release(extra);
+                }
+            }
+        }
+    }
+    return NULL;
+}
+
+TEST(daemon_ipc_posix_lifetime_reservation_concurrent_queries_preserve_kernel_lock) {
+    static const char key[] = "e1e1f2f2a3a3b4b4";
+    char parent[TEST_PATH_CAP] = {0};
+    char runtime_dir[TEST_PATH_CAP] = {0};
+    char lock_path[TEST_PATH_CAP] = {0};
+    cbm_daemon_ipc_endpoint_t *endpoint = NULL;
+    cbm_daemon_ipc_lifetime_reservation_t *reservation = NULL;
+    ipc_lifetime_concurrent_worker_t probe_worker = {.probe = true};
+    ipc_lifetime_concurrent_worker_t acquire_worker = {.probe = false};
+    pthread_t probe_thread, acquire_thread;
+    bool probe_started = false, acquire_started = false;
+    int acquired = -1, child_status = -1, free_after_release = -1;
+    pid_t child = -1;
+    uint8_t child_result = IPC_TEST_LOCK_ERROR;
+    int result_pipe[2] = {-1, -1};
+    bool lock_path_ok = false;
+
+    atomic_init(&probe_worker.failures, 0);
+    atomic_init(&acquire_worker.failures, 0);
+    if (ipc_test_parent_new(parent, "concurrent-lifetime-lock")) {
+        endpoint = cbm_daemon_ipc_endpoint_new(key, parent);
+    }
+    if (endpoint) {
+        ipc_test_copy_path(runtime_dir, cbm_daemon_ipc_endpoint_runtime_dir(endpoint));
+        lock_path_ok = ipc_test_lifetime_lock_path(lock_path, runtime_dir, key);
+        acquired = cbm_daemon_ipc_lifetime_reservation_try_acquire(endpoint, &reservation);
+    }
+    if (reservation) {
+        probe_worker.endpoint = endpoint;
+        acquire_worker.endpoint = endpoint;
+        probe_started = pthread_create(&probe_thread, NULL, ipc_lifetime_concurrent_worker,
+                                       &probe_worker) == 0;
+        acquire_started = pthread_create(&acquire_thread, NULL, ipc_lifetime_concurrent_worker,
+                                         &acquire_worker) == 0;
+    }
+    if (probe_started) {
+        (void)pthread_join(probe_thread, NULL);
+    }
+    if (acquire_started) {
+        (void)pthread_join(acquire_thread, NULL);
+    }
+    /* Fork only after joining: no pthread mutex can be held by a vanished
+     * sibling thread in the child. */
+    if (reservation && lock_path_ok && pipe(result_pipe) == 0) {
+        child = fork();
+    }
+    if (child == 0) {
+        (void)close(result_pipe[0]);
+        child_result = ipc_test_lock_child_verdict(lock_path);
+        bool sent = ipc_test_fd_write_all(result_pipe[1], &child_result, sizeof(child_result));
+        (void)close(result_pipe[1]);
+        _exit(sent ? 0 : 1);
+    }
+    if (child > 0) {
+        (void)close(result_pipe[1]);
+        result_pipe[1] = -1;
+        bool received = ipc_test_fd_read_all(result_pipe[0], &child_result, sizeof(child_result));
+        (void)close(result_pipe[0]);
+        result_pipe[0] = -1;
+        if (!received) {
+            child_result = IPC_TEST_LOCK_ERROR;
+        }
+        while (waitpid(child, &child_status, 0) < 0 && errno == EINTR) {}
+    }
+    cbm_daemon_ipc_lifetime_reservation_release(reservation);
+    if (endpoint) {
+        free_after_release = cbm_daemon_ipc_lifetime_reservation_probe(endpoint);
+    }
+    for (size_t i = 0; i < 2; ++i) {
+        if (result_pipe[i] >= 0) {
+            (void)close(result_pipe[i]);
+        }
+    }
+    cbm_daemon_ipc_endpoint_free(endpoint);
+    ipc_test_remove_tree(runtime_dir, parent);
+
+    ASSERT_EQ(acquired, 1);
+    ASSERT_TRUE(lock_path_ok);
+    ASSERT_TRUE(probe_started);
+    ASSERT_TRUE(acquire_started);
+    ASSERT_EQ(atomic_load(&probe_worker.failures), 0);
+    ASSERT_EQ(atomic_load(&acquire_worker.failures), 0);
+    ASSERT_GT(child, 0);
+    ASSERT_TRUE(WIFEXITED(child_status));
+    ASSERT_EQ(WEXITSTATUS(child_status), 0);
+    ASSERT_EQ(child_result, IPC_TEST_LOCK_HELD);
+    ASSERT_EQ(free_after_release, 0);
+    PASS();
+}
+
 TEST(daemon_ipc_posix_lifetime_reservation_probe_does_not_drop_held_lock) {
     static const char key[] = "c1c1d2d2e3e3f4f4";
     char parent[TEST_PATH_CAP] = {0};
@@ -6041,6 +6162,7 @@ SUITE(daemon_ipc) {
     RUN_TEST(daemon_ipc_posix_startup_lock_is_cross_process);
     RUN_TEST(daemon_ipc_posix_lifetime_reservation_rejects_fork_inheritance);
     RUN_TEST(daemon_ipc_posix_lifetime_reservation_probe_does_not_drop_held_lock);
+    RUN_TEST(daemon_ipc_posix_lifetime_reservation_concurrent_queries_preserve_kernel_lock);
     RUN_TEST(daemon_ipc_posix_lifetime_reservation_try_acquire_again_does_not_drop_held_lock);
     RUN_TEST(daemon_ipc_posix_child_participant_handoff_retains_legacy_bridge);
     RUN_TEST(daemon_ipc_posix_publication_boundaries_recover_from_crash);
