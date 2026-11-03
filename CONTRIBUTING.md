@@ -2,6 +2,15 @@
 
 Contributions are welcome. This guide covers setup, testing, and PR guidelines.
 
+### Fast test iteration
+
+Use `scripts/test.sh --smart` to schedule individual tests in resumable batches.
+Narrow a run with `--suites 'cli daemon_ipc'`, `--tests suite:test,...`,
+`--changed [BASE]`, or `--failed`; `--jobs N` controls concurrency. Add
+`--tool valgrind` for per-test memcheck runs. `--dry-run` is available on the
+scheduler (`python3 scripts/testsched/schedule.py --runner build/c/test-runner --dry-run`).
+The regular `scripts/test.sh` remains the full CI venue gate.
+
 > **Important**: This project is a **pure C binary** (rewritten from Go in v0.5.0). Please submit C code, not Go. Go PRs may be ported but cannot be merged directly.
 
 ## Build from Source

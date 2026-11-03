@@ -47,7 +47,7 @@ GitHub release-candidate workflow
     +-- production Windows artifact + checksums/provenance
     |
     v
-luigi.home.arpa (authoritative Windows 11 x64 qualification host)
+the qualification host (authoritative Windows 11 x64 qualification host)
     |
     +-- portable-artifact functional/reliability validation
     +-- installed-product validation
@@ -114,7 +114,7 @@ The release workflow must build immutable Windows artifact bytes and associated 
 
 ### Gate 3 — Native Windows functional/reliability qualification
 
-Authoritative host: `luigi.home.arpa`.
+Authoritative host: `the qualification host`.
 
 Validate both:
 
@@ -198,9 +198,9 @@ The first Windows benchmark generation (`windows-corpus-1`) uses five fixed repo
 - `agent-workflow-spec-contracts` (`https://github.com/ngallodev-software/agent-workflow-spec-contracts.git`);
 
 For the current integration set, qualification expects SpecGen `0.2.1`, Agent-Workflow `0.10.0`, and the released `specgen-agent-workflow-contracts` package `0.2.1`. The corpus manifest records both the expected version and the pre-freeze initialization ref: `master` for SpecGen and Agent-Workflow, and release tag `v0.2.1` for the shared contracts repository because its current `master` project metadata still reports `0.2.0`. Frozen commit SHAs remain the authoritative benchmark identity after initialization. The machine-verifiable `version_check` object is enforced by `scripts/qualification/validate-corpus-checkouts.py`; initialization uses `--allow-unpinned`, then the validator is rerun without that flag after exact commit SHAs are recorded.
-- `herdr` (`https://github.com/herdrdev/herdr.git`).
+- `managed terminal` (`https://github.com/managed terminaldev/managed terminal.git`).
 
-Exact commit SHAs are not selected from remote HEAD during planning. They are recorded from the actual clean checkouts frozen for qualification on `luigi.home.arpa`. After that freeze, any commit change creates a new corpus generation and requires new baseline capture.
+Exact commit SHAs are not selected from remote HEAD during planning. They are recorded from the actual clean checkouts frozen for qualification on `the qualification host`. After that freeze, any commit change creates a new corpus generation and requires new baseline capture.
 
 ## Change/retest policy
 
@@ -217,7 +217,7 @@ If qualification finds a defect and the candidate changes:
 1. Finish this qualification-plan re-baseline.
 2. Complete Linux consolidation/build reliability evidence.
 3. Publish GitHub RC.
-4. Run native Windows qualification on `luigi.home.arpa`.
+4. Run native Windows qualification on `the qualification host`.
 5. Run Windows baseline/candidate benchmarking on the frozen corpus.
 6. Run agent usability user stories.
 7. Make evidence-driven changes only.

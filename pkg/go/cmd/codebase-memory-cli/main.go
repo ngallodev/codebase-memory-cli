@@ -47,7 +47,7 @@ const (
 	maxChecksumManifestSize = 1024 * 1024
 	maxReleaseArchiveSize   = int64(256 * 1024 * 1024)
 	maxArchiveMembers       = 64
-	maxArchiveMemberSize    = int64(256 * 1024 * 1024)
+	maxArchiveMemberSize    = int64(512 * 1024 * 1024)
 	maxArchiveExpandedSize  = int64(512 * 1024 * 1024)
 
 	runtimeSetLockName               = ".codebase-memory-cli-runtime.lock"

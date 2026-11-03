@@ -310,8 +310,7 @@ void cbm_def_props_build(char *buf, size_t bufsize, const CBMDefinition *def) {
     }
     size_t pos = (size_t)n;
     append_json_string(buf, bufsize, &pos, "docstring", def->docstring);
-    /* Right after the docstring: the buffer is sized for exactly these three
-     * uncapped fields (cbm_def_props_buf), so none can be squeezed out. */
+    /* cbm_def_props_buf sizes for every optional field below. */
     append_json_raw(buf, bufsize, &pos, "variants", def->variants);
     append_json_string(buf, bufsize, &pos, "variant_key", def->variant_key);
     append_json_string(buf, bufsize, &pos, "signature", def->signature);
@@ -354,24 +353,56 @@ void cbm_def_props_build(char *buf, size_t bufsize, const CBMDefinition *def) {
     }
 }
 
-/* A def's properties buffer: CBM_SZ_2K for every other field plus the whole
- * serialized docstring, variants and variant_key fields, which have no length
- * cap (a field that does not fit is dropped whole). Returns `stack` for a def
- * with none of them, or when the larger buffer cannot be allocated. Shared with
- * pass_parallel.c. */
-char *cbm_def_props_buf(const CBMDefinition *def, char *stack, size_t *size) {
-    size_t need = *size;
-    if (def->docstring && def->docstring[0]) {
-        need += strlen("docstring") + def_json_escaped_len(def->docstring) + PD_JSON_FIELD_OVERHEAD;
+/* Size shared serialization for every optional field so long signatures or
+ * parameter lists cannot crowd out fingerprints and semantic metadata. */
+enum { PD_PROPS_PREFIX_MAX = CBM_SZ_1K };
+
+static size_t pd_str_field_len(const char *key, const char *val) {
+    return val && val[0] ? strlen(key) + def_json_escaped_len(val) + PD_JSON_FIELD_OVERHEAD : 0;
+}
+
+static size_t pd_arr_field_len(const char *key, const char **arr) {
+    if (!arr || !arr[0]) {
+        return 0;
     }
+    size_t n = strlen(key) + PD_JSON_FIELD_OVERHEAD;
+    for (int i = 0; arr[i]; i++) {
+        n += def_json_escaped_len(arr[i]) + PD_ESC_SPACE + (i > 0 ? SKIP_ONE : 0);
+    }
+    return n;
+}
+
+char *cbm_def_props_buf(const CBMDefinition *def, char *stack, size_t *size) {
+    size_t need = PD_PROPS_PREFIX_MAX + pd_str_field_len("docstring", def->docstring);
     if (def->variants && def->variants[0]) {
         need += strlen("variants") + strlen(def->variants) + PD_JSON_FIELD_OVERHEAD;
     }
-    if (def->variant_key && def->variant_key[0]) {
-        need +=
-            strlen("variant_key") + def_json_escaped_len(def->variant_key) + PD_JSON_FIELD_OVERHEAD;
+    need += pd_str_field_len("variant_key", def->variant_key) +
+            pd_str_field_len("signature", def->signature) +
+            pd_str_field_len("return_type", def->return_type) +
+            pd_str_field_len("parent_class", def->parent_class) +
+            pd_arr_field_len("decorators", def->decorators) +
+            pd_arr_field_len("base_classes", def->base_classes) +
+            pd_arr_field_len("param_names", def->param_names) +
+            pd_arr_field_len("param_types", def->param_types) +
+            pd_str_field_len("route_path", def->route_path) +
+            pd_str_field_len("route_method", def->route_method) +
+            pd_str_field_len("http_client", def->http_client) +
+            pd_str_field_len("http_base_url", def->http_base_url);
+    for (const char **kv = def->extra_props; kv && kv[0] && kv[SKIP_ONE]; kv += PAIR_LEN) {
+        need += pd_str_field_len(kv[0], kv[SKIP_ONE]);
     }
-    if (need == *size) {
+    if (def->fingerprint && def->fingerprint_k > 0) {
+        need += CBM_MINHASH_HEX_LEN + CBM_MINHASH_JSON_OVERHEAD + SKIP_ONE;
+    }
+    if (def->structural_profile) {
+        need += CBM_AST_PROFILE_BUF + pd_str_field_len("sp", def->structural_profile) + SKIP_ONE;
+    }
+    if (def->body_tokens) {
+        need += CBM_SZ_512 + pd_str_field_len("bt", def->body_tokens) + SKIP_ONE;
+    }
+    need += PD_ESC_SPACE;
+    if (need <= *size) {
         return stack;
     }
     char *buf = cbm_alloc(CBM_MEM_CLASS_GBUF_STRING, need);
@@ -413,11 +444,28 @@ void cbm_def_file_doc(const cbm_gbuf_node_t *file_node, const char *doc) {
     cbm_free(CBM_MEM_CLASS_GBUF_STRING, neu);
 }
 
-/* Process one definition: create node, register, DEFINES + DEFINES_METHOD edges.
- * `file_doc`, the file's own doc (passed with its first def only), goes on the
- * File node. */
+/* DEFINES_METHOD from a method's type, and the parent edge of a diagram
+ * element. Both look the parent up by QN, so the parent's node must exist. */
+static void link_def_parents(cbm_pipeline_ctx_t *ctx, const CBMDefinition *def, int64_t node_id) {
+    if (node_id <= 0) {
+        return;
+    }
+    if (def->parent_class && def->label && strcmp(def->label, "Method") == 0) {
+        const cbm_gbuf_node_t *parent = cbm_gbuf_find_by_qn(ctx->gbuf, def->parent_class);
+        if (parent) {
+            cbm_gbuf_insert_edge(ctx->gbuf, parent->id, node_id, "DEFINES_METHOD", "{}");
+        }
+    }
+    cbm_pipeline_diagram_parent_edge(ctx, def, node_id);
+}
+
+/* Process one definition: create node, register, DEFINES edge. `file_doc`,
+ * the file's own doc (passed with its first def only), goes on the File node.
+ * `link_parents` links its DEFINES_METHOD / diagram parent right away; with
+ * the result cache the pass links them once every file is registered. */
 static void process_def(cbm_pipeline_ctx_t *ctx, const CBMDefinition *def, const char *rel,
-                        const char *file_doc, CBMLanguage lang) {
+                        const char *file_doc, CBMLanguage lang, size_t module_prefix_len,
+                        bool link_parents) {
     if (!def->qualified_name || !def->name) {
         return;
     }
@@ -443,7 +491,8 @@ static void process_def(cbm_pipeline_ctx_t *ctx, const CBMDefinition *def, const
      * (SQL FROM/JOIN lineage). pass_parallel.c and pipeline_incremental.c seed
      * through the same predicate, so the three registries cannot diverge. */
     if (node_id > 0 && cbm_label_is_registry_symbol(def->label)) {
-        cbm_registry_add_lang(ctx->registry, def->name, def->qualified_name, def->label, lang);
+        cbm_registry_add_lang_in_module(ctx->registry, def->name, def->qualified_name, def->label,
+                                        lang, module_prefix_len);
     }
     char *file_qn = cbm_pipeline_fqn_compute(ctx->project_name, rel, "__file__");
     const cbm_gbuf_node_t *file_node = cbm_gbuf_find_by_qn(ctx->gbuf, file_qn);
@@ -452,13 +501,39 @@ static void process_def(cbm_pipeline_ctx_t *ctx, const CBMDefinition *def, const
         cbm_gbuf_insert_edge(ctx->gbuf, file_node->id, node_id, "DEFINES", "{}");
     }
     free(file_qn);
-    if (def->parent_class && def->label && strcmp(def->label, "Method") == 0) {
-        const cbm_gbuf_node_t *parent = cbm_gbuf_find_by_qn(ctx->gbuf, def->parent_class);
-        if (parent && node_id > 0) {
-            cbm_gbuf_insert_edge(ctx->gbuf, parent->id, node_id, "DEFINES_METHOD", "{}");
+    if (link_parents) {
+        link_def_parents(ctx, def, node_id);
+    }
+}
+
+/* Parent links of the definitions cached in Phase 1, made once EVERY file's
+ * nodes exist. A method is often defined in a file the directory walk returns
+ * before its type's file (a Go method in another file of its package, an
+ * out-of-line C++ method in foo.cpp before foo.h); linking it while files were
+ * still being registered found no parent, so the sequential pipeline lost the
+ * edge -- and the IMPLEMENTS / OVERRIDE edges derived from it -- that the
+ * parallel registry build (pass_parallel.c register_and_link_def) keeps. */
+static void link_cached_def_parents(cbm_pipeline_ctx_t *ctx, CBMFileResult **cache,
+                                    int file_count) {
+    for (int i = 0; i < file_count; i++) {
+        if (cbm_pipeline_check_cancel(ctx)) {
+            return;
+        }
+        const CBMFileResult *result = cache[i];
+        if (!result) {
+            continue;
+        }
+        for (int d = 0; d < result->defs.count; d++) {
+            const CBMDefinition *def = &result->defs.items[d];
+            if (!def->parent_class || !def->qualified_name) {
+                continue;
+            }
+            const cbm_gbuf_node_t *node = cbm_gbuf_find_by_qn(ctx->gbuf, def->qualified_name);
+            if (node) {
+                link_def_parents(ctx, def, node->id);
+            }
         }
     }
-    cbm_pipeline_diagram_parent_edge(ctx, def, node_id);
 }
 
 /* Create Channel nodes + EMITS / LISTENS_ON edges for one file's channels.
@@ -1020,10 +1095,15 @@ int cbm_pipeline_pass_definitions(cbm_pipeline_ctx_t *ctx, const cbm_file_info_t
                 "test_declarations");
         }
 
-        /* Create nodes for each definition */
+        /* Create nodes for each definition. A Python file's module QN bounds
+         * the registry's function-local detection to this file. */
         const char *file_doc = result->module_doc; /* goes with the first def */
+        size_t py_prefix_len = lang == CBM_LANG_PYTHON
+                                   ? cbm_pipeline_fqn_symbol_prefix_len(ctx->project_name, rel)
+                                   : 0;
         for (int d = 0; d < result->defs.count; d++) {
-            process_def(ctx, &result->defs.items[d], rel, file_doc, lang);
+            process_def(ctx, &result->defs.items[d], rel, file_doc, lang, py_prefix_len,
+                        !local_cache);
             file_doc = NULL;
             total_defs++;
         }
@@ -1045,6 +1125,12 @@ int cbm_pipeline_pass_definitions(cbm_pipeline_ctx_t *ctx, const cbm_file_info_t
             cbm_pipeline_create_env_configures_for_file(ctx, result, rel);
             cbm_free_result(result);
         }
+    }
+
+    /* Every file's nodes exist now: link methods and diagram elements to
+     * their parents (without the cache each file linked its own above). */
+    if (local_cache) {
+        link_cached_def_parents(ctx, local_cache, file_count);
     }
 
     /* Phase 2: now that all extraction results are cached and Module

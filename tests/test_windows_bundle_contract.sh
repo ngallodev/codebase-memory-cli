@@ -835,39 +835,21 @@ require(
     "src/cli/cli.c must not retain any launcher-state API usage",
 )
 
-# ── 10. PR smoke delegates to the maintained native harness ──────────────────
-pr_workflow = read(".github/workflows/pr.yml")
-pr_smoke_match = re.search(r"(?ms)^  pr-smoke:\s*(.*?)(?=^  [A-Za-z0-9_-]+:\s*$|\Z)", pr_workflow)
-pr_smoke = pr_smoke_match.group(1) if pr_smoke_match else ""
-require(bool(pr_smoke), "pr.yml must contain the pr-smoke job")
-pr_windows_blocks = [
-    block for block in yaml_run_blocks(pr_smoke) if "scripts/build.sh CC=clang CXX=clang++" in block
-]
+# ── 10. Retained manual release smoke uses the native harness ──────────────
+smoke_workflow = read(".github/workflows/_smoke.yml")
+smoke_match = re.search(r"(?ms)^  smoke-windows:\s*(.*?)(?=^  [A-Za-z0-9_-]+:\s*$|\Z)", smoke_workflow)
+windows_smoke = smoke_match.group(1) if smoke_match else ""
+require(bool(windows_smoke), "_smoke.yml must retain the native Windows smoke job")
 require(
-    len(pr_windows_blocks) == 1,
-    "PR smoke must contain exactly one Windows production build run block",
+    "SMOKE_ARCH: ${{ matrix.arch }}" in windows_smoke
+    and "bash test-infrastructure/vm/vm-smoke.sh" in windows_smoke,
+    "manual Windows release smoke must pass its artifact architecture to the native harness",
 )
-if pr_windows_blocks:
-    pr_windows_block = re.sub(r"\\\s*\n\s*", " ", pr_windows_blocks[0])
-    pr_windows_block = re.sub(r"\s+", " ", pr_windows_block).strip()
-    require(
-        "SMOKE_ARCH=amd64 bash test-infrastructure/vm/vm-smoke.sh" in pr_windows_block,
-        "Windows PR smoke must invoke the maintained native harness with the authoritative "
-        "amd64 artifact architecture",
-    )
-    require(
-        pr_windows_block.find("scripts/build.sh CC=clang CXX=clang++")
-        < pr_windows_block.find("SMOKE_ARCH=amd64 bash test-infrastructure/vm/vm-smoke.sh"),
-        "Windows PR smoke must build before invoking the maintained harness",
-    )
-    require(
-        "scripts/smoke-test.sh" not in pr_windows_block and payload not in pr_windows_block,
-        "Windows PR workflow must not duplicate vm-smoke staging or smoke-test logic",
-    )
-    require(
-        "$RUNNER_TEMP" not in pr_windows_block,
-        "Windows PR smoke must not treat GitHub's shared RUNNER_TEMP ancestry as private",
-    )
+require(
+    "CBM_SMOKE_ARTIFACT_DIR=" in windows_smoke
+    and "scripts/smoke-test.sh" not in windows_smoke,
+    "manual Windows release smoke must pass downloaded artifacts through vm-smoke staging",
+)
 
 if failures:
     print("Windows single-binary bundle contract FAILED:", file=sys.stderr)

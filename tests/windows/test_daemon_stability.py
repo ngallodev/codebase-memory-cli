@@ -47,6 +47,7 @@ import os
 import re
 import shutil
 import socket
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -338,8 +339,13 @@ def section_crash_recovery(binary, work):
                                "(rc=%s):\n%s" % (start.returncode, out_text(start)))
         kill_pid(daemon_pid)
         if not wait_status_not_running(binary, cache, 60):
-            print("RED: after kill -9 of pid %d the stale daemon state never cleared "
-                  "(`daemon status` kept reporting it)" % daemon_pid)
+            # Print what status said: a hot settings journal left by the kill
+            # made every command fail with "could not load saved runtime
+            # settings", which a bare "kept reporting it" hid.
+            last = run_cli(binary, cache, ["daemon", "status"], timeout=30)
+            print("RED: after kill -9 of pid %d the stale daemon state never cleared; "
+                  "last `daemon status` rc=%s:\n%s"
+                  % (daemon_pid, last.returncode, excerpt(out_text(last))))
             return False
         cold = run_cli(binary, cache, ["index", make_probe_repo(work)], timeout=90)
         if cold.returncode != 0 or "daemon start" in out_text(cold):

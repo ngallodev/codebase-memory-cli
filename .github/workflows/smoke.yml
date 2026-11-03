@@ -8,14 +8,12 @@
 # class), all arm64 variants + windows-11-arm (arch portability), multiple macOS
 # and Windows versions. A FAIL on any platform is a binary users would receive.
 #
-# NON-GATING: workflow_dispatch + push to qa/smoke-** only (the full ~10-platform
-# build is heavy, so it is opt-in rather than on every qa push).
+# NON-GATING: manual workflow_dispatch only (the full ~10-platform
+# build is expensive; Jenkins owns automatic builds and smoke tests).
 name: Smoke (all platforms)
 
 on:
   workflow_dispatch:
-  push:
-    branches: ['qa/smoke-**']
 
 permissions:
   contents: read

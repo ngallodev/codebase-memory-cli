@@ -1,16 +1,14 @@
-# Soak dispatcher — the weekly scheduled soak AND every on-demand soak run.
+# Soak dispatcher — explicitly requested runs only (no scheduled runs).
 #
 # Absorbs the retired soak.yml (the standalone "multi-hour #581" workflow): its
 # reasons to exist — a job budget that actually covers a 4h run, and the
 # query-leak mode that never reindexes so the #581 leak can accumulate — are
 # now _soak.yml facts (timeout 560, legs input). A long #581-only run is
 # `legs: query-leak` here, not a separate workflow with its own copy of the
-# soak procedure. NON-GATING: never a required check, never blocks a merge.
+# soak procedure. NON-GATING: manually dispatched only; Jenkins owns automated soak.
 name: Nightly Soak
 
 on:
-  schedule:
-    - cron: '0 2 * * 0' # Every Sunday at 2am UTC
   workflow_dispatch:
     inputs:
       duration_minutes:
@@ -26,10 +24,6 @@ on:
         description: 'Also run the 15-min ASan soak legs'
         type: boolean
         default: true
-  # Iteration convenience carried over from soak.yml: pushing a qa/soak-**
-  # branch starts a real run from that branch's own copy of the workflows.
-  push:
-    branches: ['qa/soak-**']
 
 permissions:
   contents: read
@@ -39,7 +33,7 @@ jobs:
   # budget instead of a fixed count. NON-GATING like the soak; a crash uploads
   # its reproducer, which becomes a fixed-seed regression input once fixed.
   fuzz:
-    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -59,8 +53,7 @@ jobs:
   soak:
     uses: ./.github/workflows/_soak.yml
     with:
-      # On schedule/push events the inputs context is empty — fall back to the
-      # weekly defaults (4h, both legs, ASan on).
+      # Values come only from manual workflow_dispatch input.
       duration_minutes: ${{ inputs.duration_minutes || 240 }}
       legs: ${{ inputs.legs || 'quick,query-leak' }}
-      run_asan: ${{ github.event_name != 'workflow_dispatch' || inputs.run_asan }}
+      run_asan: ${{ inputs.run_asan }}

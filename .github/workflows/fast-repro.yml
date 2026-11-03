@@ -3,7 +3,7 @@
 # 5-platform ASan board. The full bug-repro.yml board remains the comprehensive
 # all-platform check; this is just the fast inner loop.
 #
-# Trigger: workflow_dispatch, or push to a qa/fast-** branch. Non-gating.
+# Trigger: manual workflow_dispatch only. Jenkins owns automated testing.
 name: Fast Repro
 
 on:
@@ -13,8 +13,6 @@ on:
         description: 'Comma list of suite-name substrings to run (empty = all)'
         type: string
         default: ''
-  push:
-    branches: ['qa/fast-**']
 
 permissions:
   contents: read

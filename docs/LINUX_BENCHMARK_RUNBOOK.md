@@ -18,7 +18,7 @@ The corpus is defined by `docs/qualification/BENCHMARK_CORPUS.json`. The five re
 2. `specgen-aw`;
 3. `agent-workflow`;
 4. `agent-workflow-spec-contracts`;
-5. `herdr`.
+5. `managed terminal`.
 
 The manifest, not this runbook, is authoritative for each repository's operations, workload file,
 query, symbol, base branch, initialization ref, and eventually frozen commit.
@@ -89,7 +89,7 @@ A successful corpus run creates a timestamped directory beneath the results root
   specgen-aw/
   agent-workflow/
   agent-workflow-spec-contracts/
-  herdr/
+  managed terminal/
   corpus-results.json
   RESULT
 ```

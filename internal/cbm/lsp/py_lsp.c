@@ -246,6 +246,11 @@ static void py_register_lambda(PyLSPContext *ctx, const char *name, TSNode lambd
 static void py_register_dict_literal(PyLSPContext *ctx, const char *name, TSNode dict_node);
 static TSNode py_lookup_lambda(PyLSPContext *ctx, const char *name);
 static const char *py_lookup_dict_dispatch(PyLSPContext *ctx, const char *var, const char *key);
+static void py_process_function(PyLSPContext *ctx, TSNode func_node, const char *container_qn);
+static void py_process_class(PyLSPContext *ctx, TSNode class_node);
+static void py_process_class_in(PyLSPContext *ctx, TSNode class_node, const char *container_qn);
+typedef enum { PY_LOCAL_DEFS_BIND, PY_LOCAL_DEFS_PROCESS } PyLocalDefsMode;
+static void py_visit_local_defs(PyLSPContext *ctx, TSNode block, PyLocalDefsMode mode, int depth);
 
 /* ── Scope mutation wrappers ─────────────────────────────────────────────
  *
@@ -1222,6 +1227,138 @@ static const CBMRegisteredFunc *py_lookup_attribute_depth(PyLSPContext *ctx, con
 static const CBMRegisteredFunc *py_lookup_attribute(PyLSPContext *ctx, const char *type_qn,
                                                     const char *member_name) {
     return py_lookup_attribute_depth(ctx, type_qn, member_name, 0);
+}
+
+/* ── super(): the C3 method resolution order ──────────────────────── */
+
+/* Longest linearization followed. A longer one (or more bases than this) keeps
+ * the base-by-base walk of the caller. */
+#define PY_C3_MAX 64
+
+/* The linearizations computed during one super() lookup: every class of a
+ * diamond is linearized once, however many paths reach it. */
+typedef struct {
+    const char *qn[PY_C3_MAX];
+    const char **mro[PY_C3_MAX];
+    int len[PY_C3_MAX];
+    int count;
+} py_c3_cache_t;
+
+static bool py_c3_in_tail(const char *qn, const char *const *seq, int head, int len) {
+    for (int k = head + 1; k < len; k++) {
+        if (strcmp(seq[k], qn) == 0)
+            return true;
+    }
+    return false;
+}
+
+/* The C3 head to take next: the first sequence head that is in no sequence's
+ * tail. NULL when every head is blocked (Python rejects such a class). */
+static const char *py_c3_pick(const char **const *seqs, const int *lens, const int *heads,
+                              int nseq) {
+    for (int s = 0; s < nseq; s++) {
+        if (heads[s] >= lens[s])
+            continue;
+        const char *cand = seqs[s][heads[s]];
+        bool blocked = false;
+        for (int t = 0; t < nseq && !blocked; t++) {
+            blocked = heads[t] < lens[t] && py_c3_in_tail(cand, seqs[t], heads[t], lens[t]);
+        }
+        if (!blocked)
+            return cand;
+    }
+    return NULL;
+}
+
+/* Python's method resolution order of `type_qn`: the class, then the C3 merge
+ * of its bases' linearizations and of the base list. A common base therefore
+ * follows every class deriving from it. Sets *out to an arena array and returns
+ * its length, or -1 when there is no C3 order, the hierarchy is deeper than
+ * CBM_LSP_MAX_LOOKUP_DEPTH, or the order is longer than PY_C3_MAX. A base the
+ * registry does not know (external, unresolved) linearizes to itself. */
+static int py_c3_linearize(PyLSPContext *ctx, py_c3_cache_t *cache, const char *type_qn,
+                           const char ***out, int depth) {
+    for (int c = 0; c < cache->count; c++) {
+        if (strcmp(cache->qn[c], type_qn) == 0) {
+            *out = cache->mro[c];
+            return cache->len[c];
+        }
+    }
+    if (depth > CBM_LSP_MAX_LOOKUP_DEPTH)
+        return -1;
+    const CBMRegisteredType *rt = cbm_registry_lookup_type(ctx->registry, type_qn);
+    if (rt && rt->alias_of)
+        return py_c3_linearize(ctx, cache, rt->alias_of, out, depth + 1);
+    const char **bases = rt ? rt->embedded_types : NULL;
+    int nb = 0;
+    while (bases && bases[nb])
+        nb++;
+    if (nb >= PY_C3_MAX)
+        return -1;
+    const char **seqs[PY_C3_MAX];
+    int lens[PY_C3_MAX];
+    int heads[PY_C3_MAX];
+    for (int b = 0; b < nb; b++) {
+        lens[b] = py_c3_linearize(ctx, cache, bases[b], &seqs[b], depth + 1);
+        if (lens[b] < 0)
+            return -1;
+        heads[b] = 0;
+    }
+    seqs[nb] = bases;
+    lens[nb] = nb;
+    heads[nb] = 0;
+    const char **mro = (const char **)cbm_arena_alloc(ctx->arena, PY_C3_MAX * sizeof(char *));
+    if (!mro)
+        return -1;
+    int n = 0;
+    mro[n++] = type_qn;
+    for (;;) {
+        bool pending = false;
+        for (int s = 0; s <= nb && !pending; s++) {
+            pending = heads[s] < lens[s];
+        }
+        if (!pending)
+            break;
+        const char *pick = py_c3_pick((const char **const *)seqs, lens, heads, nb + 1);
+        if (!pick || n >= PY_C3_MAX)
+            return -1;
+        mro[n++] = pick;
+        for (int s = 0; s <= nb; s++) {
+            if (heads[s] < lens[s] && strcmp(seqs[s][heads[s]], pick) == 0)
+                heads[s]++;
+        }
+    }
+    if (cache->count < PY_C3_MAX) {
+        cache->qn[cache->count] = type_qn;
+        cache->mro[cache->count] = mro;
+        cache->len[cache->count] = n;
+        cache->count++;
+    }
+    *out = mro;
+    return n;
+}
+
+/* The method super() reaches from inside `class_qn`: the first class AFTER it in
+ * its C3 order that declares `member` itself. *have_mro is false when the
+ * hierarchy has no C3 order; the caller then keeps its base-by-base walk. */
+static const CBMRegisteredFunc *py_lookup_super_attribute(PyLSPContext *ctx, const char *class_qn,
+                                                          const char *member, bool *have_mro) {
+    *have_mro = false;
+    if (!ctx || !class_qn || !member)
+        return NULL;
+    py_c3_cache_t cache;
+    cache.count = 0;
+    const char **mro = NULL;
+    int n = py_c3_linearize(ctx, &cache, class_qn, &mro, 0);
+    if (n < 0)
+        return NULL;
+    *have_mro = true;
+    for (int i = 1; i < n; i++) {
+        const CBMRegisteredFunc *f = cbm_registry_lookup_method(ctx->registry, mro[i], member);
+        if (f)
+            return f;
+    }
+    return NULL;
 }
 
 /* Per-file field overlay: look up a (class_qn, field_name) recorded during resolve
@@ -2959,6 +3096,22 @@ static void py_emit_call_for(PyLSPContext *ctx, TSNode call_node) {
                     const CBMRegisteredType *enclosing =
                         cbm_registry_lookup_type(ctx->registry, ctx->enclosing_class_qn);
                     if (enclosing && enclosing->embedded_types) {
+                        // The proxy walks the enclosing class's C3 order, in which a
+                        // diamond's shared base follows every class deriving from it:
+                        // RadarrCalendarEntity(RadarrEntity, CalendarEntity) reaches
+                        // CalendarEntity before Entity, which the first base reaches
+                        // through its own ancestry. The base-by-base walk below stays for
+                        // a hierarchy without a C3 order and for an undeclared __init__.
+                        bool have_mro = false;
+                        const CBMRegisteredFunc *sf = py_lookup_super_attribute(
+                            ctx, ctx->enclosing_class_qn, attr_name, &have_mro);
+                        if (sf) {
+                            bool is_init = strcmp(attr_name, "__init__") == 0;
+                            py_emit_resolved_call(ctx, sf->qualified_name,
+                                                  is_init ? "lsp_super_init" : "lsp_super",
+                                                  is_init ? 0.90f : 0.88f, call_node);
+                            return;
+                        }
                         for (int i = 0; enclosing->embedded_types[i]; i++) {
                             // super().__init__() is a constructor delegation:
                             // lsp_super_init is the MORE SPECIFIC, more accurate
@@ -4362,6 +4515,101 @@ static void py_bind_parameters(PyLSPContext *ctx, TSNode params) {
     }
 }
 
+/* Bind a def or class statement of the current function body as a local of
+ * that function (#1548): its graph QN extends the function's
+ * (enclosing_func_qn.name), the QN extraction gives it. An undecorated def
+ * registered with that QN becomes an exact callable alias; anything else
+ * (decorated, overloaded, not registered) is a hard local shadow, so no call
+ * falls through to a same-named module symbol. A class is bound by its type
+ * when registered, else shadowed. A parameter of the same name is already a
+ * local and keeps its own binding. */
+static void py_bind_local_def(PyLSPContext *ctx, TSNode def, bool is_class) {
+    TSNode name_node = ts_node_child_by_field_name(def, "name", 4);
+    char *name = ts_node_is_null(name_node) ? NULL : py_node_text(ctx, name_node);
+    if (!name || !name[0] || !ctx->enclosing_func_qn) {
+        py_disable_callable_value_proof(ctx);
+        return;
+    }
+    if (cbm_scope_lookup_local(ctx->current_scope, name))
+        return;
+    const char *qn = cbm_arena_sprintf(ctx->arena, "%s.%s", ctx->enclosing_func_qn, name);
+    if (!qn) {
+        py_disable_callable_value_proof(ctx);
+        py_scope_bind(ctx, name, cbm_type_unknown());
+        return;
+    }
+    if (is_class) {
+        py_scope_bind(ctx, name,
+                      cbm_registry_lookup_type(ctx->registry, qn) ? cbm_type_named(ctx->arena, qn)
+                                                                  : cbm_type_unknown());
+        return;
+    }
+    const CBMRegisteredFunc *func = cbm_registry_lookup_func(ctx->registry, qn);
+    if (py_func_is_exact_callable_value(func)) {
+        py_scope_bind_callable(ctx, name, cbm_type_unknown(), func->qualified_name);
+    } else {
+        py_scope_bind(ctx, name, cbm_type_unknown());
+    }
+}
+
+/* Statements a function body nests further statements in. A def inside any of
+ * them is still a local of the function; a nested def, class or lambda body
+ * is a scope of its own and is never entered. */
+static bool py_is_statement_block(const char *kind) {
+    static const char *const kinds[] = {"block",
+                                        "if_statement",
+                                        "elif_clause",
+                                        "else_clause",
+                                        "for_statement",
+                                        "while_statement",
+                                        "try_statement",
+                                        "except_clause",
+                                        "except_group_clause",
+                                        "finally_clause",
+                                        "with_statement",
+                                        "match_statement",
+                                        "case_clause",
+                                        NULL};
+    for (int i = 0; kinds[i]; i++) {
+        if (strcmp(kind, kinds[i]) == 0)
+            return true;
+    }
+    return false;
+}
+
+/* Visit the def/class statements of a function body, including those inside
+ * its compound statements: BIND binds each as a local (py_bind_local_def),
+ * PROCESS walks each nested def's own body (py_process_function). */
+static void py_visit_local_defs(PyLSPContext *ctx, TSNode block, PyLocalDefsMode mode, int depth) {
+    if (!ctx || ctx->eval_failure || ts_node_is_null(block) || depth >= cbm_lsp_max_walk_depth())
+        return;
+    PyKids kids = py_kids(ctx->arena, block);
+    for (uint32_t i = 0; i < kids.n && !ctx->eval_failure; i++) {
+        TSNode c = py_kid(&kids, i);
+        const char *ck = ts_node_type(c);
+        TSNode def = c;
+        if (strcmp(ck, "decorated_definition") == 0) {
+            def = ts_node_child_by_field_name(c, "definition", 10);
+            if (ts_node_is_null(def))
+                continue;
+            ck = ts_node_type(def);
+        }
+        if (strcmp(ck, "function_definition") == 0) {
+            if (mode == PY_LOCAL_DEFS_BIND)
+                py_bind_local_def(ctx, def, false);
+            else
+                py_process_function(ctx, def, ctx->enclosing_func_qn);
+        } else if (strcmp(ck, "class_definition") == 0) {
+            if (mode == PY_LOCAL_DEFS_BIND)
+                py_bind_local_def(ctx, def, true);
+            else
+                py_process_class_in(ctx, def, ctx->enclosing_func_qn);
+        } else if (py_is_statement_block(ck)) {
+            py_visit_local_defs(ctx, c, mode, depth + 1);
+        }
+    }
+}
+
 static void py_process_function(PyLSPContext *ctx, TSNode func_node, const char *container_qn) {
     if (!ctx || ctx->eval_failure)
         return;
@@ -4391,22 +4639,13 @@ static void py_process_function(PyLSPContext *ctx, TSNode func_node, const char 
 
     TSNode body = ts_node_child_by_field_name(func_node, "body", 4);
     if (!ts_node_is_null(body)) {
+        /* Python resolves a bare name in the function's own scope first: every
+         * def/class statement of the body binds a local for the whole body
+         * (LEGB), whatever a module-level symbol of the same spelling says. */
+        py_visit_local_defs(ctx, body, PY_LOCAL_DEFS_BIND, 0);
         py_resolve_calls_in(ctx, body);
-        // Also descend into nested function/class definitions in the body.
-        PyKids bk = py_kids(ctx->arena, body);
-        for (uint32_t i = 0; i < bk.n; i++) {
-            TSNode c = py_kid(&bk, i);
-            const char *ck = ts_node_type(c);
-            if (strcmp(ck, "function_definition") == 0) {
-                py_process_function(ctx, c, ctx->enclosing_func_qn);
-            } else if (strcmp(ck, "decorated_definition") == 0) {
-                TSNode def = ts_node_child_by_field_name(c, "definition", 10);
-                if (!ts_node_is_null(def) &&
-                    strcmp(ts_node_type(def), "function_definition") == 0) {
-                    py_process_function(ctx, def, ctx->enclosing_func_qn);
-                }
-            }
-        }
+        // Also descend into nested function definitions in the body.
+        py_visit_local_defs(ctx, body, PY_LOCAL_DEFS_PROCESS, 0);
     }
 
     py_scope_restore(ctx, saved);
@@ -4536,7 +4775,10 @@ static void py_exec_class_definition(PyLSPContext *ctx, TSNode class_node) {
     py_scope_restore(ctx, saved_scope);
 }
 
-static void py_process_class(PyLSPContext *ctx, TSNode class_node) {
+/* Walk a class's methods with the class qualified under `container_qn`: the
+ * module for a module-level class, the enclosing def for a class declared in
+ * a function body (#1548: extraction gives it the def's QN as prefix). */
+static void py_process_class_in(PyLSPContext *ctx, TSNode class_node, const char *container_qn) {
     if (!ctx || ctx->eval_failure)
         return;
     TSNode name_node = ts_node_child_by_field_name(class_node, "name", 4);
@@ -4547,7 +4789,8 @@ static void py_process_class(PyLSPContext *ctx, TSNode class_node) {
         return;
 
     const char *prev_class = ctx->enclosing_class_qn;
-    ctx->enclosing_class_qn = cbm_arena_sprintf(ctx->arena, "%s.%s", ctx->module_qn, cname);
+    ctx->enclosing_class_qn =
+        cbm_arena_sprintf(ctx->arena, "%s.%s", container_qn ? container_qn : ctx->module_qn, cname);
 
     TSNode body = ts_node_child_by_field_name(class_node, "body", 4);
     if (!ts_node_is_null(body)) {
@@ -4621,6 +4864,10 @@ static void py_process_class(PyLSPContext *ctx, TSNode class_node) {
     ctx->enclosing_class_qn = prev_class;
 }
 
+static void py_process_class(PyLSPContext *ctx, TSNode class_node) {
+    py_process_class_in(ctx, class_node, NULL);
+}
+
 /* Module bindings are replayed in source order before deferred function bodies
  * are analyzed. Class definitions always replace an earlier callable identity;
  * the registry decides whether the resulting class type is known precisely. */
@@ -4687,6 +4934,28 @@ static char *py_module_prefix(CBMArena *scratch, const char *module_qn, size_t l
     return prefix;
 }
 
+/* A class declared inside a def -- django's per-test `class MyModelAdmin`, an
+ * app factory's local class, and anything nested in one -- is a local of that
+ * def, not a global of the module: bound here by its short name, every
+ * same-named local class of the file collapsed onto whichever registered last.
+ * Its QN extends a registered function's (proj.mod.Tests.test_x.MyModelAdmin),
+ * which tells it apart from a class nested in a class (proj.mod.Outer.Inner).
+ * Only prefixes longer than the module are probed. */
+static bool py_type_is_function_local(const PyLSPContext *ctx, const char *qn, size_t module_len) {
+    char scope[512];
+    size_t len = strlen(qn);
+    if (len >= sizeof(scope))
+        return false;
+    memcpy(scope, qn, len + 1);
+    for (char *dot = strrchr(scope, '.'); dot && (size_t)(dot - scope) > module_len;
+         dot = strrchr(scope, '.')) {
+        *dot = '\0';
+        if (cbm_registry_lookup_func(ctx->registry, scope))
+            return true;
+    }
+    return false;
+}
+
 /* A project registry can contain another file's class in the same logical
  * Python module. Keep those cross-file globals available, but do not prebind
  * classes declared by this source: their binding epoch belongs in the ordered
@@ -4734,6 +5003,8 @@ static void py_bind_external_module_classes(PyLSPContext *ctx, const PyKids *rk)
                 continue;
             if (package_scope && strchr(qn + prefix_len + 1, '.'))
                 continue; /* submodule/nested classes are not package globals */
+            if (py_type_is_function_local(ctx, qn, prefix_len))
+                continue; /* a def-local class is no module global (#1548) */
             py_scope_bind(ctx, name, cbm_type_named(ctx->arena, qn));
         }
         if (prefix)

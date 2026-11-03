@@ -124,7 +124,7 @@
   ],
   "extensions": {
     "delivery": {
-      "interactive_host": "Herdr; launch pending managed-session context",
+      "interactive_host": "managed terminal; launch pending managed-session context",
       "production_branch": "main",
       "promotion": "Future origin PR targets main after QA passing; no automatic merge/tag/release.",
       "push_gate": "Exact-SHA shared Jenkins required before remote push.",
@@ -212,7 +212,7 @@
   "provenance": {
     "sources": [
       {
-        "description": "Implement the three selected verticals with GPT-6-Luna, full permissions, isolated worktrees and interactive Herdr panes.",
+        "description": "Implement the three selected verticals with GPT-6-Luna, full permissions, isolated worktrees and interactive managed terminals.",
         "id": "SRC-USER",
         "kind": "user_input"
       },
@@ -220,7 +220,7 @@
         "description": "Exact release-tooling source baseline and selected upstream diffs",
         "id": "SRC-BASE",
         "kind": "repository",
-        "locator": "/tmp/claude-1000/-lump-apps-codebase-memory-cli/70854de5-bd44-40b4-8ac2-4cf2d6b24d01/scratchpad/wt-rt",
+        "locator": "local run evidence,
         "revision": "5824239b9c37664f0a389bd1deb86ca1ac28a26c"
       }
     ]

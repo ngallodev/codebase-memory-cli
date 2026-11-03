@@ -235,7 +235,7 @@ The older `scripts/benchmark-index.sh` was also corrected to invoke the canonica
 ## CP61 release-qualification boundary
 
 For release gating on Windows, this general harness contract is subordinate to
-`docs/WINDOWS_BENCHMARK_PROTOCOL.md`. The authoritative benchmark host is `luigi.home.arpa`, binary
+`docs/WINDOWS_BENCHMARK_PROTOCOL.md`. The authoritative benchmark host is `the qualification host`, binary
 inputs are immutable GitHub-published artifacts, and repository inputs come from the frozen corpus
 manifest in `docs/qualification/BENCHMARK_CORPUS.json`.
 

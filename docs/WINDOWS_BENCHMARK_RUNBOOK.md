@@ -1,6 +1,6 @@
 # Windows RC Benchmark Runbook
 
-This runbook establishes `windows-corpus-1` and captures the first Windows CLI baseline on `luigi.home.arpa` from the exact release-candidate executable. The first qualified CLI release is **BASELINE_ZERO**: its measurements become generation zero; they are not compared to the older MCP-era release.
+This runbook establishes `windows-corpus-1` and captures the first Windows CLI baseline on `the qualification host` from the exact release-candidate executable. The first qualified CLI release is **BASELINE_ZERO**: its measurements become generation zero; they are not compared to the older MCP-era release.
 
 ## Fixed five-repository corpus
 
@@ -12,7 +12,7 @@ The repository identities are fixed. Do not substitute repositories without crea
 | `specgen-aw` | `https://github.com/ngallodev-software/specgen-aw.git` | SpecGen `0.2.1`, `master`; snapshot observed 2026-09-08: `466debfec788c7aeeee858c6b51e98b1b9afe653`. |
 | `agent-workflow` | `https://github.com/ngallodev-software/agent-workflow.git` | Agent-Workflow `0.10.0`, `master`; snapshot observed 2026-09-08: `e84925205301ff7169aff5a8cb14d10680c3739c`. |
 | `agent-workflow-spec-contracts` | `https://github.com/ngallodev-software/agent-workflow-spec-contracts.git` | released tag `v0.2.1`; commit `0b32e556ef33bd00c0111d30a8b9225eb5196fcd`. |
-| `herdr` | `https://github.com/herdrdev/herdr.git` | `master`; snapshot observed 2026-09-08: `68c7b78ec237034cbb0e21c8666842ed7991641d`. |
+| `managed terminal` | `https://github.com/managed terminaldev/managed terminal.git` | `master`; snapshot observed 2026-09-08: `68c7b78ec237034cbb0e21c8666842ed7991641d`. |
 
 The two moving `master` references above are **initialization references only**. Once `BENCHMARK_CORPUS.json` is frozen on Luigi, its exact commit SHAs are authoritative even when upstream moves.
 

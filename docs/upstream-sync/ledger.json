@@ -1,0 +1,1472 @@
+{
+  "schema": "codebase-memory-cli/upstream-sync/v1",
+  "campaign": "2026-11-01",
+  "canonical_human_ledger": "docs/UPSTREAM_308_CANDIDATE_AUDIT_20260912.md",
+  "inventory": {
+    "schema_version": 1,
+    "date": "2026-11-01",
+    "fork_base": "ff8b8906c6807953336609cc7f464e7e4ef3cf7b",
+    "merge_base": "8df0639c6268afe9888979e72b9797aa2cc1de7c",
+    "campaign_target": "6c0ce230ee26ab8d263eb5235ebf73755558344e",
+    "observed_upstream_tip": "edc2301b022b1f5e1e0ec11e291917e22e9736aa",
+    "fork_only_commits": 348,
+    "upstream_only_commits": 942,
+    "campaign_commits": 933,
+    "post_campaign_commits": 9,
+    "open_prs": [
+      {
+        "baseRefName": "main",
+        "headRefName": "docs/public-cleanup-20261015",
+        "isDraft": false,
+        "number": 25,
+        "title": "Tidy public docs: remove local details, move internal notes"
+      }
+    ],
+    "branch_protection": {
+      "http_status": 404,
+      "message": "Branch not protected"
+    },
+    "canonical_ledger": "docs/UPSTREAM_308_CANDIDATE_AUDIT_20260912.md",
+    "checkpoints": [
+      {
+        "start": "8df0639c6268afe9888979e72b9797aa2cc1de7c",
+        "end": "5dc83ac9fa363d51706a70977840b61ea59ce9db",
+        "ancestor": true,
+        "commits": 79
+      },
+      {
+        "start": "5dc83ac9fa363d51706a70977840b61ea59ce9db",
+        "end": "4c80d89edf1283cfeaa7e60ecbf40c9d2eb2b689",
+        "ancestor": true,
+        "commits": 119
+      },
+      {
+        "start": "4c80d89edf1283cfeaa7e60ecbf40c9d2eb2b689",
+        "end": "3457b21b0a3d75960c07ed3ec666a9e684985ef9",
+        "ancestor": true,
+        "commits": 80
+      },
+      {
+        "start": "3457b21b0a3d75960c07ed3ec666a9e684985ef9",
+        "end": "31ba586de4589e6e5749ece3aaaf4ca06d8853ce",
+        "ancestor": true,
+        "commits": 84
+      },
+      {
+        "start": "31ba586de4589e6e5749ece3aaaf4ca06d8853ce",
+        "end": "b956413eb49bd38188d060866700a97bc1d622de",
+        "ancestor": true,
+        "commits": 97
+      },
+      {
+        "start": "b956413eb49bd38188d060866700a97bc1d622de",
+        "end": "2796460efea8bef1f9232b6ffff37e2e87e9a193",
+        "ancestor": true,
+        "commits": 51
+      },
+      {
+        "start": "2796460efea8bef1f9232b6ffff37e2e87e9a193",
+        "end": "2658a181b50ad65cf855e91542e16ef101a1767e",
+        "ancestor": true,
+        "commits": 71
+      },
+      {
+        "start": "2658a181b50ad65cf855e91542e16ef101a1767e",
+        "end": "a3831c979547d33adaa36998dca2b004d735fc84",
+        "ancestor": true,
+        "commits": 61
+      },
+      {
+        "start": "a3831c979547d33adaa36998dca2b004d735fc84",
+        "end": "d1d8bbfa8fb52b0312dbbf1bf48b2787a7273a56",
+        "ancestor": true,
+        "commits": 105
+      },
+      {
+        "start": "d1d8bbfa8fb52b0312dbbf1bf48b2787a7273a56",
+        "end": "29aa74867bd8ac80a5482156dc3e555904b7a382",
+        "ancestor": true,
+        "commits": 104
+      },
+      {
+        "start": "29aa74867bd8ac80a5482156dc3e555904b7a382",
+        "end": "6c0ce230ee26ab8d263eb5235ebf73755558344e",
+        "ancestor": true,
+        "commits": 82
+      },
+      {
+        "start": "6c0ce230ee26ab8d263eb5235ebf73755558344e",
+        "end": "edc2301b022b1f5e1e0ec11e291917e22e9736aa",
+        "ancestor": true,
+        "commits": 9
+      }
+    ]
+  },
+  "batches": [
+    {
+      "batch": "13A",
+      "upstream_start": "8df0639c6268afe9888979e72b9797aa2cc1de7c",
+      "upstream_checkpoint": "5dc83ac9fa363d51706a70977840b61ea59ce9db",
+      "upstream_commits": 79,
+      "ancestry_validated": true,
+      "fork_base": "ff8b8906c6807953336609cc7f464e7e4ef3cf7b",
+      "depends_on": [
+        "security_hotfix",
+        "ci_guard"
+      ],
+      "state": "draft_pr_open_full_jenkins_passed_review_pending",
+      "branch": "sync/upstream-13a-20261101",
+      "merge_commit": "a03f1f8ab85e8861d8d6820061ccfd88797efae1",
+      "draft_pr": "https://github.com/ngallodev/codebase-memory-cli/pull/29",
+      "adaptations": [
+        "test-impact moved to src/operations",
+        "shared complete definition-property serialization",
+        "Python per-file scope in parallel registration",
+        "finite 512 MiB member cap; compressed/count/total limits retained",
+        "CLI release dist-tag and conservative test selection"
+      ],
+      "exclusions": [
+        "MCP server/session/transport and upstream product manifests",
+        "automatic GitHub PR workflows and SMART_CI manual",
+        "unbounded archive downloads/extraction",
+        "upstream-only wrapper smoke driver and associated workflow flags",
+        "unqualified upstream version bump over fork release hashes"
+      ],
+      "conflicts": [],
+      "schema_migrations": "Index format 2 -> 3; old invented Docker registry identities force full reindex.",
+      "policy_gate": "passed: all 18 YAML files parse with manual/reusable events and no duplicate mappings",
+      "verification": {
+        "production_build": "passed at worker integration",
+        "core_language": "1337 passed under ASan/UBSan",
+        "storage": "190 passed",
+        "parallel_determinism": "139 passed; initial combined command invalid suite alias, valid storage rerun passed",
+        "npm": "22 passed, 4 Windows skips",
+        "pypi": "44 passed",
+        "go": "passed with test-scoped inherited install directory removed",
+        "real_binary_archive": "old limit rejected; new npm/PyPI extraction and version passed at 302808096 bytes",
+        "clang_tidy_diff": "failed; out-of-range diagnostics observed, cause unverified",
+        "additional_changed_subsystems": "Initial stale fixtures repaired; full build 85 passed all three C shards and verified complete suite union.",
+        "jenkins": {
+          "special_build_1": "checkout configuration failed before pipeline",
+          "special_build_2": "failed Step 0e: Windows bundle contract required retired pr.yml; lint, security, license and production build completed",
+          "follow_up": "stale workflow and mixed-origin tag contracts repaired; full local preparation passed",
+          "existing_job": "codebase-memory-cli-release-tooling",
+          "existing_job_suites": "empty = full gate",
+          "existing_job_status": "SUCCESS at build 85; exact archived source and binary checksum verified",
+          "existing_build_84": "source 598d7c71; full suite exposed stale test_impact mapping; retry required for correction",
+          "existing_build_85": {
+            "result": "SUCCESS",
+            "source_revision": "d1a4c9d244e6a0446e1ab45fffc5da2d4cce3e1c",
+            "url": "http://192.168.88.146:8080/job/codebase-memory-cli-release-tooling/85/",
+            "duration_ms": 3225301,
+            "c_tests": {
+              "passed": 9348,
+              "failed": 0,
+              "skipped": 5
+            },
+            "thread_sanitizer": {
+              "passed": 919,
+              "skipped": 3,
+              "warnings": 0
+            },
+            "post_test": "passed",
+            "package_wrappers": "passed",
+            "binary_sha256": "910466a2ea38c81196b2ee4630b821e944b73e8ec4c1cae47a2582a198e5eba8",
+            "binary_bytes": 302808096,
+            "receipt_scope": "Later documentation-only commits are not separate Jenkins-qualified revisions."
+          }
+        },
+        "windows": "not_run",
+        "test_impact_policy": "21 passed after native/conservative policy adaptation",
+        "test_impact_repository_policy": "89 ASan/UBSan cases passed after stale fixture mapping repair; intentionally wrong mapping still fails with no leak"
+      },
+      "acceptance": [
+        "True merge includes exact checkpoint parent, no unresolved conflicts.",
+        "CLI/native HTTP contracts and authorization preserved; no MCP transport restored.",
+        "Manual/reusable GitHub Actions policy passes before push.",
+        "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
+        "Jenkins full exact-SHA qualification before recommending merge."
+      ],
+      "next_action": "Retain draft status; resolve local clang-tidy findings/baseline, native Windows qualification and review/acceptance. Full Linux Jenkins gate passed at d1a4c9d2. 13B starts from reviewed integration, not main.",
+      "upstream_prs": [
+        1548,
+        1555,
+        2431,
+        2648,
+        2650,
+        2651,
+        2652,
+        2653,
+        2654,
+        2663,
+        2664,
+        2669,
+        2674,
+        2676,
+        2678,
+        2679,
+        2681,
+        2682,
+        2684,
+        2685,
+        2686,
+        2687,
+        2689,
+        2696
+      ],
+      "fork_merge_sha": "a03f1f8ab85e8861d8d6820061ccfd88797efae1",
+      "file_conflicts": [
+        "CONFLICT (content): Merge conflict in .github/workflows/_security.yml",
+        "CONFLICT (modify/delete): .github/workflows/pr.yml deleted in HEAD and modified in 5dc83ac9fa363d51706a70977840b61ea59ce9db.  Version 5dc83ac9fa363d51706a70977840b61ea59ce9db of .github/workflows/pr.yml left in tree.",
+        "CONFLICT (content): Merge conflict in .github/workflows/release.yml",
+        "CONFLICT (content): Merge conflict in README.md",
+        "CONFLICT (content): Merge conflict in docs/index.html",
+        "CONFLICT (content): Merge conflict in docs/llms.txt",
+        "CONFLICT (content): Merge conflict in flake.nix",
+        "CONFLICT (content): Merge conflict in pkg/chocolatey/codebase-memory-cli.nuspec",
+        "CONFLICT (content): Merge conflict in pkg/chocolatey/tools/chocolateyInstall.ps1",
+        "CONFLICT (content): Merge conflict in pkg/go/cmd/codebase-memory-cli/main.go",
+        "CONFLICT (content): Merge conflict in pkg/homebrew/Formula/codebase-memory-cli.rb",
+        "CONFLICT (content): Merge conflict in pkg/npm/README.md",
+        "CONFLICT (content): Merge conflict in pkg/npm/install.js",
+        "CONFLICT (content): Merge conflict in pkg/npm/package.json",
+        "CONFLICT (content): Merge conflict in pkg/npm/test/archive-limits.test.js",
+        "CONFLICT (content): Merge conflict in pkg/pypi/README.md",
+        "CONFLICT (content): Merge conflict in pkg/pypi/pyproject.toml",
+        "CONFLICT (content): Merge conflict in pkg/pypi/src/codebase_memory_cli/_cli.py",
+        "CONFLICT (content): Merge conflict in pkg/pypi/tests/test_cli.py",
+        "CONFLICT (modify/delete): pkg/scoop/codebase-memory-mcp.json deleted in HEAD and modified in 5dc83ac9fa363d51706a70977840b61ea59ce9db.  Version 5dc83ac9fa363d51706a70977840b61ea59ce9db of pkg/scoop/codebase-memory-mcp.json left in tree.",
+        "CONFLICT (content): Merge conflict in scripts/smoke-test.sh",
+        "CONFLICT (modify/delete): server.json deleted in HEAD and modified in 5dc83ac9fa363d51706a70977840b61ea59ce9db.  Version 5dc83ac9fa363d51706a70977840b61ea59ce9db of server.json left in tree.",
+        "CONFLICT (content): Merge conflict in src/main.c",
+        "CONFLICT (content): Merge conflict in src/operations/test_impact_cli.c",
+        "CONFLICT (content): Merge conflict in src/pipeline/pass_definitions.c",
+        "CONFLICT (content): Merge conflict in src/pipeline/pass_parallel.c",
+        "CONFLICT (content): Merge conflict in tests/test_grammar_probe_f.c",
+        "CONFLICT (content): Merge conflict in tests/test_main.c",
+        "CONFLICT (content): Merge conflict in tests/test_version_metadata_contract.sh",
+        "CONFLICT (content): Merge conflict in tests/windows/test_daemon_stability.py"
+      ],
+      "jenkins_job": "codebase-memory-cli-sync-13a-20261101",
+      "previous_qualification_source_revision": "3019aecc1c9318819d07558c4bdf66f4e10c2665"
+    },
+    {
+      "batch": "13B",
+      "upstream_start": "5dc83ac9fa363d51706a70977840b61ea59ce9db",
+      "upstream_checkpoint": "4c80d89edf1283cfeaa7e60ecbf40c9d2eb2b689",
+      "upstream_commits": 119,
+      "ancestry_validated": true,
+      "fork_base": null,
+      "depends_on": [
+        "13A"
+      ],
+      "state": "not_started",
+      "branch": null,
+      "merge_commit": null,
+      "draft_pr": null,
+      "adaptations": [],
+      "exclusions": [],
+      "conflicts": [],
+      "schema_migrations": "pending source verification",
+      "policy_gate": "pending",
+      "verification": {
+        "local": "pending",
+        "jenkins": "pending",
+        "windows": "not_run"
+      },
+      "acceptance": [
+        "True merge includes exact checkpoint parent, no unresolved conflicts.",
+        "CLI/native HTTP contracts and authorization preserved; no MCP transport restored.",
+        "Manual/reusable GitHub Actions policy passes before push.",
+        "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
+        "Jenkins full exact-SHA qualification before recommending merge."
+      ],
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        1041,
+        1265,
+        1277,
+        1692,
+        1907,
+        1913,
+        2680,
+        2684,
+        2686,
+        2688,
+        2690,
+        2691,
+        2695,
+        2696,
+        2697,
+        2698,
+        2700,
+        2702,
+        2703,
+        2704,
+        2705,
+        2706,
+        2707,
+        2708,
+        2712,
+        2713,
+        2714
+      ]
+    },
+    {
+      "batch": "13C",
+      "upstream_start": "4c80d89edf1283cfeaa7e60ecbf40c9d2eb2b689",
+      "upstream_checkpoint": "3457b21b0a3d75960c07ed3ec666a9e684985ef9",
+      "upstream_commits": 80,
+      "ancestry_validated": true,
+      "fork_base": null,
+      "depends_on": [
+        "13B"
+      ],
+      "state": "not_started",
+      "branch": null,
+      "merge_commit": null,
+      "draft_pr": null,
+      "adaptations": [],
+      "exclusions": [],
+      "conflicts": [],
+      "schema_migrations": "pending source verification",
+      "policy_gate": "pending",
+      "verification": {
+        "local": "pending",
+        "jenkins": "pending",
+        "windows": "not_run"
+      },
+      "acceptance": [
+        "True merge includes exact checkpoint parent, no unresolved conflicts.",
+        "CLI/native HTTP contracts and authorization preserved; no MCP transport restored.",
+        "Manual/reusable GitHub Actions policy passes before push.",
+        "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
+        "Jenkins full exact-SHA qualification before recommending merge."
+      ],
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        1786,
+        2253,
+        2440,
+        2457,
+        2502,
+        2512,
+        2556,
+        2568,
+        2579,
+        2595,
+        2599,
+        2623,
+        2639,
+        2677,
+        2694,
+        2710,
+        2720,
+        2726,
+        2729,
+        2734,
+        2735
+      ]
+    },
+    {
+      "batch": "13D",
+      "upstream_start": "3457b21b0a3d75960c07ed3ec666a9e684985ef9",
+      "upstream_checkpoint": "31ba586de4589e6e5749ece3aaaf4ca06d8853ce",
+      "upstream_commits": 84,
+      "ancestry_validated": true,
+      "fork_base": null,
+      "depends_on": [
+        "13C"
+      ],
+      "state": "not_started",
+      "branch": null,
+      "merge_commit": null,
+      "draft_pr": null,
+      "adaptations": [],
+      "exclusions": [],
+      "conflicts": [],
+      "schema_migrations": "pending source verification",
+      "policy_gate": "pending",
+      "verification": {
+        "local": "pending",
+        "jenkins": "pending",
+        "windows": "not_run"
+      },
+      "acceptance": [
+        "True merge includes exact checkpoint parent, no unresolved conflicts.",
+        "CLI/native HTTP contracts and authorization preserved; no MCP transport restored.",
+        "Manual/reusable GitHub Actions policy passes before push.",
+        "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
+        "Jenkins full exact-SHA qualification before recommending merge."
+      ],
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        221,
+        1115,
+        1766,
+        1999,
+        2091,
+        2231,
+        2281,
+        2381,
+        2508,
+        2719,
+        2729,
+        2732,
+        2737,
+        2738,
+        2739,
+        2753,
+        2755,
+        2757,
+        2761,
+        2762
+      ]
+    },
+    {
+      "batch": "13E",
+      "upstream_start": "31ba586de4589e6e5749ece3aaaf4ca06d8853ce",
+      "upstream_checkpoint": "b956413eb49bd38188d060866700a97bc1d622de",
+      "upstream_commits": 97,
+      "ancestry_validated": true,
+      "fork_base": null,
+      "depends_on": [
+        "13D"
+      ],
+      "state": "not_started",
+      "branch": null,
+      "merge_commit": null,
+      "draft_pr": null,
+      "adaptations": [],
+      "exclusions": [],
+      "conflicts": [],
+      "schema_migrations": "pending source verification",
+      "policy_gate": "pending",
+      "verification": {
+        "local": "pending",
+        "jenkins": "pending",
+        "windows": "not_run"
+      },
+      "acceptance": [
+        "True merge includes exact checkpoint parent, no unresolved conflicts.",
+        "CLI/native HTTP contracts and authorization preserved; no MCP transport restored.",
+        "Manual/reusable GitHub Actions policy passes before push.",
+        "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
+        "Jenkins full exact-SHA qualification before recommending merge."
+      ],
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        1730,
+        2085,
+        2234,
+        2289,
+        2372,
+        2386,
+        2422,
+        2423,
+        2430,
+        2443,
+        2555,
+        2588,
+        2591,
+        2602,
+        2622,
+        2661,
+        2675,
+        2724,
+        2744,
+        2764,
+        2766,
+        2777,
+        2797,
+        2798,
+        2800,
+        2801,
+        2802
+      ]
+    },
+    {
+      "batch": "13F",
+      "upstream_start": "b956413eb49bd38188d060866700a97bc1d622de",
+      "upstream_checkpoint": "2796460efea8bef1f9232b6ffff37e2e87e9a193",
+      "upstream_commits": 51,
+      "ancestry_validated": true,
+      "fork_base": null,
+      "depends_on": [
+        "13E"
+      ],
+      "state": "not_started",
+      "branch": null,
+      "merge_commit": null,
+      "draft_pr": null,
+      "adaptations": [],
+      "exclusions": [],
+      "conflicts": [],
+      "schema_migrations": "pending source verification",
+      "policy_gate": "pending",
+      "verification": {
+        "local": "pending",
+        "jenkins": "pending",
+        "windows": "not_run"
+      },
+      "acceptance": [
+        "True merge includes exact checkpoint parent, no unresolved conflicts.",
+        "CLI/native HTTP contracts and authorization preserved; no MCP transport restored.",
+        "Manual/reusable GitHub Actions policy passes before push.",
+        "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
+        "Jenkins full exact-SHA qualification before recommending merge."
+      ],
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        2161,
+        2305,
+        2774,
+        2817
+      ]
+    },
+    {
+      "batch": "13G",
+      "upstream_start": "2796460efea8bef1f9232b6ffff37e2e87e9a193",
+      "upstream_checkpoint": "2658a181b50ad65cf855e91542e16ef101a1767e",
+      "upstream_commits": 71,
+      "ancestry_validated": true,
+      "fork_base": null,
+      "depends_on": [
+        "13F"
+      ],
+      "state": "not_started",
+      "branch": null,
+      "merge_commit": null,
+      "draft_pr": null,
+      "adaptations": [],
+      "exclusions": [],
+      "conflicts": [],
+      "schema_migrations": "pending source verification",
+      "policy_gate": "pending",
+      "verification": {
+        "local": "pending",
+        "jenkins": "pending",
+        "windows": "not_run"
+      },
+      "acceptance": [
+        "True merge includes exact checkpoint parent, no unresolved conflicts.",
+        "CLI/native HTTP contracts and authorization preserved; no MCP transport restored.",
+        "Manual/reusable GitHub Actions policy passes before push.",
+        "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
+        "Jenkins full exact-SHA qualification before recommending merge."
+      ],
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        2090,
+        2290,
+        2309,
+        2585,
+        2600,
+        2717,
+        2731,
+        2746,
+        2754,
+        2760,
+        2769,
+        2787,
+        2807
+      ]
+    },
+    {
+      "batch": "13H",
+      "upstream_start": "2658a181b50ad65cf855e91542e16ef101a1767e",
+      "upstream_checkpoint": "a3831c979547d33adaa36998dca2b004d735fc84",
+      "upstream_commits": 61,
+      "ancestry_validated": true,
+      "fork_base": null,
+      "depends_on": [
+        "13G"
+      ],
+      "state": "not_started",
+      "branch": null,
+      "merge_commit": null,
+      "draft_pr": null,
+      "adaptations": [],
+      "exclusions": [],
+      "conflicts": [],
+      "schema_migrations": "pending source verification",
+      "policy_gate": "pending",
+      "verification": {
+        "local": "pending",
+        "jenkins": "pending",
+        "windows": "not_run"
+      },
+      "acceptance": [
+        "True merge includes exact checkpoint parent, no unresolved conflicts.",
+        "CLI/native HTTP contracts and authorization preserved; no MCP transport restored.",
+        "Manual/reusable GitHub Actions policy passes before push.",
+        "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
+        "Jenkins full exact-SHA qualification before recommending merge."
+      ],
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        1710,
+        2017,
+        2418,
+        2419,
+        2421,
+        2587,
+        2601
+      ]
+    },
+    {
+      "batch": "13I",
+      "upstream_start": "a3831c979547d33adaa36998dca2b004d735fc84",
+      "upstream_checkpoint": "d1d8bbfa8fb52b0312dbbf1bf48b2787a7273a56",
+      "upstream_commits": 105,
+      "ancestry_validated": true,
+      "fork_base": null,
+      "depends_on": [
+        "13H"
+      ],
+      "state": "not_started",
+      "branch": null,
+      "merge_commit": null,
+      "draft_pr": null,
+      "adaptations": [],
+      "exclusions": [],
+      "conflicts": [],
+      "schema_migrations": "pending source verification",
+      "policy_gate": "pending",
+      "verification": {
+        "local": "pending",
+        "jenkins": "pending",
+        "windows": "not_run"
+      },
+      "acceptance": [
+        "True merge includes exact checkpoint parent, no unresolved conflicts.",
+        "CLI/native HTTP contracts and authorization preserved; no MCP transport restored.",
+        "Manual/reusable GitHub Actions policy passes before push.",
+        "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
+        "Jenkins full exact-SHA qualification before recommending merge."
+      ],
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        1833,
+        1915,
+        1996,
+        2244,
+        2295,
+        2420,
+        2586,
+        2613,
+        2716,
+        2722,
+        2822,
+        2826,
+        2827,
+        2839,
+        2841,
+        2849
+      ]
+    },
+    {
+      "batch": "13J",
+      "upstream_start": "d1d8bbfa8fb52b0312dbbf1bf48b2787a7273a56",
+      "upstream_checkpoint": "29aa74867bd8ac80a5482156dc3e555904b7a382",
+      "upstream_commits": 104,
+      "ancestry_validated": true,
+      "fork_base": null,
+      "depends_on": [
+        "13I"
+      ],
+      "state": "not_started",
+      "branch": null,
+      "merge_commit": null,
+      "draft_pr": null,
+      "adaptations": [],
+      "exclusions": [],
+      "conflicts": [],
+      "schema_migrations": "pending source verification",
+      "policy_gate": "pending",
+      "verification": {
+        "local": "pending",
+        "jenkins": "pending",
+        "windows": "not_run"
+      },
+      "acceptance": [
+        "True merge includes exact checkpoint parent, no unresolved conflicts.",
+        "CLI/native HTTP contracts and authorization preserved; no MCP transport restored.",
+        "Manual/reusable GitHub Actions policy passes before push.",
+        "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
+        "Jenkins full exact-SHA qualification before recommending merge."
+      ],
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        1936,
+        2022,
+        2315,
+        2371,
+        2671,
+        2752,
+        2768,
+        2819,
+        2833,
+        2850,
+        2854,
+        2861,
+        2862,
+        2864
+      ]
+    },
+    {
+      "batch": "13K",
+      "upstream_start": "29aa74867bd8ac80a5482156dc3e555904b7a382",
+      "upstream_checkpoint": "6c0ce230ee26ab8d263eb5235ebf73755558344e",
+      "upstream_commits": 82,
+      "ancestry_validated": true,
+      "fork_base": null,
+      "depends_on": [
+        "13J"
+      ],
+      "state": "not_started",
+      "branch": null,
+      "merge_commit": null,
+      "draft_pr": null,
+      "adaptations": [],
+      "exclusions": [],
+      "conflicts": [],
+      "schema_migrations": "pending source verification",
+      "policy_gate": "pending",
+      "verification": {
+        "local": "pending",
+        "jenkins": "pending",
+        "windows": "not_run"
+      },
+      "acceptance": [
+        "True merge includes exact checkpoint parent, no unresolved conflicts.",
+        "CLI/native HTTP contracts and authorization preserved; no MCP transport restored.",
+        "Manual/reusable GitHub Actions policy passes before push.",
+        "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
+        "Jenkins full exact-SHA qualification before recommending merge."
+      ],
+      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "upstream_prs": [
+        1731,
+        1781,
+        2092,
+        2385,
+        2641,
+        2779,
+        2842,
+        2867,
+        2872
+      ]
+    }
+  ],
+  "reconciliation": [
+    {
+      "upstream_pr": 2739,
+      "topic": "dependency advisories",
+      "source_commits": [
+        {
+          "sha": "a3d266d705b7903552f6f232cd078ed5e0320b7e",
+          "batch": "13D"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2861,
+      "topic": "dependency advisory follow-up",
+      "source_commits": [
+        {
+          "sha": "3b46abec256049427d7523489a21a923c637f4aa",
+          "batch": "13J"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2757,
+      "topic": "literal/static asset boundaries; verify native HTTP applicability",
+      "source_commits": [
+        {
+          "sha": "869fc2b54ca98bf12e6f0408e68ad05d4a0468ea",
+          "batch": "13D"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 1786,
+      "topic": "Windows separators",
+      "source_commits": [
+        {
+          "sha": "8c7b3bd76e8cc0e23f5c570dafeb0ddff5c4d6fd",
+          "batch": "13C"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2017,
+      "topic": "explicit broad-root authorization",
+      "source_commits": [
+        {
+          "sha": "a3831c979547d33adaa36998dca2b004d735fc84",
+          "batch": "13H"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2664,
+      "topic": "reject unbounded installer archives",
+      "source_commits": [
+        {
+          "sha": "5966b7f0811dd970445d693513e77949cc119c19",
+          "batch": "13A"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2650,
+      "topic": "SQLite settings recovery",
+      "source_commits": [
+        {
+          "sha": "ec6427c38176efcd37b28682e82f2491afda94be",
+          "batch": "13A"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2315,
+      "topic": "durable ADR",
+      "source_commits": [
+        {
+          "sha": "7be2becf7321961360777db8fc0c41c5a50ddb51",
+          "batch": "13J"
+        },
+        {
+          "sha": "2acbd3b02857c9cab1e33994525c3e93b5c1f473",
+          "batch": "13J"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2864,
+      "topic": "concurrent ADR",
+      "source_commits": [
+        {
+          "sha": "c07cb8e4a95b8837f65076aa5759a02095523151",
+          "batch": "13J"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2622,
+      "topic": "Windows 64-bit offsets",
+      "source_commits": [
+        {
+          "sha": "70cd1a55683a066f560310c4793cac3fc0fe7b68",
+          "batch": "13E"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2600,
+      "topic": "content hash freshness",
+      "source_commits": [
+        {
+          "sha": "2658a181b50ad65cf855e91542e16ef101a1767e",
+          "batch": "13G"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2738,
+      "topic": "route metadata",
+      "source_commits": [
+        {
+          "sha": "31ba586de4589e6e5749ece3aaaf4ca06d8853ce",
+          "batch": "13D"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2430,
+      "topic": "incremental roots",
+      "source_commits": [
+        {
+          "sha": "5810183b3b5c0d5ac4c54f466baa4c6f263884db",
+          "batch": "13E"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2289,
+      "topic": "daemon coordination identity",
+      "source_commits": [
+        {
+          "sha": "5e9f146e7bebfea8a3948722142a639a1212599d",
+          "batch": "13E"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2731,
+      "topic": "mimalloc/glibc startup",
+      "source_commits": [
+        {
+          "sha": "beddaaaa2eb9c5b750e5265a20efc602c1f6868e",
+          "batch": "13G"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2639,
+      "topic": "Windows Unicode watcher",
+      "source_commits": [
+        {
+          "sha": "402cc818f7f664e5f5f0ec81c26504fdd1702462",
+          "batch": "13C"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2599,
+      "topic": "Windows daemon teardown",
+      "source_commits": [
+        {
+          "sha": "94f952d8d6597452a2c860a04fc912f10fd485c8",
+          "batch": "13C"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2290,
+      "topic": "UTF-8 environment",
+      "source_commits": [
+        {
+          "sha": "c4e37c1239dca165c2fbd0dd44d1ff18a55ef096",
+          "batch": "13G"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2022,
+      "topic": "background CPU throttling",
+      "source_commits": [
+        {
+          "sha": "29aa74867bd8ac80a5482156dc3e555904b7a382",
+          "batch": "13J"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 1833,
+      "topic": "permanent watch ownership",
+      "source_commits": [
+        {
+          "sha": "d1d8bbfa8fb52b0312dbbf1bf48b2787a7273a56",
+          "batch": "13I"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2305,
+      "topic": "unresolved-call v5 evidence",
+      "source_commits": [
+        {
+          "sha": "2796460efea8bef1f9232b6ffff37e2e87e9a193",
+          "batch": "13F"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2689,
+      "topic": "complete deterministic DATA_FLOWS",
+      "source_commits": [
+        {
+          "sha": "ea5c1f725066be8acb5de7a3b1a41d5b00f45008",
+          "batch": "13A"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2707,
+      "topic": "DATA_FLOWS test semantics",
+      "source_commits": [
+        {
+          "sha": "d21152603c7e0df218550f0193eeb1b25141179a",
+          "batch": "13B"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2687,
+      "topic": "definition fingerprints",
+      "source_commits": [
+        {
+          "sha": "1a7839db2e8349c01111e3e0bd7f5520a92b0feb",
+          "batch": "13A"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 1766,
+      "topic": "import false bindings",
+      "source_commits": [
+        {
+          "sha": "10ab613de30dfd573d0b251cd0ad648e1c7e5204",
+          "batch": "13D"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2802,
+      "topic": "import false bindings follow-up",
+      "source_commits": [
+        {
+          "sha": "83109dde52b3d5c766451f84d346cf98ad05bf3f",
+          "batch": "13E"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2754,
+      "topic": "C field references",
+      "source_commits": [
+        {
+          "sha": "442989ebaa5b443cd96865017d783e5f0335eca6",
+          "batch": "13G"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2746,
+      "topic": "TS renamed imports",
+      "source_commits": [
+        {
+          "sha": "f1efbf60d8f9b52198bc6e8369a5d1d2047d1c96",
+          "batch": "13G"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2819,
+      "topic": "BM25 filters",
+      "source_commits": [
+        {
+          "sha": "e0823879e9a66684cadb4ee2635eea637ad335cb",
+          "batch": "13J"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2502,
+      "topic": "Cypher WHERE",
+      "source_commits": [
+        {
+          "sha": "3457b21b0a3d75960c07ed3ec666a9e684985ef9",
+          "batch": "13C"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2744,
+      "topic": "Cypher empty aggregation",
+      "source_commits": [
+        {
+          "sha": "f05c221e9c47f2a6f298e6a0383fe4cd5cb142a4",
+          "batch": "13E"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2764,
+      "topic": "Cypher corrections",
+      "source_commits": [
+        {
+          "sha": "0433142a15cc05d4938936809abd071e50c534c4",
+          "batch": "13E"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2601,
+      "topic": "doc reference resolution",
+      "source_commits": [
+        {
+          "sha": "3be5a02708f9f0a851240b79a67face6db658fe2",
+          "batch": "13H"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2854,
+      "topic": "Angular verbs",
+      "source_commits": [
+        {
+          "sha": "812d0755c1a79917aecfc76f67bc891663d1e2c3",
+          "batch": "13J"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2867,
+      "topic": "nested C#",
+      "source_commits": [
+        {
+          "sha": "6e0c59f5cf88620dfc38bbbd540832fa07d8b786",
+          "batch": "13K"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 1913,
+      "topic": "Go receiver identities",
+      "source_commits": [
+        {
+          "sha": "4c62b61845d4e9e402c4bf397311bf7b23ccb7b7",
+          "batch": "13B"
+        },
+        {
+          "sha": "aa4775f5669092fde88142c2011e82649fd8466c",
+          "batch": "13B"
+        },
+        {
+          "sha": "5a4af9c46f285c8fc18c6fd00a5bb32f035888ca",
+          "batch": "13B"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2688,
+      "topic": "ASP.NET routes",
+      "source_commits": [
+        {
+          "sha": "f26da1aaf2d9602faa555e9963ec5e431c56e3d7",
+          "batch": "13B"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2696,
+      "topic": "Python C3",
+      "source_commits": [
+        {
+          "sha": "5dc83ac9fa363d51706a70977840b61ea59ce9db",
+          "batch": "13A"
+        },
+        {
+          "sha": "1501cade367a9de3bbb0a4aefccbcb80c35379b9",
+          "batch": "13B"
+        },
+        {
+          "sha": "7b5e680f336933802c114d6635f54b542585cd4e",
+          "batch": "13B"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2704,
+      "topic": "Python import resolution",
+      "source_commits": [
+        {
+          "sha": "bf56fcfd14048b9688c99264b6f4fae28d9ccf8a",
+          "batch": "13B"
+        },
+        {
+          "sha": "0f6cc06ba2ad016c47def744fcf12fb175c22a65",
+          "batch": "13B"
+        },
+        {
+          "sha": "3c2853e338e37da4c10a9157b7d54e0d5a565f0d",
+          "batch": "13B"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2091,
+      "topic": "TS traversal",
+      "source_commits": [
+        {
+          "sha": "4a1e6d11037170eb43ab607923e82dbc9ad2da86",
+          "batch": "13D"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2623,
+      "topic": "lookup bounds",
+      "source_commits": [
+        {
+          "sha": "172c36191d6b7898bb6e3bd02791ce661dc694c3",
+          "batch": "13C"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2760,
+      "topic": "YAML traversal",
+      "source_commits": [
+        {
+          "sha": "e425666aab8a3df236207f2948cc8ef9fa531122",
+          "batch": "13G"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2418,
+      "topic": "memory reduction",
+      "source_commits": [
+        {
+          "sha": "ba4122d3cc601974ac49fab95b3f823877cde7d0",
+          "batch": "13H"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2422,
+      "topic": "memory reduction",
+      "source_commits": [
+        {
+          "sha": "6ef815540dc2378517c7f15ce45623552e7a9f35",
+          "batch": "13E"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2677,
+      "topic": "Helm scanner",
+      "source_commits": [
+        {
+          "sha": "a22271570eddba4ebed2c43577a5a4d36cb82086",
+          "batch": "13C"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2719,
+      "topic": "Codex optional hooks",
+      "source_commits": [
+        {
+          "sha": "619192a9908f2b3c80031069f7bc461b1548c13f",
+          "batch": "13D"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2801,
+      "topic": "Copilot optional hooks",
+      "source_commits": [
+        {
+          "sha": "129443a0b755a59418893c8de28e296cbcb49d1f",
+          "batch": "13E"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2817,
+      "topic": "Claude notifications",
+      "source_commits": [
+        {
+          "sha": "ea892c53495e4a85322bcb063e2dfd85640abc0f",
+          "batch": "13F"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    },
+    {
+      "upstream_pr": 2641,
+      "topic": "OpenCode safety",
+      "source_commits": [
+        {
+          "sha": "96c2fef6db4d5b053de50a850f00c40cecb17103",
+          "batch": "13K"
+        }
+      ],
+      "status": "not_verified",
+      "next_action": "Inspect exact parent diff and fork implementation; preserve regression or record explicit exclusion."
+    }
+  ],
+  "security_hotfix": {
+    "state": "draft_pr_open",
+    "branch": "sync/security-20261101",
+    "commit": "39d3ab73f5b5b68850e866d996ce116ec49463d7",
+    "draft_pr": "https://github.com/ngallodev/codebase-memory-cli/pull/27",
+    "verification": {
+      "ui_build": "passed",
+      "ui_unit": "3969 passed with NODE_OPTIONS=--no-webstorage; default Node26 run failed",
+      "npm_audit": "zero vulnerabilities",
+      "httpd": "96 passed, 1 Windows skip",
+      "workspace": "27 passed",
+      "jenkins": "pending",
+      "windows": "not_run"
+    },
+    "installer_compatibility": "13A production 289 MiB exceeds old 256 MiB member ceiling; finite bound adaptation pending"
+  },
+  "ci_guard": {
+    "state": "draft_pr_open",
+    "branch": "sync/ci-guard-20261101",
+    "commit": "8bc84fabace08d7342a2de3be77dd737a5686611",
+    "draft_pr": "https://github.com/ngallodev/codebase-memory-cli/pull/28",
+    "lifecycle": "initial worker failed/completion_missing: no bound acceptance commands; independent source verification retained; acceptance pending",
+    "verification": {
+      "policy": "18 files passed",
+      "policy_fixtures": "4 tests passed",
+      "ancestry_fixtures": "6 tests passed",
+      "coderabbit": "not_run: credentials_unavailable",
+      "jenkins": "pending"
+    },
+    "depends_on": "sync/security-20261101"
+  },
+  "post_campaign": {
+    "commits": 9,
+    "target": "edc2301b022b1f5e1e0ec11e291917e22e9736aa",
+    "state": "deferred",
+    "next_action": "Finish pinned campaign before planning another batch."
+  },
+  "remaining_pinned_upstream_commits": 854,
+  "lifecycle": {
+    "workers": [
+      "cbm-sync-security-20261101",
+      "cbm-sync-ci-20261101",
+      "cbm-sync-13a-20261101"
+    ],
+    "completion": "initial structured compatibility runs lacked acceptance binding; finish verification_required; no lifecycle acceptance claimed",
+    "source_review": "parent verified/fixed ancestry, YAML, package identity, metadata, resource limits and conservative selector adaptations",
+    "coderabbit": "not_run: credentials_unavailable"
+  },
+  "github_validation_records": [
+    {
+      "run_id": 41349084091,
+      "branch": "sync/security-20261101",
+      "jobs": 0,
+      "cause": "invalid pre-existing duplicate if key; fixed"
+    },
+    {
+      "run_id": 41349135318,
+      "branch": "sync/ci-guard-20261101",
+      "jobs": 0,
+      "cause": "same invalid reusable workflow; fixed"
+    }
+  ],
+  "final_ancestry_at_code_candidate": {
+    "source_revision": "3019aecc1c9318819d07558c4bdf66f4e10c2665",
+    "merge_base_with_pinned_target": "5dc83ac9fa363d51706a70977840b61ea59ce9db",
+    "candidate_only_commits": 367,
+    "pinned_target_only_commits": 854,
+    "observed_tip_only_commits": 863,
+    "main_unchanged": true,
+    "main_only_commits": 348,
+    "observed_tip_only_relative_to_main": 942
+  },
+  "publication_status": {
+    "security": {
+      "draft": true,
+      "pr": 27
+    },
+    "ci_guard": {
+      "draft": true,
+      "pr": 28,
+      "base_pr": 27
+    },
+    "13A": {
+      "draft": true,
+      "pr": 29,
+      "base_pr": 28
+    },
+    "automatic_merge_enabled": false,
+    "main_pushed": false,
+    "integration_actions_runs_observed": [],
+    "repaired_security_ci_pushes": "no new Actions runs; prior invalid-YAML records had zero jobs"
+  }
+}

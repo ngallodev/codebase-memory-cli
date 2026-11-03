@@ -1,10 +1,9 @@
 name: CodeQL SAST
 
+# Security scanning is available only on explicit operator request.
+# Jenkins owns automatic builds, tests and security checks.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read

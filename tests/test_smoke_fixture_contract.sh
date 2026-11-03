@@ -58,7 +58,7 @@ compose = read("test-infrastructure/docker-compose.yml")
 local_ci = read("test-infrastructure/run.sh")
 windows_vm = read("test-infrastructure/vm/win.sh")
 windows_vm_runner = read("test-infrastructure/vm/vm-run-tests.sh")
-pr_workflow = read(".github/workflows/pr.yml")
+smoke_workflow = read(".github/workflows/_smoke.yml")
 test_driver = read("scripts/test.sh")
 cli_source = read("src/cli/cli.c")
 helper_source = read(helper_relative)
@@ -353,13 +353,13 @@ require(
     "the canonical soak entry must completion-guard every leg on the soak summary",
 )
 require(
-    pr_workflow.count("scripts/smoke-local.sh") >= 2,
-    "PR Ubuntu and macOS smoke steps must run smoke-local.sh",
+    smoke_workflow.count("scripts/smoke-local.sh") >= 2,
+    "manual Unix release smoke steps must run smoke-local.sh",
 )
 require(
-    "SMOKE_ARCH=amd64" in pr_workflow
-    and "test-infrastructure/vm/vm-smoke.sh" in pr_workflow,
-    "PR Windows smoke must call vm-smoke.sh with SMOKE_ARCH=amd64",
+    "SMOKE_ARCH: ${{ matrix.arch }}" in smoke_workflow
+    and "test-infrastructure/vm/vm-smoke.sh" in smoke_workflow,
+    "manual Windows release smoke must call vm-smoke.sh with its artifact architecture",
 )
 smoke_test = read("scripts/smoke-test.sh")
 require(

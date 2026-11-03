@@ -1,52 +1,19 @@
 #!/usr/bin/env bash
-# Every packaging surface that states a product version must state a version we
-# actually released, and the registry-facing ones must state the newest one.
-#
-# Why this exists: pkg/npm/package.json and the Chocolatey nuspec
-# sat at 0.8.1 while v0.10.8 was the shipped release — nine releases of drift in
-# metadata that is published to package registries. It was the third
-# version-metadata drift in one month. pkg/go additionally hardcodes its version
-# into the release URL it downloads from, so the stale value was not cosmetic:
-# `go install` fetched v0.8.1 binaries.
-#
-# Why there is no single canonical version file to check against: CBM_VERSION is
-# injected at BUILD time (-DCBM_VERSION, see Makefile.cbm) and the release is
-# dispatched with a version input, so nothing in the tree declares the truth.
-# That absence is precisely why these files drifted — there was nothing to
-# check them against. The release workflow then institutionalised the drift for
-# three of them: publish-registries rewrites pkg/npm/package.json and
-# pkg/pypi/pyproject.toml from the dispatch input, and retired registry publication
-# published artifact was therefore correct while the repo told everyone reading
-# it a false version, and no surface outside that sync path was corrected at
-# all.
-#
-# So the truth used here is the newest STABLE v-prefixed git tag: the only
-# in-repo statement of what actually shipped. Between releases the repo
-# legitimately sits at the last released version — no surface is bumped ahead of
-# a release — so "every surface equals the newest tag" is stable, not a
-# perpetual red.
-#
-# Two independent assertions, so the gate cannot go vacuous when tags are absent
-# (shallow clone, `git archive` tarball, a container that cloned with
-# --no-tags). Mutual consistency needs no git at all and therefore ALWAYS runs;
-# the tag comparison runs when tags exist and announces itself loudly when they
-# do not. A missing truth source degrades this gate, and it says so — it never
-# reports a silent pass.
-#
-# Usage: tests/test_version_metadata_contract.sh
-#   Exit 0 = every assertion passed. Exit 1 = at least one violation. A run that
-#   could extract no version from a registered surface is a FAILURE, not a pass.
+# Keep fork registry metadata mutually consistent and preserve explicit
+# distribution version/checksum pins. Shared local tags can belong to upstream;
+# they do not prove what this fork published.
+# Usage: tests/test_version_metadata_contract.sh [repo-root]
 
 set -euo pipefail
 
 case "${1:-}" in
 -h | --help)
-    sed -n '2,44p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,5p' "$0" | sed 's/^# \{0,1\}//'
     exit 0
     ;;
 esac
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
 cd "$ROOT"
 
 failures=0
@@ -56,47 +23,21 @@ fail() {
     failures=$((failures + 1))
 }
 
-# ── 1. The truth: the newest STABLE released tag ────────────────────
-# Prereleases are excluded (v0.9.1-rc.1): an RC is not what the packaging
-# surfaces track. Bare tags are excluded too — the v0.10.7 release incident left
-# a tag named "0.10.7" with no v prefix, and the installers resolve
-# releases/download/v<version>/..., so only v-prefixed tags describe a release
-# a user can actually fetch.
-newest_tag=""
-if git rev-parse --git-dir >/dev/null 2>&1; then
-    # `|| true` is load-bearing: under pipefail a tagless clone makes grep exit
-    # 1, and set -e would kill the contract HERE — exiting non-zero with no
-    # output at all, in exactly the venue (a --no-tags CI checkout) where this
-    # gate most needs to say what it could and could not verify.
-    newest_tag=$(
-        {
-            git tag -l 'v*' 2>/dev/null |
-                grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' |
-                sed 's/^v//' |
-                sort -t. -k1,1n -k2,2n -k3,3n |
-                tail -1
-        } || true
-    )
-fi
-
-if [[ -n "$newest_tag" ]]; then
-    echo "Truth: newest stable release tag is v$newest_tag"
-else
-    # Not a skip of the contract — only of the half that needs git history.
-    echo "NOTE: no stable v* tags reachable (shallow clone, tarball, or --no-tags)." >&2
-    echo "NOTE: the tag comparison is UNAVAILABLE; mutual consistency is still enforced." >&2
-fi
+# Local Git tags have no remote provenance in a checkout containing both fork
+# and upstream refs. Publication freshness belongs to release qualification;
+# this offline repository contract must not silently adopt an upstream version.
+# ponytail: offline consistency only; published fork freshness needs release qualification.
+echo "NOTE: local tags are not fork release authority; checking consistency and explicit pins."
 
 # ── 2. Registered surfaces ──────────────────────────────────────────
-# "release" = must equal the newest stable tag. Every one of these is
-# version-only or carries a checksum we re-pin with it, so bumping is a
-# mechanical edit with no external lookup beyond the release's own checksums.txt.
+# "release" = all registry-facing versions must agree. A new published fork
+# version and its artifacts still require separate release qualification.
 #
 # "pin:<v>" = frozen at a version we have NOT re-pinned. These embed a
 # per-release sha256 of a published asset, so bumping them means re-pinning
 # checksums — a distribution chore, not a metadata edit. They are still gated:
-# the version must be internally consistent within the file and must be a
-# version that really shipped. Every pin needs a reason below (PIN_REASONS), so
+# the version must match its explicit distribution pin. Every pin needs a
+# reason (PIN_REASONS), so
 # a frozen surface can never become an unexplained exemption.
 SURFACES=(
     "pkg/npm/package.json|release"
@@ -212,43 +153,24 @@ for entry in "${SURFACES[@]}"; do
             fail "$path is pinned at $pinned with no entry in PIN_REASONS —" \
                 "a frozen surface must say WHY it is frozen"
         fi
-        if [[ -n "$newest_tag" ]] && [[ "$pinned" == "$newest_tag" ]]; then
-            fail "$path is pinned at $pinned, which is now the newest release —" \
-                "move it to the \"release\" rule and drop its PIN_REASONS entry"
-        fi
     fi
 
     while IFS= read -r found; do
         [[ -z "$found" ]] && continue
         checked_values=$((checked_values + 1))
 
-        if [[ "$rule" == "release" ]]; then
-            # Mutual consistency runs with or without git; the tag comparison
-            # only when a tag exists.
-            if [[ -n "$newest_tag" ]] && [[ "$found" != "$newest_tag" ]]; then
-                fail "$path declares $found, the newest release is $newest_tag"
-            fi
-        else
+        if [[ "$rule" != "release" ]]; then
             pinned="${rule#pin:}"
             if [[ "$found" != "$pinned" ]]; then
                 fail "$path declares $found but is pinned at $pinned —" \
                     "it embeds a per-release sha256, so the version and the" \
                     "checksums must move together (update PIN_REASONS or re-pin both)"
             fi
-            if [[ -n "$newest_tag" ]] &&
-                [[ "$(printf '%s\n%s\n' "$found" "$newest_tag" |
-                    sort -t. -k1,1n -k2,2n -k3,3n | tail -1)" != "$newest_tag" ]]; then
-                fail "$path declares $found, which is NEWER than the newest" \
-                    "release tag v$newest_tag — it names a release that does not exist"
-            fi
         fi
     done <<<"$hits"
 done
 
-# ── 5. Mutual consistency, independent of git ───────────────────────
-# This is the half that still works in a shallow clone. If the tag comparison
-# above was unavailable, this is the only thing standing between the repo and
-# silent drift, so it must never be conditional on git.
+# ── 5. Mutual consistency, independent of Git tags ────────────────
 release_values=""
 for entry in "${SURFACES[@]}"; do
     path="${entry%%|*}"
@@ -326,10 +248,5 @@ if ((failures > 0)); then
     exit 1
 fi
 
-if [[ -n "$newest_tag" ]]; then
-    echo "Version-metadata contract passed (${#SURFACES[@]} surfaces," \
-        "$release_surface_count tracking v$newest_tag, $checked_values value(s) checked)"
-else
-    echo "Version-metadata contract passed WITHOUT a tag truth source" \
-        "(${#SURFACES[@]} surfaces, $checked_values value(s) checked, mutual consistency only)"
-fi
+echo "Version-metadata consistency passed (${#SURFACES[@]} surfaces," \
+    "$release_surface_count registry surfaces, $checked_values value(s) checked)"

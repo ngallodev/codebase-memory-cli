@@ -29,11 +29,20 @@
  * image that is read back whole and never interpreted byte by byte (CI MSan
  * lane on #2202: offset 4087, then 6714, of a 6,952-byte block). Under MSan
  * the image is declared defined right before the write; every other build
- * compiles this to nothing. */
+ * compiles this to nothing. Valgrind Memcheck flags the same padding at the
+ * write(2), so when its client-request header is available the image is
+ * declared defined to it too (a few no-op instructions outside Valgrind). */
 #include "foundation/sanitized.h" /* __has_feature exists everywhere, cppcheck included */
 #if __has_feature(memory_sanitizer)
 #include <sanitizer/msan_interface.h>
 #define SPILL_IMAGE_DEFINED(p, n) __msan_unpoison((p), (n))
+#elif !defined(_WIN32) && defined(__has_include)
+#if __has_include(<valgrind/memcheck.h>)
+#include <valgrind/memcheck.h>
+#define SPILL_IMAGE_DEFINED(p, n) ((void)VALGRIND_MAKE_MEM_DEFINED((p), (n)))
+#else
+#define SPILL_IMAGE_DEFINED(p, n) ((void)0)
+#endif
 #else
 #define SPILL_IMAGE_DEFINED(p, n) ((void)0)
 #endif

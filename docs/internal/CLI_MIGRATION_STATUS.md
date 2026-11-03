@@ -4,7 +4,7 @@ This repository is the CLI-only fork and C port of Codebase Memory MCP. The
 MCP server and third-party MCP integration surface were removed to meet
 workplace policies that prohibit third-party MCP servers; the local graph,
 indexing, daemon, watcher, and analysis capabilities remain.
-> **Planning re-baseline (CP61):** the CLI-first/MCP-removal architecture phase is closed unless qualification evidence exposes a concrete defect. Remaining work is release qualification: Linux consolidation, immutable GitHub RC artifacts, native Windows validation on `luigi.home.arpa`, frozen-corpus comparative benchmarking, agent usability, production skill, and release decision. See `docs/RELEASE_QUALIFICATION_PLAN.md`.
+> **Planning re-baseline (CP61):** the CLI-first/MCP-removal architecture phase is closed unless qualification evidence exposes a concrete defect. Remaining work is release qualification: Linux consolidation, immutable GitHub RC artifacts, native Windows validation on `the qualification host`, frozen-corpus comparative benchmarking, agent usability, production skill, and release decision. See `docs/RELEASE_QUALIFICATION_PLAN.md`.
 
 **Updated:** 2026-09-03  
 **Current authoritative baseline:** latest complete consolidated source attached to the project sources page  
@@ -253,7 +253,7 @@ unoptimized/older binary was used for measurements. See `docs/PERFORMANCE_BASELI
 ## CP61 — Release qualification planning re-baseline
 
 - **COMPLETE:** migration-era sequencing is superseded by `docs/RELEASE_QUALIFICATION_PLAN.md`; further architecture changes require evidence from qualification rather than generic cleanup.
-- **COMPLETE:** native Windows release validation is specified as an external procedure against immutable GitHub-published bytes on `luigi.home.arpa`; portable and installed forms are both required.
+- **COMPLETE:** native Windows release validation is specified as an external procedure against immutable GitHub-published bytes on `the qualification host`; portable and installed forms are both required.
 - **COMPLETE:** comparative Windows benchmarking is specified around a frozen repository corpus, exact artifact identity, fresh-cache alternating trials, correctness/shape parity, and retained raw evidence.
 - **COMPLETE:** a standalone Windows qualification-agent runbook defines acquisition, identity verification, frozen-corpus checks, functional/recovery testing, install/update/uninstall validation, benchmarking, failure classification, and evidence summary requirements.
 - **COMPLETE:** benchmark corpus revisions are immutable within a corpus generation. Any repository revision change creates a new generation and requires a new baseline capture rather than comparison against older results.
@@ -262,7 +262,7 @@ unoptimized/older binary was used for measurements. See `docs/PERFORMANCE_BASELI
 
 ## CP62 — Frozen benchmark corpus finalization
 
-**COMPLETE (planning):** `windows-corpus-1` now has fixed repository identities: codebase-memory-cli, specgen-aw, agent-workflow, agent-workflow-spec-contracts, and herdr. Repository remotes are explicit in `docs/qualification/BENCHMARK_CORPUS.json`. Exact commit SHAs remain deliberately unset until the one-time initialization reads them from the actual clean frozen checkouts used on `luigi.home.arpa`; after pinning, any commit change creates a new corpus generation and requires new baseline capture.
+**COMPLETE (planning):** `windows-corpus-1` now has fixed repository identities: codebase-memory-cli, specgen-aw, agent-workflow, agent-workflow-spec-contracts, and managed terminal. Repository remotes are explicit in `docs/qualification/BENCHMARK_CORPUS.json`. Exact commit SHAs remain deliberately unset until the one-time initialization reads them from the actual clean frozen checkouts used on `the qualification host`; after pinning, any commit change creates a new corpus generation and requires new baseline capture.
 
 
 
@@ -276,7 +276,7 @@ The current optimized production build has not yet reached final link within thi
 
 ## CP64 — external qualification release hold
 
-**COMPLETE:** GitHub release preparation now defaults to a draft external-qualification hold. A separate promotion workflow validates `luigi.home.arpa` qualification evidence against the exact Windows release archive/executable hashes before registry publication or public un-drafting. Linux broad sanitized qualification remains in progress due build duration; no source failure has surfaced in the incremental build.
+**COMPLETE:** GitHub release preparation now defaults to a draft external-qualification hold. A separate promotion workflow validates `the qualification host` qualification evidence against the exact Windows release archive/executable hashes before registry publication or public un-drafting. Linux broad sanitized qualification remains in progress due build duration; no source failure has surfaced in the incremental build.
 
 ### CP65 — RC dispatch reproducibility (release qualification)
 
@@ -405,7 +405,7 @@ Status: **IMPLEMENTED / REQUIRES EXTERNAL RERUN**
 ### CP86 — Windows benchmark automation and CLI contract repair
 
 - **COMPLETE (static implementation):** added native Windows benchmark execution (`scripts/benchmark-agent-workflows.ps1`) and five-repository corpus orchestration (`scripts/qualification/run-windows-benchmark-corpus.ps1`) while retaining exact candidate-byte provenance.
-- **COMPLETE:** reconciled the benchmark integration set to SpecGen `0.2.1`, Agent-Workflow `0.10.0`, shared contracts `v0.2.1`, and the selected `herdr` scale corpus.
+- **COMPLETE:** reconciled the benchmark integration set to SpecGen `0.2.1`, Agent-Workflow `0.10.0`, shared contracts `v0.2.1`, and the selected `managed terminal` scale corpus.
 - **EVIDENCE:** external full-suite execution reduced CLI failures from 64 to 22; every non-CLI suite remained green.
 
 ### CP87 — CLI test-contract closeout
@@ -421,7 +421,7 @@ Status: **IMPLEMENTED / REQUIRES EXTERNAL RERUN**
 - **FIXED (benchmark correctness):** the PowerShell benchmark harness now fails a repository run on any required warm-up/measured operation failure and emits explicit `RESULT`/`FAILURES.txt` evidence instead of silently excluding failures from performance summaries.
 - **FIXED (evidence isolation):** corpus initialization writes the frozen manifest into the qualification evidence tree rather than dirtying the exact RC source checkout.
 - **RECONCILED:** the last two known Claude-hook tests now enforce exact current CLI command ownership while preserving MCP-era hook identities as foreign, matching the CP78 side-by-side contract.
-- **PENDING EXTERNAL EVIDENCE:** run the external CLI/full suite after CP88 and then execute the Windows RC orchestrator on `luigi.home.arpa` against the immutable draft artifact. No compile or test execution was performed locally for CP88.
+- **PENDING EXTERNAL EVIDENCE:** run the external CLI/full suite after CP88 and then execute the Windows RC orchestrator on `the qualification host` against the immutable draft artifact. No compile or test execution was performed locally for CP88.
 
 ### CP89 — Windows RC qualification provenance closeout
 

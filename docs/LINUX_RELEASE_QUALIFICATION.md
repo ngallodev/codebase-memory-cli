@@ -89,7 +89,7 @@ Do not expand test count solely to improve coverage statistics; prefer existing 
 
 The broad sanitized `build/c/test-runner` build was resumed incrementally across three bounded compiler windows. It progressed through production, pipeline, and test objects with no compiler correctness failure, but did not yet reach the vendored link boundary in this environment. This remains **IN PROGRESS**, not a pass.
 
-In parallel, the GitHub release workflow was reconciled with the external native-Windows qualification contract. Releases now default to a draft hold after CI verification; npm/PyPI publication and public un-drafting are deferred until `promote-qualified-release.yml` validates qualification evidence produced on `luigi.home.arpa` against the exact Windows ZIP and executable hashes.
+In parallel, the GitHub release workflow was reconciled with the external native-Windows qualification contract. Releases now default to a draft hold after CI verification; npm/PyPI publication and public un-drafting are deferred until `promote-qualified-release.yml` validates qualification evidence produced on `the qualification host` against the exact Windows ZIP and executable hashes.
 
 ## RC authoritative-build boundary
 

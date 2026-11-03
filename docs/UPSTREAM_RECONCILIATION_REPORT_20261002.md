@@ -52,7 +52,7 @@ remainder or credit thirteen commits as thirteen newly implemented features.
 
 **The history inventory is complete; the semantic audit is partial.** This report
 collects the Sol source audit, Luna handoffs, corrections, QA delta and remaining
-limits. It is a dated synthesis, subordinate to the project backlog (not retained) and
+limits. It is a dated synthesis, subordinate to [BACKLOG.md](../BACKLOG.md) and
 [the canonical 308 ledger](UPSTREAM_308_CANDIDATE_AUDIT_20260912.md). It creates no
 second implementation queue and establishes no review, acceptance or publication.
 
@@ -147,7 +147,7 @@ are a prior snapshot; they were neither refreshed nor repaired here.
 Original headless workers lost their live processes near 18:16Z despite `running`
 projections. Their evidence remains preserved; process-loss cause was not proved.
 Unstarted R2 headless retries were superseded at the user's request. R3 interactive
-Luna high workers ran in real managed Herdr panes with independent full exact-root
+Luna high workers ran in real managed managed terminals with independent full exact-root
 indexes and clean frozen QA trees. All R3 handoffs were **partial**:
 
 | R3 auditor | Assignment | Touched rows | Untouched rows |
@@ -163,7 +163,7 @@ representation in the target. Raw claims remain available separately from parent
 judgment. None was automatically accepted from a finished terminal state.
 
 R4 successors preserve official retry lineage and continue interactively in
-`wC:pB`, `wC:pC`, `wC:pD`. They retain all remaining assignments and incrementally
+`managed terminal`, `managed terminal`, `managed terminal`. They retain all remaining assignments and incrementally
 save full diffs/source/coverage. The capture time is `2026-10-02T23:53:00.456924+00:00`. It is not a sealed result:
 
 | R4 auditor | Rows accounted for | Non-unresolved raw claims | Unresolved raw claims |
@@ -400,7 +400,7 @@ Luna low for straightforward comparisons. Runtime R4 released exactly 16 still
 unreviewed adapter/test followup hashes, outside both its reviewed rows and active
 batch, and issued a correlated durable acknowledgement. New interactive external
 run `CBM-RECON-ADAPTER-LOW-20261003`, worker `luna-adapter-low`, is observed working
-in Herdr `wC:pE` with Luna low. It has a separately indexed clean exact-QA worktree
+in managed terminal with Luna low. It has a separately indexed clean exact-QA worktree
 and TypeSafe credentials sourced silently in the actual launch shell. No finished
 comparison was reassigned. Runtime retains 154 hashes; the effective ownership
 crosswalk still accounts for all 367 differing non-merges once. Exact source and
@@ -423,7 +423,7 @@ handoff/hash checks are preserved and pane closed; this is not acceptance.
 [The canonical Phase1 plan](UPSTREAM_308_CANDIDATE_AUDIT_20260912.md#phase1-plan-three-disjoint-deepseek-flash-workers--2026-10-03-utc)
 owns current plan/status. Exact machine assignments/effective ownership and launch/
 index receipts remain in the three run evidence roots. Native workspace subagents
-use isolated frozen worktrees; they are not Herdr terminal agents. Each must retain
+use isolated frozen worktrees; they are not managed terminal agents. Each must retain
 full source comparisons, bounded primary-evidence Jev calls and resumable batch
 checkpoints. Subsequent delivery checks found that all three returned predecessor
 tasks instead of their assignments, even after persisted steering and direct
@@ -435,8 +435,8 @@ activity. No result is represented as complete or accepted. The original
 capture tables remain dated evidence, not silently refreshed progress counters.
 
 Interactive recovery now uses three Codex `--model deepseek-flash` sessions in
-Herdr `wC:pF` / `wC:pG` / `wC:pH` under the corresponding
-`CBM-RECON-DEEPSEEK-{RUNTIME,OPS,INTEGRATION}-HERDR-PHASE1-20261003` runs.
+managed terminal / `managed terminal` / `managed terminal` under the corresponding
+`CBM-RECON-DEEPSEEK-{RUNTIME,OPS,INTEGRATION}-managed terminal-PHASE1-20261003` runs.
 All three are observed working and have correct run/cwd/count launch acknowledgements.
 Actual Codex processes inherited the silently sourced Jev token; destination,
 official footer and matching ready CBM index generations are verified. The exact
@@ -561,22 +561,22 @@ Graph generations match recorded exact-worktree indexes. Partial internal/cbm/cb
 ## Luna low pilot20 launch — 2026-10-03 UTC
 
 Independent verification continues with a bounded20-commit Luna low pilot in
-Herdr `wC:pJ`, run `CBM-RECON-LUNA-LOW-PILOT20-20261003`. Its exact assignment
+managed terminal, run `CBM-RECON-LUNA-LOW-PILOT20-20261003`. Its exact assignment
 excludes six already-reviewed hashes and is grouped by shared behavior;89 other
 unreviewed commits remain outside scope. The canonical308 pilot section owns
 current plan. Actual Codex low-model argv/Jev-token inheritance and ready exact
 full-index generation were verified. Existing comparisons remain discovery only,
 and detailed batched Jev/source/checkpoint evidence is required. Completed
-DeepSeek panes `wC:pG`/`wC:pH` closed; runtime pane was already absent.
+DeepSeek panes `managed terminal`/`managed terminal` closed; runtime pane was already absent.
 All worktrees and saved handoffs retained. Launch is not semantic closure.
 
 ## Cleanup and pilot outcome — 2026-10-03 UTC
 
-Original idle Luna high panes `wC:pB`/`wC:pC`/`wC:pD` closed; evidence/worktrees
+Original idle Luna high panes `managed terminal`/`managed terminal`/`managed terminal` closed; evidence/worktrees
 retained. History still has an unfinished checkpoint. The pilot finalized partial:
 6 incompletely examined,14 untouched,0 credited as fully verified. All20 plus89
 outside scope remain open. Canonical308 cleanup section records exact resumption
-boundaries and evidence locations. Pilot pane `wC:pJ` remains idle/open.
+boundaries and evidence locations. Pilot pane `managed terminal` remains idle/open.
 
 ## Luna medium independent batch20 launch — 2026-10-03 UTC
 
@@ -584,13 +584,13 @@ User authorized a different20-commit comparison with Luna medium. Run
 `CBM-RECON-LUNA-MEDIUM20-20261003` owns20 independently unreviewed runtime
 hashes, disjoint from the previous pilot20 and six parent-reviewed rows. Exact
 assignment, prepared prompt and launch receipts:
-`<state-dir>/agent-workflow/handoffs/CBM-LUNA-MEDIUM20-20261003/`.
-Worker uses interactive Herdr `wC:pK`, `codex - luna-review-medium20`, with
+`local run evidence`.
+Worker uses interactive managed terminal, `codex - luna-review-medium20`, with
 GPT-6-Luna medium, sourced Jev environment and batched primary-evidence guidance.
 
 New isolated worktree full index failed with only a generic pipeline error;
 clean failed worktree retained for diagnosis. Reused idle former runtime worker
-worktree `/tmp/cbm-recon-adapter-low2-20261003`, frozen QA559214af, ready full
+worktree `local run evidence`, frozen QA559214af, ready full
 index generation2026-10-03T01:07:59Z,26764nodes/129401edges,91 partial files.
 Fresh status/root/coverage generation and unchanged clean Git baseline verified.
 No shared daemon/cache changes. Launch does not establish source closure,
@@ -598,7 +598,7 @@ runtime validation, review or acceptance; detailed checkpoints are required.
 
 ### DeepSeek pilot continuation recovery — 2026-10-03 UTC
 
-User switched old pilot pane `wC:pJ` to DeepSeek Flash and requested execution
+User switched old pilot pane `managed terminal` to DeepSeek Flash and requested execution
 help. Transcript showed `unsupported call: exec`: JSON function calls replayed
 Luna's old executor format. Direct `exec_command` with `pwd` succeeded after
 corrective guidance; no permission change was needed. Prepared external successor
@@ -609,13 +609,13 @@ live worker Jev credential inheritance confirmed without values. New evidence
 must remain in successor run; prior evidence is immutable. Renamed pane/worker
 `codex - deepseek-pilot20-continue`, durably steered and resumed with mandatory
 acknowledgement. Recovery receipts/prompt at
-`<state-dir>/agent-workflow/handoffs/CBM-DEEPSEEK-PILOT20-CONTINUE-20261003/`.
+`local run evidence`.
 No source closure, Jenkins, review or acceptance credited from recovery.
 
 ### Pilot20 verification and ops20 successor — 2026-10-03 UTC
 
 New DeepSeek ops20 run `CBM-RECON-DEEPSEEK-BATCH2-20-20261003` assigned in
-wC:pJ; disjoint from prior pilot20 and Luna medium runtime20. Prior pilot20
+managed terminal; disjoint from prior pilot20 and Luna medium runtime20. Prior pilot20
 independent review requests changes: all20 rows assessed,4 bounded whole-commit
 source reviews completed,16 full-hash remainders retained. Corrected absent-alias,
 YAML indicator, fd-capture guard and Codex policy claims; found missing original CLI
@@ -706,7 +706,7 @@ merge-history and old canonical-row obligations remain separate and open.
 Canonical BACKLOG tracks continuation; this308 document owns disposition context;
 UPSTREAM_RECONCILIATION_REPORT_20261002.md consolidates the checkpoint. Full-hash
 machine crosswalks remain run evidence, not a second repository ledger. DeepSeek
-pane wC:pJ remains idle/open; no new assignment sent in this checkpoint. No builds,
+pane managed terminal remains idle/open; no new assignment sent in this checkpoint. No builds,
 tests, Jenkins triggers, implementation, push, main integration or acceptance.
 
 ## Ten recorded merged/adapted tasks independently confirmed — 2026-10-03 UTC

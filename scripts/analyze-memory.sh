@@ -22,6 +22,7 @@ fi
 
 RESULTS_DIR="${CBM_MEMORY_RESULTS_DIR:-$ROOT/memlab-memory-analysis}"
 RUN_ID="$(date +%Y%m%d-%H%M%S)-$$"
+mkdir -p "$ROOT/build"
 ANALYSIS_BUILD="$(mktemp -d "$ROOT/build/memory-analysis.XXXXXX")"
 TEST_BIN="$ANALYSIS_BUILD/test-runner"
 RUN_RESULTS="$RESULTS_DIR/$RUN_ID"

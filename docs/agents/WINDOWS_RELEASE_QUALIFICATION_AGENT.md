@@ -2,7 +2,7 @@
 
 Status: **STANDALONE OPERATOR/AGENT INSTRUCTIONS**
 
-You are qualifying a `codebase-memory-cli` release candidate on the authoritative Windows host `luigi.home.arpa`.
+You are qualifying a `codebase-memory-cli` release candidate on the authoritative Windows host `the qualification host`.
 
 Your job is to collect evidence, not to improve the product during the run.
 
@@ -199,7 +199,7 @@ Only after every required gate is PASS (or the first qualified release legitimat
 2. copy the final human summary to `qualification-summary.md`;
 3. compute SHA-256 of `qualification-summary.md` and store it as `summary_sha256`;
 4. record the exact draft tag, Windows ZIP SHA-256, and extracted `codebase-memory-cli.exe` SHA-256 in `release`;
-5. set `host` to `luigi.home.arpa` and `corpus_generation` to `windows-corpus-1`;
+5. set `host` to `the qualification host` and `corpus_generation` to `windows-corpus-1`;
 6. set `portable_result`, `installed_result`, `windows_guards_result`, and `recovery_result` to `PASS`;
 7. set `benchmark_result` to `PASS`, or `BASELINE_ZERO` only when establishing the first qualified baseline;
 8. upload both files to the existing GitHub DRAFT release with authenticated `gh release upload`;
@@ -213,7 +213,7 @@ Required manifest shape:
 {
   "schema_version": 1,
   "result": "PASS",
-  "host": "luigi.home.arpa",
+  "host": "the qualification host",
   "corpus_generation": "windows-corpus-1",
   "portable_result": "PASS",
   "installed_result": "PASS",
