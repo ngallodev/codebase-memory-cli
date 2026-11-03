@@ -1665,8 +1665,17 @@
     "integrated_through": "a5b248f47272413189746589b9a2c551c6b6c5ec",
     "current_merge_commit": "8a686f225b2c64f81c0716f3129c36c50fb10ffe",
     "upstream_commits_remaining": 0,
-    "status": "provisional_integration_review_pending",
-    "candidate_commit": "ccc044cde"
+    "status": "full_jenkins_success_independent_review_and_acceptance_pending",
+    "candidate_commit": "214b87b84a40e170fd8b3db2c603ab651ba5fe2c",
+    "full_jenkins": {
+      "job": "codebase-memory-cli-release-tooling",
+      "build": 88,
+      "result": "SUCCESS",
+      "source_commit": "214b87b84a40e170fd8b3db2c603ab651ba5fe2c",
+      "url": "http://192.168.88.146:8080/job/codebase-memory-cli-release-tooling/88/",
+      "production_binary_sha256": "c86570af70bd2dfb655a5c2a82d2ab7669e9e76b6ea95fab6af9badc9fd7877f",
+      "test_summary": "4141 passed, 0 failed, 2 skipped; 188 suites, 9 jobs"
+    }
   },
   "upstream_commits_remaining": 0
 }
