@@ -915,7 +915,8 @@
       "adaptations": [
         "Retained CLI-first identity and applied reusable Go setup for Go-wrapper smoke.",
         "Retained action/dependency updates and contributor prerequisite clarifications.",
-        "Final memory-core ratchet repair migrated new CLI and daemon JSON allocations to the memory core; baselines were lowered to measured counts."
+        "Final memory-core ratchet repair migrated new CLI and daemon JSON allocations to the memory core; baselines were lowered to measured counts.",
+        "Separated Codex asset and hook install surfaces, retained read-only legacy MCP warnings, and kept the retired OpenCode MCP plugin absent."
       ],
       "exclusions": [
         "Did not restore hosted automatic cache-warm, PR, or scorecard workflows.",
@@ -927,8 +928,8 @@
       "schema_migrations": "no persistent index/store schema change",
       "policy_gate": "passed",
       "verification": {
-        "local": "strict Actions policy, diff check, memory-core ratchet, production build, 1 CLI help test, and 2 daemon application index tests passed",
-        "jenkins": "build #86 failed in memory-core linter before repair; build #87 running at repaired candidate",
+        "local": "strict Actions policy, diff check, memory-core ratchet, production build, 1 CLI help test, 2 daemon application index tests, and 6 focused Codex/OpenCode tests passed; pre-repair incremental full cli suite had 25 failures",
+        "jenkins": "build #86 failed in memory-core linter before repair; build #87 failed six CLI tests at 8020c5bca4532ed9d2cb98b0e17bd370e500c8c7 before archive; build #88 required for current candidate",
         "windows": "not_run"
       },
       "acceptance": [
@@ -938,7 +939,7 @@
         "Focused affected-subsystem tests pass; record unavailable native Windows gates.",
         "Full Jenkins release-tooling archive qualifies the exact final candidate."
       ],
-      "next_action": "Final Jenkins qualification and independent review; keep all dependent batches unaccepted until host review.",
+      "next_action": "Run the existing full release-tooling Jenkins job against the current committed candidate; then retain independent review and host acceptance as separate gates.",
       "publication_blocker": "GitHub push unavailable: git remote requires Username in this non-interactive executor; GitHub ref API update returned not_found. No stacked draft PRs published; stale PRs #28/#29 untouched."
     }
   ],
