@@ -1,5 +1,7 @@
 # Continuation prompt
 
+> Current 2026-11-02 continuation: the pinned target `a5b248f47272413189746589b9a2c551c6b6c5ec` is integrated by true merge `8a686f225b2c64f81c0716f3129c36c50fb10ffe` on `sync/upstream-remainder-20261102`; see [13l.md](13l.md) and [ledger.json](ledger.json). The target is an ancestor with zero upstream-only remainder. Final Jenkins qualification, independent review, and host acceptance remain open. Do not chase later upstream commits, mutate stale PRs #28/#29, push main, or dispatch GitHub Actions.
+
 Continue the 2026-11-01 CLI-first upstream campaign. Read PLAN.md, ledger.json,
 13a.md and the canonical ../UPSTREAM_308_CANDIDATE_AUDIT_20260912.md first.
 Preserve all unrelated main-checkout artifacts. Do not merge PRs, enable
@@ -24,22 +26,18 @@ Local diff-scoped clang-tidy cause/baseline remains unverified; native Windows
 commands and frozen corpus pins are in windows-qualification.md. Keep draft
 status until remaining platform/review/acceptance gates are resolved.
 
-After review and required gates, the next true merge boundary is 13B:
-4c80d89edf1283cfeaa7e60ecbf40c9d2eb2b689, 119 commits after the 13A upstream
-checkpoint. Start from the reviewed integration result, never stale main.
-Use isolated indexed worktrees and bounded Luna workers where helpful. Read
-Agent-Workflow/index-preflight and worker footer instructions before launch.
-Bind a compatible, truthful acceptance contract before durable preparation;
-keep worker exit/completion/evaluation/review/acceptance separate. Initial
-cbm-sync-{security,ci,13a}-20261101 runs are not accepted; do not rewrite their
-sealed evidence. Parent CLI graphs worked but Luna runtimes failed cache-resolve;
-use exact source fallback for recorded gaps, without changing allow-roots.
+The pinned campaign is integrated through 13L. Preserve the true merge ancestry and
+per-batch receipts. This source run is provisional; independent review and host
+acceptance remain separate gates. Codebase-memory graph cache-resolve failures are
+recorded; use exact-source evidence for those documented gaps without changing
+cache roots or allow-roots.
 
 Keep finite npm/PyPI/Go resource limits: compressed 256 MiB, 64 members,
 member 512 MiB, expanded 512 MiB. Preserve CLI product identity, native operations,
 Jenkins-only automatic CI and valid manual/reusable workflow YAML. Run the strict
-policy checker before every push. Pinned campaign ends at
-6c0ce230ee26ab8d263eb5235ebf73755558344e; the 9 newer observed commits through
-edc2301b022b1f5e1e0ec11e291917e22e9736aa belong to a later campaign. Reconcile
-ledger entries against exact source and ancestry instead of treating history
-membership as semantic completion. 13B–13K remain planned, not implemented.
+policy checker before every push. 13K ends at
+6c0ce230ee26ab8d263eb5235ebf73755558344e; the active pinned final target is
+a5b248f47272413189746589b9a2c551c6b6c5ec, with 19 commits in 13L. Do not chase
+later upstream commits. Reconcile ledger entries against exact source and ancestry
+instead of treating history membership as semantic completion. The older 13B–13K
+pending status above is superseded by the current ledger.

@@ -202,7 +202,8 @@ fi
 # this contract exists to prevent, and every check above would still pass. The
 # sweep pattern is deliberately BROADER than the extractors in section 3: if the
 # two shared a regex, a claim form the extractors cannot see would be invisible
-# to the sweep as well.
+# to the sweep as well. The packaging tree is scanned so an unregistered
+# distribution cannot silently become a version source.
 while IFS= read -r path; do
     [[ -z "$path" ]] && continue
     for entry in "${SURFACES[@]}"; do

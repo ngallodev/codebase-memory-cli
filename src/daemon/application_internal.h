@@ -42,4 +42,9 @@ int cbm_daemon_application_busy_queue_waits_for_test(void);
  * on Windows, while the fold itself runs on every platform. */
 bool cbm_daemon_application_index_args_equal_for_test(const char *left, const char *right);
 
+/* Exercise the production root comparison's Windows branch on any host;
+ * POSIX backslashes remain literal filename characters. */
+bool cbm_daemon_application_watch_roots_equal_for_test(const char *left, const char *right,
+                                                       bool windows_paths);
+
 #endif /* CBM_DAEMON_APPLICATION_INTERNAL_H */

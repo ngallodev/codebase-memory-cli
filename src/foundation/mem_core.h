@@ -67,6 +67,7 @@ typedef enum {
     CBM_MEM_CLASS_HASH_TABLE,    /* CBMHashTable buckets/entries not claimed by an owner class */
     CBM_MEM_CLASS_DYN_ARRAY,     /* CBM_DYN_ARRAY item storage (every cbm_da_* user) */
     CBM_MEM_CLASS_OPERATION_ARG, /* transient strings parsed from operation arguments */
+    CBM_MEM_CLASS_RESOLVE,       /* call resolution evidence and coverage capture */
     /* Daemon adjacency layers are resident across requests and separate from SQLite memory. */
     CBM_MEM_CLASS_GRAPH_CACHE,
     CBM_MEM_CLASS_COUNT

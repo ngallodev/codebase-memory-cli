@@ -329,22 +329,37 @@
       "upstream_checkpoint": "3457b21b0a3d75960c07ed3ec666a9e684985ef9",
       "upstream_commits": 80,
       "ancestry_validated": true,
-      "fork_base": null,
+      "fork_base": "45d0b6d374c4bedc2519be086f84964f758d8bfa",
       "depends_on": [
         "13B"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_local_review_pending",
+      "branch": "sync/upstream-13c-20261102",
+      "merge_commit": "d206156d825627f1307c8ed4c841f20a3ce4ee7f",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "adaptations": [
+        "Retained Cypher all-alias wait logic and incoming WHERE regression cases.",
+        "Added Helm chart and Terraform extraction with bounded fail-closed image attribution.",
+        "Retained CLI release packaging, Jenkins test orchestration and only manual/reusable Actions workflows.",
+        "Restored explicit security-events and actions read permissions on reusable security workflow callers."
+      ],
+      "exclusions": [
+        "Deleted .github/workflows/pr.yml, server.json, src/cli/client_adapter.c, src/mcp/mcp.c and tests/test_mcp.c.",
+        "Omitted MCPB packaging, MCP product documentation and automatic Actions triggers."
+      ],
+      "conflicts": [
+        ".github/workflows/_security.yml and codeql.yml: manual/reusable Actions policy and existing Jenkins ownership retained.",
+        "README.md, SECURITY.md, docs/index.html, docs/llms.txt, pkg/npm/README.md: fork CLI identity retained.",
+        "scripts/package-release.sh, scripts/test.sh, tests/test_lane_wiring_contract.sh: retained native CLI and Jenkins contracts.",
+        "src/cypher/cypher.c and tests/test_cypher.c: merged multi-alias fix with all incoming WHERE regression cases.",
+        "tests/test_agent_clients.c and tests/test_security_gate_fail_closed.sh: MCP adapter/PR CodeQL behavior excluded; CLI security checks retained."
+      ],
+      "schema_migrations": "No index format bump; CBM_INDEX_FORMAT_VERSION remains 4.",
+      "policy_gate": "passed: strict manual/reusable-only checker; no Actions invoked.",
       "verification": {
-        "local": "pending",
-        "jenkins": "pending",
+        "production_build": "passed: scripts/build-dev.sh after Helm null guard",
+        "focused": "passed: cypher, daemon_ipc, workspace, ts_lsp 637 ASan/UBSan; grammar_probe_f 184 ASan/UBSan; targeted Helm crash regression 1/1; policy, 60-case lane selector, fail-closed security, lane-wiring and venue-parity contracts passed",
+        "jenkins": "pending final pinned candidate",
         "windows": "not_run"
       },
       "acceptance": [
@@ -354,7 +369,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue with 13D on the 13C ancestry; independent review and acceptance remain pending.",
       "upstream_prs": [
         1786,
         2253,
@@ -389,17 +404,30 @@
       "depends_on": [
         "13C"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_local_review_pending",
+      "branch": "sync/upstream-13d-20261102",
+      "merge_commit": "fd794deacab617a6ad8d3d2ed39cb114e28b1733",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "adaptations": [
+        "Preserved native operation context, session-owned watch subscriptions, async host guard, and portable watch-root comparison",
+        "Kept generic Codex instructions, skills, and native PreToolUse hook; omitted unavailable activation-pointer and tiered-profile calls",
+        "Retained fork identity, Vite 6.4.5, cppcheck worker bound, and temporary build cleanup",
+        "Merged TypeScript LSP, extraction, registry, language, platform, pipeline, and regression-test updates"
+      ],
+      "exclusions": [
+        "MCP server, JSON-RPC/session transport, MCP client adapter/tests/product manifest",
+        "Automatic GitHub Actions triggers; Jenkins remains automatic CI"
+      ],
+      "conflicts": [
+        "src/daemon/application.c",
+        "src/cli/cli.c",
+        "README.md and docs/CONFIGURATION.md",
+        "Makefile.cbm and graph-ui package manifests"
+      ],
+      "schema_migrations": "None; CBM_INDEX_FORMAT_VERSION remains 4.",
+      "policy_gate": "passed: python3 scripts/ci/check-github-actions-policy.py; manual/reusable workflows only",
       "verification": {
-        "local": "pending",
+        "local": "passed: production build; 485 ASan/UBSan tests across daemon_application, daemon_ipc, ts_lsp, workspace; targeted Codex hook test 1/1",
         "jenkins": "pending",
         "windows": "not_run"
       },
@@ -410,7 +438,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue with 13E on this provisional checkpoint; all later checkpoints remain review and acceptance pending.",
       "upstream_prs": [
         221,
         1115,
@@ -432,7 +460,8 @@
         2757,
         2761,
         2762
-      ]
+      ],
+      "receipt": "docs/upstream-sync/13d.md"
     },
     {
       "batch": "13E",
@@ -440,23 +469,45 @@
       "upstream_checkpoint": "b956413eb49bd38188d060866700a97bc1d622de",
       "upstream_commits": 97,
       "ancestry_validated": true,
-      "fork_base": null,
+      "fork_base": "5c70b960d3e0163d197e0318321c60c95b9a211f",
       "depends_on": [
         "13D"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_local_review_pending",
+      "branch": "sync/upstream-13e-20261102",
+      "merge_commit": "2ef1422ce45cb038434528376783258332190228",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "adaptations": [
+        "Adapted the hook-client fast path to the merged dialect-aware no-op API.",
+        "Converted the Copilot PostToolUse hook regression from an MCP server fixture to a temporary native SQLite project/cache.",
+        "Kept auto-index limit logging numeric and omitted the repository root path.",
+        "Tightened memory-core baseline counts for cli.c and daemon/application.c after the checker confirmed improvement."
+      ],
+      "exclusions": [
+        "No MCP server, JSON-RPC/session transport, registration, MCP-only logging path, or mandatory MCP dependency restored.",
+        "MCP-backed Copilot regression setup was replaced with the existing native store/operation path."
+      ],
+      "conflicts": [
+        "README.md and src/main.c: preserved CLI identity/help; main hook fast path now uses cbm_hook_augment_input_is_noop_for.",
+        "src/cli/cli.h and src/cli/hook_augment.c: retained native hook API and Copilot dialect behavior.",
+        "src/foundation/log.c, src/foundation/log.h, and tests/test_log.c: omitted MCP request logging helpers and tests.",
+        "tests/test_cli.c: replaced MCP server-backed Copilot fixture with a temporary native SQLite project/cache.",
+        "tests/test_grammar_regression.c: combined Properties parallel extraction coverage with ObjectScript scanner round-trip coverage.",
+        "Upstream MCP-only files and workflow entries remained absent from the integrated tree."
+      ],
+      "schema_migrations": "No index format migration; CBM_INDEX_FORMAT_VERSION remains 4. FTS backfill derives body text from existing node properties and does not add a column/table.",
+      "policy_gate": "passed: python3 scripts/ci/check-github-actions-policy.py; manual/reusable only, Jenkins owns automatic CI.",
       "verification": {
-        "local": "pending",
-        "jenkins": "pending",
-        "windows": "not_run"
+        "production_build": "passed: scripts/build-dev.sh",
+        "combined_focused_suites": "1991 passed, 22 failed, 1 skipped under ASan/UBSan across cli, cypher, daemon, daemon_application, daemon_ipc, daemon_runtime, discover, extraction, grammar_regression, pipeline, py_lsp, sqlite_writer, ui, version_cohort. Installer cases failed closed because default worktree build/c is under group-writable ancestors; no guard was weakened.",
+        "targeted_hook": "passed: scripts/test.sh --smart --tests cli:cli_hook_augment_copilot_posttooluse_search BUILD_DIR=/home/nate/.cache/cbm-13e-tests (1 ASan/UBSan test)",
+        "memory_core": "passed: python3 scripts/lint-memory-core.py; 3242 raw sites / 102 files, with two verified improvements tightened in baseline.",
+        "vendored_integrity": "passed: scripts/security-vendored.sh; 1083 files checked.",
+        "policy": "passed: strict GitHub Actions policy checker.",
+        "jenkins": "pending final pinned candidate",
+        "windows": "not_run",
+        "clang_tidy": "not_run",
+        "codebase_memory": "post-merge full nonpersistent index failed with secure CLI coordination cache-resolve; Git porcelain unchanged; parent owns canonical backlog update."
       },
       "acceptance": [
         "True merge includes exact checkpoint parent, no unresolved conflicts.",
@@ -465,7 +516,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue with true merge 13F from 2796460efea8bef1f9232b6ffff37e2e87e9a193; preserve the final pinned candidate for full Jenkins qualification.",
       "upstream_prs": [
         1730,
         2085,
@@ -494,7 +545,8 @@
         2800,
         2801,
         2802
-      ]
+      ],
+      "receipt": "docs/upstream-sync/13e.md"
     },
     {
       "batch": "13F",
@@ -502,23 +554,43 @@
       "upstream_checkpoint": "2796460efea8bef1f9232b6ffff37e2e87e9a193",
       "upstream_commits": 51,
       "ancestry_validated": true,
-      "fork_base": null,
+      "fork_base": "99cc9e9f0fdcc808b796cd0540332651d247b95c",
       "depends_on": [
         "13E"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_local_review_pending",
+      "branch": "sync/upstream-13f-20261102",
+      "merge_commit": "e108d277fa53bff715e593c051eb3e57f88b2698",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "adaptations": [
+        "Captured unresolved-call coverage through full and incremental pipeline execution and indexed store queries.",
+        "Retained coverage metadata version 5 and index format version 4; added compatible schema metadata and indexes without changing the index format.",
+        "Adapted the Claude drift reminder reset from MCP tool calls to native CLI graph commands and a native SQLite test fixture.",
+        "Combined fork operation-argument memory accounting with upstream resolver accounting."
+      ],
+      "exclusions": [
+        "No MCP server, JSON-RPC/session transport, registration, MCP-only test or mandatory MCP dependency restored.",
+        "Preserved the fork README, CLI identity and smoke-test contract."
+      ],
+      "conflicts": [
+        "README.md and scripts/smoke-test.sh: retained fork-native CLI identity and smoke interface.",
+        "src/cli/hook_augment.c and tests/test_cli.c: adapted drift reminder state reset from MCP graph-tool events to native CLI Bash graph commands.",
+        "src/foundation/mem_core.c and .h: merged operation-argument and resolver allocation classes.",
+        "MCP server source and MCP-only tests remained absent."
+      ],
+      "schema_migrations": "Coverage metadata now records unresolved-call completeness at coverage version 5 with additive compatible columns/indexes; CBM_INDEX_FORMAT_VERSION remains 4.",
+      "policy_gate": "passed: python3 scripts/ci/check-github-actions-policy.py; manual/reusable only, Jenkins owns automatic CI.",
       "verification": {
-        "local": "pending",
-        "jenkins": "pending",
-        "windows": "not_run"
+        "production_build": "passed: scripts/build-dev.sh after merge resolution/formatting",
+        "combined_focused_suites": "802 passed, 23 failed, 1 skipped under ASan/UBSan for scripts/test.sh --suites cli pipeline store_bulk store_nodes; installer/uninstaller safety failures report group-writable worktree ancestors at default build/c.",
+        "drift_hook": "passed 1/1: scripts/test.sh --smart --tests cli:cli_hook_augment_drift_reminder_counts_searches BUILD_DIR=/home/nate/.cache/cbm-13f-tests",
+        "unresolved_coverage": "coverage metadata, completeness, indexed query, and candidate-index replacement/pruning tests reported PASS in combined run.",
+        "memory_core": "passed: python3 scripts/lint-memory-core.py; 3242 raw sites / 102 files.",
+        "vendored_integrity": "passed: scripts/security-vendored.sh; 1083 files checked.",
+        "jenkins": "pending final pinned candidate",
+        "windows": "not_run",
+        "clang_tidy": "not_run",
+        "codebase_memory": "post-merge exact-worktree full nonpersistent index failed with cache-resolve; Git porcelain unchanged; parent owns canonical backlog update."
       },
       "acceptance": [
         "True merge includes exact checkpoint parent, no unresolved conflicts.",
@@ -527,13 +599,14 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue with true merge 13G at 2658a181b50ad65cf855e91542e16ef101a1767e; preserve the final pinned candidate for full Jenkins qualification.",
       "upstream_prs": [
         2161,
         2305,
         2774,
         2817
-      ]
+      ],
+      "receipt": "docs/upstream-sync/13f.md"
     },
     {
       "batch": "13G",
@@ -541,23 +614,43 @@
       "upstream_checkpoint": "2658a181b50ad65cf855e91542e16ef101a1767e",
       "upstream_commits": 71,
       "ancestry_validated": true,
-      "fork_base": null,
+      "fork_base": "912926550b7ed06ddadf6dca4103df70cb6e3e33",
       "depends_on": [
         "13F"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_local_review_pending",
+      "branch": "sync/upstream-13g-20261102",
+      "merge_commit": "68f56b790258cd3fe2c4ebec5352ffe7f502378b",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "adaptations": [
+        "Retained native C field, Go type-alias method, TypeScript renamed-import, and YAML traversal fixes.",
+        "Refreshed vendored mimalloc to upstream v3.5.3 with the documented local patches and production profile disabled.",
+        "Kept the LSP surface codec version-4 migration and updated the stale decoder test fixture.",
+        "Added Windows troubleshooting guidance and README link."
+      ],
+      "exclusions": [
+        "No MCP server, JSON-RPC/session transport, registration, client adapter, or mandatory MCP dependency restored.",
+        "Excluded MCP registry adapter implementation and its adapter-only tests."
+      ],
+      "conflicts": [
+        "README.md: retained fork CLI/configuration docs; upstream MCP-oriented environment/tool documentation was redundant or inapplicable.",
+        "tests/test_extraction.c: retained native wide YAML traversal tests and deduplicated body-token regression already present from 13F.",
+        "tests/test_pipeline.c: updated LSP surface fixture envelope from version 3 to version 4 after focused run exposed stale input.",
+        "src/cli/client_adapter.c and MCP server source/test paths remained absent."
+      ],
+      "schema_migrations": "No index schema migration; CBM_INDEX_FORMAT_VERSION unchanged. LSP surface codec version advances to 4.",
+      "policy_gate": "passed: python3 scripts/ci/check-github-actions-policy.py; manual/reusable only, Jenkins owns automatic CI.",
       "verification": {
-        "local": "pending",
-        "jenkins": "pending",
-        "windows": "not_run"
+        "production_build": "passed: scripts/build-dev.sh before and after commit-hook formatting",
+        "focused_suites": "passed 1,477 ASan/UBSan tests: extraction,pipeline,go_lsp,ts_lsp,activation_transaction,registry,platform",
+        "allocator_contract": "passed: bash tests/test_prod_allocator_contract.sh build/c; 3 production allocator checks",
+        "vendored_integrity": "passed: scripts/security-vendored.sh; 1,089 files checked.",
+        "license_gate": "passed: scripts/license-gate.sh; structural coverage, 185 ScanCode detections and 211 npm packages allow-listed.",
+        "memory_core": "passed: python3 scripts/lint-memory-core.py; 3,240 raw sites / 102 files.",
+        "jenkins": "pending final pinned candidate",
+        "windows": "not_run",
+        "clang_tidy": "not_run",
+        "codebase_memory": "post-merge exact-worktree full nonpersistent index failed with cache-resolve; Git porcelain unchanged; parent owns canonical backlog update."
       },
       "acceptance": [
         "True merge includes exact checkpoint parent, no unresolved conflicts.",
@@ -566,7 +659,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue with true merge 13H at a3831c979547d33adaa36998dca2b004d735fc84; preserve the final pinned candidate for full Jenkins qualification.",
       "upstream_prs": [
         2090,
         2290,
@@ -581,7 +674,8 @@
         2769,
         2787,
         2807
-      ]
+      ],
+      "receipt": "docs/upstream-sync/13g.md"
     },
     {
       "batch": "13H",
@@ -635,18 +729,27 @@
       "depends_on": [
         "13H"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_local_review_pending",
+      "branch": "sync/upstream-13i-20261102",
+      "merge_commit": "afdd4af34259228f05b6311afccf2d10a84f6896",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "adaptations": [
+        "Manual/reusable Actions only; remove hosted PR and cache-warm workflows.",
+        "Preserve CLI-native operation sessions, CLI hook surfaces, and daemon permanent-watch ownership.",
+        "Keep Go rel_path propagation and both native pipeline regression cases.",
+        "Scope client selector to one install operation; test CLI-owned hook migration paths."
+      ],
+      "exclusions": [
+        "MCP server, JSON-RPC/session transport, plugin and MCP registration, and MCP-only source/tests."
+      ],
+      "conflicts": [
+        "14 pending 13I paths resolved deliberately against both source sides; no unmerged paths remain."
+      ],
+      "schema_migrations": "none; no index schema or CBM_INDEX_FORMAT_VERSION change",
+      "policy_gate": "pass",
       "verification": {
-        "local": "pending",
-        "jenkins": "pending",
+        "local": "passed: 2155 passed, 1 skipped; ASan/UBSan focused changed suites",
+        "jenkins": "pending final pinned candidate",
         "windows": "not_run"
       },
       "acceptance": [
@@ -656,7 +759,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue true merge with 13J at 29aa74867bd8ac80a5482156dc3e555904b7a382.",
       "upstream_prs": [
         1833,
         1915,
@@ -686,17 +789,30 @@
       "depends_on": [
         "13I"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_provisional",
+      "branch": "sync/upstream-13j-20261102",
+      "merge_commit": "c79477792",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "receipt": "13j.md",
+      "adaptations": [
+        "Retained upstream background worker-width and deterministic single-thread override in native pipeline execution.",
+        "Adapted the background-index join regression to native daemon sessions and CLI JSON argument parsing.",
+        "Canonicalized trusted policy and async/status control flags before job admission; preserved explicit doc-candidates values and normalized only generated default project names."
+      ],
+      "exclusions": [
+        "Excluded MCP-only server implementation, MCP-only tests, and MCP plugin/install README guidance."
+      ],
+      "conflicts": [
+        "README.md retained the CLI-first fork guide.",
+        "graph-ui package metadata conflicts were formatting-only.",
+        "src/pipeline/pipeline.c kept upstream effective worker-count behavior.",
+        "tests/test_cli.c retained fork-native lifecycle coverage.",
+        "src/mcp/mcp.c and tests/test_mcp.c remained deleted."
+      ],
+      "schema_migrations": "no index version migration identified; detailed storage verification pending",
+      "policy_gate": "passed",
       "verification": {
-        "local": "pending",
+        "local": "final production build passed; final focused non-CLI suites passed, 1385 passed; targeted daemon regressions passed, 4 passed; CLI suite passed, 320 passed, 1 skipped",
         "jenkins": "pending",
         "windows": "not_run"
       },
@@ -707,7 +823,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue with 13K on this provisional ancestry; independent review and final Jenkins qualification remain pending.",
       "upstream_prs": [
         1936,
         2022,
@@ -735,17 +851,29 @@
       "depends_on": [
         "13J"
       ],
-      "state": "not_started",
-      "branch": null,
-      "merge_commit": null,
+      "state": "integrated_provisional",
+      "branch": "sync/upstream-13k-20261102",
+      "merge_commit": "53e3ff9ecdcc0c71df821fe395a9cc7f6bee43e7",
       "draft_pr": null,
-      "adaptations": [],
-      "exclusions": [],
-      "conflicts": [],
-      "schema_migrations": "pending source verification",
-      "policy_gate": "pending",
+      "receipt": "13k.md",
+      "adaptations": [
+        "Retained upstream C# namespace, alias, and cross-file type resolution plus its native tests.",
+        "Retained upstream Elixir clause folding and extraction regressions in the CLI pipeline.",
+        "Adapted Codex skill migration to the CLI skill name while preserving the old owned skill path, exact-file ownership checks, and safe forced replacement.",
+        "Kept upstream workflow jobs manual/reusable to preserve Jenkins as the only automatic CI venue."
+      ],
+      "exclusions": [
+        "Excluded MCP-only server, registration, plugin, and profile behavior; retained shared behavior in native CLI operations."
+      ],
+      "conflicts": [
+        "Retained the fork's CLI-first README and managed native install/uninstall surfaces.",
+        "Kept workflows compatible with the strict workflow_dispatch/workflow_call policy.",
+        "Resolved Codex canonical/legacy skill ownership against their distinct codebase-memory-cli and codebase-memory paths."
+      ],
+      "schema_migrations": "no persistent index/store schema migration; changes are parser, LSP, CLI, and test behavior",
+      "policy_gate": "passed",
       "verification": {
-        "local": "pending",
+        "local": "production build passed; 693 passed across extraction, parallel, cs_lsp, and config_text_edit; 7 targeted Codex migration tests passed",
         "jenkins": "pending",
         "windows": "not_run"
       },
@@ -756,7 +884,7 @@
         "Focused changed-subsystem tests pass; record failures and native Windows limitations.",
         "Jenkins full exact-SHA qualification before recommending merge."
       ],
-      "next_action": "After previous reviewed integration, merge checkpoint; do not base on stale main.",
+      "next_action": "Continue with 13L at a5b248f47272413189746589b9a2c551c6b6c5ec; final Jenkins and independent review remain pending.",
       "upstream_prs": [
         1731,
         1781,
@@ -768,6 +896,51 @@
         2867,
         2872
       ]
+    },
+    {
+      "batch": "13L",
+      "upstream_start": "6c0ce230ee26ab8d263eb5235ebf73755558344e",
+      "upstream_checkpoint": "a5b248f47272413189746589b9a2c551c6b6c5ec",
+      "upstream_commits": 19,
+      "ancestry_validated": true,
+      "fork_base": "70e716a5826fd7050e1f5af1d1eb5f2576c76f50",
+      "depends_on": [
+        "13K"
+      ],
+      "state": "integrated_provisionally",
+      "branch": "sync/upstream-13l-20261102",
+      "merge_commit": "8a686f225b2c64f81c0716f3129c36c50fb10ffe",
+      "draft_pr": null,
+      "receipt": "13l.md",
+      "adaptations": [
+        "Retained CLI-first identity and applied reusable Go setup for Go-wrapper smoke.",
+        "Retained action/dependency updates and contributor prerequisite clarifications.",
+        "Final memory-core ratchet repair migrated new CLI and daemon JSON allocations to the memory core; baselines were lowered to measured counts.",
+        "Separated Codex asset and hook install surfaces, retained read-only legacy MCP warnings, and kept the retired OpenCode MCP plugin absent."
+      ],
+      "exclusions": [
+        "Did not restore hosted automatic cache-warm, PR, or scorecard workflows.",
+        "No MCP server, transport, plugin registration, or MCP-only tests restored."
+      ],
+      "conflicts": [
+        "Resolved nine combined-diff paths: _build.yml, _smoke.yml, _soak.yml, _test.yml, codeql.yml, release.yml, smoke.yml, CONTRIBUTING.md, README.md."
+      ],
+      "schema_migrations": "no persistent index/store schema change",
+      "policy_gate": "passed",
+      "verification": {
+        "local": "strict Actions policy, diff check, memory-core ratchet, production build, 1 CLI help test, 2 daemon application index tests, and 6 focused Codex/OpenCode tests passed; pre-repair incremental full cli suite had 25 failures",
+        "jenkins": "build #86 failed in memory-core linter before repair; build #87 failed six CLI tests at 8020c5bca4532ed9d2cb98b0e17bd370e500c8c7 before archive; build #88 required for current candidate",
+        "windows": "not_run"
+      },
+      "acceptance": [
+        "True merge includes exact checkpoint parent, no unresolved conflicts.",
+        "Native CLI/HTTP contracts, authorization, installer bounds, and security fixes preserved; no MCP runtime restored.",
+        "Strict Actions policy passes before each push.",
+        "Focused affected-subsystem tests pass; record unavailable native Windows gates.",
+        "Full Jenkins release-tooling archive qualifies the exact final candidate."
+      ],
+      "next_action": "Run the existing full release-tooling Jenkins job against the current committed candidate; then retain independent review and host acceptance as separate gates.",
+      "publication_blocker": "GitHub push unavailable: git remote requires Username in this non-interactive executor; GitHub ref API update returned not_found. No stacked draft PRs published; stale PRs #28/#29 untouched."
     }
   ],
   "reconciliation": [
@@ -1425,7 +1598,7 @@
     "state": "deferred",
     "next_action": "Finish pinned campaign before planning another batch."
   },
-  "remaining_pinned_upstream_commits": 854,
+  "remaining_pinned_upstream_commits": 0,
   "lifecycle": {
     "workers": [
       "cbm-sync-security-20261101",
@@ -1478,6 +1651,31 @@
     "automatic_merge_enabled": false,
     "main_pushed": false,
     "integration_actions_runs_observed": [],
-    "repaired_security_ci_pushes": "no new Actions runs; prior invalid-YAML records had zero jobs"
-  }
+    "repaired_security_ci_pushes": "no new Actions runs; prior invalid-YAML records had zero jobs",
+    "remainder_stack": {
+      "branches_local": true,
+      "remote_push": "blocked_no_github_credentials",
+      "draft_prs": [],
+      "stale_prs_28_29": "untouched"
+    }
+  },
+  "current_continuation": {
+    "baseline": "27b731cec45e2353303738ac6d8e77acbef42b7c",
+    "pinned_target": "a5b248f47272413189746589b9a2c551c6b6c5ec",
+    "integrated_through": "a5b248f47272413189746589b9a2c551c6b6c5ec",
+    "current_merge_commit": "8a686f225b2c64f81c0716f3129c36c50fb10ffe",
+    "upstream_commits_remaining": 0,
+    "status": "full_jenkins_success_independent_review_and_acceptance_pending",
+    "candidate_commit": "214b87b84a40e170fd8b3db2c603ab651ba5fe2c",
+    "full_jenkins": {
+      "job": "codebase-memory-cli-release-tooling",
+      "build": 88,
+      "result": "SUCCESS",
+      "source_commit": "214b87b84a40e170fd8b3db2c603ab651ba5fe2c",
+      "url": "http://192.168.88.146:8080/job/codebase-memory-cli-release-tooling/88/",
+      "production_binary_sha256": "c86570af70bd2dfb655a5c2a82d2ab7669e9e76b6ea95fab6af9badc9fd7877f",
+      "test_summary": "4141 passed, 0 failed, 2 skipped; 188 suites, 9 jobs"
+    }
+  },
+  "upstream_commits_remaining": 0
 }

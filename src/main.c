@@ -1236,7 +1236,7 @@ static void print_help(void) {
     printf("  codebase-memory-cli coverage src/Claims/ClaimValidator.cs\n");
     printf("  codebase-memory-cli projects --json\n");
     printf("\nAdministration:\n");
-    printf("  codebase-memory-cli allow-root [--approve-sensitive] <path>\n");
+    printf("  codebase-memory-cli allow-root [--approve-sensitive | --approve-broad] <path>\n");
     printf("  codebase-memory-cli install [-y|-n] [--force] [--dry-run] [--dir=<path>] "
            "[--skip-config]\n");
     printf("                                      [--clients=<tokens>]  Run "
@@ -1264,21 +1264,27 @@ static void print_help(void) {
 
 /* Try to handle a subcommand (cli/install/uninstall/update/config/--version/--help).
  * Returns -1 if no subcommand matched, otherwise the exit code. */
-/* `allow-root [--approve-sensitive] <path>` — record an indexing root.
+/* `allow-root [--approve-sensitive | --approve-broad] <path>` — record an
+ * indexing root.
  *
  * Enrollment lives here, in a command a person types, and deliberately nowhere
  * else: the whole point of the grant store is that neither an indexed repository
  * nor a tool caller can widen its own boundary. A confirmation delivered through an
  * agent-controlled product surface could be answered by the same agent that may have been
- * influenced, so it would not be a human decision at all. */
+ * influenced, so it would not be a human decision at all. `--approve-broad` records the same
+ * human decision for one exact root refused as too broad (for example `/work` or `/app`); it
+ * is listed and revocable like every other explicit grant. */
 static int main_run_allow_root(int argc, char **argv) {
     const char *path = NULL;
     bool approve_sensitive = false;
+    bool approve_broad = false;
     bool list_only = false;
     bool approve_manifest = false;
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "--approve-sensitive") == 0) {
             approve_sensitive = true;
+        } else if (strcmp(argv[i], "--approve-broad") == 0) {
+            approve_broad = true;
         } else if (strcmp(argv[i], "--list") == 0) {
             list_only = true;
         } else if (strcmp(argv[i], "--approve-manifest") == 0) {
@@ -1310,7 +1316,8 @@ static int main_run_allow_root(int argc, char **argv) {
         }
         if (!path && !list_only) {
             (void)fprintf(stderr,
-                          "usage: codebase-memory-cli allow-root [--approve-sensitive] <path>\n"
+                          "usage: codebase-memory-cli allow-root [--approve-sensitive | "
+                          "--approve-broad] <path>\n"
                           "       codebase-memory-cli allow-root --approve-manifest <project>\n"
                           "       codebase-memory-cli allow-root --list\n");
             return EXIT_FAILURE;
@@ -1353,7 +1360,7 @@ static int main_run_allow_root(int argc, char **argv) {
 
     char err[CBM_SZ_1K];
     if (!cbm_workspace_grant_add(cache_dir, cbm_workspace_home_dir(), canonical, approve_sensitive,
-                                 err, sizeof(err))) {
+                                 approve_broad, err, sizeof(err))) {
         (void)fprintf(stderr, "refused: %s\n", err[0] ? err : "not an allowable root");
         return EXIT_FAILURE;
     }
@@ -1977,20 +1984,24 @@ static bool main_project_lock_manager_close(cbm_project_lock_manager_t **manager
 }
 
 static bool main_local_transition_close(cbm_daemon_ipc_local_transition_t **transition) {
-    uint64_t deadline = main_deadline_after(MAIN_COORDINATION_CLEANUP_MS);
+    uint64_t ceiling = main_deadline_after(MAIN_STARTUP_CONTENTION_CEILING_MS);
+    uint64_t error_deadline = main_deadline_after(MAIN_COORDINATION_CLEANUP_MS);
     while (transition && *transition) {
-        /* A failed release always RETAINS the transition and is retriable by
-         * contract: the Windows release transition must briefly try-hold the
-         * shared startup-v2/legacy gates, so concurrent one-shot teardowns
-         * legitimately collide and succeed on retry. Success consumes the
-         * transition; only never-finishing cleanup is a failure, and the
-         * deadline escalation below owns that. */
-        (void)cbm_daemon_ipc_local_transition_release(transition);
+        /* Windows teardown reacquires the startup-v2/legacy gates before
+         * releasing its participant claim. A live startup owner can hold them
+         * beyond the native cleanup deadline. Retain protection and use the
+         * acquisition backstop for contention; repeated native errors still
+         * get only the short cleanup deadline. Success consumes the handle. */
+        int status = cbm_daemon_ipc_local_transition_try_release(transition);
         if (*transition) {
-            if (cbm_now_ms() >= deadline) {
+            uint64_t now = cbm_now_ms();
+            if (now >= ceiling || (status < 0 && now >= error_deadline)) {
                 main_coordination_cleanup_fail_stop("local_transition_cleanup");
             }
-            cbm_usleep(1000);
+            if (status == 0) {
+                error_deadline = main_deadline_after(MAIN_COORDINATION_CLEANUP_MS);
+            }
+            cbm_usleep(status == 0 ? 10000 : 1000);
         }
     }
     return true;
@@ -3279,7 +3290,7 @@ int main(int argc, char **argv) {
             if (!hook_input) {
                 return EXIT_SUCCESS; /* fail open, nothing to augment */
             }
-            if (cbm_hook_augment_input_is_noop_bash(hook_input)) {
+            if (cbm_hook_augment_input_is_noop_for(hook_input, NULL, hook_dialect)) {
                 free(hook_input);
                 return EXIT_SUCCESS;
             }

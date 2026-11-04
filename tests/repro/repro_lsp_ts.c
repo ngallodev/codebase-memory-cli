@@ -115,32 +115,32 @@
  * does (".ts" → TypeScript, ".tsx" → TSX). Returns 0 on PASS (GREEN), non-zero
  * on FAIL (RED) — the redness is the documented per-pass status.
  */
-static int assert_lsp_strategy_files(const RFile *files, int nfiles,
-                                     const char *strategy) {
+static int assert_lsp_strategy_files_expected(const RFile *files, int nfiles, const char *strategy,
+                                              int expected_module_sourced) {
     RProj lp;
     cbm_store_t *store = rh_index_files(&lp, files, nfiles);
     if (!store) {
-        printf("  %sFAIL%s %s:%d: index failed for strategy %s\n", tf_red(),
-               tf_reset(), __FILE__, __LINE__, strategy);
+        printf("  %sFAIL%s %s:%d: index failed for strategy %s\n", tf_red(), tf_reset(), __FILE__,
+               __LINE__, strategy);
         rh_cleanup(&lp, store);
         return 1;
     }
 
     int module_sourced = -1;
     int callable_sourced = -1;
-    inv_count_calls_by_source(store, lp.project, &module_sourced,
-                              &callable_sourced);
+    inv_count_calls_by_source(store, lp.project, &module_sourced, &callable_sourced);
 
     int has_strategy = inv_edge_has_strategy(store, lp.project, strategy);
 
     int rc = 0;
 
-    /* (a) callable-sourcing floor: zero Module/File-sourced CALLS edges. */
-    if (module_sourced != 0) {
+    /* (a) keep module-sourced calls explicit so top-level constructors are
+     * allowed only in fixtures that expect them. */
+    if (module_sourced != expected_module_sourced) {
         printf("  %sFAIL%s %s:%d: strategy %s: %d Module-sourced CALLS "
-               "(expected 0)\n",
-               tf_red(), tf_reset(), __FILE__, __LINE__, strategy,
-               module_sourced);
+               "(expected %d)\n",
+               tf_red(), tf_reset(), __FILE__, __LINE__, strategy, module_sourced,
+               expected_module_sourced);
         rc = 1;
     }
     /* There must be a callable-sourced CALLS edge, else the fixture produced no
@@ -148,8 +148,7 @@ static int assert_lsp_strategy_files(const RFile *files, int nfiles,
     if (callable_sourced <= 0) {
         printf("  %sFAIL%s %s:%d: strategy %s: no callable-sourced CALLS edge "
                "(callable=%d)\n",
-               tf_red(), tf_reset(), __FILE__, __LINE__, strategy,
-               callable_sourced);
+               tf_red(), tf_reset(), __FILE__, __LINE__, strategy, callable_sourced);
         rc = 1;
     }
 
@@ -165,9 +164,12 @@ static int assert_lsp_strategy_files(const RFile *files, int nfiles,
     return rc;
 }
 
+static int assert_lsp_strategy_files(const RFile *files, int nfiles, const char *strategy) {
+    return assert_lsp_strategy_files_expected(files, nfiles, strategy, 0);
+}
+
 /* Single-file convenience wrapper. */
-static int assert_lsp_strategy(const char *filename, const char *src,
-                               const char *strategy) {
+static int assert_lsp_strategy(const char *filename, const char *src, const char *strategy) {
     RFile f = {filename, src};
     return assert_lsp_strategy_files(&f, 1, strategy);
 }
@@ -184,8 +186,8 @@ static int assert_no_resolvable_edge(const char *filename, const char *src,
     RProj lp;
     cbm_store_t *store = rh_index(&lp, filename, src);
     if (!store) {
-        printf("  %sFAIL%s %s:%d: index failed for no-edge callee %s\n", tf_red(),
-               tf_reset(), __FILE__, __LINE__, callee_substr);
+        printf("  %sFAIL%s %s:%d: index failed for no-edge callee %s\n", tf_red(), tf_reset(),
+               __FILE__, __LINE__, callee_substr);
         rh_cleanup(&lp, store);
         return 1;
     }
@@ -223,13 +225,12 @@ static int assert_no_resolvable_edge(const char *filename, const char *src,
  * substring-alias against), so its absence is the accurate, intended invariant.
  * Returns 0 on PASS (tag absent), non-zero on FAIL (tag unexpectedly present).
  */
-static int assert_strategy_absent(const char *filename, const char *src,
-                                  const char *strategy) {
+static int assert_strategy_absent(const char *filename, const char *src, const char *strategy) {
     RProj lp;
     cbm_store_t *store = rh_index(&lp, filename, src);
     if (!store) {
-        printf("  %sFAIL%s %s:%d: index failed for absent-strategy %s\n", tf_red(),
-               tf_reset(), __FILE__, __LINE__, strategy);
+        printf("  %sFAIL%s %s:%d: index failed for absent-strategy %s\n", tf_red(), tf_reset(),
+               __FILE__, __LINE__, strategy);
         rh_cleanup(&lp, store);
         return 1;
     }
@@ -255,21 +256,19 @@ static int assert_strategy_absent(const char *filename, const char *src,
 /* lsp_ts_local — bare identifier call f() that resolves to a module-local
  * function (ts_lsp.c:2310-2322: call_expression function is an `identifier`,
  * cbm_registry_lookup_symbol_by_args hits on the module QN). */
-static const char kTsLocal[] =
-    "function helper(x: number): number { return x + 1; }\n"
-    "function caller(v: number): number { return helper(v); }\n";
+static const char kTsLocal[] = "function helper(x: number): number { return x + 1; }\n"
+                               "function caller(v: number): number { return helper(v); }\n";
 
 /* lsp_ts_method — obj.method() type-based dispatch on a NAMED in-file class
  * receiver (ts_lsp.c:2257-2284: member_expression, ts_eval_expr_type gives the
  * receiver's NAMED type, lookup_method finds the method). */
-static const char kTsMethod[] =
-    "class Counter {\n"
-    "    inc(x: number): number { return x + 1; }\n"
-    "}\n"
-    "function caller(): number {\n"
-    "    const c = new Counter();\n"
-    "    return c.inc(1);\n"
-    "}\n";
+static const char kTsMethod[] = "class Counter {\n"
+                                "    inc(x: number): number { return x + 1; }\n"
+                                "}\n"
+                                "function caller(): number {\n"
+                                "    const c = new Counter();\n"
+                                "    return c.inc(1);\n"
+                                "}\n";
 
 /* lsp_ts_namespace — Ns.fn() where Ns is a namespace import
  * (`import * as Ns from "./mod"`). ts_lsp.c:2233-2246: the member_expression
@@ -277,11 +276,9 @@ static const char kTsMethod[] =
  * imported module's registry → lsp_ts_namespace. Cross-file: util.ts exports the
  * function, main.ts imports the namespace and calls Util.compute(). */
 static const RFile kTsNamespace[] = {
-    {"util.ts",
-     "export function compute(x: number): number { return x * 3; }\n"},
-    {"main.ts",
-     "import * as Util from \"./util\";\n"
-     "function caller(v: number): number { return Util.compute(v); }\n"},
+    {"util.ts", "export function compute(x: number): number { return x * 3; }\n"},
+    {"main.ts", "import * as Util from \"./util\";\n"
+                "function caller(v: number): number { return Util.compute(v); }\n"},
 };
 
 /* lsp_ts_import — bare identifier call to an imported function
@@ -290,11 +287,23 @@ static const RFile kTsNamespace[] = {
  * the imported module's registry → lsp_ts_import. Cross-file: util.ts exports
  * helper, main.ts imports it by name and calls it bare. */
 static const RFile kTsImport[] = {
-    {"util.ts",
-     "export function helper(x: number): number { return x + 5; }\n"},
-    {"main.ts",
-     "import { helper } from \"./util\";\n"
-     "function caller(v: number): number { return helper(v); }\n"},
+    {"util.ts", "export function helper(x: number): number { return x + 5; }\n"},
+    {"main.ts", "import { helper } from \"./util\";\n"
+                "function caller(v: number): number { return helper(v); }\n"},
+};
+
+/* Keep the module-level inferred receiver shape from issue #1974: a local
+ * initialized from an imported constructor is used by a later function.
+ */
+static const RFile kTsInferredImportedMethod[] = {
+    {"store.ts", "export class WidgetStore {\n"
+                 "    findById(id: string): string { return id; }\n"
+                 "}\n"},
+    {"service.ts", "import { WidgetStore } from \"./store\";\n"
+                   "const inferred = new WidgetStore();\n"
+                   "function load(id: string): string {\n"
+                   "    return inferred.findById(id);\n"
+                   "}\n"},
 };
 
 /* lsp_ts_jsx — <Comp/> JSX element whose tag is a module-local component
@@ -302,24 +311,21 @@ static const RFile kTsImport[] = {
  * uppercase so it is NOT treated as an intrinsic HTML element; it resolves via
  * cbm_registry_lookup_symbol on the module QN. App() renders <Widget/> defined
  * in the same file. */
-static const char kTsxJsx[] =
-    "function Widget(): any { return null; }\n"
-    "function App(): any {\n"
-    "    return <Widget />;\n"
-    "}\n";
+static const char kTsxJsx[] = "function Widget(): any { return null; }\n"
+                              "function App(): any {\n"
+                              "    return <Widget />;\n"
+                              "}\n";
 
 /* lsp_ts_jsx_import — <Comp/> JSX element whose tag is an imported component.
  * TSX only; the tag matches an import local name and the cross-file registry
  * proves the exact component symbol. Cross-file: widget.tsx exports Widget,
  * app.tsx imports it and renders <Widget/>. */
 static const RFile kTsxJsxImport[] = {
-    {"widget.tsx",
-     "export function Widget(): any { return null; }\n"},
-    {"app.tsx",
-     "import { Widget } from \"./widget\";\n"
-     "function App(): any {\n"
-     "    return <Widget />;\n"
-     "}\n"},
+    {"widget.tsx", "export function Widget(): any { return null; }\n"},
+    {"app.tsx", "import { Widget } from \"./widget\";\n"
+                "function App(): any {\n"
+                "    return <Widget />;\n"
+                "}\n"},
 };
 
 /* lsp_ts — the DEFAULT fallback strategy inside ts_emit_resolved_call
@@ -358,16 +364,20 @@ TEST(repro_lsp_ts_method) {
 }
 
 TEST(repro_lsp_ts_namespace) {
-    return assert_lsp_strategy_files(kTsNamespace,
-                                     (int)(sizeof(kTsNamespace) /
-                                           sizeof(kTsNamespace[0])),
-                                     "lsp_ts_namespace");
+    return assert_lsp_strategy_files(
+        kTsNamespace, (int)(sizeof(kTsNamespace) / sizeof(kTsNamespace[0])), "lsp_ts_namespace");
 }
 
 TEST(repro_lsp_ts_import) {
-    return assert_lsp_strategy_files(
-        kTsImport, (int)(sizeof(kTsImport) / sizeof(kTsImport[0])),
-        "lsp_ts_import");
+    return assert_lsp_strategy_files(kTsImport, (int)(sizeof(kTsImport) / sizeof(kTsImport[0])),
+                                     "lsp_ts_import");
+}
+
+TEST(repro_lsp_ts_inferred_import_module_receiver) {
+    return assert_lsp_strategy_files_expected(
+        kTsInferredImportedMethod,
+        (int)(sizeof(kTsInferredImportedMethod) / sizeof(kTsInferredImportedMethod[0])),
+        "lsp_ts_method", 1);
 }
 
 TEST(repro_lsp_ts_jsx) {
@@ -376,8 +386,7 @@ TEST(repro_lsp_ts_jsx) {
 
 TEST(repro_lsp_ts_jsx_import) {
     return assert_lsp_strategy_files(kTsxJsxImport,
-                                     (int)(sizeof(kTsxJsxImport) /
-                                           sizeof(kTsxJsxImport[0])),
+                                     (int)(sizeof(kTsxJsxImport) / sizeof(kTsxJsxImport[0])),
                                      "lsp_ts_jsx_import");
 }
 
@@ -403,6 +412,7 @@ SUITE(repro_lsp_ts) {
     RUN_TEST(repro_lsp_ts_method);
     RUN_TEST(repro_lsp_ts_namespace);
     RUN_TEST(repro_lsp_ts_import);
+    RUN_TEST(repro_lsp_ts_inferred_import_module_receiver);
     RUN_TEST(repro_lsp_ts_jsx);
     RUN_TEST(repro_lsp_ts_jsx_import);
     RUN_TEST(repro_lsp_ts_default);

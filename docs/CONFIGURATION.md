@@ -92,7 +92,7 @@ Current keys:
 |---|---|---|
 | `auto_index` | `false` | Permit the retained warm runtime to auto-index newly encountered projects. Canonical CLI usage can always index explicitly with `codebase-memory-cli index`. |
 | `auto_index_limit` | `50000` | Maximum file count allowed for automatic indexing of a new project. |
-| `auto_watch` | `true` | Register an active project with the retained background watcher when a warm runtime/hook integration supplies project context. The ordinary one-shot CLI does not require this. |
+| `auto_watch` | `true` | Register an active project with the retained background watcher when a warm runtime/hook integration supplies project context. A daemon-started watcher can retain registered projects after the initiating session ends until daemon shutdown, project deletion/root disappearance, or this setting is disabled. The ordinary one-shot CLI does not require this. |
 | `doc_candidates` | `auto` | Score documentation sections against code to store doc<->code candidates (the possible targets of a section, and the sections that may describe a function or file, each with a judged probability). Unset (`auto`), the index mode decides: on for `full` indexes (the default mode), off for `moderate` and `fast`. Set `true` or `false` to choose for every mode; `config reset doc_candidates` returns to `auto`. The scoring grows with sections x functions: under a second up to ~100k functions, ~15 s at ~400k, ~3 minutes on the Linux kernel. Off stores no candidates and leaves the rest of the graph unchanged; on in `fast` mode stores candidates without adding `fast`'s skipped `SIMILAR_TO` / `SEMANTICALLY_RELATED` edges. `codebase-memory-cli index --doc-candidates true|false` sets it for a single index and wins over this setting. Applies from the next index. |
 | `watch_non_git` | `false` | Poll non-Git roots with the indexer discovery rules and an adaptive file-tree scan. Skipped paths, including `.codebase-memory/`, do not trigger indexing. The first poll after daemon startup reindexes once; later changes trigger one reindex. This walks the whole tree each poll and is read when the daemon starts. |
 | `watcher_enabled` | `true` | Master switch for the retained background watcher subsystem. Set `false` to stop its poll thread/project registration. Reindex manually with `codebase-memory-cli index` when disabled. |
@@ -217,6 +217,15 @@ root because they are too broad or too sensitive to index as a unit:
 - your home directory itself (directories *below* it are fine);
 - a credential directory at any depth — `.ssh`, `.aws`, `.gnupg`, `.kube`,
   `.docker`, `.netrc`, `.git-credentials`, `.password-store`, macOS `Keychains`.
+
+A single top-level directory can still be indexed as one root on purpose, for
+example a container or build machine that keeps its project in `/work`, `/app` or
+`/src`, by approving that exact path in a terminal:
+`codebase-memory-cli allow-root --approve-broad /work`. The approval is recorded
+like any other allowed root, listed as `(approved broad)` by `allow-root --list`,
+and covers no other top-level directory; as with any recorded root, indexing is
+then confined to the recorded roots. Filesystem, drive and share roots cannot be
+approved.
 
 Two limits are worth stating plainly. This constrains *scope*, not
 *sensitivity*: inside a root that is allowed, every file the process can read may

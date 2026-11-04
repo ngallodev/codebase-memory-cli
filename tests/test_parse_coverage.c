@@ -1472,11 +1472,12 @@ TEST(sql_values_scanner_keeps_positions_of_kept_text_issue1735) {
 static const char *const JSX_AMP_BODIES[] = {
     /* the #1736 shape: '&' + letter in a double-quoted attribute */
     "<link href=\"https://fonts.x/css2?family=Inter:wght@300;400&family=Syne&display=swap\" />",
-    "<link href='https://x.com/a?a=1&b=2' />", /* single-quoted attribute */
-    "<p title=\"a&\">x</p>",                   /* '&' right before the quote */
-    "<p>Tom &Jerry</p>",                       /* '&' + letter in JSX text */
-    "<p>Tom & Jerry</p>",                      /* '&' + space in JSX text */
-    "<p>x &1 y</p>",                           /* '&' + digit in JSX text */
+    "<link href='https://x.com/a?a=1&b=2' />",              /* single-quoted attribute */
+    "<p title=\"a&\">x</p>",                                /* '&' right before the quote */
+    "<p>Tom &Jerry</p>",                                    /* '&' + letter in JSX text */
+    "<p>Tom & Jerry</p>",                                   /* '&' + space in JSX text */
+    "<th className=\"p-4 font-semibold\">Role & Dept</th>", /* #2481 report reproduction */
+    "<p>x &1 y</p>",                                        /* '&' + digit in JSX text */
     /* controls: references keep parsing; '& ' / '&1' in attributes */
     "<p title=\"x&amp;y&#38;z & w &1\">A&amp;B &#38; C</p>",
 };

@@ -91,9 +91,24 @@ typedef enum {
 struct cbm_daemon_application_watch {
     char *project;
     char *root;
+    char *index_mode;
+    bool persistence;
+    bool has_doc_candidates;
+    bool doc_candidates;
     size_t subscribers;
     cbm_daemon_application_watch_t *next;
 };
+
+typedef struct application_watch_membership {
+    cbm_daemon_application_watch_t *watch;
+    struct application_watch_membership *next;
+} application_watch_membership_t;
+
+typedef struct application_index_watch_owner {
+    cbm_daemon_application_session_t *session;
+    bool async;
+    struct application_index_watch_owner *next;
+} application_index_watch_owner_t;
 
 struct cbm_daemon_application_session {
     cbm_daemon_application_t *application;
@@ -108,7 +123,7 @@ struct cbm_daemon_application_session {
     bool request_active;
     cbm_daemon_runtime_application_token_t active_request_token;
     cbm_daemon_runtime_application_token_t request_cancel_token;
-    cbm_daemon_application_watch_t *watch;
+    application_watch_membership_t *watches;
     cbm_daemon_application_job_t *active_job;
     bool active_job_subscribed;
     cbm_daemon_application_job_t *auto_index_job;
@@ -145,6 +160,7 @@ struct cbm_daemon_application_job {
      * job outlives the request and session that started it. */
     bool async_owned;
     bool worker_started;
+    application_index_watch_owner_t *watch_owners;
     cbm_daemon_application_job_t *next;
 };
 
@@ -166,11 +182,11 @@ struct cbm_daemon_application_index_record {
     cbm_daemon_application_index_record_t *next;
 };
 
-/* A watcher-triggered physical job is owned by the exact live sessions that
- * currently subscribe to its project/root watch. The callback waiting for the
- * job is only a storage waiter; it is deliberately not an ownership
- * subscription, so the worker is cancelled when the last matching session
- * disconnects even while unrelated daemon sessions remain alive. */
+/* A watcher-triggered physical job is normally owned by the exact live
+ * sessions subscribed to its project/root watch. In permanent daemon mode the
+ * watcher itself additionally owns the physical job so background indexing can
+ * continue while no client session is connected. The callback remains a
+ * storage waiter in both modes and releases daemon ownership on completion. */
 struct cbm_daemon_application_watch_job_subscription {
     cbm_daemon_application_session_t *session;
     cbm_daemon_application_job_t *job;
@@ -208,7 +224,7 @@ struct cbm_daemon_application {
 
 static void application_job_unsubscribe_locked(cbm_daemon_application_job_t *job);
 static void application_watch_job_unsubscribe_session_locked(
-    cbm_daemon_application_session_t *session);
+    cbm_daemon_application_session_t *session, const cbm_daemon_application_watch_t *watch);
 static bool application_watch_job_subscribe_late_session_locked(
     cbm_daemon_application_session_t *session, cbm_daemon_application_watch_t *watch);
 static bool application_unique_recovery_file(char out[APPLICATION_PATH_CAP], const char *kind);
@@ -401,6 +417,35 @@ static bool application_canonical_directory_exists(const char *path) {
     return cbm_path_info_utf8(path, &info) == 0 && info.is_directory;
 }
 
+/* Compare canonical roots without changing the native spelling used by workspace policy. */
+static bool application_watch_roots_equal(const char *left, const char *right, bool windows_paths) {
+    while (*left && *right) {
+        char left_char = *left++;
+        char right_char = *right++;
+        if (windows_paths) {
+            left_char = left_char == '\\' ? '/' : left_char;
+            right_char = right_char == '\\' ? '/' : right_char;
+        }
+        if (left_char != right_char) {
+            return false;
+        }
+    }
+    return *left == *right;
+}
+
+static bool application_watch_root_matches(const char *left, const char *right) {
+#ifdef _WIN32
+    return application_watch_roots_equal(left, right, true);
+#else
+    return application_watch_roots_equal(left, right, false);
+#endif
+}
+
+bool cbm_daemon_application_watch_roots_equal_for_test(const char *left, const char *right,
+                                                       bool windows_paths) {
+    return application_watch_roots_equal(left, right, windows_paths);
+}
+
 static _Noreturn void application_cleanup_force_terminate(const char *component) {
     /* In production this module is daemon-owned and the host log sink flushes
      * every record synchronously. Continuing would either lose the only retry
@@ -553,8 +598,8 @@ static bool application_regular_db_exists(const char *project) {
     if (written <= 0 || (size_t)written >= sizeof(path)) {
         return false;
     }
-    struct stat status;
-    return stat(path, &status) == 0 && S_ISREG(status.st_mode);
+    cbm_path_info_t status;
+    return cbm_path_info_utf8(path, &status) == CBM_PATH_INFO_OK && status.is_regular;
 }
 
 static cbm_daemon_application_watch_t *application_find_watch_locked(
@@ -574,15 +619,21 @@ static void application_remove_watch_entry_locked(cbm_daemon_application_t *appl
     while (*cursor && *cursor != watch) {
         cursor = &(*cursor)->next;
     }
-    if (*cursor != watch) {
+    if (!watch || *cursor != watch) {
         return;
     }
     *cursor = watch->next;
     for (cbm_daemon_application_session_t *session = application->sessions; session;
          session = session->next) {
-        if (session->watch == watch) {
-            application_watch_job_unsubscribe_session_locked(session);
-            session->watch = NULL;
+        application_watch_membership_t **membership = &session->watches;
+        while (*membership && (*membership)->watch != watch) {
+            membership = &(*membership)->next;
+        }
+        if (*membership) {
+            application_watch_job_unsubscribe_session_locked(session, watch);
+            application_watch_membership_t *removed = *membership;
+            *membership = removed->next;
+            cbm_free(CBM_MEM_CLASS_OTHER, removed);
         }
     }
     if (unregister_physical_watch && application->watcher) {
@@ -590,7 +641,8 @@ static void application_remove_watch_entry_locked(cbm_daemon_application_t *appl
     }
     application_release_text(watch->project);
     free(watch->root);
-    free(watch);
+    cbm_free(CBM_MEM_CLASS_OTHER, watch->index_mode);
+    cbm_free(CBM_MEM_CLASS_OTHER, watch);
 }
 
 static void application_remove_watch_locked(cbm_daemon_application_t *application,
@@ -598,18 +650,50 @@ static void application_remove_watch_locked(cbm_daemon_application_t *applicatio
     application_remove_watch_entry_locked(application, watch, true);
 }
 
-static void application_release_session_watch_locked(cbm_daemon_application_session_t *session) {
-    cbm_daemon_application_watch_t *watch = session->watch;
-    if (!watch) {
-        return;
+/* Registration and refresh can each be the first observer of the global
+ * switch. Drain memberships and physical watches together under the mutex. */
+static bool application_watches_disabled_locked(cbm_daemon_application_t *application) {
+    if (!application->config ||
+        cbm_config_get_bool(application->config, CBM_CONFIG_AUTO_WATCH, true)) {
+        return false;
     }
-    application_watch_job_unsubscribe_session_locked(session);
-    session->watch = NULL;
-    if (watch->subscribers > 0) {
-        watch->subscribers--;
+    while (application->watches) {
+        application_remove_watch_locked(application, application->watches);
     }
-    if (watch->subscribers == 0) {
-        application_remove_watch_locked(session->application, watch);
+    return true;
+}
+
+static void application_release_session_watch_locked(cbm_daemon_application_session_t *session,
+                                                     bool session_ending) {
+    application_watch_job_unsubscribe_session_locked(session, NULL);
+
+    /*
+     * A permanent daemon owns the physical project watch independently of
+     * individual client sessions. Session disconnect releases only that
+     * session's logical subscription; the watcher remains available for
+     * background change detection while the daemon generation is alive.
+     *
+     * Non-permanent applications retain the historical session-scoped
+     * lifecycle and remove the physical watch after the final subscriber.
+     * A release decided by workspace policy (session_ending false: the
+     * session's root is no longer allowed) is not a disconnect and removes
+     * the watch in both modes. Daemon shutdown and auto_watch=false remove
+     * persistent watches through their own paths; a deleted project's watch
+     * ends at its next watcher callback
+     * (application_permanent_watch_orphaned_locked).
+     */
+    bool daemon_keeps_watch = session_ending && session->application->permanent;
+    while (session->watches) {
+        application_watch_membership_t *membership = session->watches;
+        cbm_daemon_application_watch_t *watch = membership->watch;
+        session->watches = membership->next;
+        cbm_free(CBM_MEM_CLASS_OTHER, membership);
+        if (watch->subscribers > 0) {
+            watch->subscribers--;
+            if (!daemon_keeps_watch && watch->subscribers == 0) {
+                application_remove_watch_locked(session->application, watch);
+            }
+        }
     }
 }
 
@@ -630,86 +714,199 @@ static bool application_session_workspace_allowed(const cbm_daemon_application_s
 }
 
 /* Caller holds application->mutex. */
-static void application_refresh_watch_locked(cbm_daemon_application_session_t *session) {
-    cbm_daemon_application_t *application = session->application;
-    if (!application->watcher || !session->context_set || session->hook_event ||
-        session->hook_dialect || session->auto_index_subscribed) {
-        return;
+static bool application_session_has_watch_locked(const cbm_daemon_application_session_t *session,
+                                                 const cbm_daemon_application_watch_t *watch) {
+    for (application_watch_membership_t *membership = session->watches; membership;
+         membership = membership->next) {
+        if (membership->watch == watch) {
+            return true;
+        }
     }
-    const char *project = cbm_operation_session_project(session->operation_session);
-    const char *root = cbm_operation_session_root(session->operation_session);
-    if (!project || !project[0] || !root || !root[0]) {
-        return;
-    }
-    if (!application_session_workspace_allowed(session, "watch")) {
-        application_release_session_watch_locked(session);
-        return;
-    }
-    bool enabled = !application->config ||
-                   cbm_config_get_bool(application->config, CBM_CONFIG_AUTO_WATCH, true);
-    bool db_exists = application_regular_db_exists(project);
+    return false;
+}
 
-    /* Disconnect cancellation is the logical ownership boundary. An
-     * in-flight request may reach this refresh after cancel returned but
-     * before runtime can join it and call session_close; it must never
-     * recreate that session's watch. */
-    if (application->stopping || application_request_cancelled_locked(session)) {
+static bool application_watch_set_options(cbm_daemon_application_watch_t *watch,
+                                          const char *args_json) {
+    if (!args_json) {
+        return true;
+    }
+    yyjson_doc *doc = yyjson_read(args_json, strlen(args_json), 0);
+    yyjson_val *args = doc ? yyjson_doc_get_root(doc) : NULL;
+    const char *mode = yyjson_get_str(yyjson_obj_get(args, "mode"));
+    char *mode_copy = mode ? cbm_mem_strdup(CBM_MEM_CLASS_OTHER, mode) : NULL;
+    if (!yyjson_is_obj(args) || (mode && !mode_copy)) {
+        cbm_free(CBM_MEM_CLASS_OTHER, mode_copy);
+        yyjson_doc_free(doc);
+        return false;
+    }
+    cbm_free(CBM_MEM_CLASS_OTHER, watch->index_mode);
+    watch->index_mode = mode_copy;
+    watch->persistence = yyjson_get_bool(yyjson_obj_get(args, "persistence"));
+    yyjson_val *doc_candidates = yyjson_obj_get(args, "doc_candidates");
+    watch->has_doc_candidates = yyjson_is_bool(doc_candidates);
+    watch->doc_candidates = yyjson_get_bool(doc_candidates);
+    yyjson_doc_free(doc);
+    return true;
+}
+
+static bool application_watch_registration_allowed(const cbm_daemon_application_session_t *session,
+                                                   const char *project, const char *root) {
+    const cbm_daemon_application_t *application = session->application;
+    if (!application->watcher || !session->context_set || !session->background_eligible ||
+        session->hook_event || session->hook_dialect || session->session_cancelled ||
+        application->stopping || !project || !project[0] || !root || !root[0]) {
+        return false;
+    }
+    char boundary_error[CBM_SZ_1K];
+    return cbm_workspace_root_allowed(
+        root, cbm_workspace_home_dir(), cbm_workspace_cache_dir(),
+        cbm_operation_session_allowed_root(session->operation_session), boundary_error,
+        sizeof(boundary_error));
+}
+
+static void application_register_watch_locked(cbm_daemon_application_session_t *session,
+                                              const char *project, const char *root,
+                                              const char *args_json) {
+    cbm_daemon_application_t *application = session->application;
+    if (application_watches_disabled_locked(application) ||
+        !application_watch_registration_allowed(session, project, root)) {
         return;
     }
     cbm_daemon_application_watch_t *watch = application_find_watch_locked(application, project);
-    if (!enabled || !db_exists) {
-        /* A delete/config transition is global for this project. Remove the
-         * physical watch and clear every logical subscriber in one step. */
+    if (!application_regular_db_exists(project)) {
         if (watch) {
             application_remove_watch_locked(application, watch);
         }
         return;
     }
-    if (session->watch) {
+    if (watch && !application_watch_root_matches(watch->root, root)) {
+        cbm_log_warn("daemon.watch.project_collision", "project", project, "existing_root",
+                     watch->root, "requested_root", root);
+        return;
+    }
+    if (watch && application_session_has_watch_locked(session, watch)) {
+        (void)application_watch_set_options(watch, args_json);
+        return;
+    }
+    application_watch_membership_t *membership =
+        cbm_calloc(CBM_MEM_CLASS_OTHER, sizeof(*membership));
+    if (!membership) {
         return;
     }
     if (watch) {
-        if (strcmp(watch->root, root) == 0) {
-            if (!application_watch_job_subscribe_late_session_locked(session, watch)) {
-                cbm_log_warn("daemon.watch.late_owner_allocation_failed", "project", project,
-                             "action", "retry");
-                return;
-            }
-            watch->subscribers++;
-            session->watch = watch;
-        } else {
-            cbm_log_warn("daemon.watch.project_collision", "project", project, "existing_root",
-                         watch->root, "requested_root", root);
+        if (!application_watch_set_options(watch, args_json) ||
+            !application_watch_job_subscribe_late_session_locked(session, watch)) {
+            cbm_free(CBM_MEM_CLASS_OTHER, membership);
+            cbm_log_warn("daemon.watch.late_owner_allocation_failed", "project", project, "action",
+                         "retry");
+            return;
         }
-        return;
-    }
-
-    watch = calloc(1, sizeof(*watch));
-    if (watch) {
-        watch->project = strdup(project);
-        watch->root = strdup(root);
-    }
-    if (!watch || !watch->project || !watch->root) {
+    } else {
+        watch = cbm_calloc(CBM_MEM_CLASS_OTHER, sizeof(*watch));
         if (watch) {
-            free(watch->project);
-            free(watch->root);
-            free(watch);
+            watch->project = strdup(project);
+            watch->root = strdup(root);
+        }
+        if (!watch || !watch->project || !watch->root ||
+            !application_watch_set_options(watch, args_json) ||
+            !cbm_watcher_watch(application->watcher, project, root)) {
+            if (watch) {
+                free(watch->project);
+                free(watch->root);
+                cbm_free(CBM_MEM_CLASS_OTHER, watch->index_mode);
+                cbm_free(CBM_MEM_CLASS_OTHER, watch);
+            }
+            cbm_free(CBM_MEM_CLASS_OTHER, membership);
+            cbm_log_warn("daemon.watch.registration_failed", "project", project, "action", "retry");
+            return;
+        }
+        watch->next = application->watches;
+        application->watches = watch;
+    }
+    watch->subscribers++;
+    membership->watch = watch;
+    membership->next = session->watches;
+    session->watches = membership;
+}
+
+static void application_refresh_watch_locked(cbm_daemon_application_session_t *session) {
+    cbm_daemon_application_t *application = session->application;
+    if (application_watches_disabled_locked(application)) {
+        return;
+    }
+    if (session->auto_index_subscribed || application_request_cancelled_locked(session)) {
+        return;
+    }
+    if (!application_session_workspace_allowed(session, "watch")) {
+        application_release_session_watch_locked(session, false);
+        return;
+    }
+    application_register_watch_locked(session,
+                                      cbm_operation_session_project(session->operation_session),
+                                      cbm_operation_session_root(session->operation_session), NULL);
+}
+
+/* Pending registrations do not own an async job: the index may outlive its
+ * caller, but only a still-connected daemon session can acquire its watch. */
+static void application_index_watch_subscribe_locked(cbm_daemon_application_session_t *session,
+                                                     cbm_daemon_application_job_t *job,
+                                                     bool async) {
+    if (!session->background_eligible || session->session_cancelled ||
+        (session->application->config &&
+         !cbm_config_get_bool(session->application->config, CBM_CONFIG_AUTO_WATCH, true))) {
+        return;
+    }
+    if (job->terminal) {
+        if (job->successful) {
+            application_register_watch_locked(session, job->project_key, job->root_path,
+                                              job->args_json);
         }
         return;
     }
-    /* Physical registration is the commit point. Never publish a logical
-     * subscription that the shared watcher failed to install. */
-    if (!cbm_watcher_watch(application->watcher, project, root)) {
-        cbm_log_warn("daemon.watch.registration_failed", "project", project, "action", "retry");
-        free(watch->project);
-        free(watch->root);
-        free(watch);
-        return;
+    for (application_index_watch_owner_t *owner = job->watch_owners; owner; owner = owner->next) {
+        if (owner->session == session) {
+            owner->async = owner->async || async;
+            return;
+        }
     }
-    watch->subscribers = 1;
-    watch->next = application->watches;
-    application->watches = watch;
-    session->watch = watch;
+    application_index_watch_owner_t *owner = cbm_calloc(CBM_MEM_CLASS_OTHER, sizeof(*owner));
+    if (owner) {
+        owner->session = session;
+        owner->async = async;
+        owner->next = job->watch_owners;
+        job->watch_owners = owner;
+    }
+}
+
+static void application_index_watch_unsubscribe_locked(cbm_daemon_application_session_t *session,
+                                                       cbm_daemon_application_job_t *target) {
+    for (cbm_daemon_application_job_t *job = session->application->jobs; job; job = job->next) {
+        if (target && job != target) {
+            continue;
+        }
+        application_index_watch_owner_t **cursor = &job->watch_owners;
+        while (*cursor) {
+            application_index_watch_owner_t *owner = *cursor;
+            if (owner->session == session && (!target || !owner->async)) {
+                *cursor = owner->next;
+                cbm_free(CBM_MEM_CLASS_OTHER, owner);
+            } else {
+                cursor = &owner->next;
+            }
+        }
+    }
+}
+
+static void application_index_watch_publish_locked(cbm_daemon_application_job_t *job) {
+    while (job->watch_owners) {
+        application_index_watch_owner_t *owner = job->watch_owners;
+        job->watch_owners = owner->next;
+        if (job->successful) {
+            application_register_watch_locked(owner->session, job->project_key, job->root_path,
+                                              job->args_json);
+        }
+        cbm_free(CBM_MEM_CLASS_OTHER, owner);
+    }
 }
 
 static const char *application_watch_strategy_name(cbm_watcher_strategy_t strategy) {
@@ -725,10 +922,12 @@ static const char *application_watch_strategy_name(cbm_watcher_strategy_t strate
     }
 }
 
-/* status/coverage watch visibility (#2167). The physical watcher is the truth
- * for "watched"; the reasons explain the documented scope: only a session's
- * own project is watched, and only while that session is open. Takes the
- * application mutex and the watcher lock one after the other, never nested. */
+/* index_status watch visibility (#2167). The physical watcher is the truth for
+ * "watched"; session roots and successful explicit targets stay watched while
+ * at least one owning daemon session remains open. With `daemon start`, the
+ * daemon session keeps its watch until shutdown, project deletion, root
+ * disappearance, or auto_watch is disabled. The application and watcher locks
+ * are acquired one after the other, never nested. */
 static void application_watch_status(void *context, const char *project,
                                      cbm_operation_watch_status_t *out) {
     cbm_daemon_application_session_t *session = context;
@@ -755,12 +954,12 @@ static void application_watch_status(void *context, const char *project,
         out->reason = "auto_watch_off";
         return;
     }
-    /* Only MCP sessions run background initialization; a one-shot CLI command
-     * never holds a watch across calls. */
+    /* Only persistent daemon sessions initialize background watches; a
+     * one-shot CLI command never holds a watch across calls. */
     cbm_mutex_lock(&application->mutex);
-    bool mcp_session = session->background_eligible;
+    bool persistent_session = session->background_eligible;
     cbm_mutex_unlock(&application->mutex);
-    out->reason = mcp_session ? "not_registered" : "cli_session";
+    out->reason = persistent_session ? "not_registered" : "cli_session";
 }
 
 static void application_refresh_watch(cbm_daemon_application_session_t *session) {
@@ -775,6 +974,11 @@ static void application_refresh_watch(cbm_daemon_application_session_t *session)
 static void application_job_free(cbm_daemon_application_job_t *job) {
     if (!job) {
         return;
+    }
+    while (job->watch_owners) {
+        application_index_watch_owner_t *owner = job->watch_owners;
+        job->watch_owners = owner->next;
+        cbm_free(CBM_MEM_CLASS_OTHER, owner);
     }
     free(job->project_key);
     free(job->root_path);
@@ -2022,6 +2226,7 @@ static void application_job_publish(cbm_daemon_application_job_t *job,
             .reason = execution->last_result.outcome == CBM_PROC_HANG ? "hang" : "crash",
             .retry = !execution->unsafe_terminal});
     }
+    application_index_watch_publish_locked(job);
     application_index_record_finish_locked(job);
     if (job->async_owned) {
         /* The async reference ends with the job; terminal, so no cancel. */
@@ -2173,9 +2378,19 @@ static bool application_index_args_normalize_defaults(yyjson_mut_val *root) {
         (void)yyjson_mut_obj_remove_key(root, "persistence");
     }
     yyjson_mut_val *name = yyjson_mut_obj_get(root, "name");
-    if (name && (!yyjson_mut_is_str(name) || yyjson_mut_get_len(name) == 0)) {
+    bool default_name = name && yyjson_mut_is_str(name) && yyjson_mut_get_len(name) == 0;
+    yyjson_mut_val *repo_path = yyjson_mut_obj_get(root, "repo_path");
+    if (name && yyjson_mut_is_str(name) && repo_path && yyjson_mut_is_str(repo_path)) {
+        char *project = cbm_project_name_from_path(yyjson_mut_get_str(repo_path));
+        default_name = project && yyjson_mut_equals_str(name, project);
+        free(project);
+    }
+    if (name && (!yyjson_mut_is_str(name) || default_name)) {
         (void)yyjson_mut_obj_remove_key(root, "name");
     }
+    /* Automatic jobs carry _cbm_background, which picks the worker count and
+     * never what is indexed, so an explicit request joins them. */
+    (void)yyjson_mut_obj_remove_key(root, "_cbm_background");
     return true;
 }
 
@@ -2392,8 +2607,8 @@ static bool application_index_args_add_policy(cbm_daemon_application_t *applicat
     bool loaded = cbm_config_load_index_policy(config, &policy, error, sizeof(error));
     /* The worker reads no config: a doc_candidates setting the user set
      * travels with the request; unset, the worker's index mode decides. */
-    bool doc_candidates_encoded =
-        !loaded || cbm_index_doc_candidates_add_to_args(document, root, config);
+    bool doc_candidates_encoded = !loaded || yyjson_mut_obj_get(root, "doc_candidates") ||
+                                  cbm_index_doc_candidates_add_to_args(document, root, config);
     cbm_config_close(owned_config);
     if (!loaded) {
         cbm_log_error("daemon.index.policy", "error", error);
@@ -2412,10 +2627,36 @@ static char *application_auto_index_args(cbm_daemon_application_t *application,
         return NULL;
     }
     yyjson_mut_doc_set_root(document, root);
-    char *args = yyjson_mut_obj_add_strcpy(document, root, "repo_path", root_path) &&
-                         application_index_args_add_policy(application, document, root)
-                     ? yyjson_mut_write(document, 0, NULL)
-                     : NULL;
+    bool encoded = yyjson_mut_obj_add_strcpy(document, root, "repo_path", root_path) &&
+                   application_index_args_add_policy(application, document, root) &&
+                   yyjson_mut_obj_add_bool(document, root, "_cbm_background", true);
+    char *args = encoded ? yyjson_mut_write(document, 0, NULL) : NULL;
+    yyjson_mut_doc_free(document);
+    return args;
+}
+
+/* Explicit CLI requests and automatic daemon requests must reach the job table
+ * with the same trusted worker policy. The operation layer adds this policy
+ * before launching a worker; daemon admission happens earlier, so canonicalize
+ * it here as well before comparing or storing the request. */
+static char *application_index_args_with_policy(cbm_daemon_application_t *application,
+                                                const char *args_json) {
+    yyjson_doc *source = args_json ? yyjson_read(args_json, strlen(args_json), 0) : NULL;
+    yyjson_mut_doc *document = source ? yyjson_doc_mut_copy(source, NULL) : NULL;
+    yyjson_doc_free(source);
+    yyjson_mut_val *root = document ? yyjson_mut_doc_get_root(document) : NULL;
+    if (!document || !root || !yyjson_mut_is_obj(root)) {
+        yyjson_mut_doc_free(document);
+        return NULL;
+    }
+    (void)yyjson_mut_obj_remove_key(root, "async");
+    (void)yyjson_mut_obj_remove_key(root, "status");
+    (void)yyjson_mut_obj_remove_key(root, "_cbm_index_policy");
+    if (!application_index_args_add_policy(application, document, root)) {
+        yyjson_mut_doc_free(document);
+        return NULL;
+    }
+    char *args = yyjson_mut_write(document, 0, NULL);
     yyjson_mut_doc_free(document);
     return args;
 }
@@ -2452,12 +2693,9 @@ static void application_background_initialize_impl(cbm_daemon_application_sessio
         char limit[32];
         (void)snprintf(files, sizeof(files), "%d", tracked_files);
         (void)snprintf(limit, sizeof(limit), "%d", auto_index_limit);
-        char root_display[CBM_SZ_1K];
-        (void)snprintf(root_display, sizeof(root_display), "%s", root_path);
-        cbm_normalize_path_sep(root_display);
         cbm_log_warn("daemon.autoindex.skipped", "project", project, "reason",
                      tracked_files >= 0 ? "too_many_files" : "unsafe_or_unavailable_path", "files",
-                     files, "limit", limit, "root", root_display);
+                     files, "limit", limit);
     }
     bool args_required = auto_index_candidate && within_auto_index_limit;
     char *args = args_required ? application_auto_index_args(application, root_path) : NULL;
@@ -2533,7 +2771,8 @@ static bool application_watch_job_subscribe_late_session_locked(
     cbm_daemon_application_t *application = session->application;
     cbm_daemon_application_job_t *job =
         application_find_active_job_locked(application, watch->project);
-    if (!job || job->watcher_waiters == 0 || strcmp(job->root_path, watch->root) != 0 ||
+    if (!job || job->watcher_waiters == 0 ||
+        !application_watch_root_matches(job->root_path, watch->root) ||
         application_watch_job_subscription_exists_locked(application, session, job)) {
         return true;
     }
@@ -2559,14 +2798,15 @@ static bool application_watch_job_subscribe_sessions_locked(cbm_daemon_applicati
                                                             size_t *matched_out) {
     *matched_out = 0;
     if (!watch || !job || strcmp(watch->project, job->project_key) != 0 ||
-        strcmp(watch->root, job->root_path) != 0) {
+        !application_watch_root_matches(watch->root, job->root_path)) {
         return true;
     }
 
     cbm_daemon_application_watch_job_subscription_t *pending = NULL;
     for (cbm_daemon_application_session_t *session = application->sessions; session;
          session = session->next) {
-        if (session->session_cancelled || !session->context_set || session->watch != watch) {
+        if (session->session_cancelled || !session->context_set ||
+            !application_session_has_watch_locked(session, watch)) {
             continue;
         }
         (*matched_out)++;
@@ -2600,7 +2840,7 @@ static bool application_watch_job_subscribe_sessions_locked(cbm_daemon_applicati
 }
 
 static void application_watch_job_unsubscribe_session_locked(
-    cbm_daemon_application_session_t *session) {
+    cbm_daemon_application_session_t *session, const cbm_daemon_application_watch_t *watch) {
     if (!session || !session->application) {
         return;
     }
@@ -2608,7 +2848,10 @@ static void application_watch_job_unsubscribe_session_locked(
         &session->application->watch_job_subscriptions;
     while (*cursor) {
         cbm_daemon_application_watch_job_subscription_t *subscription = *cursor;
-        if (subscription->session != session) {
+        if (subscription->session != session ||
+            (watch &&
+             (strcmp(subscription->job->project_key, watch->project) != 0 ||
+              !application_watch_root_matches(subscription->job->root_path, watch->root)))) {
             cursor = &subscription->next;
             continue;
         }
@@ -2701,13 +2944,13 @@ static char *application_index_execute_sync(cbm_daemon_application_session_t *se
         }
         cbm_mutex_unlock(&session->application->mutex);
         if (queued_cancelled) {
-            free(project_key);
+            application_release_text(project_key);
             return application_operation_wire_error(
                 "index operation cancelled for this session. " CBM_INDEX_ASYNC_HINT);
         }
         cbm_usleep(APPLICATION_JOB_POLL_US);
     }
-    free(project_key);
+    application_release_text(project_key);
     if (!job) {
         return application_operation_wire_error(
             application_index_admission_error(subscribe_status));
@@ -2728,6 +2971,7 @@ static char *application_index_execute_sync(cbm_daemon_application_session_t *se
     }
     session->active_job = job;
     session->active_job_subscribed = true;
+    application_index_watch_subscribe_locked(session, job, false);
     cbm_mutex_unlock(&session->application->mutex);
     return application_job_wait_for_session(session, job);
 }
@@ -2758,7 +3002,7 @@ static char *application_index_run_sync(cbm_daemon_application_session_t *sessio
     char *project_key = application_index_project_key(root_path, args_json);
     bool notice =
         project_key && application_index_take_cut_short(session->application, project_key);
-    safe_free(project_key);
+    application_release_text(project_key);
     char *response = application_index_execute_sync(session, root_path, args_json);
     return notice ? application_wire_add_notice(response, APPLICATION_CUT_SHORT_NOTICE) : response;
 }
@@ -2785,13 +3029,9 @@ static char *application_index_async_response(const char *project_key, const cha
     return result;
 }
 
-/* #2144 user decision: refuse async where the job would certainly die with its
- * requester. A temporary (non-permanent) daemon stops and cancels every job
- * when its final live session ends. The one-shot tool channel (`cli ...`)
- * closes its session right after the reply, so if it is the only live session
- * the job is doomed. A long-lived MCP session - the IDE case this exists for -
- * stays connected and is a valid host even when it is the only one, as is any
- * other live session and every permanent (`daemon start`) generation. */
+/* Refuse async when a one-shot request would lose its only host: a temporary
+ * daemon cancels jobs when its final live session ends. Permanent daemon
+ * generations keep jobs alive independently of the requesting session. */
 static bool application_async_host_missing(cbm_daemon_application_session_t *session) {
     cbm_daemon_application_t *application = session->application;
     cbm_mutex_lock(&application->mutex);
@@ -2837,6 +3077,7 @@ static char *application_index_start_async(cbm_daemon_application_session_t *ses
     bool joined = false;
     const char *state = "queued";
     if (job) {
+        application_index_watch_subscribe_locked(session, job, true);
         joined = job->async_owned || job->subscribers > 1;
         if (job->async_owned) {
             application_job_unsubscribe_locked(job); /* one async reference per job */
@@ -2867,7 +3108,7 @@ static char *application_index_start_async(cbm_daemon_application_session_t *ses
     } else {
         result = application_operation_wire_error(application_index_admission_error(status));
     }
-    safe_free(project_key);
+    application_release_text(project_key);
     return result;
 }
 
@@ -2877,8 +3118,14 @@ static char *application_index_execute(void *context, const char *root_path, con
     if (!session || !root_path || !args_json) {
         return NULL;
     }
-    return async ? application_index_start_async(session, root_path, args_json)
-                 : application_index_run_sync(session, root_path, args_json);
+    char *effective_args = application_index_args_with_policy(session->application, args_json);
+    if (!effective_args) {
+        return application_operation_wire_error("failed to resolve trusted index worker policy");
+    }
+    char *response = async ? application_index_start_async(session, root_path, effective_args)
+                           : application_index_run_sync(session, root_path, effective_args);
+    free(effective_args);
+    return response;
 }
 
 static void application_status_add_record(yyjson_mut_doc *doc, yyjson_mut_val *root,
@@ -3320,6 +3567,7 @@ static void application_request_cancel(void *context,
             cbm_daemon_application_job_t *job = session->active_job;
             session->active_job = NULL;
             session->active_job_subscribed = false;
+            application_index_watch_unsubscribe_locked(session, job);
             application_index_record_cut_short_locked(job);
             application_job_unsubscribe_locked(job);
         }
@@ -3356,7 +3604,8 @@ static void application_session_cancel(void *context,
             application_job_unsubscribe_locked(job);
         }
         join_auto_index = application_auto_index_release_locked(session);
-        application_release_session_watch_locked(session);
+        application_index_watch_unsubscribe_locked(session, NULL);
+        application_release_session_watch_locked(session, true);
         bool final_live_session = newly_cancelled;
         for (cbm_daemon_application_session_t *other = application->sessions;
              final_live_session && other; other = other->next) {
@@ -3403,7 +3652,8 @@ static void application_session_close(void *context,
         session->active_job_subscribed = false;
     }
     join_auto_index = application_auto_index_release_locked(session);
-    application_release_session_watch_locked(session);
+    application_index_watch_unsubscribe_locked(session, NULL);
+    application_release_session_watch_locked(session, true);
     cbm_mutex_unlock(&application->mutex);
     application_auto_index_cancel_join(application, join_auto_index);
     application_jobs_reap_completed(application);
@@ -3582,6 +3832,11 @@ bool cbm_daemon_application_free_with_timeout(cbm_daemon_application_t *applicat
     application_index_records_free(index_records);
     while (sessions) {
         cbm_daemon_application_session_t *next = sessions->next;
+        while (sessions->watches) {
+            application_watch_membership_t *membership = sessions->watches;
+            sessions->watches = membership->next;
+            cbm_free(CBM_MEM_CLASS_OTHER, membership);
+        }
         cbm_store_host_free(sessions->store_host);
         cbm_operation_session_state_free(sessions->operation_session);
         free(sessions);
@@ -3594,7 +3849,8 @@ bool cbm_daemon_application_free_with_timeout(cbm_daemon_application_t *applicat
         }
         free(watches->project);
         free(watches->root);
-        free(watches);
+        cbm_free(CBM_MEM_CLASS_OTHER, watches->index_mode);
+        cbm_free(CBM_MEM_CLASS_OTHER, watches);
         watches = next;
     }
     while (watch_job_subscriptions) {
@@ -3924,90 +4180,126 @@ cbm_daemon_runtime_application_status_t cbm_daemon_application_client_hook_augme
                                            timeout_ms);
 }
 
-static int application_background_index(cbm_daemon_application_t *application,
-                                        const char *project_name, const char *root_path,
-                                        bool require_live_watch) {
-    if (!application || !project_name || !root_path) {
-        return -1;
-    }
-    char canonical_root[APPLICATION_PATH_CAP];
-    if (!cbm_canonical_path(root_path, canonical_root, sizeof(canonical_root)) ||
-        !application_canonical_directory_exists(canonical_root)) {
-        return -1;
-    }
-    yyjson_mut_doc *document = yyjson_mut_doc_new(NULL);
-    yyjson_mut_val *root = document ? yyjson_mut_obj(document) : NULL;
-    if (!document || !root) {
-        yyjson_mut_doc_free(document);
-        return -1;
-    }
-    yyjson_mut_doc_set_root(document, root);
-    bool encoded = yyjson_mut_obj_add_strcpy(document, root, "repo_path", canonical_root) &&
-                   application_index_args_add_policy(application, document, root);
-    char *default_project = cbm_project_name_from_path(canonical_root);
-    bool custom_project =
-        project_name[0] && (!default_project || strcmp(default_project, project_name) != 0);
-    if (encoded && custom_project) {
-        encoded = yyjson_mut_obj_add_strcpy(document, root, "name", project_name);
-    }
-    free(default_project);
-    char *args = encoded ? yyjson_mut_write(document, 0, NULL) : NULL;
-    yyjson_mut_doc_free(document);
-    if (!args) {
-        return -1;
-    }
-    char *project_key = application_index_project_key(canonical_root, args);
-    if (!project_key) {
-        free(args);
-        return -1;
-    }
+enum {
+    APPLICATION_BACKGROUND_INDEX_FAILED = -1,
+    APPLICATION_BACKGROUND_INDEX_SUCCESS = 0,
+    APPLICATION_BACKGROUND_INDEX_SKIPPED = 1,
+};
 
+/* Caller holds application->mutex through option encoding and job admission. */
+static void application_watch_encode_index_args_locked(const cbm_daemon_application_watch_t *watch,
+                                                       yyjson_mut_doc *document,
+                                                       yyjson_mut_val *root, char **args) {
+    bool encoded =
+        !watch->index_mode || yyjson_mut_obj_add_strcpy(document, root, "mode", watch->index_mode);
+    encoded = encoded && yyjson_mut_obj_add_bool(document, root, "persistence", watch->persistence);
+    if (watch->has_doc_candidates) {
+        (void)yyjson_mut_obj_remove_key(root, "doc_candidates");
+        encoded = encoded &&
+                  yyjson_mut_obj_add_bool(document, root, "doc_candidates", watch->doc_candidates);
+    }
+    cbm_free(CBM_MEM_CLASS_OTHER, *args);
+    *args = encoded ? yyjson_mut_write_opts(document, 0, cbm_json_writer_allocator(), NULL, NULL)
+                    : NULL;
+}
+
+/* Under `daemon start` a watch outlives its last session, so delete_project
+ * from another session or the CLI can remove the project's DB while nothing
+ * owns the watch any more: daemon MCP sessions carry no watcher pointer and
+ * never unwatch it. Re-indexing such an orphan would resurrect the deleted
+ * project. A full reindex also unlinks the DB while it rebuilds it, so a
+ * missing DB means "deleted" only while no job for the project is running.
+ * Caller holds application->mutex. */
+static bool application_permanent_watch_orphaned_locked(cbm_daemon_application_t *application,
+                                                        const cbm_daemon_application_watch_t *watch,
+                                                        const char *project_key) {
+    return application->permanent && watch->subscribers == 0 &&
+           !application_find_active_job_locked(application, project_key) &&
+           !application_regular_db_exists(watch->project);
+}
+
+static cbm_daemon_application_job_t *application_background_index_admit(
+    cbm_daemon_application_t *application, const char *project_name, const char *canonical_root,
+    const char *project_key, yyjson_mut_doc *document, yyjson_mut_val *root, char **args,
+    bool require_live_watch, bool *watcher_owns_job, int *no_job_result) {
     application_job_subscribe_status_t subscribe_status = APPLICATION_JOB_SUBSCRIBE_UNAVAILABLE;
+    *watcher_owns_job = false;
     application_jobs_reap_completed(application);
     cbm_mutex_lock(&application->mutex);
+    if (require_live_watch) {
+        (void)application_watches_disabled_locked(application);
+    }
     cbm_daemon_application_watch_t *watch =
         require_live_watch ? application_find_watch_locked(application, project_name) : NULL;
+    if (watch && application_permanent_watch_orphaned_locked(application, watch, project_key)) {
+        /* End the orphan the way a session refresh ends a deleted project's
+         * watch; the callback below becomes a harmless skip. */
+        application_remove_watch_locked(application, watch);
+        watch = NULL;
+    }
     bool watch_live = !require_live_watch ||
-                      (watch && watch->subscribers > 0 && strcmp(watch->root, canonical_root) == 0);
+                      (watch && application_watch_root_matches(watch->root, canonical_root) &&
+                       (watch->subscribers > 0 || application->permanent));
+    if (require_live_watch && watch_live) {
+        application_watch_encode_index_args_locked(watch, document, root, args);
+    }
     size_t watch_owner_count = 0;
     bool watch_subscriptions_ok = true;
     cbm_daemon_application_job_t *job =
-        watch_live ? application_job_subscribe_locked(application, project_key, canonical_root,
-                                                      args, &subscribe_status)
-                   : NULL;
+        watch_live && *args
+            ? application_job_subscribe_locked(application, project_key, canonical_root, *args,
+                                               &subscribe_status)
+            : NULL;
     if (job && require_live_watch) {
         watch_subscriptions_ok = application_watch_job_subscribe_sessions_locked(
             application, watch, job, &watch_owner_count);
-        if (watch_subscriptions_ok && watch_owner_count > 0) {
-            job->watcher_waiters++;
-        } else if (!watch_subscriptions_ok) {
+
+        if (!watch_subscriptions_ok) {
             subscribe_status = APPLICATION_JOB_SUBSCRIBE_ALLOCATION_FAILED;
-        }
-        /* application_job_subscribe_locked() lends the caller one ordinary
-         * subscriber. A watcher callback is only a storage waiter: exact live
-         * session subscriptions above own the physical work. */
-        application_job_unsubscribe_locked(job);
-        if (!watch_subscriptions_ok || watch_owner_count == 0) {
+            application_job_unsubscribe_locked(job);
+            job = NULL;
+        } else if (application->permanent) {
+            /*
+             * The ordinary subscription acquired above is retained as daemon
+             * ownership. This allows the physical watcher to run indexing even
+             * while no client session currently owns the project watch.
+             */
+            *watcher_owns_job = true;
+            job->watcher_waiters++;
+        } else if (watch_owner_count > 0) {
+            /*
+             * Historical non-permanent behavior: exact live sessions own the
+             * physical work; the watcher callback itself is only a waiter.
+             */
+            job->watcher_waiters++;
+            application_job_unsubscribe_locked(job);
+        } else {
+            application_job_unsubscribe_locked(job);
             job = NULL;
         }
     }
     cbm_mutex_unlock(&application->mutex);
-    free(project_key);
-    free(args);
     if (!job) {
         if (require_live_watch &&
             (!watch_live || (watch_subscriptions_ok && watch_owner_count == 0))) {
             /* The physical watcher can retain a poll snapshot after the last
              * owning session unwatches it. Treat that stale callback as a
              * harmless skip; no job was admitted. */
-            return 1;
+            *no_job_result = APPLICATION_BACKGROUND_INDEX_SKIPPED;
+            return NULL;
         }
-        return subscribe_status == APPLICATION_JOB_SUBSCRIBE_OPTIONS_CONFLICT ||
-                       subscribe_status == APPLICATION_JOB_SUBSCRIBE_BUSY ||
-                       subscribe_status == APPLICATION_JOB_SUBSCRIBE_CANCELLING
-                   ? 1
-                   : -1;
+        *no_job_result = subscribe_status == APPLICATION_JOB_SUBSCRIBE_OPTIONS_CONFLICT ||
+                                 subscribe_status == APPLICATION_JOB_SUBSCRIBE_BUSY ||
+                                 subscribe_status == APPLICATION_JOB_SUBSCRIBE_CANCELLING
+                             ? APPLICATION_BACKGROUND_INDEX_SKIPPED
+                             : APPLICATION_BACKGROUND_INDEX_FAILED;
     }
+    return job;
+}
+
+static int application_background_index_wait(cbm_daemon_application_t *application,
+                                             cbm_daemon_application_job_t *job,
+                                             bool require_live_watch, bool watcher_owns_job) {
     bool successful = false;
     bool cancelled = false;
     for (;;) {
@@ -4020,6 +4312,9 @@ static int application_background_index(cbm_daemon_application_t *application,
                 if (job->watcher_waiters > 0) {
                     job->watcher_waiters--;
                 }
+                if (watcher_owns_job) {
+                    application_job_unsubscribe_locked(job);
+                }
             } else {
                 application_job_unsubscribe_locked(job);
             }
@@ -4030,7 +4325,65 @@ static int application_background_index(cbm_daemon_application_t *application,
         cbm_usleep(APPLICATION_JOB_POLL_US);
     }
     application_jobs_reap_completed(application);
-    return successful ? 0 : (cancelled ? 1 : -1);
+    if (successful) {
+        return APPLICATION_BACKGROUND_INDEX_SUCCESS;
+    }
+    return cancelled ? APPLICATION_BACKGROUND_INDEX_SKIPPED : APPLICATION_BACKGROUND_INDEX_FAILED;
+}
+
+static int application_background_index(cbm_daemon_application_t *application,
+                                        const char *project_name, const char *root_path,
+                                        bool require_live_watch) {
+    if (!application || !project_name || !root_path) {
+        return APPLICATION_BACKGROUND_INDEX_FAILED;
+    }
+    char canonical_root[APPLICATION_PATH_CAP];
+    if (!cbm_canonical_path(root_path, canonical_root, sizeof(canonical_root)) ||
+        !application_canonical_directory_exists(canonical_root)) {
+        return APPLICATION_BACKGROUND_INDEX_FAILED;
+    }
+    yyjson_mut_doc *document = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *root = document ? yyjson_mut_obj(document) : NULL;
+    if (!document || !root) {
+        yyjson_mut_doc_free(document);
+        return APPLICATION_BACKGROUND_INDEX_FAILED;
+    }
+    yyjson_mut_doc_set_root(document, root);
+    bool encoded = yyjson_mut_obj_add_strcpy(document, root, "repo_path", canonical_root) &&
+                   application_index_args_add_policy(application, document, root) &&
+                   yyjson_mut_obj_add_bool(document, root, "_cbm_background", true);
+    char *default_project = cbm_project_name_from_path(canonical_root);
+    bool custom_project =
+        project_name[0] && (!default_project || strcmp(default_project, project_name) != 0);
+    if (encoded && custom_project) {
+        encoded = yyjson_mut_obj_add_strcpy(document, root, "name", project_name);
+    }
+    application_release_text(default_project);
+    char *args = encoded
+                     ? yyjson_mut_write_opts(document, 0, cbm_json_writer_allocator(), NULL, NULL)
+                     : NULL;
+    if (!args) {
+        yyjson_mut_doc_free(document);
+        return APPLICATION_BACKGROUND_INDEX_FAILED;
+    }
+    char *project_key = application_index_project_key(canonical_root, args);
+    if (!project_key) {
+        cbm_free(CBM_MEM_CLASS_OTHER, args);
+        yyjson_mut_doc_free(document);
+        return APPLICATION_BACKGROUND_INDEX_FAILED;
+    }
+
+    int no_job_result = APPLICATION_BACKGROUND_INDEX_FAILED;
+    bool watcher_owns_job = false;
+    cbm_daemon_application_job_t *job = application_background_index_admit(
+        application, project_name, canonical_root, project_key, document, root, &args,
+        require_live_watch, &watcher_owns_job, &no_job_result);
+    application_release_text(project_key);
+    cbm_free(CBM_MEM_CLASS_OTHER, args);
+    yyjson_mut_doc_free(document);
+    return job ? application_background_index_wait(application, job, require_live_watch,
+                                                   watcher_owns_job)
+               : no_job_result;
 }
 
 int cbm_daemon_application_index(cbm_daemon_application_t *application, const char *project_name,
