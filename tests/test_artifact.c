@@ -271,6 +271,90 @@ TEST(artifact_export_roundtrip_keeps_adr) {
     PASS();
 }
 
+/* Existing graph databases keep their legacy ADR until the first write/migration.
+ * Migration is transactional, and replacing the graph file leaves the sidecar
+ * authoritative. A query-only open must read that sidecar without creating it. */
+TEST(adr_sidecar_migrates_and_survives_graph_replacement) {
+    setup_artifact_test();
+    create_test_db(g_db);
+
+    sqlite3 *raw = NULL;
+    ASSERT_EQ(sqlite3_open(g_db, &raw), SQLITE_OK);
+    ASSERT_EQ(
+        sqlite3_exec(
+            raw,
+            "CREATE TABLE project_summaries (project TEXT PRIMARY KEY, summary TEXT NOT NULL, "
+            "source_hash TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);"
+            "INSERT INTO project_summaries VALUES ('test-proj','legacy ADR','h','c','u');",
+            NULL, NULL, NULL),
+        SQLITE_OK);
+    sqlite3_close(raw);
+
+    char sidecar[1100];
+    snprintf(sidecar, sizeof(sidecar), "%s.adr.db", g_db);
+    cbm_store_t *s = cbm_store_open_path_query(g_db);
+    ASSERT_NOT_NULL(s);
+    cbm_adr_t adr = {0};
+    ASSERT_EQ(cbm_store_adr_get(s, "test-proj", &adr), CBM_STORE_OK);
+    ASSERT_STR_EQ(adr.content, "legacy ADR");
+    cbm_store_adr_free(&adr);
+    cbm_store_close(s);
+    ASSERT_FALSE(cbm_file_exists(sidecar)); /* Read-only legacy access creates no sidecar. */
+
+    ASSERT_EQ(sqlite3_open(sidecar, &raw), SQLITE_OK);
+    ASSERT_EQ(
+        sqlite3_exec(
+            raw,
+            "CREATE TABLE project_summaries (project TEXT PRIMARY KEY, summary TEXT NOT NULL, "
+            "source_hash TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);"
+            "CREATE TABLE adr_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);"
+            "BEGIN; INSERT INTO project_summaries VALUES ('test-proj','partial','h','c','u');",
+            NULL, NULL, NULL),
+        SQLITE_OK);
+    sqlite3_close(raw); /* Simulated process loss rolls back the uncommitted copy. */
+
+    s = cbm_store_open_path(g_db);
+    ASSERT_NOT_NULL(s);
+    ASSERT_EQ(cbm_store_adr_migrate_once(s), CBM_STORE_OK);
+    memset(&adr, 0, sizeof(adr));
+    ASSERT_EQ(cbm_store_adr_get(s, "test-proj", &adr), CBM_STORE_OK);
+    ASSERT_STR_EQ(adr.content, "legacy ADR");
+    cbm_store_adr_free(&adr);
+    ASSERT_EQ(sqlite3_open_v2(sidecar, &raw, SQLITE_OPEN_READONLY, NULL), SQLITE_OK);
+    sqlite3_stmt *count = NULL;
+    ASSERT_EQ(
+        sqlite3_prepare_v2(raw, "SELECT count(*) FROM project_summaries WHERE project='test-proj';",
+                           -1, &count, NULL),
+        SQLITE_OK);
+    ASSERT_EQ(sqlite3_step(count), SQLITE_ROW);
+    ASSERT_EQ(sqlite3_column_int(count, 0), 1);
+    sqlite3_finalize(count);
+    sqlite3_close(raw);
+    ASSERT_EQ(cbm_store_adr_store(s, "test-proj", "updated ADR"), CBM_STORE_OK);
+    cbm_store_close(s);
+
+    ASSERT_EQ(sqlite3_open(sidecar, &raw), SQLITE_OK);
+    ASSERT_EQ(sqlite3_exec(raw,
+                           "BEGIN; UPDATE project_summaries SET summary='partial write' WHERE "
+                           "project='test-proj';",
+                           NULL, NULL, NULL),
+              SQLITE_OK);
+    sqlite3_close(raw); /* An interrupted update must leave the prior committed ADR. */
+
+    remove_graph_db_keep_sidecar(g_db);
+    create_test_db(g_db);
+    s = cbm_store_open_path_query(g_db);
+    ASSERT_NOT_NULL(s);
+    memset(&adr, 0, sizeof(adr));
+    ASSERT_EQ(cbm_store_adr_get(s, "test-proj", &adr), CBM_STORE_OK);
+    ASSERT_STR_EQ(adr.content, "updated ADR");
+    cbm_store_adr_free(&adr);
+    cbm_store_close(s);
+
+    cleanup_dir(g_tmpdir);
+    PASS();
+}
+
 /* Regression: a stale legacy `project_summaries` row that lingers in the graph DB
  * after its ADR was migrated then DELETED must NOT resurrect through an export.
  * With the sidecar empty, the snapshot must ship an empty table, so an import
@@ -1407,6 +1491,7 @@ SUITE(artifact) {
     RUN_TEST(artifact_repo_path_shell_safe_rejects_cmd_metachars_on_windows);
     RUN_TEST(artifact_export_fast_roundtrip);
     RUN_TEST(artifact_export_roundtrip_keeps_adr);
+    RUN_TEST(adr_sidecar_migrates_and_survives_graph_replacement);
     RUN_TEST(artifact_export_without_adr_does_not_resurrect_legacy_row);
     RUN_TEST(artifact_import_does_not_clobber_local_adr);
     RUN_TEST(artifact_import_restores_adr_when_local_absent);
