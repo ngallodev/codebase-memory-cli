@@ -12,7 +12,9 @@ continue using the graph database.
 
 Reindexing or replacing the graph database leaves the sidecar file untouched.
 Back up and restore the graph database and its `.adr.db` sidecar together to
-preserve ADRs. Team artifacts retain the existing interchange format: export
+preserve ADRs. Stop writers and close the stores before copying the files, or
+use SQLite's backup facilities for each database while coordinating writes.
+Team artifacts retain the existing interchange format: export
 copies the selected ADR into `project_summaries` in the snapshot, and import
 restores it into the sidecar only if that project has no local ADR. A failed
 artifact ADR restore is logged; graph import remains successful, so recover the

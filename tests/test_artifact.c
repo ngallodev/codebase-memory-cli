@@ -281,12 +281,9 @@ TEST(adr_sidecar_migrates_and_survives_graph_replacement) {
     sqlite3 *raw = NULL;
     ASSERT_EQ(sqlite3_open(g_db, &raw), SQLITE_OK);
     ASSERT_EQ(
-        sqlite3_exec(
-            raw,
-            "CREATE TABLE project_summaries (project TEXT PRIMARY KEY, summary TEXT NOT NULL, "
-            "source_hash TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);"
-            "INSERT INTO project_summaries VALUES ('test-proj','legacy ADR','h','c','u');",
-            NULL, NULL, NULL),
+        sqlite3_exec(raw,
+                     "INSERT INTO project_summaries VALUES ('test-proj','legacy ADR','h','c','u');",
+                     NULL, NULL, NULL),
         SQLITE_OK);
     sqlite3_close(raw);
 
