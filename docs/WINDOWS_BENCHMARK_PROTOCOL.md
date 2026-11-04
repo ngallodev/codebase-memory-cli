@@ -2,7 +2,7 @@
 
 Status: **AUTHORITATIVE RELEASE BENCHMARK PROCEDURE**
 
-Authoritative host: `luigi.home.arpa`.
+Authoritative host: `the qualification host`.
 
 ## Goal
 
@@ -32,7 +32,7 @@ Every entry records:
 - expected clean-tree state;
 - intended scale/category;
 - operations enabled for that repository;
-- canonical local checkout path on `luigi.home.arpa` when established.
+- canonical local checkout path on `the qualification host` when established.
 
 Rules:
 
@@ -52,9 +52,9 @@ Use the following stable five-repository corpus for `windows-corpus-1`:
 4. `agent-workflow-spec-contracts` — the shared contract dependency used by SpecGen/Agent-Workflow integration: `https://github.com/ngallodev-software/agent-workflow-spec-contracts.git`.
 
 Current integration-version expectations for the first frozen corpus are SpecGen `0.2.1`, Agent-Workflow `0.10.0`, and the released shared contracts package `0.2.1`. Before freeze, initialize SpecGen and Agent-Workflow from their declared `master` integration refs, and initialize `agent-workflow-spec-contracts` from release tag `v0.2.1`; its current `master` metadata still reports `0.2.0` and must not be substituted for the released contract package consumed by the two applications. These initialization refs are pre-freeze selection constraints, not substitutes for the immutable commit SHA captured from each frozen checkout. If upstream moves again before the corpus is frozen, update the expected version/ref and the resulting pinned commit before baseline capture. Before recording the frozen SHAs, run `python scripts/qualification/validate-corpus-checkouts.py --allow-unpinned`; after replacing the commit placeholders, rerun the validator without `--allow-unpinned`.
-5. `herdr` — larger open-source, multi-language workload used to add scale and language diversity: `https://github.com/herdrdev/herdr.git`.
+5. `managed terminal` — larger open-source, multi-language workload used to add scale and language diversity: `https://github.com/managed terminaldev/managed terminal.git`.
 
-The repository identities are fixed for this corpus generation. The exact commit for each entry is deliberately captured from the actual frozen checkout used to initialize `luigi.home.arpa`; do not substitute current remote HEAD during planning. Once those commits are recorded, changing any one of them creates a new corpus generation and requires a new baseline.
+The repository identities are fixed for this corpus generation. The exact commit for each entry is deliberately captured from the actual frozen checkout used to initialize `the qualification host`; do not substitute current remote HEAD during planning. Once those commits are recorded, changing any one of them creates a new corpus generation and requires a new baseline.
 
 ## Trial design
 
@@ -94,7 +94,7 @@ Repeated read operations receive one unrecorded warm-up before recorded timings.
 
 ## Host controls
 
-Run all comparative trials on `luigi.home.arpa` with:
+Run all comparative trials on `the qualification host` with:
 
 - same Windows build;
 - same power plan;

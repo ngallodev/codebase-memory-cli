@@ -1,44 +1,44 @@
 {
   "acceptance_criteria": [
     {
-      "criterion": "Table-driven predicate coverage includes both internal names, .db, ordinary.db, _private.db, orders_config_service.db, api-wal.db and non-.db names.",
+      "criterion": "Binary .res fixtures are excluded from ReScript text parsing; valid .res source remains admitted; short/empty/unreadable input handling is bounded and consistent.",
       "id": "AC-001",
       "requirement_ids": [
         "REQ-001"
       ],
-      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,pipeline; full union gate before push."
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites language,extraction,complexity; full union gate before push."
     },
     {
-      "criterion": "All discovered enumeration sites reuse the classification; list/count outputs exclude internal stores while including similarly named legitimate projects.",
+      "criterion": "Error-heavy wide/deep parse fixture pins cursor-path usage or bounded parent-fallback counts, and extraction remains deterministic for all occurrence policies sharing the helper.",
       "id": "AC-002",
       "requirement_ids": [
         "REQ-002"
       ],
-      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,pipeline; full union gate before push."
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites language,extraction,complexity; full union gate before push."
     },
     {
-      "criterion": "A disposable fixture reset retains byte-identical _config.db/_cross_repo.db and their -wal/-shm/-journal/.tmp artifacts while removing intended project DBs and project sidecars.",
+      "criterion": "A bounded regression for malformed/binary-like source detects a hang without hanging the entire Jenkins runner; valid ReScript definitions/calls remain unchanged.",
       "id": "AC-003",
       "requirement_ids": [
         "REQ-003"
       ],
-      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,pipeline; full union gate before push."
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites language,extraction,complexity; full union gate before push."
     },
     {
-      "criterion": "Existing lifecycle and reset tests pass; counts/prompt assertions reflect only project indexes and repeated cleanup is idempotent.",
+      "criterion": "Trace/caller evidence plus representative existing extraction/complexity fixtures verify binding classification and ordering are unchanged.",
       "id": "AC-004",
       "requirement_ids": [
         "REQ-004"
       ],
-      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,pipeline; full union gate before push."
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites language,extraction,complexity; full union gate before push."
     },
     {
-      "criterion": "Internal stores are opened at the same paths; source and regression checks reveal no schema/path/public API drift.",
+      "criterion": "Existing vendored-integrity contract matches actual scanner bytes; no unrelated grammar/dependency change.",
       "id": "AC-005",
       "requirement_ids": [
         "REQ-005"
       ],
-      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,pipeline; full union gate before push."
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites language,extraction,complexity; full union gate before push."
     }
   ],
   "context": {
@@ -50,7 +50,8 @@
     "graph_tier": "Verify with exact-source fallback",
     "upstream_boundary": "0f52d30c",
     "upstream_sources": [
-      "46015320"
+      "8093d10b",
+      "ea6fa49f"
     ]
   },
   "data_contracts": [],
@@ -66,7 +67,7 @@
       "requirement_ids": [
         "REQ-001"
       ],
-      "suite_selection": "cli,pipeline",
+      "suite_selection": "language,extraction,complexity",
       "venue": "existing shared Jenkins job only"
     },
     {
@@ -79,7 +80,7 @@
       "requirement_ids": [
         "REQ-002"
       ],
-      "suite_selection": "cli,pipeline",
+      "suite_selection": "language,extraction,complexity",
       "venue": "existing shared Jenkins job only"
     },
     {
@@ -92,7 +93,7 @@
       "requirement_ids": [
         "REQ-003"
       ],
-      "suite_selection": "cli,pipeline",
+      "suite_selection": "language,extraction,complexity",
       "venue": "existing shared Jenkins job only"
     },
     {
@@ -105,7 +106,7 @@
       "requirement_ids": [
         "REQ-004"
       ],
-      "suite_selection": "cli,pipeline",
+      "suite_selection": "language,extraction,complexity",
       "venue": "existing shared Jenkins job only"
     },
     {
@@ -118,13 +119,13 @@
       "requirement_ids": [
         "REQ-005"
       ],
-      "suite_selection": "cli,pipeline",
+      "suite_selection": "language,extraction,complexity",
       "venue": "existing shared Jenkins job only"
     }
   ],
   "extensions": {
     "delivery": {
-      "interactive_host": "Herdr; launch pending managed-session context",
+      "interactive_host": "managed terminal; launch pending managed-session context",
       "production_branch": "main",
       "promotion": "Future origin PR targets main after QA passing; no automatic merge/tag/release.",
       "push_gate": "Exact-SHA shared Jenkins required before remote push.",
@@ -135,7 +136,7 @@
       "worker_permissions": "danger-full-access; approval never"
     }
   },
-  "id": "cbm-cache-stores",
+  "id": "cbm-rescript-hang",
   "implementation": {
     "phases": [
       {
@@ -170,7 +171,7 @@
           ],
           "schema": "agent-workflow/task-result/v1"
         },
-        "title": "Project index operations must preserve internal cache databases"
+        "title": "Bound ReScript indexing and reject binary resource files"
       }
     ]
   },
@@ -183,13 +184,13 @@
       "Shared daemon stops, real-account cache deletion or graph reset"
     ],
     "objectives": [
-      "Introduce or reuse one exact-filename classification of internal cache databases _config.db and _cross_repo.db and project index filenames with nonempty .db stems. Reject neither underscores nor config substrings generally.",
-      "Apply shared classification to every project DB list/count/remove enumeration and cross-repo wildcard enumeration. Trace callers instead of fixing only the reset path.",
-      "Reset only project databases under the existing explicit reset semantics; preserve internal database bytes and all internal sidecars/staged files.",
-      "Preserve install/update/uninstall prompts, index counts, project enumeration order and errors outside corrected internal-store classification.",
-      "Keep filename constants consistent with internal-store creation paths without changing schema, cache location or store ownership."
+      "Disambiguate .res binary Godot/Windows resources from valid ReScript source at discovery admission, using bounded content checks and existing language detection/error conventions.",
+      "Use the existing occurrence/walk cursor for nearest-container ancestry where the walk already supplies cursor state; preserve the fallback only for real out-of-walk callers.",
+      "Port scanner progress/termination corrections with the traversal/admission changes; every malformed input/EOF path must terminate.",
+      "Preserve Julia, Typst, Elm, PureScript, Nickel and other callers sharing is_first_named_part_of and policy binding logic.",
+      "Update the repository actual vendored checksums/manifests for precisely the changed scanner, adapting ea6fa49f without copying unrelated upstream checksums."
     ],
-    "problem": "Project index operations must preserve internal cache databases"
+    "problem": "Bound ReScript indexing and reject binary resource files"
   },
   "interfaces": [],
   "preservation": {
@@ -212,7 +213,7 @@
   "provenance": {
     "sources": [
       {
-        "description": "Implement the three selected verticals with GPT-6-Luna, full permissions, isolated worktrees and interactive Herdr panes.",
+        "description": "Implement the three selected verticals with GPT-6-Luna, full permissions, isolated worktrees and interactive managed terminals.",
         "id": "SRC-USER",
         "kind": "user_input"
       },
@@ -220,7 +221,7 @@
         "description": "Exact release-tooling source baseline and selected upstream diffs",
         "id": "SRC-BASE",
         "kind": "repository",
-        "locator": "/tmp/claude-1000/-lump-apps-codebase-memory-cli/70854de5-bd44-40b4-8ac2-4cf2d6b24d01/scratchpad/wt-rt",
+        "locator": "local run evidence,
         "revision": "5824239b9c37664f0a389bd1deb86ca1ac28a26c"
       }
     ]
@@ -232,7 +233,7 @@
       "provenance_refs": [
         "SRC-BASE"
       ],
-      "statement": "Introduce or reuse one exact-filename classification of internal cache databases _config.db and _cross_repo.db and project index filenames with nonempty .db stems. Reject neither underscores nor config substrings generally.",
+      "statement": "Disambiguate .res binary Godot/Windows resources from valid ReScript source at discovery admission, using bounded content checks and existing language detection/error conventions.",
       "type": "functional",
       "verification_refs": [
         "AC-001",
@@ -245,7 +246,7 @@
       "provenance_refs": [
         "SRC-BASE"
       ],
-      "statement": "Apply shared classification to every project DB list/count/remove enumeration and cross-repo wildcard enumeration. Trace callers instead of fixing only the reset path.",
+      "statement": "Use the existing occurrence/walk cursor for nearest-container ancestry where the walk already supplies cursor state; preserve the fallback only for real out-of-walk callers.",
       "type": "functional",
       "verification_refs": [
         "AC-002",
@@ -258,7 +259,7 @@
       "provenance_refs": [
         "SRC-BASE"
       ],
-      "statement": "Reset only project databases under the existing explicit reset semantics; preserve internal database bytes and all internal sidecars/staged files.",
+      "statement": "Port scanner progress/termination corrections with the traversal/admission changes; every malformed input/EOF path must terminate.",
       "type": "functional",
       "verification_refs": [
         "AC-003",
@@ -271,7 +272,7 @@
       "provenance_refs": [
         "SRC-BASE"
       ],
-      "statement": "Preserve install/update/uninstall prompts, index counts, project enumeration order and errors outside corrected internal-store classification.",
+      "statement": "Preserve Julia, Typst, Elm, PureScript, Nickel and other callers sharing is_first_named_part_of and policy binding logic.",
       "type": "functional",
       "verification_refs": [
         "AC-004",
@@ -284,7 +285,7 @@
       "provenance_refs": [
         "SRC-BASE"
       ],
-      "statement": "Keep filename constants consistent with internal-store creation paths without changing schema, cache location or store ownership.",
+      "statement": "Update the repository actual vendored checksums/manifests for precisely the changed scanner, adapting ea6fa49f without copying unrelated upstream checksums.",
       "type": "functional",
       "verification_refs": [
         "AC-005",
@@ -295,7 +296,7 @@
   "risks": [
     {
       "id": "RISK-001",
-      "name": "Exact-name exclusions are required. Broad underscore/config filters silently hide valid projects; fixture tests must never touch the real account cache."
+      "name": "A binary admission guard alone leaves malformed text traversal/scanner hangs. Worker must handle all three seams and preserve vendored integrity."
     }
   ],
   "schema": "specgen/spec/v1alpha2",
@@ -306,20 +307,21 @@
       "Unrelated release/packaging changes"
     ],
     "included": [
-      "src/foundation/str_util.c",
-      "src/foundation/str_util.h",
-      "src/cli/cli.c",
-      "src/cli/cli.h",
-      "src/pipeline/pass_cross_repo.c",
-      "tests/test_cli.c",
-      "tests/test_pipeline.c",
-      "tests/test_str_util.c"
+      "src/discover/discover.c",
+      "src/discover/discover.h",
+      "src/discover/language.c",
+      "internal/cbm/extract_usages.c",
+      "internal/cbm/vendored/grammars/rescript/scanner.c",
+      "internal/cbm/vendored/grammars/MANIFEST.md",
+      "tests/test_language.c",
+      "tests/test_extraction.c",
+      "tests/test_complexity.c"
     ]
   },
   "snapshot": {
     "authoring_event_ids": [],
-    "content_digest": "sha256:2bf67a183790afff0b4055c0278acc12ece8ce7022b65700491be9c6d9948ab3",
-    "created_at": "2026-10-02T04:42:29.288583Z",
+    "content_digest": "sha256:a7e436fa6c09ff8ddd675e418cd4a5bbd728e0180127618dfc3bf8e47440a0cc",
+    "created_at": "2026-10-02T04:42:30.799454Z",
     "id": "SNAP-001",
     "sequence": 1
   },
@@ -327,7 +329,7 @@
     "kind": "current"
   },
   "status": "draft",
-  "title": "Project index operations must preserve internal cache databases",
+  "title": "Bound ReScript indexing and reject binary resource files",
   "traceability": [
     {
       "from": "REQ-001",

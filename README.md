@@ -332,7 +332,7 @@ See [`SECURITY.md`](SECURITY.md) and [`docs/SECURITY-DISCLOSURE.md`](docs/SECURI
 
 ## Migration documents
 
-- [`docs/CLI_MIGRATION_STATUS.md`](docs/CLI_MIGRATION_STATUS.md) — current port and qualification status.
+- [`docs/internal/CLI_MIGRATION_STATUS.md`](docs/internal/CLI_MIGRATION_STATUS.md) — current port and qualification status.
 - [`docs/RELEASE_QUALIFICATION_PLAN.md`](docs/RELEASE_QUALIFICATION_PLAN.md) — build, platform, benchmark, and release gates.
 - [`docs/CLI_ONLY_MIGRATION_PLAN.md`](docs/CLI_ONLY_MIGRATION_PLAN.md) — historical rationale and scope of the MCP removal.
 

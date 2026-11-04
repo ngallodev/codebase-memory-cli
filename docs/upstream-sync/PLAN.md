@@ -34,7 +34,7 @@ To verify PRs automatically, an operator should configure a Jenkins GitHub Branc
 
 ## Platform and benchmark follow-up
 
-Use the existing pinned corpus at `benchmark-runs/linux/20260911T045124Z/BENCHMARK_CORPUS.frozen.json` for Linux/Windows parity: codebase-memory-cli `0c6d00d6011c1fdb50b90c53538f536cc3b5e4d9`, specgen-aw `466debfec788c7aeeee858c6b51e98b1b9afe653`, agent-workflow `e84925205301ff7169aff5a8cb14d10680c3739c`, agent-workflow-spec-contracts `0b32e556ef33bd00c0111d30a8b9225eb5196fcd`, and herdr `61ca85d5895bb530b59da85beeccdd767f4720d2`. Preserve these manifest pins; candidate version and platform evidence are separate. No current benchmark or Windows result is implied by this inventory.
+Use the existing pinned corpus at `benchmark-runs/linux/20260911T045124Z/BENCHMARK_CORPUS.frozen.json` for Linux/Windows parity: codebase-memory-cli `0c6d00d6011c1fdb50b90c53538f536cc3b5e4d9`, specgen-aw `466debfec788c7aeeee858c6b51e98b1b9afe653`, agent-workflow `e84925205301ff7169aff5a8cb14d10680c3739c`, agent-workflow-spec-contracts `0b32e556ef33bd00c0111d30a8b9225eb5196fcd`, and managed terminal. Preserve these manifest pins; candidate version and platform evidence are separate. No current benchmark or Windows result is implied by this inventory.
 
 ## Delivery checkpoint
 

@@ -238,19 +238,19 @@ _None._
 
 ### `SRC-USER` — Provenance sources
 
-- **Description:** Implement the three selected verticals with GPT-6-Luna, full permissions, isolated worktrees and interactive Herdr panes.
+- **Description:** Implement the three selected verticals with GPT-6-Luna, full permissions, isolated worktrees and interactive managed terminals.
 - **Kind:** user_input
 
 ### `SRC-BASE` — Provenance sources
 
 - **Description:** Exact release-tooling source baseline and selected upstream diffs
 - **Kind:** repository
-- **Locator:** /tmp/claude-1000/-lump-apps-codebase-memory-cli/70854de5-bd44-40b4-8ac2-4cf2d6b24d01/scratchpad/wt-rt
+- **Locator:** local run evidence
 - **Revision:** 5824239b9c37664f0a389bd1deb86ca1ac28a26c
 
 ## Extensions
 
-`{"delivery":{"interactive_host":"Herdr; launch pending managed-session context","production_branch":"main","promotion":"Future origin PR targets main after QA passing; no automatic merge/tag/release.","push_gate":"Exact-SHA shared Jenkins required before remote push.","qa_branch":"release-tooling","review":"Worker commits are candidates; parent evaluation/review/acceptance remain separate.","sync_policy":"Frozen shared QA baseline; parent reconciles with normal merges, never rewrites published history.","version_gate":"No version/tag changes for these compatible fixes.","worker_permissions":"danger-full-access; approval never"}}`
+`{"delivery":{"interactive_host":"managed terminal; launch pending managed-session context","production_branch":"main","promotion":"Future origin PR targets main after QA passing; no automatic merge/tag/release.","push_gate":"Exact-SHA shared Jenkins required before remote push.","qa_branch":"release-tooling","review":"Worker commits are candidates; parent evaluation/review/acceptance remain separate.","sync_policy":"Frozen shared QA baseline; parent reconciles with normal merges, never rewrites published history.","version_gate":"No version/tag changes for these compatible fixes.","worker_permissions":"danger-full-access; approval never"}}`
 
 ## Traceability
 

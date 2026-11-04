@@ -1,44 +1,44 @@
 {
   "acceptance_criteria": [
     {
-      "criterion": "Binary .res fixtures are excluded from ReScript text parsing; valid .res source remains admitted; short/empty/unreadable input handling is bounded and consistent.",
+      "criterion": "Different-cache, busy and unreadable ownership fixtures observe zero shutdown requests and unchanged live session state.",
       "id": "AC-001",
       "requirement_ids": [
         "REQ-001"
       ],
-      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites language,extraction,complexity; full union gate before push."
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,daemon_runtime,daemon_ipc; full union gate before push."
     },
     {
-      "criterion": "Error-heavy wide/deep parse fixture pins cursor-path usage or bounded parent-fallback counts, and extraction remains deterministic for all occurrence policies sharing the helper.",
+      "criterion": "Source trace enumerates all shutdown routes and lifecycle callers; each route enforces the same ownership rule.",
       "id": "AC-002",
       "requirement_ids": [
         "REQ-002"
       ],
-      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites language,extraction,complexity; full union gate before push."
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,daemon_runtime,daemon_ipc; full union gate before push."
     },
     {
-      "criterion": "A bounded regression for malformed/binary-like source detects a hang without hanging the entire Jenkins runner; valid ReScript definitions/calls remain unchanged.",
+      "criterion": "Same-cache success, busy/refusal, failure cleanup and audit fixtures remain valid; foreign/unknown paths neither drain foreign sessions nor bypass mutation reservations.",
       "id": "AC-003",
       "requirement_ids": [
         "REQ-003"
       ],
-      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites language,extraction,complexity; full union gate before push."
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,daemon_runtime,daemon_ipc; full union gate before push."
     },
     {
-      "criterion": "Trace/caller evidence plus representative existing extraction/complexity fixtures verify binding classification and ordering are unchanged.",
+      "criterion": "Deterministically controlled ownership-change fixture proves no foreign shutdown; no timing-only sleep oracle.",
       "id": "AC-004",
       "requirement_ids": [
         "REQ-004"
       ],
-      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites language,extraction,complexity; full union gate before push."
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,daemon_runtime,daemon_ipc; full union gate before push."
     },
     {
-      "criterion": "Existing vendored-integrity contract matches actual scanner bytes; no unrelated grammar/dependency change.",
+      "criterion": "No wire/schema/version change; regression verifies diagnostics describe the reason and that nothing foreign was stopped.",
       "id": "AC-005",
       "requirement_ids": [
         "REQ-005"
       ],
-      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites language,extraction,complexity; full union gate before push."
+      "verification_method": "Exact-source review plus regressions through existing Jenkins codebase-memory-cli-release-tooling suites cli,daemon_runtime,daemon_ipc; full union gate before push."
     }
   ],
   "context": {
@@ -50,8 +50,7 @@
     "graph_tier": "Verify with exact-source fallback",
     "upstream_boundary": "0f52d30c",
     "upstream_sources": [
-      "8093d10b",
-      "ea6fa49f"
+      "ed76cf8e"
     ]
   },
   "data_contracts": [],
@@ -67,7 +66,7 @@
       "requirement_ids": [
         "REQ-001"
       ],
-      "suite_selection": "language,extraction,complexity",
+      "suite_selection": "cli,daemon_runtime,daemon_ipc",
       "venue": "existing shared Jenkins job only"
     },
     {
@@ -80,7 +79,7 @@
       "requirement_ids": [
         "REQ-002"
       ],
-      "suite_selection": "language,extraction,complexity",
+      "suite_selection": "cli,daemon_runtime,daemon_ipc",
       "venue": "existing shared Jenkins job only"
     },
     {
@@ -93,7 +92,7 @@
       "requirement_ids": [
         "REQ-003"
       ],
-      "suite_selection": "language,extraction,complexity",
+      "suite_selection": "cli,daemon_runtime,daemon_ipc",
       "venue": "existing shared Jenkins job only"
     },
     {
@@ -106,7 +105,7 @@
       "requirement_ids": [
         "REQ-004"
       ],
-      "suite_selection": "language,extraction,complexity",
+      "suite_selection": "cli,daemon_runtime,daemon_ipc",
       "venue": "existing shared Jenkins job only"
     },
     {
@@ -119,13 +118,13 @@
       "requirement_ids": [
         "REQ-005"
       ],
-      "suite_selection": "language,extraction,complexity",
+      "suite_selection": "cli,daemon_runtime,daemon_ipc",
       "venue": "existing shared Jenkins job only"
     }
   ],
   "extensions": {
     "delivery": {
-      "interactive_host": "Herdr; launch pending managed-session context",
+      "interactive_host": "managed terminal; launch pending managed-session context",
       "production_branch": "main",
       "promotion": "Future origin PR targets main after QA passing; no automatic merge/tag/release.",
       "push_gate": "Exact-SHA shared Jenkins required before remote push.",
@@ -136,7 +135,7 @@
       "worker_permissions": "danger-full-access; approval never"
     }
   },
-  "id": "cbm-rescript-hang",
+  "id": "cbm-daemon-ownership",
   "implementation": {
     "phases": [
       {
@@ -171,7 +170,7 @@
           ],
           "schema": "agent-workflow/task-result/v1"
         },
-        "title": "Bound ReScript indexing and reject binary resource files"
+        "title": "Activation must preserve foreign and unconfirmed daemon sessions"
       }
     ]
   },
@@ -184,13 +183,13 @@
       "Shared daemon stops, real-account cache deletion or graph reset"
     ],
     "objectives": [
-      "Disambiguate .res binary Godot/Windows resources from valid ReScript source at discovery admission, using bounded content checks and existing language detection/error conventions.",
-      "Use the existing occurrence/walk cursor for nearest-container ancestry where the walk already supplies cursor state; preserve the fallback only for real out-of-walk callers.",
-      "Port scanner progress/termination corrections with the traversal/admission changes; every malformed input/EOF path must terminate.",
-      "Preserve Julia, Typst, Elm, PureScript, Nickel and other callers sharing is_first_named_part_of and policy binding logic.",
-      "Update the repository actual vendored checksums/manifests for precisely the changed scanner, adapting ea6fa49f without copying unrelated upstream checksums."
+      "Before eager shutdown or quiescence shutdown, establish a positive match between the active daemon/cohort cache identity and the activation target cache. Never infer ownership from an absent identity or a busy observation.",
+      "Adapt unknown-is-foreign behavior to the fork transaction lifecycle rather than copying upstream production reserve/scope code unchanged. Account for every eager and callback shutdown route and relevant install/update/uninstall/reset caller.",
+      "Preserve exact same-cache install/update/uninstall behavior, exclusive mutation authority, lock ordering, bounded waits, cleanup and truthful audit outcomes. A skipped shutdown must not grant authority to mutate a foreign namespace.",
+      "Close time-of-check/time-of-use gaps through the existing cohort reservation/identity contracts. If the ownership identity changes between observation and reservation/callback, refuse or skip without stopping the changed cohort.",
+      "Retain existing wire/API compatibility and user-visible CLI semantics except accurate diagnostics for preserved foreign/unknown sessions."
     ],
-    "problem": "Bound ReScript indexing and reject binary resource files"
+    "problem": "Activation must preserve foreign and unconfirmed daemon sessions"
   },
   "interfaces": [],
   "preservation": {
@@ -213,7 +212,7 @@
   "provenance": {
     "sources": [
       {
-        "description": "Implement the three selected verticals with GPT-6-Luna, full permissions, isolated worktrees and interactive Herdr panes.",
+        "description": "Implement the three selected verticals with GPT-6-Luna, full permissions, isolated worktrees and interactive managed terminals.",
         "id": "SRC-USER",
         "kind": "user_input"
       },
@@ -221,7 +220,7 @@
         "description": "Exact release-tooling source baseline and selected upstream diffs",
         "id": "SRC-BASE",
         "kind": "repository",
-        "locator": "/tmp/claude-1000/-lump-apps-codebase-memory-cli/70854de5-bd44-40b4-8ac2-4cf2d6b24d01/scratchpad/wt-rt",
+        "locator": "local run evidence,
         "revision": "5824239b9c37664f0a389bd1deb86ca1ac28a26c"
       }
     ]
@@ -233,7 +232,7 @@
       "provenance_refs": [
         "SRC-BASE"
       ],
-      "statement": "Disambiguate .res binary Godot/Windows resources from valid ReScript source at discovery admission, using bounded content checks and existing language detection/error conventions.",
+      "statement": "Before eager shutdown or quiescence shutdown, establish a positive match between the active daemon/cohort cache identity and the activation target cache. Never infer ownership from an absent identity or a busy observation.",
       "type": "functional",
       "verification_refs": [
         "AC-001",
@@ -246,7 +245,7 @@
       "provenance_refs": [
         "SRC-BASE"
       ],
-      "statement": "Use the existing occurrence/walk cursor for nearest-container ancestry where the walk already supplies cursor state; preserve the fallback only for real out-of-walk callers.",
+      "statement": "Adapt unknown-is-foreign behavior to the fork transaction lifecycle rather than copying upstream production reserve/scope code unchanged. Account for every eager and callback shutdown route and relevant install/update/uninstall/reset caller.",
       "type": "functional",
       "verification_refs": [
         "AC-002",
@@ -259,7 +258,7 @@
       "provenance_refs": [
         "SRC-BASE"
       ],
-      "statement": "Port scanner progress/termination corrections with the traversal/admission changes; every malformed input/EOF path must terminate.",
+      "statement": "Preserve exact same-cache install/update/uninstall behavior, exclusive mutation authority, lock ordering, bounded waits, cleanup and truthful audit outcomes. A skipped shutdown must not grant authority to mutate a foreign namespace.",
       "type": "functional",
       "verification_refs": [
         "AC-003",
@@ -272,7 +271,7 @@
       "provenance_refs": [
         "SRC-BASE"
       ],
-      "statement": "Preserve Julia, Typst, Elm, PureScript, Nickel and other callers sharing is_first_named_part_of and policy binding logic.",
+      "statement": "Close time-of-check/time-of-use gaps through the existing cohort reservation/identity contracts. If the ownership identity changes between observation and reservation/callback, refuse or skip without stopping the changed cohort.",
       "type": "functional",
       "verification_refs": [
         "AC-004",
@@ -285,7 +284,7 @@
       "provenance_refs": [
         "SRC-BASE"
       ],
-      "statement": "Update the repository actual vendored checksums/manifests for precisely the changed scanner, adapting ea6fa49f without copying unrelated upstream checksums.",
+      "statement": "Retain existing wire/API compatibility and user-visible CLI semantics except accurate diagnostics for preserved foreign/unknown sessions.",
       "type": "functional",
       "verification_refs": [
         "AC-005",
@@ -296,7 +295,7 @@
   "risks": [
     {
       "id": "RISK-001",
-      "name": "A binary admission guard alone leaves malformed text traversal/scanner hangs. Worker must handle all three seams and preserve vendored integrity."
+      "name": "Highest adaptation risk: fork reserve currently sends shutdown before reservation and differs from upstream scope/quiesce flow. Positive ownership checks must cover races, not only a preflight guard."
     }
   ],
   "schema": "specgen/spec/v1alpha2",
@@ -307,21 +306,20 @@
       "Unrelated release/packaging changes"
     ],
     "included": [
-      "src/discover/discover.c",
-      "src/discover/discover.h",
-      "src/discover/language.c",
-      "internal/cbm/extract_usages.c",
-      "internal/cbm/vendored/grammars/rescript/scanner.c",
-      "internal/cbm/vendored/grammars/MANIFEST.md",
-      "tests/test_language.c",
-      "tests/test_extraction.c",
-      "tests/test_complexity.c"
+      "src/cli/cli.c",
+      "src/cli/cli.h",
+      "src/cli/activation_transaction.c",
+      "src/daemon/runtime.c",
+      "src/daemon/version_cohort.c",
+      "tests/test_cli.c",
+      "tests/test_daemon_runtime.c",
+      "tests/test_daemon_ipc.c"
     ]
   },
   "snapshot": {
     "authoring_event_ids": [],
-    "content_digest": "sha256:a7e436fa6c09ff8ddd675e418cd4a5bbd728e0180127618dfc3bf8e47440a0cc",
-    "created_at": "2026-10-02T04:42:30.799454Z",
+    "content_digest": "sha256:67a04f2e0c25e7da4071a742025f254bf3837ced67289863dbed9b19d1532ed2",
+    "created_at": "2026-10-02T04:42:29.977029Z",
     "id": "SNAP-001",
     "sequence": 1
   },
@@ -329,7 +327,7 @@
     "kind": "current"
   },
   "status": "draft",
-  "title": "Bound ReScript indexing and reject binary resource files",
+  "title": "Activation must preserve foreign and unconfirmed daemon sessions",
   "traceability": [
     {
       "from": "REQ-001",

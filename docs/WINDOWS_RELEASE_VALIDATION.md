@@ -2,7 +2,7 @@
 
 Status: **AUTHORITATIVE EXTERNAL QUALIFICATION PROCEDURE**
 
-Authoritative host: `luigi.home.arpa` (Windows 11 x64).
+Authoritative host: `the qualification host` (Windows 11 x64).
 
 This procedure validates the exact GitHub release-candidate bytes. It does not build the executable locally.
 

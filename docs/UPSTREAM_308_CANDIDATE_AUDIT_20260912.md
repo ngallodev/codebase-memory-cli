@@ -83,7 +83,7 @@ runtime 20/170, history 4/86, and no whole differing merge was closed. Touching 
 row did not prove all hunks. Parent verified exact assignment coverage and all 40
 declared artifact checksums, preserved the raw evidence, and rejected ambiguous
 upstream-versus-target verdict orientation. R4 interactive successors in the same
-three Herdr panes continue those assignments. At the evidence capture
+three managed terminals continue those assignments. At the evidence capture
 `2026-10-02T23:53:00.456924+00:00`, extraction had 30 non-unresolved checkpoint claims,
 runtime 5 and history 19; 313 other claims remained explicitly unresolved.
 These 54 claims are not 54 parent-verified whole commits. No R4 final result,
@@ -124,7 +124,7 @@ The user authorized splitting only unfinished work and Luna low for straightforw
 comparisons. Runtime R4 explicitly released 16 unreviewed MCP-adapter/test followup
 hashes, with no reviewed/current-batch overlap and a correlated worker-issued
 Agent-Workflow acknowledgement. New external interactive run
-`CBM-RECON-ADAPTER-LOW-20261003` is observed working in Herdr `wC:pE` on an isolated
+`CBM-RECON-ADAPTER-LOW-20261003` is observed working in managed terminal on an isolated
 clean `559214af` worktree, full nonpersistent index generation `2026-10-03T00:48:33Z`,
 26,764 nodes / 129,702 edges, 91 parse-partial files. TypeSafe environment readiness
 was observed after sourcing in its launch shell, without exposing values.
@@ -151,7 +151,7 @@ hashes and all completed runtime/extraction/history comparisons are excluded.
 The first low worker's corrected 16-row source review finalized **partial** with
 8 unresolved shared-semantic mappings and an unrecoverable original Jev request;
 its manifest/reference checks passed, full handoff was preserved, and its user-created
-Herdr pane `wC:pE` was closed. Closure is not acceptance or semantic completeness.
+managed terminal `managed terminal` was closed. Closure is not acceptance or semantic completeness.
 
 **Phase1 objective:** inspect every whole diff/hunk in the 115-hash released scope,
 compare exact upstream and all three frozen CLI targets, record upstream fate,
@@ -176,7 +176,7 @@ prerequisites may be consulted only as context. Parent alone reconciles conclusi
 
 All three were prepared before native `agents.spawn_agent(model=deepseek-flash)`
 execution and bound to external runtime `native-agent-api`. They are workspace
-subagents, **not Herdr terminal processes**. A task-scoped fail-closed local adapter
+subagents, **not managed terminal processes**. A task-scoped fail-closed local adapter
 only satisfies Agent-Workflow executable validation; it is not executed and does
 not emulate a DeepSeek CLI. Shared runtime configuration was unchanged. Each has
 an isolated clean exact `559214af` worktree and a verified full nonpersistent index:
@@ -221,17 +221,17 @@ run/cwd/branch/hash acknowledgement before comparison resumes. No predecessor
 completion is reissued, and no sealed predecessor evidence is rewritten by recovery.
 This is a preparation/failed-delivery record; Phase1 is incomplete.
 
-### Interactive Herdr recovery — 2026-10-03 UTC
+### Interactive managed terminal recovery — 2026-10-03 UTC
 
 The user explicitly requested interactive **Codex `--model deepseek-flash`**
 workers, with Jev credentials/instructions and indexed worktrees. Three new
-external runs were prepared before launching in the same Herdr workspace:
+external runs were prepared before launching in the same managed terminal:
 
-| Piece | Successor durable run | Herdr pane / agent | Hashes |
+| Piece | Successor durable run | managed terminal / agent | Hashes |
 |---|---|---|---:|
-| Runtime/process/resources | `CBM-RECON-DEEPSEEK-RUNTIME-HERDR-PHASE1-20261003` | `wC:pF` / `ds-runtime-phase1` | 39 |
-| Operations/pipeline/query | `CBM-RECON-DEEPSEEK-OPS-HERDR-PHASE1-20261003` | `wC:pG` / `ds-ops-phase1` | 26 |
-| CLI/build/adapter/integration | `CBM-RECON-DEEPSEEK-INTEGRATION-HERDR-PHASE1-20261003` | `wC:pH` / `ds-integration-phase1` | 50 |
+| Runtime/process/resources | `CBM-RECON-DEEPSEEK-RUNTIME-managed terminal-PHASE1-20261003` | `managed terminal` / `ds-runtime-phase1` | 39 |
+| Operations/pipeline/query | `CBM-RECON-DEEPSEEK-OPS-managed terminal-PHASE1-20261003` | `managed terminal` / `ds-ops-phase1` | 26 |
+| CLI/build/adapter/integration | `CBM-RECON-DEEPSEEK-INTEGRATION-managed terminal-PHASE1-20261003` | `managed terminal` / `ds-integration-phase1` | 50 |
 
 All three are observed working and have written correct worker-issued launch
 acknowledgements naming their run, isolated cwd/branch and assigned count. The
@@ -249,12 +249,12 @@ the token was verified as a boolean, without recording its value. The verified A
 destination is `https://api.typesafe.ai`. Each session uses `--no-daemon`, approvals
 never and full filesystem access within its evidence-only assignment.
 
-Run-owned evidence includes `parent-herdr-launch-receipt.json`,
+Run-owned evidence includes `parent-managed terminal-launch-receipt.json`,
 `codex-process-env-receipt.json`, `launch-acknowledgement.json`, index/assignment
 receipts and correlated worker acknowledgement evidence. Runtime/operations
 acknowledgements are worker-issued handoff control intents; integration also has
 a journal acknowledgement. Full launch staging is the original Phase1 handoff
-directory's `herdr-launch/`. Detailed batch/stopping handoffs remain required.
+directory's `managed terminal-launch/`. Detailed batch/stopping handoffs remain required.
 Activity and launch acknowledgement establish execution of the assigned task;
 they establish no source completeness, Jev decision result, review, Jenkins
 validation, acceptance or integration. Phase1 comparison remains in progress.
@@ -329,13 +329,13 @@ were found orphaned: no live worker and no finalized result; their last activity
 was near 18:16Z. The lifecycle projection still saying `running` did not establish
 live execution. Their provisional outputs remain preserved and unreviewed.
 Unstarted R2 headless retries were superseded when the user requested interactive
-Herdr terminals to the right. New external preparations are now visibly working:
+managed terminal to the right. New external preparations are now visibly working:
 
-| Current interactive run | Herdr pane | Assignment |
+| Current interactive run | managed terminal | Assignment |
 |---|---|---|
-| `CBM-RECON-EXTRACT-20261002-R3` | `wC:pB` | 111 non-merges |
-| `CBM-RECON-RUNTIME-20261002-R3` | `wC:pC` | 170 non-merges |
-| `CBM-RECON-HISTORY-20261002-R3` | `wC:pD` | 86 non-merges and 311 merges |
+| `CBM-RECON-EXTRACT-20261002-R3` | `managed terminal` | 111 non-merges |
+| `CBM-RECON-RUNTIME-20261002-R3` | `managed terminal` | 170 non-merges |
+| `CBM-RECON-HISTORY-20261002-R3` | `managed terminal` | 86 non-merges and 311 merges |
 
 Each uses GPT-6-Luna high, full access and approvals `never`, bound to its durable
 external run. The unchanged worktrees still have exact ready graph roots, matching
@@ -549,7 +549,7 @@ significant. No earlier agent verdict or Jev answer was supplied to this call.
 ### Exact remaining limits, evidence and validation
 
 Run `CBM-UPSTREAM-SOL-20261002-R2`, under
-`/home/nate/.local/state/agent-workflow/runs/CBM-UPSTREAM-SOL-20261002-R2/evidence/`,
+`local run evidence`,
 owns `merge-crosswalk.jsonl`, `nonmerge-crosswalk.jsonl`,
 `first-parent-history.tsv`, `canonical-reconciliation.jsonl`, `slice-grouping.json`,
 `next-five-slices.json`, `unresolved-dispositions.tsv`, source/combined diffs,
@@ -593,7 +593,7 @@ convert its exit or scoped doc commit into review, acceptance or integration.
 ## Current fetch — 2026-10-01 PDT
 
 CLI `upstream` was refreshed with `git fetch upstream --prune`; MCP `main` was
-fast-forwarded with `git pull --ff-only` in `/lump/apps/codebase-memory-mcp`.
+fast-forwarded with `git pull --ff-only` in `local run evidence`.
 No CLI pull was performed.
 
 | Item | Value |
@@ -879,7 +879,7 @@ completion; its documentation commit `fd2aca2a` is separate from these slices.
 ## 2026-10-01 recovery evidence and outstanding work
 
 The independent parity audit is available at
-`/home/nate/.local/state/agent-workflow/runs/CBM-MCP-CLI-PARITY-20260930/evidence/parity-report.md`.
+`local run evidence`.
 It found no operation-name absence, but `manage_adr` is compatibility-only:
 there is no top-level `manage-adr` alias/help route, and CLI omits MCP's
 `outline` mode while using a different default. The report prioritizes adding
@@ -989,7 +989,7 @@ Maintainer instruction: commit to local `release-tooling` and use the existing
 `codebase-memory-cli-release-tooling` job. `CBM_TEST_SUITES` accepts whitespace
 or comma-separated names; blank runs the full gate. Do not create task jobs.
 All five temporary jobs were retired after archiving configuration and build
-logs under `/tmp/cbm-jev-delegation/retired-jenkins`. Historical URLs no longer
+logs under `local run evidence`. Historical URLs no longer
 resolve; archived logs remain the evidence source.
 
 The AST slice now also includes upstream `77ab4bea` definition-stack ceiling
@@ -1164,28 +1164,28 @@ interactive Codex, `danger-full-access`, and approvals `never`. Global runtime
 configuration was not changed. Builds/tests remain parent-scheduled in the existing
 shared Jenkins job; workers may format, inspect diffs and commit regression source.
 
-The requested Herdr right-hand panes could not be launched because this caller
-is outside a Herdr-managed pane (`HERDR_ENV` unset). No Herdr control was attempted
+The requested managed terminal could not be launched because this caller
+is outside a managed terminal-managed pane (`managed terminal_ENV` unset). No managed terminal control was attempted
 and no headless fallback was substituted. The durable launch handoff is
-`/home/nate/.local/state/agent-workflow/handoffs/CBM-THREE-VERTICALS-20261002/README.md`.
+`local run evidence`.
 Preparation is not running, implementation completion, review or acceptance.
 
-### Interactive Herdr launch verified — 2026-10-02T04:52Z
+### Interactive managed terminal launch verified — 2026-10-02T04:52Z
 
-The maintainer confirmed this is a Herdr session and authorized setting
-`HERDR_ENV=1`. Herdr then verified the current Codex parent in `wC:p1`.
+The maintainer confirmed this is a managed terminal session and authorized setting
+`managed terminal_ENV=1`. managed terminal then verified the current Codex parent in `managed terminal`.
 All three external workers are launched in the same tab, stacked in the
 right-hand column; the parent's focus remains unchanged.
 
-| Vertical | Herdr worker / pane | Durable delivery and live state |
+| Vertical | managed terminal worker / pane | Durable delivery and live state |
 |---|---|---|
-| Daemon ownership | `luna-daemon-ownership`, `wC:p5` | Working; steering acknowledged by worker |
-| ReScript hangs | `luna-rescript-hang`, `wC:p6` | Working; steering acknowledged by worker |
-| Internal cache stores | `luna-cache-stores`, `wC:p7` | Working; steering acknowledged by worker |
+| Daemon ownership | `luna-daemon-ownership`, `managed terminal` | Working; steering acknowledged by worker |
+| ReScript hangs | `luna-rescript-hang`, `managed terminal` | Working; steering acknowledged by worker |
+| Internal cache stores | `luna-cache-stores`, `managed terminal` | Working; steering acknowledged by worker |
 
-Each prepared Agent Run is bound to its Herdr pane at external generation 1;
+Each prepared Agent Run is bound to its managed terminal at external generation 1;
 `start-external` records launch, and all three correlated steering IDs have
-worker acknowledgements. Herdr's actual launch argv confirms GPT-6-Luna,
+worker acknowledgements. managed terminal's actual launch argv confirms GPT-6-Luna,
 medium reasoning, `danger-full-access` and approvals `never`. This supersedes
 the earlier prepared/not-launched state. Implementation, Jenkins evaluation,
 independent review, acceptance and integration remain separate pending gates.
@@ -1196,8 +1196,8 @@ Both workers finished committed implementation candidates and were idle.
 Daemon branch `impl/cbm-daemon-ownership-20261002` retains `028a4bfb`;
 cache branch `impl/cbm-cache-stores-20261002` retains `fa5a180b`.
 Their worktrees were verified clean, bundles verified, patches/reports/terminal
-transcripts preserved under each run's `evidence/closeout/`, and Herdr panes
-`wC:p5` / `wC:p7` closed at the user's request. Only those two worktrees were
+transcripts preserved under each run's `evidence/closeout/`, and managed terminals
+`managed terminal` / `managed terminal` closed at the user's request. Only those two worktrees were
 removed; branches remain available for review/integration.
 
 Worker `agent finish --result partial` had produced handoff completions but left
@@ -1217,10 +1217,10 @@ without a remote fetch or moving shared CLI refs. `0f52d30c..96c3f41c` contains
 non-merge commits. These are deterministic census counts, not completed semantic
 classification or applicability claims.
 
-| Agent Run | Independent worktree / branch suffix | Herdr pane | Task |
+| Agent Run | Independent worktree / branch suffix | managed terminal | Task |
 |---|---|---|---|
-| `CBM-UPSTREAM-ASSESS-20261002` | `cbm-upstream-assess-20261002` | `wC:p8`, `codex - luna-upstream-assess` | Source/Jev assessment of new and older unclassified commits; group applicable verticals with prerequisites/prior QA commits; propose canonical ledger/backlog edits on isolated branch |
-| `CBM-UPSTREAM-VERIFY-20261002` | `cbm-upstream-verify-20261002` | `wC:p9`, `codex - luna-upstream-verify` | Independent full-hash/source coverage audit of all differing applicable commits; evidence/report only, no competing canonical-doc edits |
+| `CBM-UPSTREAM-ASSESS-20261002` | `cbm-upstream-assess-20261002` | `managed terminal`, `codex - luna-upstream-assess` | Source/Jev assessment of new and older unclassified commits; group applicable verticals with prerequisites/prior QA commits; propose canonical ledger/backlog edits on isolated branch |
+| `CBM-UPSTREAM-VERIFY-20261002` | `cbm-upstream-verify-20261002` | `managed terminal`, `codex - luna-upstream-verify` | Independent full-hash/source coverage audit of all differing applicable commits; evidence/report only, no competing canonical-doc edits |
 
 Both GPT-6-Luna interactive workers launched with full access, approvals never,
 and acknowledged generation-1 durable steering. Each worktree was indexed in
@@ -1237,7 +1237,7 @@ Previously implemented daemon/cache/ReScript candidates remain unmerged and
 unvalidated; do not confuse their surviving branch commits with accepted ports.
 Compact handoff, frozen universes, index/process receipts, native launch and
 acknowledgement evidence are retained at
-`/home/nate/.local/state/agent-workflow/handoffs/CBM-UPSTREAM-AUDIT-20261002/`.
+`local run evidence`.
 
 
 ## Three-candidate integration review resumed — 2026-10-02
@@ -1268,7 +1268,7 @@ Jenkins evaluation, runtime acceptance, remote push and main integration remain
 separate pending gates.
 
 The requested GPT-6.1-Sol audit is independently running as
-`CBM-UPSTREAM-SOL-20261002-R2`, pane `wC:pA`, against frozen QA base
+`CBM-UPSTREAM-SOL-20261002-R2`, pane `managed terminal`, against frozen QA base
 `5fe820df` and upstream `96c3f41c`. Its scope includes all upstream merge
 commits, constituent commits, canonical backlog reconciliation, vertical
 grouping and the next five new slices. Its exact-worktree index completed with
@@ -2121,7 +2121,7 @@ retained in run evidence.
 
 ### DeepSeek Phase1 independent review — 2026-10-03 UTC
 
-All three Herdr workers are idle with saved dispositions matching their exact
+All three managed terminal workers are idle with saved dispositions matching their exact
 39/26/50 assignments. Parent verified all115 assignment sets, all cited evidence
 links and342 manifest entries. Three Jev requests batched six bounded primary-source
 questions using jev-1.13.0; worker verdicts and earlier Jev answers were excluded.
@@ -2161,13 +2161,13 @@ source diffs/receipts are reused as discovery, not verdict authority; every chan
 hunk and frozen target behavior must receive source evidence or explicit unknowns.
 
 Interactive Codex `gpt-6-luna` with `model_reasoning_effort=low` launched in
-Herdr `wC:pJ`, label `codex - luna-review-pilot20`, with `--no-daemon`. Actual
+managed terminal, label `codex - luna-review-pilot20`, with `--no-daemon`. Actual
 Codex process argv, managed pane environment and Jev-token inheritance are verified
 without logging credential values. The official Jev footer is in the prepared
 prompt once; bounded shared-context questions must be batched through the official
 helper, with saved requests, full distributions and advice-use notes.
 
-The pilot reuses `/tmp/cbm-recon-deepseek-integration-20261003` after its prior
+The pilot reuses `local run evidence` after its prior
 worker stopped: source remains clean frozenQA `559214af`, and fresh status/root/
 coverage generation matches its full persistence-disabled index
 `2026-10-03T01:27:06Z` (26,764nodes/129,775edges,91 partial files).
@@ -2175,16 +2175,16 @@ Exact launch/index/assignment/ownership plan remains run evidence and
 `handoffs/CBM-LUNA-LOW-PILOT20-20261003/`, not a second canonical ledger.
 The worker must retain detailed checkpoints/handoffs at each batch and stop.
 
-User-authorized cleanup: completed DeepSeek operations `wC:pG` and integration
-`wC:pH` panes closed after handoff/checkpoint/disposition and manifest verification.
-Runtime `wC:pF` was already absent. Other panes and all worktrees/evidence retained.
+User-authorized cleanup: completed DeepSeek operations `managed terminal` and integration
+`managed terminal` panes closed after handoff/checkpoint/disposition and manifest verification.
+Runtime `managed terminal` was already absent. Other panes and all worktrees/evidence retained.
 Pilot launch is not completed verification, runtime validation or acceptance;
 no tests/builds/Jenkins/remote operations are authorized or performed.
 
 ## Luna pane cleanup and pilot partial — 2026-10-03 UTC
 
 User requested closure of the three original Luna high panes. All were verified
-idle immediately before closing `wC:pB`, `wC:pC`, and `wC:pD`; subsequent pane
+idle immediately before closing `managed terminal`, `managed terminal`, and `managed terminal`; subsequent pane
 inventory confirms absence. Worktrees and saved evidence remain intact. Parent
 recorded external exits for generation1, separately from completion or acceptance.
 
@@ -2201,13 +2201,13 @@ lack all-target semantic comparison, all-hunk dispositions and comprehensive CBM
 coverage/trace/snippet receipts. No fully verified pilot commit is credited;
 all20 remain open, plus89 outside pilot scope. One successful batched Jev response
 is advisory only. Stopping reason was a time-bounded checkpoint, not a controlled
-environment blocker. The idle pilot pane `wC:pJ` remains open. Continuation requires
+environment blocker. The idle pilot pane `managed terminal` remains open. Continuation requires
 successor lineage without rewriting sealed evidence.
 
 Exact full-hash remainders and immutable worker checkpoints remain under the four
 run evidence directories. Cleanup inventory SHA256s, before/after pane receipts,
 and external exits are saved at
-`/home/nate/.local/state/agent-workflow/handoffs/CBM-LUNA-CLEANUP-20261003/`.
+`local run evidence`.
 No local builds/tests, Jenkins, independent acceptance, push or main integration
 occurred in this cleanup. Overall audit remains incomplete.
 
@@ -2217,13 +2217,13 @@ User authorized a different20-commit comparison with Luna medium. Run
 `CBM-RECON-LUNA-MEDIUM20-20261003` owns20 independently unreviewed runtime
 hashes, disjoint from the previous pilot20 and six parent-reviewed rows. Exact
 assignment, prepared prompt and launch receipts:
-`/home/nate/.local/state/agent-workflow/handoffs/CBM-LUNA-MEDIUM20-20261003/`.
-Worker uses interactive Herdr `wC:pK`, `codex - luna-review-medium20`, with
+`local run evidence`.
+Worker uses interactive managed terminal, `codex - luna-review-medium20`, with
 GPT-6-Luna medium, sourced Jev environment and batched primary-evidence guidance.
 
 New isolated worktree full index failed with only a generic pipeline error;
 clean failed worktree retained for diagnosis. Reused idle former runtime worker
-worktree `/tmp/cbm-recon-adapter-low2-20261003`, frozen QA559214af, ready full
+worktree `local run evidence`, frozen QA559214af, ready full
 index generation2026-10-03T01:07:59Z,26764nodes/129401edges,91 partial files.
 Fresh status/root/coverage generation and unchanged clean Git baseline verified.
 No shared daemon/cache changes. Launch does not establish source closure,
@@ -2231,7 +2231,7 @@ runtime validation, review or acceptance; detailed checkpoints are required.
 
 ### DeepSeek pilot continuation recovery — 2026-10-03 UTC
 
-User switched old pilot pane `wC:pJ` to DeepSeek Flash and requested execution
+User switched old pilot pane `managed terminal` to DeepSeek Flash and requested execution
 help. Transcript showed `unsupported call: exec`: JSON function calls replayed
 Luna's old executor format. Direct `exec_command` with `pwd` succeeded after
 corrective guidance; no permission change was needed. Prepared external successor
@@ -2242,7 +2242,7 @@ live worker Jev credential inheritance confirmed without values. New evidence
 must remain in successor run; prior evidence is immutable. Renamed pane/worker
 `codex - deepseek-pilot20-continue`, durably steered and resumed with mandatory
 acknowledgement. Recovery receipts/prompt at
-`/home/nate/.local/state/agent-workflow/handoffs/CBM-DEEPSEEK-PILOT20-CONTINUE-20261003/`.
+`local run evidence`.
 No source closure, Jenkins, review or acceptance credited from recovery.
 
 ### Finished pilot20 independent verification and new ops20 — 2026-10-03 UTC
@@ -2282,11 +2282,11 @@ bounded adaptation gap P=.98 (exact port .01, represented .01, insufficient .00)
 Advice corroborated source distinctions; it did not close whole-commit gaps.
 
 Before review, user-authorized NEW ops20 assignment was delivered to existing pane
-wC:pJ as prepared run `CBM-RECON-DEEPSEEK-BATCH2-20-20261003`. Exact20 hashes
+managed terminal as prepared run `CBM-RECON-DEEPSEEK-BATCH2-20-20261003`. Exact20 hashes
 are disjoint from pilot20 and Luna medium runtime20. Same clean frozen indexed
 worktree reused; direct shell/CBM/Jev guidance and mandatory durable acknowledgement
 retained. Assignment/prompt/launch receipts at
-`/home/nate/.local/state/agent-workflow/handoffs/CBM-DEEPSEEK-BATCH2-20-20261003/`.
+`local run evidence`.
 No builds/tests/Jenkins, runtime validation, acceptance or main integration claimed.
 
 ## Finished ops20 and Luna medium20 independent reviews — 2026-10-03 UTC
@@ -2341,7 +2341,7 @@ adaptation review remains required; worker represented claims are not automatica
 parent-verified. These counts describe these two batches only, not global parity.
 Workers requested completed but finish returned verification_required without native
 acceptance bindings. No builds/tests/Jenkins, runtime validation, acceptance,
-push or main integration occurred. Panes wC:pJ and wC:pK remain idle/open.
+push or main integration occurred. Panes managed terminal and managed terminal remain idle/open.
 Overall upstream merge/constituent and older canonical disposition audit remains
 incomplete; no exhaustive closure or new five-slice ranking claimed here.
 
@@ -2417,7 +2417,7 @@ merge-history and old canonical-row obligations remain separate and open.
 Canonical BACKLOG tracks continuation; this308 document owns disposition context;
 UPSTREAM_RECONCILIATION_REPORT_20261002.md consolidates the checkpoint. Full-hash
 machine crosswalks remain run evidence, not a second repository ledger. DeepSeek
-pane wC:pJ remains idle/open; no new assignment sent in this checkpoint. No builds,
+pane managed terminal remains idle/open; no new assignment sent in this checkpoint. No builds,
 tests, Jenkins triggers, implementation, push, main integration or acceptance.
 
 ## Ten recorded merged/adapted tasks independently confirmed — 2026-10-03 UTC
