@@ -65,12 +65,15 @@ TEST(ws_non_absolute_paths_are_denied) {
 /* One depth rule refuses every POSIX top-level tree without a list to maintain.
  * This is the whole reason depth carries its weight. */
 TEST(ws_posix_top_level_trees_are_too_shallow) {
-    static const char *const shallow[] = {"/etc",         "/home",       "/Users", "/var",
-                                          "/opt",         "/srv",        "/usr",   "/private/etc",
-                                          "/private/var", "/private/tmp"};
+    static const char *const shallow[] = {"/etc",         "/home",        "/var",
+                                          "/opt",         "/srv",         "/usr",
+                                          "/private/etc", "/private/var", "/private/tmp"};
     for (size_t i = 0; i < sizeof(shallow) / sizeof(shallow[0]); i++) {
         ASSERT_EQ(cbm_workspace_classify_root(shallow[i], HOME, CACHE), CBM_WS_DENY_TOO_SHALLOW);
     }
+    /* This injected cache lives under /Users, so the cache-containing denial
+     * takes precedence over the otherwise shallow-root verdict. */
+    ASSERT_EQ(cbm_workspace_classify_root("/Users", HOME, CACHE), CBM_WS_DENY_ABSOLUTE);
     ASSERT_FALSE(cbm_workspace_verdict_is_overridable(CBM_WS_DENY_TOO_SHALLOW));
     PASS();
 }
@@ -103,6 +106,22 @@ TEST(ws_allow_broad_root_lifts_too_shallow_for_an_exact_match_only) {
     ASSERT_NOT_NULL(strstr(err, "--approve-sensitive"));
     ASSERT_FALSE(cbm_workspace_grant_list(cache, listed, sizeof(listed)));
 
+    /* Configured roots and broader or differently marked store entries are not
+     * human approval of this exact broad root. */
+    ASSERT_FALSE(cbm_workspace_root_allowed("/usr", HOME, cache, "/", err, sizeof(err)));
+    char store[1024];
+    ASSERT_TRUE(cbm_workspace_grant_path(cache, store, sizeof(store)));
+    FILE *f = cbm_fopen(store, "a");
+    ASSERT_NOT_NULL(f);
+    (void)fprintf(f, "/\n!/usr\n");
+    ASSERT_EQ(fclose(f), 0);
+    ASSERT_FALSE(cbm_workspace_root_allowed("/usr", HOME, cache, NULL, err, sizeof(err)));
+    ASSERT_NOT_NULL(strstr(err, "--approve-broad"));
+    ASSERT_FALSE(cbm_workspace_root_allowed("/usr", HOME, cache, "/", err, sizeof(err)));
+    f = cbm_fopen(store, "w");
+    ASSERT_NOT_NULL(f);
+    ASSERT_EQ(fclose(f), 0);
+
     /* The explicit approval is recorded and marked. */
     ASSERT_TRUE(cbm_workspace_grant_add(cache, HOME, "/usr", false, true, err, sizeof(err)));
     ASSERT_TRUE(cbm_workspace_grant_list(cache, listed, sizeof(listed)));
@@ -123,6 +142,14 @@ TEST(ws_allow_broad_root_lifts_too_shallow_for_an_exact_match_only) {
     ASSERT_TRUE(cbm_workspace_root_allowed("/usr", HOME, cache, "/", err, sizeof(err)));
     ASSERT_FALSE(cbm_workspace_root_allowed("/dev", HOME, cache, "/", err, sizeof(err)));
     ASSERT_NOT_NULL(strstr(err, "allow-root --approve-broad /dev"));
+
+    char alias[1024], canonical_alias[1024], canonical_usr[1024];
+    snprintf(alias, sizeof(alias), "%s/usr-alias", cache);
+    ASSERT_EQ(symlink("/usr", alias), 0);
+    ASSERT_TRUE(cbm_canonical_path(alias, canonical_alias, sizeof(canonical_alias)));
+    ASSERT_TRUE(cbm_canonical_path("/usr", canonical_usr, sizeof(canonical_usr)));
+    ASSERT_STR_EQ(canonical_alias, canonical_usr);
+    ASSERT_TRUE(cbm_workspace_root_allowed(canonical_alias, HOME, cache, NULL, err, sizeof(err)));
 #endif
 
     /* Each marker lifts only its own verdict: a broad mark on a credential
@@ -130,9 +157,8 @@ TEST(ws_allow_broad_root_lifts_too_shallow_for_an_exact_match_only) {
     char secret[1024];
     snprintf(secret, sizeof(secret), "%s/.ssh", cache);
     ASSERT_EQ(cbm_mkdir(secret), 0);
-    char store[1024];
     ASSERT_TRUE(cbm_workspace_grant_path(cache, store, sizeof(store)));
-    FILE *f = cbm_fopen(store, "a");
+    f = cbm_fopen(store, "a");
     ASSERT_NOT_NULL(f);
     (void)fprintf(f, "^%s\n", secret);
     ASSERT_EQ(fclose(f), 0);
@@ -140,6 +166,31 @@ TEST(ws_allow_broad_root_lifts_too_shallow_for_an_exact_match_only) {
     ASSERT_NOT_NULL(strstr(err, "--approve-sensitive"));
 
     th_cleanup(cache);
+    PASS();
+}
+
+TEST(ws_cache_containing_roots_are_never_overridable) {
+    char *created = th_mktempdir("cbm_ws_cache_root");
+    ASSERT_NOT_NULL(created);
+    char path[1024], root[1024], cache_path[1024], cache[1024], err[1024], store[1024];
+    snprintf(path, sizeof(path), "%s", created);
+    snprintf(cache_path, sizeof(cache_path), "%s/cache", path);
+    ASSERT_EQ(cbm_mkdir(cache_path), 0);
+    ASSERT_TRUE(cbm_canonical_path(path, root, sizeof(root)));
+    ASSERT_TRUE(cbm_canonical_path(cache_path, cache, sizeof(cache)));
+    ASSERT_EQ(cbm_workspace_classify_root(root, NULL, cache), CBM_WS_DENY_ABSOLUTE);
+    ASSERT_EQ(cbm_workspace_classify_root(root, root, cache), CBM_WS_DENY_ABSOLUTE);
+    ASSERT_EQ(cbm_workspace_classify_root(cache, NULL, cache), CBM_WS_DENY_ABSOLUTE);
+    ASSERT_FALSE(cbm_workspace_grant_add(cache, NULL, root, false, true, err, sizeof(err)));
+    ASSERT_NOT_NULL(strstr(err, "cannot be indexed"));
+    ASSERT_FALSE(cbm_workspace_grant_add(cache, root, root, true, false, err, sizeof(err)));
+    ASSERT_TRUE(cbm_workspace_grant_path(cache, store, sizeof(store)));
+    FILE *f = cbm_fopen(store, "a");
+    ASSERT_NOT_NULL(f);
+    (void)fprintf(f, "^%s\n", root);
+    ASSERT_EQ(fclose(f), 0);
+    ASSERT_FALSE(cbm_workspace_root_allowed(root, NULL, cache, root, err, sizeof(err)));
+    th_cleanup(root);
     PASS();
 }
 
@@ -156,11 +207,15 @@ TEST(ws_legitimate_shallow_roots_are_allowed) {
 
 /* $HOME is depth 2 on both macOS and Linux, so depth cannot see it. */
 TEST(ws_home_itself_is_sensitive_but_subdirs_are_fine) {
-    ASSERT_EQ(cbm_workspace_classify_root("/Users/dev", HOME, CACHE), CBM_WS_DENY_SENSITIVE);
-    ASSERT_EQ(cbm_workspace_classify_root("/Users/dev/", HOME, CACHE), CBM_WS_DENY_SENSITIVE);
-    ASSERT_EQ(cbm_workspace_classify_root("/Users/dev/projects", HOME, CACHE), CBM_WS_ALLOW);
+    ASSERT_EQ(cbm_workspace_classify_root("/Users/dev", HOME, "/var/cache/cbm"),
+              CBM_WS_DENY_SENSITIVE);
+    ASSERT_EQ(cbm_workspace_classify_root("/Users/dev/", HOME, "/var/cache/cbm"),
+              CBM_WS_DENY_SENSITIVE);
+    ASSERT_EQ(cbm_workspace_classify_root("/Users/dev/projects", HOME, "/var/cache/cbm"),
+              CBM_WS_ALLOW);
     /* A sibling that merely shares a prefix is not the home directory. */
-    ASSERT_EQ(cbm_workspace_classify_root("/Users/developer", HOME, CACHE), CBM_WS_ALLOW);
+    ASSERT_EQ(cbm_workspace_classify_root("/Users/developer", HOME, "/var/cache/cbm"),
+              CBM_WS_ALLOW);
     ASSERT_TRUE(cbm_workspace_verdict_is_overridable(CBM_WS_DENY_SENSITIVE));
     PASS();
 }
@@ -987,6 +1042,7 @@ SUITE(workspace) {
     RUN_TEST(ws_non_absolute_paths_are_denied);
     RUN_TEST(ws_posix_top_level_trees_are_too_shallow);
     RUN_TEST(ws_allow_broad_root_lifts_too_shallow_for_an_exact_match_only);
+    RUN_TEST(ws_cache_containing_roots_are_never_overridable);
     RUN_TEST(ws_legitimate_shallow_roots_are_allowed);
     RUN_TEST(ws_home_itself_is_sensitive_but_subdirs_are_fine);
     RUN_TEST(ws_credential_directories_are_sensitive_at_any_depth);

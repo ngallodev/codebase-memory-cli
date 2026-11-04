@@ -374,16 +374,12 @@ cbm_ws_verdict_t cbm_workspace_classify_root(const char *canonical_path, const c
         return CBM_WS_DENY_ABSOLUTE;
     }
 
-    /* Order matters below, and not for cosmetic reasons.
-     *
-     * The home directory normally CONTAINS the cache directory, so testing the
-     * cache first would report every $HOME as "holds the cache" — and, worse,
-     * would make it absolutely denied when the design says a person may override
-     * it. Home is therefore classified first.
-     *
-     * Depth comes before the cache test for the same kind of reason: "/Users" is
-     * both too broad and an ancestor of the cache, and "too broad, name a
-     * project directory below it" is the reason that actually helps the reader. */
+    /* This absolute denial precedes every overridable verdict: a cache path,
+     * its parent, or a home that contains it must not be grantable. */
+    if (cache_dir && cache_dir[0] && ws_is_ancestor_or_equal(canonical_path, cache_dir)) {
+        return CBM_WS_DENY_ABSOLUTE;
+    }
+
     if (home_dir && home_dir[0] && ws_paths_equal(canonical_path, home_dir)) {
         return CBM_WS_DENY_SENSITIVE;
     }
@@ -396,20 +392,6 @@ cbm_ws_verdict_t cbm_workspace_classify_root(const char *canonical_path, const c
     if (depth < min_depth) {
         return CBM_WS_DENY_TOO_SHALLOW;
     }
-
-    /* No rule here for "this root contains the cache directory".
-     *
-     * An earlier draft refused such roots outright, on the theory that indexing
-     * them would absorb every other project's graph database. Two things make
-     * that wrong. The indexer only parses recognised source files, and a graph
-     * database is binary SQLite it would never extract; and refusing an entire
-     * root is the wrong remedy even where the concern holds — the right one is to
-     * not walk the cache. Excluding the cache from discovery is tracked
-     * separately; classifying the root is not the place for it.
-     *
-     * cache_dir stays in the signature because the exclusion work will need it
-     * and because callers already have it to hand. */
-    (void)cache_dir;
 
     if (ws_any_component_matches(canonical_path, WS_CREDENTIAL_NAMES,
                                  sizeof(WS_CREDENTIAL_NAMES) / sizeof(WS_CREDENTIAL_NAMES[0]),
