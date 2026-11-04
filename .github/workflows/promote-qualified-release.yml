@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Existing DRAFT release tag qualified on luigi.home.arpa (vX.Y.Z or prerelease)"
+        description: "Existing DRAFT release tag qualified on the qualification host (vX.Y.Z or prerelease)"
         required: true
         type: string
       publish_registries:

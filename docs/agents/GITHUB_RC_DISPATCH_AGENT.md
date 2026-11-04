@@ -2,7 +2,7 @@
 
 Status: **STANDALONE RELEASE-OPERATOR INSTRUCTIONS**
 
-Use this runbook after Linux qualification has reached the release-candidate boundary and before native-Windows qualification on `luigi.home.arpa`.
+Use this runbook after Linux qualification has reached the release-candidate boundary and before native-Windows qualification on `the qualification host`.
 
 ## Objective
 
@@ -113,7 +113,7 @@ Record the release asset listing and release ID in the evidence bundle.
 
 ## Step 6 — Create Windows qualification handoff
 
-Provide the Windows qualification agent on `luigi.home.arpa` with:
+Provide the Windows qualification agent on `the qualification host` with:
 
 - release tag;
 - release URL/ID;

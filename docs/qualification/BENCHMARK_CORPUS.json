@@ -1,7 +1,7 @@
 {
   "schema": "codebase-memory-cli/benchmark-corpus/v1",
   "generation": "windows-corpus-1",
-  "host": "luigi.home.arpa",
+  "host": "the qualification host",
   "repositories": [
     {
       "id": "codebase-memory-cli",
@@ -124,9 +124,9 @@
       }
     },
     {
-      "id": "herdr",
-      "name": "herdr",
-      "remote": "https://github.com/herdrdev/herdr.git",
+      "id": "managed terminal",
+      "name": "managed terminal",
+      "remote": "https://github.com/managed terminaldev/managed terminal.git",
       "commit": "TO_BE_PINNED_FROM_FROZEN_CHECKOUT",
       "clean_required": true,
       "category": "large-open-source-scale-language-coverage",

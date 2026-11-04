@@ -486,7 +486,7 @@ jobs:
 
   # ── 8. External qualification hold ───────────────────────────
   # Default release behavior stops here after CI verification. The exact draft
-  # bytes are then qualified on luigi.home.arpa. The promotion workflow validates
+  # bytes are then qualified on the qualification host. The promotion workflow validates
   # attached qualification evidence before registries are published or the
   # release is made public.
   qualification-hold:
@@ -501,7 +501,7 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           echo "Release $VERSION is verified and remains DRAFT."
-          echo "Qualify the exact GitHub release bytes on luigi.home.arpa."
+          echo "Qualify the exact GitHub release bytes on the qualification host."
           echo "Attach qualification-manifest.json and qualification-summary.md to the draft."
           echo "Then dispatch Promote Qualified Release for the same tag."
 

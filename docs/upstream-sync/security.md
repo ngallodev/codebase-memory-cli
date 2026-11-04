@@ -1,6 +1,6 @@
 # Security hotfix receipt
 
-Base: `ff8b8906c6807953336609cc7f464e7e4ef3cf7b`  
+Base: `ff8b8906c6807953336609cc7f464e7e4ef3cf7b`
 Branch: `sync/security-20261101`
 
 ## Changes

@@ -70,15 +70,15 @@
   See [the canonical source audit](docs/UPSTREAM_308_CANDIDATE_AUDIT_20260912.md).
 - [ ] Finish independent reconciliation of the Luna team evidence. All R3
   handoffs were partial; all 40 declared checksums and exact 111/170/86 assignments
-  were verified and archived. R4 successors continue interactively in Herdr
-  `wC:pB` / `wC:pC` / `wC:pD`. The 2026-10-02T23:53Z checkpoint contains 54
+  were verified and archived. R4 successors continue interactively in managed terminal
+  `managed terminal` / `managed terminal` / `managed terminal`. The 2026-10-02T23:53Z checkpoint contains 54
   non-unresolved worker claims and 313 unresolved claims; no whole-commit coverage
   or completion is inferred. Parent retains 356 whole non-merge / 311 merge
   remainders pending exact source/test review. Full hashes are in the canonical
   ledger; the [consolidated report](docs/UPSTREAM_RECONCILIATION_REPORT_20261002.md)
   records provenance, source corrections, scope and validation limits.
   Parallel split followup: `CBM-RECON-ADAPTER-LOW-20261003` ran Luna low in
-  Herdr `wC:pE` on 16 explicitly released, previously unreviewed runtime hashes;
+  managed terminal on 16 explicitly released, previously unreviewed runtime hashes;
   all 16 were source-reviewed, 8 closing as adapter-only and 8 retaining
   shared-semantic remainders. The consolidation auditor verified the run's
   67-file manifest, confirmed every changed path is `src/mcp/**` or
@@ -96,7 +96,7 @@
   reports, including after persisted steering and direct follow-ups. Sessions
   were stopped; zero assigned comparisons or correlated worker acknowledgements
   were established by that failed attempt. Interactive recovery now runs Codex
-  `--model deepseek-flash` in Herdr `wC:pF` / `wC:pG` / `wC:pH`, with correct
+  `--model deepseek-flash` in managed terminal / `managed terminal` / `managed terminal`, with correct
   worker-issued run/cwd/count launch acknowledgements and actual process Jev-token
   inheritance verified. The same 115 hashes remain the comparison scope; see the
   canonical interactive recovery section. No completion/acceptance is inferred.
@@ -237,7 +237,7 @@ completion/acceptance or semantic-closure counter advanced.
  Group262ab012 telemetry with3507d955 Windows OS hard cap; no runtime/acceptance credit.
  Canonical308 finished-batch review owns corrections.
 - [ ] Diagnose generic full-index pipeline failure for clean frozen worktree
- `/tmp/cbm-recon-luna-medium20-20261003`; logs preserved in medium20 staging.
+ `local run evidence`; logs preserved in medium20 staging.
  Worker safely uses verified existing runtime graph; no daemon changes made.
 
 - [x] Review resumed DeepSeek pilot20 submission; four bounded source dispositions
@@ -271,7 +271,7 @@ Native Windows qualification and fresh Jenkins51 result remain separate.
 
 ## External Luna worker CLI cache resolution — 2026-10-05
 
-- [ ] Investigate `codebase-memory-cli: secure CLI coordination could not be created (cache-resolve)` in prepared external Herdr workers. Observed on `cbm status --project ttm-jenkins-repair-20261005 --json` / exact-project status/projects probes in Tax Machine runs `ttm-jenkins-repair-20261005` and `ttm-jenkins-verify-20261005`; installed parent CLI reports `dev`. Both exact worktrees under `/home/nate/.local/share/agent-workflow/worktrees/the-tax-machine/jenkins-{repair,verify}-20261005` were fully indexed with persistence false, ready at 2026-10-05T14:27:42/43Z, source `efa9b0a1971ec6d9a33457401ddeb337c1eeea3b`, and unchanged empty Git porcelain. Parent status/projects succeed; worker calls fail before graph query despite launch args approval never / danger-full-access. Expected workers to access those ready graphs. Runtime/environment cause remains unproven. Workers preserve unchanged porcelain and use exact source/config fallback; issue remains open. Durable evidence: `/home/nate/.local/state/agent-workflow/runs/ttm-jenkins-verify-20261005/output.log` and both runs' `evidence/launch-preflight/`. Do not reset the shared daemon or widen allow-roots as a workaround. Reproduced 2026-11-01 in AW-owned headless Luna runs `cbm-sync-{security,ci,13a}-20261101` on clean isolated CLI worktrees at `ff8b8906`; all full persistence-disabled parent preflights were ready, with 63,168 nodes, 142 parse-partial files and no porcelain changes. Parent projects/status succeed; workers fail projects/status before query, despite danger-full-access in recorded launch. Exact runtime cause remains unproven. Receipts: each run owns `evidence/launch-preflight/`; worker failures are in `output.log` and `executor-events.jsonl`. Source fallback used; no shared daemon reset, cache-root switch or widened authorization.
+- [ ] Investigate `codebase-memory-cli: secure CLI coordination could not be created (cache-resolve)` in prepared external managed terminal workers. Observed on `cbm status --project ttm-jenkins-repair-20261005 --json` / exact-project status/projects probes in Tax Machine runs `ttm-jenkins-repair-20261005` and `ttm-jenkins-verify-20261005`; installed parent CLI reports `dev`. Both exact worktrees under `local run evidence` were fully indexed with persistence false, ready at 2026-10-05T14:27:42/43Z, source `efa9b0a1971ec6d9a33457401ddeb337c1eeea3b`, and unchanged empty Git porcelain. Parent status/projects succeed; worker calls fail before graph query despite launch args approval never / danger-full-access. Expected workers to access those ready graphs. Runtime/environment cause remains unproven. Workers preserve unchanged porcelain and use exact source/config fallback; issue remains open. Durable evidence: `local run evidence` and both runs' `evidence/launch-preflight/`. Do not reset the shared daemon or widen allow-roots as a workaround. Reproduced 2026-11-01 in AW-owned headless Luna runs `cbm-sync-{security,ci,13a}-20261101` on clean isolated CLI worktrees at `ff8b8906`; all full persistence-disabled parent preflights were ready, with 63,168 nodes, 142 parse-partial files and no porcelain changes. Parent projects/status succeed; workers fail projects/status before query, despite danger-full-access in recorded launch. Exact runtime cause remains unproven. Receipts: each run owns `evidence/launch-preflight/`; worker failures are in `output.log` and `executor-events.jsonl`. Source fallback used; no shared daemon reset, cache-root switch or widened authorization.
 
 - [ ] Isolate diff-scoped clang-tidy diagnostics outside selected hunks. In
   `cbm-sync-13a-20261101`, `make -f Makefile.cbm lint-tidy-diff` with clang-tidy-22
