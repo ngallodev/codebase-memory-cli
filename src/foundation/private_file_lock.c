@@ -46,6 +46,7 @@ struct cbm_private_file_lock {
     bool test_fail_unlock_once;
     bool test_fail_close_once;
     bool test_fail_close_after_consuming_once;
+    int test_identity_lookup_error;
     unsigned int test_unlock_attempts;
     unsigned int test_close_attempts;
 };
@@ -493,7 +494,7 @@ cbm_private_file_lock_status_t cbm_private_file_lock_payload_write(cbm_private_f
  * or nothing, and a replaced directory changes the directory's identity. Any
  * other syscall failure (EIO, ESTALE, ENOMEM) says nothing about the file and
  * is reported as undetermined so the caller retries instead of exiting. */
-static int private_held_identity(const cbm_private_file_lock_t *lock) {
+static int private_held_identity(cbm_private_file_lock_t *lock) {
     const cbm_private_lock_directory_t *directory = lock->directory;
     struct stat by_handle;
     struct stat directory_by_path;
@@ -510,6 +511,11 @@ static int private_held_identity(const cbm_private_file_lock_t *lock) {
     if (!S_ISDIR(directory_by_path.st_mode) || directory_by_path.st_dev != directory->device ||
         directory_by_path.st_ino != directory->inode) {
         return 0;
+    }
+    if (lock->test_identity_lookup_error != 0) {
+        errno = lock->test_identity_lookup_error;
+        lock->test_identity_lookup_error = 0;
+        return -1;
     }
     if (fstatat(directory->fd, lock->base_name, &by_path, AT_SYMLINK_NOFOLLOW) != 0) {
         return errno == ENOENT ? 0 : -1;
@@ -538,6 +544,20 @@ cbm_private_file_lock_status_t cbm_private_file_lock_touch(cbm_private_file_lock
     }
     cbm_private_file_lock_fork_guard_leave();
     return status;
+}
+
+bool cbm_private_file_lock_fail_next_identity_lookup_for_test(cbm_private_file_lock_t *lock,
+                                                              int error_number) {
+    if (!lock || lock->owner_pid != getpid() || lock->fd < 0 || error_number == 0 ||
+        !cbm_private_file_lock_fork_guard_enter()) {
+        return false;
+    }
+    bool tracked = private_lock_is_tracked(lock);
+    if (tracked) {
+        lock->test_identity_lookup_error = error_number;
+    }
+    cbm_private_file_lock_fork_guard_leave();
+    return tracked;
 }
 
 cbm_private_file_lock_status_t cbm_private_file_lock_release(cbm_private_file_lock_t **lock_io) {

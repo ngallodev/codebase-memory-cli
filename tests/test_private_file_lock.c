@@ -169,7 +169,9 @@ static void private_lock_fixture_finish(private_lock_fixture_t *fixture) {
                                         "fork.lock",
                                         "touch.lock",
                                         "touch-rename.lock",
-                                        "touch-renamed.lock"};
+                                        "touch-renamed.lock",
+                                        "touch-replace.lock",
+                                        "touch-replaced.lock"};
     if (fixture->root[0]) {
         for (size_t index = 0; index < sizeof(files) / sizeof(files[0]); index++) {
             if (!private_lock_path(path, fixture, files[index])) {
@@ -584,6 +586,98 @@ TEST(private_file_lock_touch_detects_rename_away) {
 #endif
 }
 
+TEST(private_file_lock_touch_detects_replaced_inode_without_touching_replacement) {
+#ifdef _WIN32
+    SKIP_PLATFORM("replacing a held lock inode is a POSIX behavior");
+#else
+    private_lock_fixture_t fixture;
+    bool started = private_lock_fixture_start(&fixture);
+    char path[PRIVATE_LOCK_TEST_PATH_CAP], moved[PRIVATE_LOCK_TEST_PATH_CAP];
+    bool paths_ok = started && private_lock_path(path, &fixture, "touch-replace.lock") &&
+                    private_lock_path(moved, &fixture, "touch-replaced.lock");
+    cbm_private_file_lock_t *held = NULL;
+    cbm_private_file_lock_status_t acquired =
+        paths_ok ? cbm_private_file_lock_try_acquire(fixture.directory, "touch-replace.lock",
+                                                     CBM_PRIVATE_FILE_LOCK_EX, &held)
+                 : CBM_PRIVATE_FILE_LOCK_IO;
+    bool renamed = acquired == CBM_PRIVATE_FILE_LOCK_OK && rename(path, moved) == 0;
+    int replacement_fd = renamed ? open(path, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0600) : -1;
+    static const char payload[] = "preserve replacement data";
+    bool replacement_written =
+        replacement_fd >= 0 && write(replacement_fd, payload, sizeof(payload)) == sizeof(payload);
+    struct stat before = {0}, after = {0};
+    bool replacement_statted = replacement_written && fstat(replacement_fd, &before) == 0;
+    cbm_private_file_lock_status_t touch =
+        replacement_statted ? cbm_private_file_lock_touch(held) : CBM_PRIVATE_FILE_LOCK_IO;
+    char readback[sizeof(payload)] = {0};
+    bool preserved = replacement_statted && fstat(replacement_fd, &after) == 0 &&
+                     before.st_ino == after.st_ino && before.st_mtime == after.st_mtime &&
+                     pread(replacement_fd, readback, sizeof(readback), 0) == sizeof(readback) &&
+                     memcmp(readback, payload, sizeof(payload)) == 0;
+    if (replacement_fd >= 0) {
+        (void)close(replacement_fd);
+    }
+    if (held) {
+        (void)cbm_private_file_lock_release(&held);
+    }
+    private_lock_fixture_finish(&fixture);
+
+    ASSERT_TRUE(started);
+    ASSERT_EQ(acquired, CBM_PRIVATE_FILE_LOCK_OK);
+    ASSERT_TRUE(renamed);
+    ASSERT_TRUE(replacement_written);
+    ASSERT_EQ(touch, CBM_PRIVATE_FILE_LOCK_UNSAFE);
+    ASSERT_TRUE(preserved);
+    PASS();
+#endif
+}
+
+TEST(private_file_lock_touch_transient_identity_errors_remain_retryable) {
+#ifdef _WIN32
+    SKIP_PLATFORM("POSIX path lookup errors are exercised on POSIX");
+#else
+    private_lock_fixture_t fixture;
+    bool started = private_lock_fixture_start(&fixture);
+    cbm_private_file_lock_t *held = NULL;
+    cbm_private_file_lock_status_t acquired =
+        started ? cbm_private_file_lock_try_acquire(fixture.directory, "touch.lock",
+                                                    CBM_PRIVATE_FILE_LOCK_EX, &held)
+                : CBM_PRIVATE_FILE_LOCK_IO;
+    const int errors[] = {EIO, ESTALE, EACCES};
+    cbm_private_file_lock_status_t results[sizeof(errors) / sizeof(errors[0])] = {0};
+    bool injected[sizeof(errors) / sizeof(errors[0])] = {false};
+    cbm_private_file_lock_status_t contender_status = CBM_PRIVATE_FILE_LOCK_IO;
+    for (size_t i = 0; held && i < sizeof(errors) / sizeof(errors[0]); i++) {
+        injected[i] = cbm_private_file_lock_fail_next_identity_lookup_for_test(held, errors[i]);
+        results[i] = injected[i] ? cbm_private_file_lock_touch(held) : CBM_PRIVATE_FILE_LOCK_UNSAFE;
+    }
+    cbm_private_file_lock_t *contender = NULL;
+    contender_status = started
+                           ? cbm_private_file_lock_try_acquire(fixture.directory, "touch.lock",
+                                                               CBM_PRIVATE_FILE_LOCK_EX, &contender)
+                           : CBM_PRIVATE_FILE_LOCK_IO;
+    if (contender) {
+        (void)cbm_private_file_lock_release(&contender);
+    }
+    cbm_private_file_lock_status_t recovered =
+        held ? cbm_private_file_lock_touch(held) : CBM_PRIVATE_FILE_LOCK_IO;
+    if (held) {
+        (void)cbm_private_file_lock_release(&held);
+    }
+    private_lock_fixture_finish(&fixture);
+
+    ASSERT_TRUE(started);
+    ASSERT_EQ(acquired, CBM_PRIVATE_FILE_LOCK_OK);
+    for (size_t i = 0; i < sizeof(errors) / sizeof(errors[0]); i++) {
+        ASSERT_TRUE(injected[i]);
+        ASSERT_EQ(results[i], CBM_PRIVATE_FILE_LOCK_IO);
+    }
+    ASSERT_EQ(contender_status, CBM_PRIVATE_FILE_LOCK_BUSY);
+    ASSERT_EQ(recovered, CBM_PRIVATE_FILE_LOCK_OK);
+    PASS();
+#endif
+}
+
 TEST(private_file_lock_post_acquire_failure_returns_cleanup_owner) {
     private_lock_fixture_t fixture;
     bool started = private_lock_fixture_start(&fixture);
@@ -969,6 +1063,8 @@ SUITE(private_file_lock) {
     RUN_TEST(private_file_lock_consumed_close_error_never_retries_recycled_fd);
     RUN_TEST(private_file_lock_touch_refreshes_held_file_and_detects_unlink);
     RUN_TEST(private_file_lock_touch_detects_rename_away);
+    RUN_TEST(private_file_lock_touch_detects_replaced_inode_without_touching_replacement);
+    RUN_TEST(private_file_lock_touch_transient_identity_errors_remain_retryable);
     RUN_TEST(private_file_lock_post_acquire_failure_returns_cleanup_owner);
     RUN_TEST(private_file_lock_windows_lock_attempt_failure_returns_cleanup_owner);
     RUN_TEST(private_file_lock_rejects_unsafe_entries_and_replaced_root);

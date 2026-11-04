@@ -71,6 +71,12 @@ cbm_private_file_lock_status_t cbm_private_file_lock_payload_write(cbm_private_f
  * should treat as transient. The directory must outlive the lock. */
 cbm_private_file_lock_status_t cbm_private_file_lock_touch(cbm_private_file_lock_t *lock);
 
+#ifndef _WIN32
+/* Injects one transient canonical-path lookup failure for held-identity tests. */
+bool cbm_private_file_lock_fail_next_identity_lookup_for_test(cbm_private_file_lock_t *lock,
+                                                              int error_number);
+#endif
+
 /* Forces the next successfully acquired native lock down the post-lock
  * validation cleanup path and injects pre-call release failures there. */
 bool cbm_private_lock_directory_fail_post_acquire_cleanup_for_test(
