@@ -113,7 +113,12 @@ echo "=== License gate 3/3: UI npm production tree ==="
 # production dependency tree must be allow-listed too. --ignore-scripts: no
 # dependency postinstall code runs inside the security job.
 if command -v npm &>/dev/null && [ -f graph-ui/package-lock.json ]; then
-    if [ ! -d graph-ui/node_modules ]; then
+    # Reuse an existing tree only when it matches the lockfile. A directory
+    # left over from an older checkout (persistent CI workspace, stale local
+    # clone) would otherwise skip the install, build against missing packages,
+    # and license-check a tree that is not the one this candidate ships.
+    if [ ! -d graph-ui/node_modules ] ||
+        ! (cd graph-ui && npm ls --all >/dev/null 2>&1); then
         (cd graph-ui && npm ci --ignore-scripts --silent)
     fi
     # The optional native image-processing package may be absent from the
