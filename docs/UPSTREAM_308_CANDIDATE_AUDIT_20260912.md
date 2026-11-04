@@ -4,6 +4,8 @@
 
 The [campaign plan](upstream-sync/PLAN.md), [machine ledger](upstream-sync/ledger.json)
 and [933-commit inventory](upstream-sync/commits.tsv) extend this canonical ledger.
+The 2026-11-02 continuation receipts are linked from the plan; current 13B
+integration and validation details are in [13b.md](upstream-sync/13b.md).
 Fork baseline is `ff8b8906c6807953336609cc7f464e7e4ef3cf7b`; common ancestor
 `8df0639c6268afe9888979e72b9797aa2cc1de7c`; pinned upstream target
 `6c0ce230ee26ab8d263eb5235ebf73755558344e`. Live upstream inventory reached
