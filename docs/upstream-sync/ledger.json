@@ -941,6 +941,115 @@
       ],
       "next_action": "Run the existing full release-tooling Jenkins job against the current committed candidate; then retain independent review and host acceptance as separate gates.",
       "publication_blocker": "GitHub push unavailable: git remote requires Username in this non-interactive executor; GitHub ref API update returned not_found. No stacked draft PRs published; stale PRs #28/#29 untouched."
+    },
+    {
+      "batch": "13M-1",
+      "upstream_start": "a5b248f47272413189746589b9a2c551c6b6c5ec",
+      "upstream_checkpoint": "5689ea54ceac23d7e5bf59d54b9c718b59ae9ee0",
+      "upstream_commits": 104,
+      "ancestry_validated": true,
+      "fork_base": "cf63fe667579482c7e3b73238b73d4ad2d01db97",
+      "depends_on": [
+        "13L"
+      ],
+      "state": "merged_to_main_pr33",
+      "branch": "sync/upstream-13m1-20261108",
+      "merge_commit": "3a4fdb9b975106489b764556823d9528681301c2",
+      "head": "c3c5271ab8f454287452f0df5eca9e38ffd250cf",
+      "receipt": "13m1.md",
+      "adaptations": [
+        "Ported #2198 benchmark runtime isolation; adapted contract test to CLI argv.",
+        "Ported #1561 truthful index freshness to status --verbose.",
+        "Ported #1430 ignore_worktrees hook gate and explicit --index-worktree refusal.",
+        "Fixed verbose status Git object emission and gave index_policy fixture distinct repo and cache roots."
+      ],
+      "exclusions": [],
+      "verification": {
+        "local": "scripts/build-dev.sh and build/c/test-runner with -Werror passed; lint-memory-core passed at 3211 raw sites; strict Actions policy passed; targeted checks 18/18 and index_policy 12/12 passed.",
+        "jenkins": "#90 SUCCESS on exact head c3c5271ab",
+        "windows": "not_run"
+      },
+      "upstream_prs": [
+        2198,
+        1561,
+        1430
+      ],
+      "qualification": "Jenkins release-tooling #90 SUCCESS on exact head c3c5271ab (full gate); merged to main via PR #33 as merge commit 929adfe36.",
+      "main_merge_commit": "929adfe36c5c36563637c83ab32007289ec4c271"
+    },
+    {
+      "batch": "13M-2",
+      "upstream_start": "5689ea54ceac23d7e5bf59d54b9c718b59ae9ee0",
+      "upstream_checkpoint": "e0c7a1da6c067149716afad5a06f2465c114840d",
+      "upstream_commits": 73,
+      "ancestry_validated": true,
+      "fork_base": "3a4fdb9b975106489b764556823d9528681301c2",
+      "depends_on": [
+        "13M-1"
+      ],
+      "state": "jenkins_passed_draft_pr_review_pending",
+      "branch": "sync/upstream-13m2-20261108",
+      "merge_commit": "bff6508606c296e3d96e5a01af44a9c35ae64049",
+      "head": "0f1927fd3cf872aa3d85719339af255fb1890394",
+      "receipt": "13m2.md",
+      "adaptations": [
+        "Ported #1724 resource-worker behavior to native operations/index and index_supervisor: RESOURCE_FAILURE disposition, request facts, resource response, and worker publish gate.",
+        "Retained #2395 Swift initialization and #2499 memory-lint changes.",
+        "Integrated 13M-1 follow-ups in merges 6ec8d5873 and 1c5f82a3a."
+      ],
+      "exclusions": [
+        "Excluded #1784 MCP frontend recovery because src/daemon/frontend.c is deleted in this CLI fork."
+      ],
+      "verification": {
+        "local": "scripts/build-dev.sh and build/c/test-runner with -Werror passed; lint-memory-core passed at 3201 raw sites with none grown; strict Actions policy passed; index_supervisor 21/21, daemon_application resource tests 6/6, and combined related checks 5/5 passed.",
+        "jenkins": "#91 FAILURE on 1c5f82a3a (2 Hermes hook tests, fixed in 0f1927fd3); #93 SUCCESS on exact head 0f1927fd3",
+        "windows": "not_run"
+      },
+      "upstream_prs": [
+        1724,
+        2395,
+        2499,
+        1784
+      ],
+      "qualification": "Jenkins release-tooling #91 FAILED on 1c5f82a3a (2 Hermes hook tests); fixed in 0f1927fd3; #93 SUCCESS on exact head 0f1927fd3 (full gate)."
+    },
+    {
+      "batch": "13N",
+      "upstream_start": "e0c7a1da6c067149716afad5a06f2465c114840d",
+      "upstream_checkpoint": "612eee2518ef84cc573e491fdee5fa5c90264cb5",
+      "upstream_commits": 39,
+      "ancestry_validated": true,
+      "fork_base": "0f1927fd3cf872aa3d85719339af255fb1890394",
+      "depends_on": [
+        "13M-2"
+      ],
+      "state": "jenkins_passed_draft_pr_review_pending",
+      "branch": "sync/upstream-13n-20261108",
+      "merge_commit": "2efba854891c7edbc8839c8cce0a7fb9fa7dec11",
+      "head": "98eab3ceb0666aee5521745414f5199acacba315",
+      "receipt": "13n.md",
+      "adaptations": [
+        "Ported #2749 to native source_search: unscoped POSIX scan uses argv find/sort stages and in-process scanning; metacharacters remain rejected by validate_search_args.",
+        "Retained #1862 hook opt-out, #2667 Java external receiver, #2840 watcher cooldown, #2903 reserved nul handling, and #2911 dispatch-only FreeBSD workflow.",
+        "Integrated 13M-1 follow-ups in cf24b6a32."
+      ],
+      "exclusions": [
+        "MCP-only files and release registry steps remain deleted; see 13n.md."
+      ],
+      "verification": {
+        "local": "scripts/build-dev.sh and build/c/test-runner with -Werror passed; lint-memory-core passed at 3201 raw sites with none grown; strict Actions policy passed; #1862 and #2840 tests 9/9, source_search, integration, and index_policy tests 78/78 passed.",
+        "jenkins": "#92 aborted (stale head cf24b6a32); #94 SUCCESS on exact head 98eab3ceb",
+        "windows": "not_run; reserved nul handling not natively verified"
+      },
+      "upstream_prs": [
+        1862,
+        2667,
+        2749,
+        2840,
+        2903,
+        2911
+      ],
+      "qualification": "Jenkins release-tooling #92 on cf24b6a32 aborted (stale head); #94 SUCCESS on exact head 98eab3ceb (full gate), which merges the 13M-2 fix."
     }
   ],
   "reconciliation": [
@@ -1660,22 +1769,18 @@
     }
   },
   "current_continuation": {
-    "baseline": "27b731cec45e2353303738ac6d8e77acbef42b7c",
-    "pinned_target": "a5b248f47272413189746589b9a2c551c6b6c5ec",
-    "integrated_through": "a5b248f47272413189746589b9a2c551c6b6c5ec",
-    "current_merge_commit": "8a686f225b2c64f81c0716f3129c36c50fb10ffe",
+    "baseline": "cf63fe667579482c7e3b73238b73d4ad2d01db97",
+    "upstream_baseline": "612eee2518ef84cc573e491fdee5fa5c90264cb5",
+    "merge_base": "a5b248f47272413189746589b9a2c551c6b6c5ec",
+    "integrated_through": "612eee2518ef84cc573e491fdee5fa5c90264cb5",
+    "current_merge_commit": "2efba854891c7edbc8839c8cce0a7fb9fa7dec11",
+    "current_head": "98eab3ceb0666aee5521745414f5199acacba315",
     "upstream_commits_remaining": 0,
-    "status": "full_jenkins_success_independent_review_and_acceptance_pending",
-    "candidate_commit": "214b87b84a40e170fd8b3db2c603ab651ba5fe2c",
-    "full_jenkins": {
-      "job": "codebase-memory-cli-release-tooling",
-      "build": 88,
-      "result": "SUCCESS",
-      "source_commit": "214b87b84a40e170fd8b3db2c603ab651ba5fe2c",
-      "url": "http://192.168.88.146:8080/job/codebase-memory-cli-release-tooling/88/",
-      "production_binary_sha256": "c86570af70bd2dfb655a5c2a82d2ab7669e9e76b6ea95fab6af9badc9fd7877f",
-      "test_summary": "4141 passed, 0 failed, 2 skipped; 188 suites, 9 jobs"
-    }
+    "baseline_upstream_commits_behind": 214,
+    "status": "jenkins_passed_13m1_merged_13m2_13n_review_pending",
+    "jenkins_qualification": "PASSED: #90 c3c5271ab, #93 0f1927fd3, #94 98eab3ceb",
+    "native_windows": "not_run; #2903 nul handling remains unverified natively",
+    "publication": "no push, no PR, no Actions dispatch at time of writing"
   },
   "upstream_commits_remaining": 0
 }

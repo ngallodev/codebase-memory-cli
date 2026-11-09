@@ -2,14 +2,14 @@
 
 ## Live continuation — 2026-11-02
 
-13A is on the authoritative fork main at `27b731cec45e2353303738ac6d8e77acbef42b7c`.
-The pinned continuation target is `a5b248f47272413189746589b9a2c551c6b6c5ec`.
-13B–13L are integrated provisionally in order. The final 13L merge is
-`8a686f225b2c64f81c0716f3129c36c50fb10ffe` with receipt [13l.md](13l.md); the
-pinned target is now an ancestor and no pinned upstream commits remain. Independent
-review, final Jenkins qualification, and host acceptance remain open. Current state is in
-[ledger.json](ledger.json); older campaign inventory and PR bases below are
-historical, and do not override the continuation run contract.
+13A–13L are historical checkpoints. The 2026-11-08 stacked continuation integrates
+13M-1, 13M-2, and 13N, ending at `98eab3ceb0666aee5521745414f5199acacba315`;
+the pinned upstream main `612eee2518ef84cc573e491fdee5fa5c90264cb5` is an ancestor
+with zero upstream-only commits. See [13m1.md](13m1.md), [13m2.md](13m2.md),
+[13n.md](13n.md), and [ledger.json](ledger.json). Jenkins full gate passed for exact heads
+`c3c5271ab` (#90, merged as PR #33), `0f1927fd3` (#93), and `98eab3ceb` (#94); native Windows was not run.
+Independent review and host acceptance remain open. Older campaign inventory and
+PR bases below are historical and do not override the continuation run contract.
 
 This campaign supplements the [canonical integration ledger](../UPSTREAM_308_CANDIDATE_AUDIT_20260912.md); it does not supersede older unresolved semantic dispositions. Machine status and per-checkpoint acceptance live in [ledger.json](ledger.json). [commits.tsv](commits.tsv) enumerates all 933 reachable campaign commits once, including 578 merges and 355 non-merges. Subsystem tags derive from changed paths; they are triage, not proof of implementation.
 
@@ -30,7 +30,7 @@ This campaign supplements the [canonical integration ledger](../UPSTREAM_308_CAN
 1. Finish narrow security/dependency fixes and verify actual advisories, versions and fork applicability. Preserve installer download/extraction limits and explicit workspace authorization.
 2. Harden the local/Jenkins Actions policy guard and add ancestry verification with positive/negative checks.
 3. Complete true merge of upstream `5dc83ac9fa363d51706a70977840b61ea59ce9db` (13A, 79 commits); reconcile reviewed hotfix/guard commits, retaining upstream merge ancestry. Publish only sanitized draft branches.
-4. Batches 13E–13L build sequentially on the latest provisional checkpoint. They remain dependent and unaccepted until independent review. Publish only sanitized stacked draft PRs with explicit dependencies; never base them on stale main.
+4. Batches 13E–13N build sequentially on the latest provisional checkpoint. They remain dependent and unaccepted until independent review. Publish only sanitized stacked draft PRs with explicit dependencies; never base them on stale main.
 5. Run focused checks after each completed batch, then full exact-SHA Jenkins qualification before recommending merge. Native Windows, >4 GiB SQLite offsets, graph determinism and sanitizer/recovery checks remain explicit gates when affected. Pending gates are not successful gates.
 
 Every batch must preserve CLI JSON/compact contracts, native HTTP, daemon ownership, durable storage and source provenance. No MCP server, transport/session registration or mandatory MCP dependencies. Retain useful shared changes via native CLI operations. Record every material exclusion/adaptation and schema migration in its batch receipt.

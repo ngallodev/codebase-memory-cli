@@ -1,6 +1,6 @@
 # Continuation prompt
 
-> Current 2026-11-02 continuation: the pinned target `a5b248f47272413189746589b9a2c551c6b6c5ec` is integrated by true merge `8a686f225b2c64f81c0716f3129c36c50fb10ffe` on `sync/upstream-remainder-20261102`; see [13l.md](13l.md) and [ledger.json](ledger.json). The target is an ancestor with zero upstream-only remainder. Final Jenkins qualification, independent review, and host acceptance remain open. Do not chase later upstream commits, mutate stale PRs #28/#29, push main, or dispatch GitHub Actions.
+> Current 2026-11-08 continuation: baseline fork `cf63fe667579482c7e3b73238b73d4ad2d01db97` was 214 commits behind upstream checkpoint `612eee2518ef84cc573e491fdee5fa5c90264cb5` (merge base `a5b248f47272413189746589b9a2c551c6b6c5ec`). Stacked checkpoints 13M-1, 13M-2, and 13N end at `c3c5271ab8f454287452f0df5eca9e38ffd250cf`, `1c5f82a3a340ff5fa8069e4357d3177be8c48eab`, and `cf24b6a323f4944dd429820af0654bf6be29ccc0`; 13N is zero upstream commits behind. See [13m1.md](13m1.md), [13m2.md](13m2.md), [13n.md](13n.md), and [ledger.json](ledger.json). Jenkins qualification is pending for all three exact heads; native Windows was not run. Independent review and host acceptance remain separate gates. No push, PR publication, or GitHub Actions dispatch occurred.
 
 Continue the 2026-11-01 CLI-first upstream campaign. Read PLAN.md, ledger.json,
 13a.md and the canonical ../UPSTREAM_308_CANDIDATE_AUDIT_20260912.md first.
