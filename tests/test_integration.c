@@ -2429,6 +2429,158 @@ TEST(port_source_search_drops_walker_hits_that_resolve_outside_root) {
     ASSERT_TRUE(total_counts_inside_only);
     PASS();
 }
+
+/* #2634: the POSIX unscoped scan runs find/sort as argv stages with no shell,
+ * feeding the in-process scanner. Run one query against a project whose root
+ * has no indexed files, so the scan walks the tree. */
+typedef struct {
+    port_cache_fixture_t cache;
+    char root[CBM_SZ_512];
+} port_argv_fixture_t;
+
+static bool port_argv_fixture_begin(port_argv_fixture_t *fx, const char *project) {
+    memset(fx, 0, sizeof(*fx));
+    if (!port_cache_begin(&fx->cache)) {
+        return false;
+    }
+    snprintf(fx->root, sizeof(fx->root), "%s/cbm-search-argv-XXXXXX", cbm_tmpdir());
+    return cbm_mkdtemp(fx->root) != NULL && port_create_project(fx->cache.cache, project, fx->root);
+}
+
+static void port_argv_fixture_end(port_argv_fixture_t *fx) {
+    if (fx->root[0]) {
+        th_rmtree(fx->root);
+    }
+    port_cache_end(&fx->cache);
+}
+
+static bool port_argv_write(const port_argv_fixture_t *fx, const char *name, const char *content) {
+    char path[CBM_SZ_1K];
+    int written = snprintf(path, sizeof(path), "%s/%s", fx->root, name);
+    return written > 0 && (size_t)written < sizeof(path) && th_write_file(path, content) == 0;
+}
+
+TEST(port_source_search_unscoped_argv_scans_metachar_filenames_issue2634) {
+    port_argv_fixture_t fx;
+    ASSERT_TRUE(port_argv_fixture_begin(&fx, "argv-meta"));
+    ASSERT_TRUE(port_argv_write(&fx, "we'ird ;na`me$.go", "func HandleHostile2634() {}\n"));
+    ASSERT_TRUE(port_argv_write(&fx, "$(touch pwned).c", "int HandleHostile2634;\n"));
+    ASSERT_TRUE(port_argv_write(&fx, "-lead.c", "int HandleHostile2634;\n"));
+    ASSERT_TRUE(port_argv_write(&fx, "a|b&c.c", "int HandleHostile2634;\n"));
+
+    char *resp = port_operation_execute(
+        "search_code",
+        "{\"pattern\":\"HandleHostile2634\",\"project\":\"argv-meta\",\"format\":\"json\"}", NULL);
+    ASSERT_NOT_NULL(resp);
+    ASSERT_NOT_NULL(strstr(resp, "we'ird ;na`me$.go"));
+    ASSERT_NOT_NULL(strstr(resp, "$(touch pwned).c"));
+    ASSERT_NOT_NULL(strstr(resp, "-lead.c"));
+    ASSERT_NOT_NULL(strstr(resp, "a|b&c.c"));
+    ASSERT_NOT_NULL(strstr(resp, "\"total_grep_matches\":4"));
+    free(resp);
+
+    char pwned[CBM_SZ_1K];
+    snprintf(pwned, sizeof(pwned), "%s/pwned", fx.root);
+    ASSERT_FALSE(access(pwned, F_OK) == 0);
+    ASSERT_FALSE(access("pwned", F_OK) == 0);
+    port_argv_fixture_end(&fx);
+    PASS();
+}
+
+TEST(port_source_search_unscoped_argv_no_match_is_success_issue2634) {
+    port_argv_fixture_t fx;
+    ASSERT_TRUE(port_argv_fixture_begin(&fx, "argv-nomatch"));
+    ASSERT_TRUE(port_argv_write(&fx, "handler.go", "func HandlePresent2634() {}\n"));
+
+    char *resp = port_operation_execute(
+        "search_code",
+        "{\"pattern\":\"NoSuchSymbol2634\",\"project\":\"argv-nomatch\",\"format\":\"json\"}",
+        NULL);
+    ASSERT_NOT_NULL(resp);
+    ASSERT_NOT_NULL(strstr(resp, "\"total_grep_matches\":0"));
+    ASSERT_NOT_NULL(strstr(resp, "\"total_relation\":\"eq\""));
+    free(resp);
+    port_argv_fixture_end(&fx);
+    PASS();
+}
+
+TEST(port_source_search_unscoped_argv_honours_file_pattern_issue2634) {
+    port_argv_fixture_t fx;
+    ASSERT_TRUE(port_argv_fixture_begin(&fx, "argv-glob"));
+    ASSERT_TRUE(port_argv_write(&fx, "handler.py", "def handle_python2634():\n    return 1\n"));
+
+    char *resp =
+        port_operation_execute("search_code",
+                               "{\"pattern\":\"handle_python2634\",\"project\":\"argv-glob\","
+                               "\"file_pattern\":\"*.go\",\"format\":\"json\"}",
+                               NULL);
+    ASSERT_NOT_NULL(resp);
+    ASSERT_NULL(strstr(resp, "handler.py"));
+    ASSERT_NOT_NULL(strstr(resp, "\"total_grep_matches\":0"));
+    free(resp);
+
+    resp = port_operation_execute(
+        "search_code",
+        "{\"pattern\":\"handle_python2634\",\"project\":\"argv-glob\",\"format\":\"json\"}", NULL);
+    ASSERT_NOT_NULL(resp);
+    ASSERT_NOT_NULL(strstr(resp, "handler.py"));
+    ASSERT_NOT_NULL(strstr(resp, "\"total_grep_matches\":1"));
+    free(resp);
+
+    /* A file_pattern carrying shell syntax is rejected before any process runs. */
+    resp = port_operation_execute("search_code",
+                                  "{\"pattern\":\"handle_python2634\",\"project\":\"argv-glob\","
+                                  "\"file_pattern\":\"*.py;touch pwned\"}",
+                                  NULL);
+    ASSERT_NOT_NULL(resp);
+    ASSERT_NOT_NULL(strstr(resp, "invalid characters"));
+    free(resp);
+    port_argv_fixture_end(&fx);
+    PASS();
+}
+
+static bool port_argv_always_cancelled(void *context) {
+    (void)context;
+    return true;
+}
+
+TEST(port_source_search_unscoped_argv_cancel_deadline_and_output_limit) {
+    port_argv_fixture_t fx;
+    ASSERT_TRUE(port_argv_fixture_begin(&fx, "argv-bounds"));
+    ASSERT_TRUE(port_argv_write(&fx, "a.go", "func Bound2634() {}\nfunc Bound2634b() {}\n"));
+    ASSERT_TRUE(port_argv_write(&fx, "b.go", "func Bound2634c() {}\n"));
+    static const char args[] = "{\"pattern\":\"Bound2634\",\"project\":\"argv-bounds\"}";
+
+    cbm_operation_runtime_t cancel = {0};
+    cancel.cancelled = port_argv_always_cancelled;
+    char *resp = port_operation_execute("search_code", args, &cancel);
+    ASSERT_NOT_NULL(resp);
+    ASSERT_NOT_NULL(strstr(resp, "cancelled"));
+    free(resp);
+
+    cbm_operation_runtime_t deadline = {0};
+    deadline.command_timeout_override_set = true;
+    deadline.command_timeout_override_ms = 0;
+    resp = port_operation_execute("search_code", args, &deadline);
+    ASSERT_NOT_NULL(resp);
+    ASSERT_NOT_NULL(strstr(resp, "request_timeout"));
+    free(resp);
+
+    cbm_operation_runtime_t limit = {0};
+    limit.command_output_limit_override = 16;
+    resp = port_operation_execute("search_code", args, &limit);
+    ASSERT_NOT_NULL(resp);
+    ASSERT_NOT_NULL(strstr(resp, "safety limit"));
+    free(resp);
+
+    /* Same query without bounds still succeeds and the scratch was cleaned. */
+    resp = port_operation_execute("search_code", args, NULL);
+    ASSERT_NOT_NULL(resp);
+    ASSERT_NOT_NULL(strstr(resp, "Bound2634"));
+    free(resp);
+    port_argv_fixture_end(&fx);
+    PASS();
+}
 #endif /* !_WIN32 */
 
 /* #2346 (cross-repo-status): every index_status answer carries a read-only
@@ -3248,6 +3400,10 @@ SUITE(integration) {
 #if !defined(_WIN32)
     RUN_TEST(port_source_search_matches_stay_inside_project_root);
     RUN_TEST(port_source_search_drops_walker_hits_that_resolve_outside_root);
+    RUN_TEST(port_source_search_unscoped_argv_scans_metachar_filenames_issue2634);
+    RUN_TEST(port_source_search_unscoped_argv_no_match_is_success_issue2634);
+    RUN_TEST(port_source_search_unscoped_argv_honours_file_pattern_issue2634);
+    RUN_TEST(port_source_search_unscoped_argv_cancel_deadline_and_output_limit);
 #endif
     RUN_TEST(port_status_reports_cross_repo_never_run);
     RUN_TEST(port_search_graph_infra_filters_pin_the_bm25_mirror);

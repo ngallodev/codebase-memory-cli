@@ -2294,6 +2294,51 @@ int cbm_source_search_scan_for_test(const cbm_operation_runtime_t *runtime,
 }
 #endif
 
+#ifndef _WIN32
+/* The unscoped scan with no shell anywhere: find writes the NUL-delimited
+ * candidate list and LC_ALL=C sort orders it in place, both as supervised argv
+ * stages, then the list feeds the same in-process scanner scoped projects use.
+ * The search root and file pattern reach find as plain arguments, never as
+ * shell text. find/sort failures fail closed; an empty list is a successful
+ * empty scan. */
+static cbm_operation_command_cause_t search_run_unscoped_argv(
+    const cbm_operation_runtime_t *runtime, const char *root_path, const char *file_pattern,
+    const char *pattern, bool use_regex, const char *filelist, FILE *out, size_t output_limit,
+    uint64_t deadline_ms, bool deadline_latched, cbm_proc_result_t *result_out) {
+    bool cancellation_latched = false;
+    bool output_limit_latched = false;
+    enum { FIND_ARGV_MAX = 9 };
+    const char *find_argv[FIND_ARGV_MAX];
+    int fa = 0;
+    find_argv[fa++] = "find";
+    find_argv[fa++] = root_path;
+    find_argv[fa++] = "-type";
+    find_argv[fa++] = "f";
+    if (file_pattern) {
+        find_argv[fa++] = "-name";
+        find_argv[fa++] = file_pattern;
+    }
+    find_argv[fa++] = "-print0";
+    find_argv[fa] = NULL;
+    cbm_operation_command_cause_t cause = cbm_operation_run_argv_stage_bounded(
+        runtime, "find", find_argv, NULL, filelist, 0, 0, deadline_ms, true, false,
+        &cancellation_latched, &deadline_latched, &output_limit_latched, result_out);
+    if (cause != CBM_OPERATION_COMMAND_SUCCESS) {
+        return cause;
+    }
+    const char *sort_argv[] = {"sort", "-z", "-o", filelist, filelist, NULL};
+    const char *sort_env[] = {"LC_ALL=C", NULL};
+    cause = cbm_operation_run_argv_stage_bounded(
+        runtime, "sort", sort_argv, sort_env, NULL, 0, 0, deadline_ms, true, false,
+        &cancellation_latched, &deadline_latched, &output_limit_latched, result_out);
+    if (cause != CBM_OPERATION_COMMAND_SUCCESS) {
+        return cause;
+    }
+    return search_scan_in_process(runtime, filelist, pattern, use_regex, out, output_limit,
+                                  deadline_ms);
+}
+#endif
+
 /* Open the scratch directory, write `pattern` to the grep -f file, and leave the
  * file list open for write_scoped_filelist. Returns true on success; on failure
  * everything already created is removed before returning. */
@@ -2791,13 +2836,20 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
          * command overrides, and Windows patterns that need PowerShell's
          * post-filter semantics. */
         bool scan_in_process = scoped && !(runtime && runtime->command_override);
+        bool scan_argv = false;
+#ifndef _WIN32
+        /* POSIX unscoped scans run as find/sort argv stages feeding the
+         * in-process scanner: no shell parses the root or file pattern. The
+         * command override keeps the shell runner for tests. */
+        scan_argv = !scoped && !(runtime && runtime->command_override);
+#endif
 #ifdef _WIN32
         scan_in_process =
             scan_in_process &&
             (!file_pattern || cbm_search_code_file_pattern_can_prefilter(file_pattern));
 #endif
         cbm_operation_command_cause_t scan_cause;
-        if (scan_in_process) {
+        if (scan_in_process || scan_argv) {
             FILE *scan_out = NULL;
             if (scan_cancellation_latched || cbm_operation_runtime_cancelled(runtime)) {
                 scan_cause = CBM_OPERATION_COMMAND_CANCELLED;
@@ -2806,6 +2858,12 @@ cbm_operation_result_t cbm_source_search_operation_execute(const char *args,
             } else if (!(scan_out = search_scratch_file(scratch.dir, "scan", output_path,
                                                         sizeof(output_path)))) {
                 scan_cause = CBM_OPERATION_COMMAND_FAILURE;
+            } else if (scan_argv) {
+#ifndef _WIN32
+                scan_cause = search_run_unscoped_argv(
+                    runtime, root_path, file_pattern, pattern, use_regex, filelist, scan_out,
+                    scan_output_limit, scan_deadline_ms, scan_deadline_latched, &scan_result);
+#endif
             } else {
                 scan_cause = search_scan_in_process(runtime, filelist, pattern, use_regex, scan_out,
                                                     scan_output_limit, scan_deadline_ms);
