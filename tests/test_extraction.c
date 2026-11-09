@@ -1110,6 +1110,37 @@ TEST(php_inline_html_trailing_close_tag_crlf_issue2000) {
     PASS();
 }
 
+/* Standalone CR ends a line comment, so a `?>` inside the next CR-only line's
+ * string is not a close tag; a `?>` that ends a `//` or `#` comment blanks the
+ * comment so the PHP reopened on that line is not swallowed; `<?work();` is a
+ * short tag while `<?xml` stays markup. */
+TEST(php_inline_html_comment_close_tag_and_short_tag_masks) {
+    CBMArena arena;
+    cbm_arena_init(&arena);
+    const char *cr = "<?php\r// note\r$s = '?>';\rfunction a() {}\r";
+    ASSERT(cbm_php_mask_inline_html(&arena, cr, (int)strlen(cr)) == cr);
+
+    const char *cmt = "<?php\n// note ?><?php function b() {}\n";
+    const char *masked = cbm_php_mask_inline_html(&arena, cmt, (int)strlen(cmt));
+    ASSERT_STR_EQ(masked, "<?php\n        ;       function b() {}\n");
+
+    const char *hash = "<?php\n# n ?><?php function c() {}\n";
+    masked = cbm_php_mask_inline_html(&arena, hash, (int)strlen(hash));
+    ASSERT_STR_EQ(masked, "<?php\n    ;       function c() {}\n");
+
+    const char *shorttag = "<?work();\n?>\n<?xml version=\"1.0\"?>\n";
+    masked = cbm_php_mask_inline_html(&arena, shorttag, (int)strlen(shorttag));
+    ASSERT_STR_EQ(masked, "<?work();\n; \n                     \n");
+    cbm_arena_destroy(&arena);
+
+    CBMFileResult *r = extract("<?php\n// note ?><?php function later() { helper(); }\n",
+                               CBM_LANG_PHP, "t", "c.php");
+    ASSERT_NOT_NULL(r);
+    ASSERT(has_def(r, "Function", "later"));
+    cbm_free_result(r);
+    PASS();
+}
+
 /* --- Ruby --- */
 TEST(ruby_class) {
     CBMFileResult *r = extract("class Animal\n  def initialize(name)\n    @name = name\n  end\n  "
@@ -15448,6 +15479,7 @@ SUITE(extraction) {
     RUN_TEST(php_inline_html_markup_never_reaches_graph_issue2000);
     RUN_TEST(php_inline_html_mask_copies_only_on_write_issue2000);
     RUN_TEST(php_inline_html_trailing_close_tag_crlf_issue2000);
+    RUN_TEST(php_inline_html_comment_close_tag_and_short_tag_masks);
     RUN_TEST(ruby_class);
     RUN_TEST(ruby_module);
     RUN_TEST(ruby_constructor_callee_is_constant_path);

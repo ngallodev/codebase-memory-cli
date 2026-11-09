@@ -23126,8 +23126,9 @@ static void swift_init_observe(cbm_store_t *s, const char *project, SwiftInitObs
 
     edges = NULL;
     count = 0;
-    o->init_usages = 0;
+    o->init_usages = -1; /* error sentinel until the USAGE query succeeds */
     if (cbm_store_find_edges_by_type(s, project, "USAGE", &edges, &count) == CBM_STORE_OK) {
+        o->init_usages = 0;
         for (int i = 0; i < count; i++) {
             cbm_node_t tgt = {0};
             if (cbm_store_find_node_by_id(s, edges[i].target_id, &tgt) == CBM_STORE_OK &&
@@ -23148,6 +23149,7 @@ static void swift_init_case(bool parallel, int pad, SwiftInitObservation *o) {
     memset(o, 0, sizeof(*o));
     o->run_rc = -1;
     o->calls = -1;
+    o->init_usages = -1;
     char tmp[256];
     snprintf(tmp, sizeof(tmp), "/tmp/cbm_swift_init_XXXXXX");
     if (!cbm_mkdtemp(tmp)) {

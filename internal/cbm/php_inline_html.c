@@ -31,6 +31,7 @@ enum {
     PHP_TAG_OPEN_LEN = 5,  /* <?php */
     PHP_TAG_ECHO_LEN = 3,  /* <?= */
     PHP_TAG_SHORT_LEN = 2, /* <? */
+    PHP_XML_LEN = 3,       /* xml */
     PHP_HEREDOC_LEN = 3,   /* <<< */
     PHP_FIRST_NON_ASCII = 0x80,
     PHP_NOT_FOUND = -1,
@@ -80,9 +81,15 @@ static bool php_ieq(const char *s, int len, int i, const char *word) {
     return true;
 }
 
+/* True when the identifier at i is `xml` (an XML prolog target). */
+static bool php_xml_prolog(const char *s, int len, int i) {
+    return php_ieq(s, len, i, "xml") &&
+           !(i + PHP_XML_LEN < len && php_is_ident_char((unsigned char)s[i + PHP_XML_LEN]));
+}
+
 /* Length of the open tag at i, or 0. `<?php` needs whitespace or EOF after it
- * and `<?=` is always a tag. A bare `<?` counts only when whitespace follows,
- * so an `<?xml ...?>` prolog in markup stays markup. */
+ * and `<?=` is always a tag. A bare `<?` counts when whitespace or an
+ * identifier follows, except `<?xml`, so an XML prolog in markup stays markup. */
 static int php_open_tag_len(const char *s, int len, int i) {
     if (!php_at(s, len, i, "<?")) {
         return 0;
@@ -96,6 +103,11 @@ static int php_open_tag_len(const char *s, int len, int i) {
         return PHP_TAG_ECHO_LEN;
     }
     if (after < len && php_is_space((unsigned char)s[after])) {
+        return PHP_TAG_SHORT_LEN;
+    }
+    /* `<?work();` is a short tag too, but `<?xml` stays an XML prolog. */
+    if (after < len && php_is_ident_start((unsigned char)s[after]) &&
+        !php_xml_prolog(s, len, after)) {
         return PHP_TAG_SHORT_LEN;
     }
     return 0;
@@ -141,7 +153,7 @@ static int php_skip_block_comment(const char *s, int len, int i) {
 
 /* Index of the line break or `?>` that ends the one-line comment at i. */
 static int php_skip_line_comment(const char *s, int len, int i) {
-    while (i < len && s[i] != '\n' && !php_at(s, len, i, "?>")) {
+    while (i < len && s[i] != '\n' && s[i] != '\r' && !php_at(s, len, i, "?>")) {
         i++;
     }
     return i;
@@ -236,7 +248,8 @@ static int php_skip_ident(const char *s, int len, int i, bool *halt) {
 
 /* Scan PHP code from i to the next close tag. Returns the index of that `?>`,
  * len when the file ends in PHP mode, or PHP_NOT_FOUND at __halt_compiler. */
-static int php_scan_code(const char *s, int len, int i) {
+static int php_scan_code(const char *s, int len, int i, int *comment) {
+    *comment = PHP_NOT_FOUND;
     while (i < len) {
         unsigned char c = (unsigned char)s[i];
         if (php_at(s, len, i, "?>")) {
@@ -247,7 +260,11 @@ static int php_scan_code(const char *s, int len, int i) {
         } else if (php_at(s, len, i, "/*")) {
             i = php_skip_block_comment(s, len, i);
         } else if (php_at(s, len, i, "//") || (c == '#' && !php_at(s, len, i, "#["))) {
+            int start = i;
             i = php_skip_line_comment(s, len, i);
+            if (php_at(s, len, i, "?>")) {
+                *comment = start; /* the close tag ends this comment */
+            }
         } else if (php_at(s, len, i, "<<<")) {
             i = php_skip_heredoc(s, len, i);
         } else if (php_is_ident_start(c)) {
@@ -295,10 +312,15 @@ static void php_mask_blank(PHPMask *m, int from, int to) {
     }
 }
 
-/* Turn the `?>` at i into `; `. */
-static void php_mask_close_tag(PHPMask *m, int i) {
+/* Turn the `?>` at i into `; `. When the tag ends a line comment starting at
+ * `comment`, blank that comment first: `; ` cannot end it and a line break
+ * would shift rows, so the reopened PHP on the same line would be swallowed. */
+static void php_mask_close_tag(PHPMask *m, int i, int comment) {
     char *out = php_mask_writable(m);
     if (out) {
+        if (comment >= 0) {
+            php_blank(out, comment, i);
+        }
         out[i] = ';';
         out[i + SKIP_ONE] = ' ';
     }
@@ -336,11 +358,12 @@ const char *cbm_php_mask_inline_html(CBMArena *arena, const char *source, int so
         seen_open = true;
 
         /* PHP mode, up to the close tag. */
-        int close = php_scan_code(source, source_len, i + tag);
+        int comment = PHP_NOT_FOUND;
+        int close = php_scan_code(source, source_len, i + tag, &comment);
         if (close < 0 || close >= source_len) {
             break;
         }
-        php_mask_close_tag(&m, close);
+        php_mask_close_tag(&m, close, comment);
         i = close + PAIR_LEN;
     }
     /* On allocation failure parse the file as it is: the old behaviour. */
