@@ -948,6 +948,10 @@ static cbm_proc_tree_rss_status_t cbm_subprocess_tree_rss_platform(cbm_subproces
         cbm_free(CBM_MEM_CLASS_OTHER, procs);
         return CBM_PROC_TREE_RSS_ERROR;
     }
+    if (!procs || count == 0) {
+        cbm_free(CBM_MEM_CLASS_OTHER, procs);
+        return CBM_PROC_TREE_RSS_EMPTY;
+    }
 
     cbm_linux_probe_mark_tree(procs, count, process->pgid);
     uint64_t total = 0;
