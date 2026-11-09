@@ -78,13 +78,15 @@ codebase-memory-cli config get auto_index
 codebase-memory-cli config set auto_index true
 codebase-memory-cli config set auto_index_limit 50000
 codebase-memory-cli config set watcher_enabled false
+codebase-memory-cli config set ignore_worktrees true
 codebase-memory-cli config set doc_candidates false
 codebase-memory-cli config reset doc_candidates
 ```
 
 `doc_candidates` is `auto` by default: unset, the index mode decides. A single
 `codebase-memory-cli index --doc-candidates true|false` also overrides it for
-that index only.
+that index only. With `ignore_worktrees` on, `codebase-memory-cli index
+--index-worktree` indexes a linked git worktree for that one call.
 
 Current keys:
 
@@ -94,6 +96,7 @@ Current keys:
 | `auto_index_limit` | `50000` | Maximum file count allowed for automatic indexing of a new project. |
 | `auto_watch` | `true` | Register an active project with the retained background watcher when a warm runtime/hook integration supplies project context. A daemon-started watcher can retain registered projects after the initiating session ends until daemon shutdown, project deletion/root disappearance, or this setting is disabled. The ordinary one-shot CLI does not require this. |
 | `doc_candidates` | `auto` | Score documentation sections against code to store doc<->code candidates (the possible targets of a section, and the sections that may describe a function or file, each with a judged probability). Unset (`auto`), the index mode decides: on for `full` indexes (the default mode), off for `moderate` and `fast`. Set `true` or `false` to choose for every mode; `config reset doc_candidates` returns to `auto`. The scoring grows with sections x functions: under a second up to ~100k functions, ~15 s at ~400k, ~3 minutes on the Linux kernel. Off stores no candidates and leaves the rest of the graph unchanged; on in `fast` mode stores candidates without adding `fast`'s skipped `SIMILAR_TO` / `SEMANTICALLY_RELATED` edges. `codebase-memory-cli index --doc-candidates true|false` sets it for a single index and wins over this setting. Applies from the next index. |
+| `ignore_worktrees` | `false` | Skip linked git worktrees when indexing automatically, and refuse an explicit `codebase-memory-cli index` of one unless `--index-worktree` is passed. See [`ignore_worktrees`](#ignore_worktrees). |
 | `watch_non_git` | `false` | Poll non-Git roots with the indexer discovery rules and an adaptive file-tree scan. Skipped paths, including `.codebase-memory/`, do not trigger indexing. The first poll after daemon startup reindexes once; later changes trigger one reindex. This walks the whole tree each poll and is read when the daemon starts. |
 | `watcher_enabled` | `true` | Master switch for the retained background watcher subsystem. Set `false` to stop its poll thread/project registration. Reindex manually with `codebase-memory-cli index` when disabled. |
 | `index_max_files` | `off` | Optional maximum number of accepted source files in one discovery run. |
@@ -128,24 +131,24 @@ stored index of what is largely the same repository.
 Enable the key to keep those checkouts out of the index:
 
 ```bash
-codebase-memory-mcp config set ignore_worktrees true
+codebase-memory-cli config set ignore_worktrees true
 ```
 
 With it enabled:
 
 - automatic indexing skips a session whose root is a linked worktree;
 - the `hook-augment` context says the worktree is unindexed on purpose instead
-  of telling the agent to run `index_repository`;
-- an explicit `index_repository` call on a linked worktree is refused, and names
-  both ways forward — pass `index_worktree=true` for that one call, or turn the
-  key back off.
+  of telling the agent to run `codebase-memory-cli index`;
+- an explicit `codebase-memory-cli index` of a linked worktree is refused with an
+  error that names both ways forward: pass `--index-worktree` for that one call,
+  or run `codebase-memory-cli config set ignore_worktrees false`.
 
 The main checkout of the same repository is unaffected, as are ordinary clones
 and submodules. Detection is git plumbing only: a linked worktree's `.git` is a
 file pointing at a gitdir that contains a `commondir` entry.
 
 A subdirectory counts as the worktree it sits in. Detection walks up from the
-given path to the nearest `.git` entry, so `index_repository` on any
+given path to the nearest `.git` entry, so `codebase-memory-cli index` on any
 subdirectory of a linked worktree is refused the same way, and a session root or
 hook working directory inside one is treated as that worktree. The walk stops at
 the first `.git` it finds; a main checkout or a submodule ends it as "not a
