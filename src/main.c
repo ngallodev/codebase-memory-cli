@@ -887,6 +887,8 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
     const char *worker_marker = cli_strip_flag_value(&argc, argv, CBM_INDEX_WORKER_MARKER_ARG);
     const char *worker_quarantine =
         cli_strip_flag_value(&argc, argv, CBM_INDEX_WORKER_QUARANTINE_ARG);
+    const char *worker_publish_fence =
+        cli_strip_flag_value(&argc, argv, CBM_INDEX_WORKER_PUBLISH_FENCE_ARG);
     if (index_worker) {
         /* The graph lives on this process's heaps: SQLite gets heaps of its
          * own here, and only here (cbm_sqlite_dedicated_heap). */
@@ -902,6 +904,7 @@ static int run_cli(int argc, char **argv, cbm_project_lock_manager_t *project_lo
     cbm_index_set_worker_role_options(index_worker, response_out, worker_single_thread,
                                       worker_marker, worker_quarantine,
                                       cbm_index_worker_memory_budget_bytes());
+    cbm_index_set_worker_publish_fence(index_worker ? worker_publish_fence : NULL);
 
     if (argc < MAIN_MIN_ARGC) {
         (void)fprintf(stderr, CLI_USAGE);
@@ -3601,6 +3604,7 @@ int main(int argc, char **argv) {
         cbm_index_set_worker_role_options(true, invocation.response_out, invocation.single_thread,
                                           invocation.marker_file, invocation.quarantine_file,
                                           invocation.memory_budget_bytes);
+        cbm_index_set_worker_publish_fence(invocation.publish_fence_file);
 #ifndef _WIN32
         /* Split into three ordered steps rather than one condition, because the
          * ORDER is load-bearing and the middle step only exists in test builds:
@@ -3779,7 +3783,6 @@ int main(int argc, char **argv) {
     cbm_daemon_bootstrap_result_t bootstrap_result;
     cbm_daemon_bootstrap_status_t bootstrap_status =
         main_client_bootstrap_with_upgrade(&bootstrap_config, &bootstrap_result, true);
-    cbm_daemon_ipc_endpoint_free(endpoint);
     if (bootstrap_status != CBM_DAEMON_BOOTSTRAP_CONNECTED || !bootstrap_result.client) {
         main_report_client_bootstrap_failure(&bootstrap_result);
         (void)main_version_cohort_close(&client_cohort_lease, &client_cohort_manager);

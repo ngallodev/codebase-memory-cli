@@ -2,6 +2,7 @@
 #define CBM_OPERATIONS_INDEX_H
 
 #include "foundation/index_policy.h"
+#include "operations/index_supervisor.h"
 #include "operations/operation.h"
 
 #include <stdbool.h>
@@ -20,6 +21,34 @@
  * this. */
 bool cbm_index_operation_policy_add_to_args(yyjson_mut_doc *doc, yyjson_mut_val *root,
                                             const cbm_index_resource_policy_t *policy);
+
+/* Decode the trusted policy a supervisor encoded on an internal worker
+ * request. False (with error filled) when it is missing or incomplete. */
+bool cbm_index_policy_from_internal_args(const char *args_json, cbm_index_resource_policy_t *policy,
+                                         char *error, size_t error_size);
+
+/* Request-scoped facts a worker resource failure is reported against. One
+ * supervised request can run several worker attempts (crash/hang recovery), and
+ * serving_index_preserved describes the request, not only its last attempt:
+ * it is true only when a servable index served the project when the request
+ * began AND no attempt of the request committed to replacing it (the
+ * publication fence, index_supervisor.h) AND that index is still servable. */
+typedef struct {
+    bool serving_index_existed;
+    bool publication_committed;
+} cbm_index_request_facts_t;
+
+/* Capture the facts at the start of a request, before its first worker. */
+void cbm_index_request_facts_begin(const char *args_json, cbm_index_request_facts_t *facts);
+/* Fold one finished attempt into the request facts. */
+void cbm_index_request_facts_record(cbm_index_request_facts_t *facts,
+                                    const cbm_index_worker_result_t *worker_result);
+/* Native result wire (is_error set, code resource_limit_exceeded or
+ * resource_probe_failed) for a worker stopped by a resource limit; caller
+ * frees. NULL facts claim nothing: serving_index_preserved is then false. */
+char *cbm_index_worker_resource_response(const char *args_json,
+                                         const cbm_index_worker_result_t *worker_result,
+                                         const cbm_index_request_facts_t *facts);
 
 /* The fork's key-value config store (defined in cli/cli.h). Declared here so
  * the encoder below can name it without pulling cli.h into every includer. */
