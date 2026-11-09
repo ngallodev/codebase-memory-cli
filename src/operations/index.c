@@ -18,6 +18,7 @@
 #include "foundation/platform.h"
 #include "foundation/str_util.h"
 #include "foundation/workspace.h"
+#include "git/git_context.h"
 #include "pipeline/artifact.h"
 #include "pipeline/pipeline.h"
 #include "store/store.h"
@@ -1217,6 +1218,27 @@ static bool index_call_mode_arg(const char *json, const char *key, bool *out) {
     return valid;
 }
 
+/* ignore_worktrees: an explicit index of a linked worktree is refused, not
+ * silently skipped; index_worktree overrides it for this call. Fills error and
+ * returns true on refusal. Reads no config unless repo_path is a linked
+ * worktree. */
+static bool index_worktree_refused(const char *json, const char *repo_path, char *error,
+                                   size_t error_size) {
+    if (index_bool_arg(json, "index_worktree") || !cbm_git_is_linked_worktree(repo_path)) {
+        return false;
+    }
+    cbm_config_t *config = cbm_config_open(cbm_resolve_cache_dir());
+    bool ignore_worktrees = cbm_config_get_bool(config, CBM_CONFIG_IGNORE_WORKTREES, false);
+    cbm_config_close(config);
+    if (ignore_worktrees) {
+        snprintf(error, error_size,
+                 "repo_path is a linked git worktree and ignore_worktrees is enabled. Pass "
+                 "--index-worktree to index it anyway, or run: codebase-memory-cli config set "
+                 "ignore_worktrees false");
+    }
+    return ignore_worktrees;
+}
+
 cbm_operation_result_t cbm_index_operation_execute(const char *args_json,
                                                    const cbm_operation_runtime_t *runtime) {
     const char *json = args_json ? args_json : "{}";
@@ -1258,7 +1280,8 @@ cbm_operation_result_t cbm_index_operation_execute(const char *args_json,
                                    : getenv("CBM_ALLOWED_ROOT");
     char boundary[CBM_SZ_1K];
     if (!cbm_workspace_root_allowed(repo_path, cbm_workspace_home_dir(), cbm_workspace_cache_dir(),
-                                    allowed_root, boundary, sizeof(boundary))) {
+                                    allowed_root, boundary, sizeof(boundary)) ||
+        (!status_mode && index_worktree_refused(json, repo_path, boundary, sizeof(boundary)))) {
         free(repo_path);
         return index_text_error(boundary);
     }

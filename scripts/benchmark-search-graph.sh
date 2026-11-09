@@ -3,15 +3,58 @@
 # codebase-memory-cli binary to measure regex / BM25 search performance.
 #
 # Usage:
-#   scripts/benchmark-search-graph.sh <binary-path> <project-name>
+#   scripts/benchmark-search-graph.sh <binary-path> <repo-path>
 
 set -euo pipefail
 
-BINARY="${1:?Usage: $0 <binary-path> <project-name>}"
-PROJECT="${2:?Usage: $0 <binary-path> <project-name>}"
+BINARY="${1:?Usage: $0 <binary-path> <repo-path>}"
+REPO="${2:?Usage: $0 <binary-path> <repo-path>}"
+REPO=$(cd "$REPO" && pwd -P)
+
+# shellcheck source=test-runtime.sh
+source "$(dirname "${BASH_SOURCE[0]}")/test-runtime.sh"
+cbm_test_runtime_init
+BENCH_TMP=""
+trap 'cbm_test_runtime_cleanup "$BINARY"; [ -z "$BENCH_TMP" ] || rm -rf -- "$BENCH_TMP"' EXIT
+BENCH_TMP=$(mktemp -d)
+INDEX_ERR="$BENCH_TMP/index-stderr.log"
+DAEMON_START_LOG="$BENCH_TMP/daemon-start.log"
+
+# Its output is kept for the failure path: the product names why a daemon did
+# not start, and that is the part an operator needs.
+if ! "$BINARY" daemon start >"$DAEMON_START_LOG" 2>&1; then
+    echo "private daemon did not start" >&2
+    if [ -s "$DAEMON_START_LOG" ]; then
+        echo "--- daemon start output ---" >&2
+        cat "$DAEMON_START_LOG" >&2
+    fi
+    exit 1
+fi
+# Index and parse keep their stderr instead of discarding it: without it the
+# failure below names only its symptom, and the cause — an unreadable
+# repository, a refused daemon, a malformed envelope — is unrecoverable. The
+# repository path is one argv element, so a quote or backslash needs no escaping.
+INDEX_JSON=$("$BINARY" index "$REPO" --mode full --json 2>"$INDEX_ERR" || echo '{}')
+PROJECT=$(echo "$INDEX_JSON" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('project', ''))
+" 2>>"$INDEX_ERR" || echo "")
+if [ -z "$PROJECT" ]; then
+    echo "index of $REPO did not report a project" >&2
+    if [ -s "$INDEX_ERR" ]; then
+        echo "--- index/parse stderr ---" >&2
+        cat "$INDEX_ERR" >&2
+    fi
+    if [ -n "$INDEX_JSON" ]; then
+        echo "--- index response (first 500 bytes) ---" >&2
+        printf '%.500s\n' "$INDEX_JSON" >&2
+    fi
+    exit 1
+fi
 
 echo "Binary:  $BINARY"
-echo "Project: $PROJECT"
+echo "Project: $PROJECT (indexed from $REPO)"
 echo ""
 
 run_case() {

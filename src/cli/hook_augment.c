@@ -18,10 +18,13 @@
 
 #include "cli/cli.h"
 #include "operations/operation.h"
+#include "foundation/compat.h"
 #include "foundation/compat_fs.h"
 #include "foundation/constants.h"
 #include "foundation/mem.h"
 #include "foundation/platform.h"
+#include "foundation/str_util.h"
+#include "git/git_context.h"
 #include "pipeline/pipeline.h"
 #include "yyjson/yyjson.h"
 
@@ -1685,7 +1688,14 @@ static const char *ha_active_tier(yyjson_val *root, const char *event) {
     return "Tier 2 verification";
 }
 
-static const char *ha_no_project_index_guidance(const char *event) {
+static const char *ha_no_project_index_guidance(const char *event, bool worktree_ignored) {
+    /* ignore_worktrees is on and this cwd is a linked worktree: indexing it is
+     * deliberately disabled, so telling the agent to run `index` would only
+     * produce a refusal. Point at the setting instead. */
+    if (worktree_ignored) {
+        return "This is a linked git worktree and ignore_worktrees is enabled, so it is not "
+               "indexed on purpose; do not run `codebase-memory-cli index` here.";
+    }
     return event && strcmp(event, "SubagentStart") == 0
                ? "Ask the parent agent to run `codebase-memory-cli index .` before structural "
                  "exploration; "
@@ -1703,6 +1713,57 @@ static bool ha_invocation_supported(ha_lifecycle_dialect_t dialect, const char *
     return !forced_event || ha_dialect_event_supported(dialect, forced_event);
 }
 
+#ifdef CBM_CLI_ENABLE_TEST_API
+static CBM_TLS int *g_ha_worktree_gate_counter = NULL;
+#endif
+
+/* Reads ignore_worktrees from the runtime config store only when the store
+ * already exists: the hook must not create _config.db as a side effect, and
+ * with the key off (the default) it does nothing else for worktrees. */
+static bool ha_ignore_worktrees_enabled(void) {
+    const char *cache_dir = cbm_resolve_cache_dir();
+    if (!cache_dir || !cache_dir[0]) {
+        return false;
+    }
+    char db_path[4096];
+    int written = snprintf(db_path, sizeof(db_path), "%s/" CBM_CONFIG_DB_FILENAME, cache_dir);
+    if (written <= 0 || (size_t)written >= sizeof(db_path) || !cbm_file_exists(db_path)) {
+        return false;
+    }
+    cbm_config_t *cfg = cbm_config_open(cache_dir);
+    bool enabled = cbm_config_get_bool(cfg, CBM_CONFIG_IGNORE_WORKTREES, false);
+    cbm_config_close(cfg);
+    return enabled;
+}
+
+/* Project resolution once ignore_worktrees is on; the caller runs this only
+ * after reading the key. A symlink alias has no .git of its own, so cwd is
+ * canonicalized as the index operation does before the same gate. A linked
+ * worktree is refused even inside an indexed checkout or another linked
+ * worktree, so a match is kept only when its root belongs to this cwd's own
+ * linked worktree, not a parent graph. */
+static char *ha_resolve_project_ignoring_worktrees(const char *cwd, bool *drop_ancestor,
+                                                   bool *worktree_ignored) {
+#ifdef CBM_CLI_ENABLE_TEST_API
+    if (g_ha_worktree_gate_counter) {
+        (*g_ha_worktree_gate_counter)++;
+    }
+#endif
+    char canonical_cwd[4096];
+    if (ha_canonical_path(cwd, canonical_cwd, sizeof(canonical_cwd))) {
+        cwd = canonical_cwd;
+    }
+    char project_root[4096];
+    project_root[0] = '\0';
+    char *project = ha_resolve_indexed_project_with_root(cwd, project_root, sizeof(project_root));
+    bool linked = cbm_git_is_linked_worktree(cwd);
+    /* Drop a parent graph without a second free(): this file's raw free count
+     * is ratcheted, and the caller's single free(project) still releases it. */
+    *drop_ancestor = linked && project && !cbm_git_same_linked_worktree(cwd, project_root);
+    *worktree_ignored = linked && (!project || *drop_ancestor);
+    return project;
+}
+
 static char *ha_lifecycle_json_from_root(const char *session_root, yyjson_val *root,
                                          const char *forced_event, ha_lifecycle_dialect_t dialect) {
     if (!root || !yyjson_is_obj(root)) {
@@ -1716,7 +1777,14 @@ static char *ha_lifecycle_json_from_root(const char *session_root, yyjson_val *r
     char cwd_buffer[4096];
     const char *cwd =
         ha_normalized_cwd_with_root(root, session_root, cwd_buffer, sizeof(cwd_buffer));
-    char *project = cwd ? ha_resolve_indexed_project(cwd) : NULL;
+    bool drop_ancestor = false;
+    bool worktree_ignored = false;
+    char *project = NULL;
+    if (cwd && ha_ignore_worktrees_enabled()) {
+        project = ha_resolve_project_ignoring_worktrees(cwd, &drop_ancestor, &worktree_ignored);
+    } else if (cwd) {
+        project = ha_resolve_indexed_project(cwd);
+    }
 
     char context[2048];
     const char *scope = "Session";
@@ -1738,7 +1806,7 @@ static char *ha_lifecycle_json_from_root(const char *session_root, yyjson_val *r
                                ? " The same tools are available from the shell: "
                                  "`codebase-memory-cli cli <tool> --help` lists each tool's flags."
                                : "";
-    if (project) {
+    if (project && !drop_ancestor) {
         char safe_project[HA_METADATA_CAP];
         ha_sanitize_metadata(project, safe_project, sizeof(safe_project));
         /* The untrusted label covers the graph-derived project name only. Wrapping
@@ -1757,7 +1825,7 @@ static char *ha_lifecycle_json_from_root(const char *session_root, yyjson_val *r
                  "verification.%s",
                  scope, safe_project, tier, cli_hint);
     } else {
-        const char *index_guidance = ha_no_project_index_guidance(event);
+        const char *index_guidance = ha_no_project_index_guidance(event, worktree_ignored);
         snprintf(context, sizeof(context),
                  "[codebase-memory] %s context: no indexed graph project matched this working "
                  "directory. %s Once indexed, "
@@ -1876,8 +1944,13 @@ bool cbm_hook_path_contains_for_testing(const char *root, const char *candidate,
     return ha_path_contains_mode(root, candidate, case_insensitive);
 }
 
-const char *cbm_hook_no_project_index_guidance_for_testing(const char *event) {
-    return ha_no_project_index_guidance(event);
+const char *cbm_hook_no_project_index_guidance_for_testing(const char *event,
+                                                           bool worktree_ignored) {
+    return ha_no_project_index_guidance(event, worktree_ignored);
+}
+
+void cbm_hook_set_worktree_gate_counter_for_testing(int *counter) {
+    g_ha_worktree_gate_counter = counter;
 }
 
 bool cbm_hook_augment_parse_bash_pattern_for_testing(const char *cmd, char *out, size_t out_sz) {

@@ -5,6 +5,7 @@
 #include "daemon/application_internal.h"
 
 #include "cli/cli.h"
+#include "git/git_context.h"
 #include "foundation/compat.h"
 #include "foundation/compat_fs.h"
 #include "foundation/compat_thread.h"
@@ -586,6 +587,13 @@ static char *application_text_copy(const uint8_t *bytes, uint32_t length) {
         copy[length] = '\0';
     }
     return copy;
+}
+
+/* ignore_worktrees (upstream #1430): gates automatic indexing of linked git
+ * worktrees. Default off, so existing setups keep indexing them. */
+static bool application_ignore_worktrees_enabled(const cbm_daemon_application_t *application) {
+    return application && application->config &&
+           cbm_config_get_bool(application->config, CBM_CONFIG_IGNORE_WORKTREES, false);
 }
 
 static bool application_regular_db_exists(const char *project) {
@@ -2163,6 +2171,18 @@ static void application_auto_index_retry_pending_locked(cbm_daemon_application_t
             application_refresh_watch_locked(session);
             continue;
         }
+        /* ignore_worktrees can be turned on after this session was queued for
+         * a capacity slot. Initial admission already skips linked worktrees;
+         * retry must apply the same gate or the pending checkout is indexed
+         * once a slot opens. */
+        if (application_ignore_worktrees_enabled(application) &&
+            cbm_git_is_linked_worktree(root_path)) {
+            session->auto_index_retry_pending = false;
+            cbm_log_info("daemon.autoindex.skipped", "project", project, "reason",
+                         "linked_worktree");
+            application_refresh_watch_locked(session);
+            continue;
+        }
         char *args = application_auto_index_args(application, root_path);
         if (!args) {
             continue;
@@ -2683,6 +2703,11 @@ static void application_background_initialize_impl(cbm_daemon_application_sessio
     bool auto_index_candidate = auto_index && !db_exists;
     if (auto_index_candidate &&
         !application_session_workspace_allowed(session, "auto_index_discovery")) {
+        auto_index_candidate = false;
+    }
+    if (auto_index_candidate && application_ignore_worktrees_enabled(application) &&
+        cbm_git_is_linked_worktree(root_path)) {
+        cbm_log_info("daemon.autoindex.skipped", "project", project, "reason", "linked_worktree");
         auto_index_candidate = false;
     }
     bool within_auto_index_limit =

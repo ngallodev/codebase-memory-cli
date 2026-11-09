@@ -64,8 +64,12 @@
  * PYTHON STRATEGY INVENTORY — every literal "lsp_..." emitted by py_lsp.c
  *   (grep '"lsp_' internal/cbm/lsp/py_lsp.c), with its keying site:
  *     lsp_direct                (py_lsp.c:1631)  module-local f()
- *     lsp_constructor           (py_lsp.c:1624)  ClassName() where the name is a
- *                                                NAMED type in scope
+ *     lsp_constructor           ClassName() where the class declares no __init__
+ *                               of its own (an inherited one is not followed)
+ *                               → the Class
+ *     lsp_constructor_init      ClassName() where the class declares its own
+ *                               __init__ → that __init__. The textual callee
+ *                               leaf stays the class name; reason joins it.
  *     lsp_method                (py_lsp.c:1731)  obj.method() on a NAMED-typed
  *                                                receiver (covers self.other())
  *     lsp_super                 (py_lsp.c:1693)  super().method() resolved on a
@@ -125,21 +129,19 @@
  * does (".go" → Go pass, ".py" → Python pass). Returns 0 on PASS (GREEN),
  * non-zero on FAIL (RED) — the redness is the documented per-pass status.
  */
-static int assert_lsp_strategy_files(const RFile *files, int nfiles,
-                                     const char *strategy) {
+static int assert_lsp_strategy_files(const RFile *files, int nfiles, const char *strategy) {
     RProj lp;
     cbm_store_t *store = rh_index_files(&lp, files, nfiles);
     if (!store) {
-        printf("  %sFAIL%s %s:%d: index failed for strategy %s\n", tf_red(),
-               tf_reset(), __FILE__, __LINE__, strategy);
+        printf("  %sFAIL%s %s:%d: index failed for strategy %s\n", tf_red(), tf_reset(), __FILE__,
+               __LINE__, strategy);
         rh_cleanup(&lp, store);
         return 1;
     }
 
     int module_sourced = -1;
     int callable_sourced = -1;
-    inv_count_calls_by_source(store, lp.project, &module_sourced,
-                              &callable_sourced);
+    inv_count_calls_by_source(store, lp.project, &module_sourced, &callable_sourced);
 
     int has_strategy = inv_edge_has_strategy(store, lp.project, strategy);
 
@@ -149,8 +151,7 @@ static int assert_lsp_strategy_files(const RFile *files, int nfiles,
     if (module_sourced != 0) {
         printf("  %sFAIL%s %s:%d: strategy %s: %d Module-sourced CALLS "
                "(expected 0)\n",
-               tf_red(), tf_reset(), __FILE__, __LINE__, strategy,
-               module_sourced);
+               tf_red(), tf_reset(), __FILE__, __LINE__, strategy, module_sourced);
         rc = 1;
     }
     /* There must be a callable-sourced CALLS edge, else the fixture produced no
@@ -158,8 +159,7 @@ static int assert_lsp_strategy_files(const RFile *files, int nfiles,
     if (callable_sourced <= 0) {
         printf("  %sFAIL%s %s:%d: strategy %s: no callable-sourced CALLS edge "
                "(callable=%d)\n",
-               tf_red(), tf_reset(), __FILE__, __LINE__, strategy,
-               callable_sourced);
+               tf_red(), tf_reset(), __FILE__, __LINE__, strategy, callable_sourced);
         rc = 1;
     }
 
@@ -176,8 +176,7 @@ static int assert_lsp_strategy_files(const RFile *files, int nfiles,
 }
 
 /* Single-file convenience wrapper. */
-static int assert_lsp_strategy(const char *filename, const char *src,
-                               const char *strategy) {
+static int assert_lsp_strategy(const char *filename, const char *src, const char *strategy) {
     RFile f = {filename, src};
     return assert_lsp_strategy_files(&f, 1, strategy);
 }
@@ -195,8 +194,8 @@ static int assert_no_resolvable_edge_files(const RFile *files, int nfiles,
     RProj lp;
     cbm_store_t *store = rh_index_files(&lp, files, nfiles);
     if (!store) {
-        printf("  %sFAIL%s %s:%d: index failed for no-edge callee %s\n", tf_red(),
-               tf_reset(), __FILE__, __LINE__, callee_substr);
+        printf("  %sFAIL%s %s:%d: index failed for no-edge callee %s\n", tf_red(), tf_reset(),
+               __FILE__, __LINE__, callee_substr);
         rh_cleanup(&lp, store);
         return 1;
     }
@@ -243,64 +242,59 @@ static int assert_no_resolvable_edge(const char *filename, const char *src,
 /* lsp_direct — plain package-local function call f() (go_lsp.c:1259-1265:
  * func_node is a bare identifier resolved via cbm_registry_lookup_symbol on the
  * package QN). */
-static const char kGoDirect[] =
-    "package main\n"
-    "func helper(x int) int { return x + 1 }\n"
-    "func caller(v int) int { return helper(v) }\n";
+static const char kGoDirect[] = "package main\n"
+                                "func helper(x int) int { return x + 1 }\n"
+                                "func caller(v int) int { return helper(v) }\n";
 
 /* lsp_type_dispatch — obj.Method() on a concrete value type whose method's
  * receiver type equals the receiver type (go_lsp.c:1158-1166: method found, the
  * method's receiver_type == the receiver's QN → lsp_type_dispatch). */
-static const char kGoTypeDispatch[] =
-    "package main\n"
-    "type Counter struct{ n int }\n"
-    "func (c Counter) Inc(x int) int { return x + 1 }\n"
-    "func caller() int {\n"
-    "    var c Counter\n"
-    "    return c.Inc(1)\n"
-    "}\n";
+static const char kGoTypeDispatch[] = "package main\n"
+                                      "type Counter struct{ n int }\n"
+                                      "func (c Counter) Inc(x int) int { return x + 1 }\n"
+                                      "func caller() int {\n"
+                                      "    var c Counter\n"
+                                      "    return c.Inc(1)\n"
+                                      "}\n";
 
 /* lsp_embed_dispatch — call a promoted method from an embedded struct
  * (go_lsp.c:1162-1164: the resolved method's receiver_type != the outer
  * receiver type → lsp_embed_dispatch). Outer embeds Inner; o.Greet() resolves
  * to Inner.Greet whose receiver_type is Inner, not Outer. */
-static const char kGoEmbedDispatch[] =
-    "package main\n"
-    "type Inner struct{}\n"
-    "func (i Inner) Greet(x int) int { return x + 7 }\n"
-    "type Outer struct{ Inner }\n"
-    "func caller() int {\n"
-    "    var o Outer\n"
-    "    return o.Greet(1)\n"
-    "}\n";
+static const char kGoEmbedDispatch[] = "package main\n"
+                                       "type Inner struct{}\n"
+                                       "func (i Inner) Greet(x int) int { return x + 7 }\n"
+                                       "type Outer struct{ Inner }\n"
+                                       "func caller() int {\n"
+                                       "    var o Outer\n"
+                                       "    return o.Greet(1)\n"
+                                       "}\n";
 
 /* lsp_interface_resolve — call through an interface that has EXACTLY ONE
  * concrete implementer in the project (go_lsp.c:1220-1226: impl_count == 1 →
  * resolve to the sole implementer's concrete method). Speaker has one
  * implementer (Dog), so s.Speak() resolves to Dog.Speak. */
-static const char kGoInterfaceResolve[] =
-    "package main\n"
-    "type Speaker interface{ Speak(x int) int }\n"
-    "type Dog struct{}\n"
-    "func (d Dog) Speak(x int) int { return x * 2 }\n"
-    "func caller(s Speaker) int {\n"
-    "    return s.Speak(3)\n"
-    "}\n";
+static const char kGoInterfaceResolve[] = "package main\n"
+                                          "type Speaker interface{ Speak(x int) int }\n"
+                                          "type Dog struct{}\n"
+                                          "func (d Dog) Speak(x int) int { return x * 2 }\n"
+                                          "func caller(s Speaker) int {\n"
+                                          "    return s.Speak(3)\n"
+                                          "}\n";
 
 /* lsp_interface_dispatch — call through an interface with TWO implementers, so
  * the sole-implementer shortcut does not fire and the generic interface
  * fallback emits "<iface>.<method>" (go_lsp.c:1232-1236). Speaker has Dog and
  * Cat → ambiguous → generic dispatch. */
-static const char kGoInterfaceDispatch[] =
-    "package main\n"
-    "type Speaker interface{ Speak(x int) int }\n"
-    "type Dog struct{}\n"
-    "func (d Dog) Speak(x int) int { return x * 2 }\n"
-    "type Cat struct{}\n"
-    "func (c Cat) Speak(x int) int { return x * 3 }\n"
-    "func caller(s Speaker) int {\n"
-    "    return s.Speak(3)\n"
-    "}\n";
+static const char kGoInterfaceDispatch[] = "package main\n"
+                                           "type Speaker interface{ Speak(x int) int }\n"
+                                           "type Dog struct{}\n"
+                                           "func (d Dog) Speak(x int) int { return x * 2 }\n"
+                                           "type Cat struct{}\n"
+                                           "func (c Cat) Speak(x int) int { return x * 3 }\n"
+                                           "func caller(s Speaker) int {\n"
+                                           "    return s.Speak(3)\n"
+                                           "}\n";
 
 /* lsp_strategy_cross_file — an unresolved per-file call (callee defined in
  * ANOTHER file) is fixed up by the cross-file fast resolver against the global
@@ -308,15 +302,13 @@ static const char kGoInterfaceDispatch[] =
  * unresolved entry whose callee_qn is found in the merged registry →
  * lsp_strategy_cross_file). caller.go calls a method defined in helper.go. */
 static const RFile kGoCrossFile[] = {
-    {"helper.go",
-     "package main\n"
-     "type Service struct{}\n"
-     "func (s Service) Run(x int) int { return x + 5 }\n"},
-    {"caller.go",
-     "package main\n"
-     "func caller(s Service) int {\n"
-     "    return s.Run(2)\n"
-     "}\n"},
+    {"helper.go", "package main\n"
+                  "type Service struct{}\n"
+                  "func (s Service) Run(x int) int { return x + 5 }\n"},
+    {"caller.go", "package main\n"
+                  "func caller(s Service) int {\n"
+                  "    return s.Run(2)\n"
+                  "}\n"},
 };
 
 /* lsp_unresolved — a call to a function not in the registry; the per-file
@@ -334,66 +326,69 @@ static const char kGoUnresolved[] = "package main\n"
 
 /* lsp_direct — module-local function call f() (py_lsp.c:1627-1631: identifier
  * resolves via cbm_registry_lookup_symbol on the module QN). */
-static const char kPyDirect[] =
-    "def helper(x):\n"
-    "    return x + 1\n"
-    "def caller(v):\n"
-    "    return helper(v)\n";
+static const char kPyDirect[] = "def helper(x):\n"
+                                "    return x + 1\n"
+                                "def caller(v):\n"
+                                "    return helper(v)\n";
 
-/* lsp_constructor — ClassName() where the name is a NAMED type in scope
- * (py_lsp.c:1620-1624: cbm_scope_lookup yields a NAMED type → emit constructor
- * edge to the class QN). */
-static const char kPyConstructor[] =
-    "class Widget:\n"
-    "    def __init__(self):\n"
-    "        pass\n"
-    "def caller():\n"
-    "    return Widget()\n";
+/* lsp_constructor — ClassName() where the class has no user __init__.
+ * The edge stays on the Class node. A class that defines __init__ is
+ * lsp_constructor_init below; strstr would otherwise treat that strategy
+ * as a hit for "lsp_constructor". */
+static const char kPyConstructor[] = "class Widget:\n"
+                                     "    def label(self):\n"
+                                     "        return 1\n"
+                                     "def caller():\n"
+                                     "    return Widget()\n";
+
+/* lsp_constructor_init — ClassName() resolves to the user __init__
+ * (issue #1642). reason carries the class-name leaf so the pipeline join
+ * still matches the textual call. */
+static const char kPyConstructorInit[] = "class Widget:\n"
+                                         "    def __init__(self):\n"
+                                         "        self.ready = True\n"
+                                         "def caller():\n"
+                                         "    return Widget()\n";
 
 /* lsp_method — a method calls a sibling method via self.other() (py_lsp.c:
  * 1727-1731: obj_type is NAMED (self is typed as the enclosing class,
  * py_lsp.c:2950-2952) and py_lookup_attribute finds the method → lsp_method). */
-static const char kPyMethod[] =
-    "class Widget:\n"
-    "    def compute(self, x):\n"
-    "        return self.helper(x) + 1\n"
-    "    def helper(self, x):\n"
-    "        return x * 2\n";
+static const char kPyMethod[] = "class Widget:\n"
+                                "    def compute(self, x):\n"
+                                "        return self.helper(x) + 1\n"
+                                "    def helper(self, x):\n"
+                                "        return x * 2\n";
 
 /* lsp_super — super().method() where the enclosing class has a base class that
  * defines `method` (py_lsp.c:1681-1693: obj is a super() call, the attr resolves
  * against a base in embedded_types, attr != __init__ → lsp_super). Child's
  * greet() calls super().describe(); Base.describe exists. */
-static const char kPySuper[] =
-    "class Base:\n"
-    "    def describe(self, x):\n"
-    "        return x\n"
-    "class Child(Base):\n"
-    "    def greet(self, x):\n"
-    "        return super().describe(x)\n";
+static const char kPySuper[] = "class Base:\n"
+                               "    def describe(self, x):\n"
+                               "        return x\n"
+                               "class Child(Base):\n"
+                               "    def greet(self, x):\n"
+                               "        return super().describe(x)\n";
 
 /* lsp_super_init — super().__init__() (py_lsp.c:1699-1702: attr == __init__ on a
  * super() proxy → synthesize a constructor edge to <base>.__init__). */
-static const char kPySuperInit[] =
-    "class Base:\n"
-    "    def __init__(self):\n"
-    "        self.ready = True\n"
-    "class Child(Base):\n"
-    "    def __init__(self):\n"
-    "        super().__init__()\n";
+static const char kPySuperInit[] = "class Base:\n"
+                                   "    def __init__(self):\n"
+                                   "        self.ready = True\n"
+                                   "class Child(Base):\n"
+                                   "    def __init__(self):\n"
+                                   "        super().__init__()\n";
 
 /* lsp_module_attr — mod.func() after `import mod`, where func is a registered
  * symbol of the imported in-project module (py_lsp.c:1715-1719: obj_type is
  * MODULE and cbm_registry_lookup_symbol(module_qn, attr) hits → lsp_module_attr).
  * Requires a second in-project file so the imported symbol is in the registry. */
 static const RFile kPyModuleAttr[] = {
-    {"helpers.py",
-     "def do_work(x):\n"
-     "    return x + 9\n"},
-    {"main.py",
-     "import helpers\n"
-     "def caller(v):\n"
-     "    return helpers.do_work(v)\n"},
+    {"helpers.py", "def do_work(x):\n"
+                   "    return x + 9\n"},
+    {"main.py", "import helpers\n"
+                "def caller(v):\n"
+                "    return helpers.do_work(v)\n"},
 };
 
 /* lsp_module_attr_unresolved — mod.func() after `import mod` where func is NOT a
@@ -415,71 +410,64 @@ static const RFile kPyModuleAttrUnresolved[] = {
  * the table; py_lsp.c:1651-1662 resolves the subscript-call → lsp_dict_dispatch).
  * The table and the call must be in the same function scope so the literal var
  * is registered before the call. */
-static const char kPyDictDispatch[] =
-    "def foo(x):\n"
-    "    return x + 1\n"
-    "def bar(x):\n"
-    "    return x + 2\n"
-    "def caller(v):\n"
-    "    funcs = {\"a\": foo, \"b\": bar}\n"
-    "    return funcs[\"a\"](v)\n";
+static const char kPyDictDispatch[] = "def foo(x):\n"
+                                      "    return x + 1\n"
+                                      "def bar(x):\n"
+                                      "    return x + 2\n"
+                                      "def caller(v):\n"
+                                      "    funcs = {\"a\": foo, \"b\": bar}\n"
+                                      "    return funcs[\"a\"](v)\n";
 
 /* lsp_operator_dunder — a + b where a is a NAMED type defining __add__
  * (py_lsp.c:2106-2120: binary_operator on a typed NAMED receiver whose class
  * declares the dunder → emit a synthetic CALLS edge to T.__add__). The receiver
  * `a` is annotated so its type is known. */
-static const char kPyOperatorDunder[] =
-    "class Vec:\n"
-    "    def __add__(self, other):\n"
-    "        return self\n"
-    "def caller(a: Vec, b: Vec):\n"
-    "    return a + b\n";
+static const char kPyOperatorDunder[] = "class Vec:\n"
+                                        "    def __add__(self, other):\n"
+                                        "        return self\n"
+                                        "def caller(a: Vec, b: Vec):\n"
+                                        "    return a + b\n";
 
 /* lsp_builtin — print()/len()/... a builtins symbol (py_lsp.c:1634-1637:
  * cbm_registry_lookup_symbol("builtins", fname) hits). EXPECTED RED in a
  * single-file harness with no typeshed/builtins registry loaded. */
-static const char kPyBuiltin[] =
-    "def caller(v):\n"
-    "    return len(v)\n";
+static const char kPyBuiltin[] = "def caller(v):\n"
+                                 "    return len(v)\n";
 
 /* lsp_builtin_constructor — str()/list()/... a builtins TYPE used as a
  * constructor (py_lsp.c:1640-1643: cbm_registry_lookup_type("builtins.str")
  * hits). EXPECTED RED without a typeshed/builtins registry. */
-static const char kPyBuiltinConstructor[] =
-    "def caller(v):\n"
-    "    return str(v)\n";
+static const char kPyBuiltinConstructor[] = "def caller(v):\n"
+                                            "    return str(v)\n";
 
 /* lsp_builtin_method — "x".upper() — a method on a builtin-typed receiver
  * (py_lsp.c:1735-1741: obj_type is BUILTIN, py_lookup_attribute("builtins.str",
  * "upper") hits). EXPECTED RED without a typeshed/builtins registry. */
-static const char kPyBuiltinMethod[] =
-    "def caller():\n"
-    "    s = \"hello\"\n"
-    "    return s.upper()\n";
+static const char kPyBuiltinMethod[] = "def caller():\n"
+                                       "    s = \"hello\"\n"
+                                       "    return s.upper()\n";
 
 /* lsp_generic_method — method on a TEMPLATE-typed receiver such as a list
  * (py_lsp.c:1745-1753: obj_type is TEMPLATE, attribute resolved on the template
  * base type). xs.append(1) on a list-typed xs. EXPECTED RED without a typeshed
  * registry providing builtins.list.append. */
-static const char kPyGenericMethod[] =
-    "def caller():\n"
-    "    xs = [1, 2, 3]\n"
-    "    return xs.append(4)\n";
+static const char kPyGenericMethod[] = "def caller():\n"
+                                       "    xs = [1, 2, 3]\n"
+                                       "    return xs.append(4)\n";
 
 /* lsp_method_union — method on a UNION-typed receiver where exactly one member
  * defines the method (py_lsp.c:1757-1778: obj_type is UNION, exactly one NAMED
  * member resolves the attribute → lsp_method_union). `x: A | B` where only A
  * defines run(). Documented if the union annotation does not resolve both
  * members to in-file NAMED types. */
-static const char kPyMethodUnion[] =
-    "class A:\n"
-    "    def run(self, v):\n"
-    "        return v\n"
-    "class B:\n"
-    "    def stop(self, v):\n"
-    "        return v\n"
-    "def caller(x: A | B):\n"
-    "    return x.run(1)\n";
+static const char kPyMethodUnion[] = "class A:\n"
+                                     "    def run(self, v):\n"
+                                     "        return v\n"
+                                     "class B:\n"
+                                     "    def stop(self, v):\n"
+                                     "        return v\n"
+                                     "def caller(x: A | B):\n"
+                                     "    return x.run(1)\n";
 
 /* ── Go per-strategy tests ───────────────────────────────────────────────── */
 
@@ -496,13 +484,11 @@ TEST(repro_lsp_go_embed_dispatch) {
 }
 
 TEST(repro_lsp_go_interface_resolve) {
-    return assert_lsp_strategy("main.go", kGoInterfaceResolve,
-                               "lsp_interface_resolve");
+    return assert_lsp_strategy("main.go", kGoInterfaceResolve, "lsp_interface_resolve");
 }
 
 TEST(repro_lsp_go_interface_dispatch) {
-    return assert_lsp_strategy("main.go", kGoInterfaceDispatch,
-                               "lsp_interface_dispatch");
+    return assert_lsp_strategy("main.go", kGoInterfaceDispatch, "lsp_interface_dispatch");
 }
 
 TEST(repro_lsp_go_strategy_cross_file) {
@@ -516,9 +502,9 @@ TEST(repro_lsp_go_strategy_cross_file) {
            "fixture)\n",
            tf_dim(), tf_reset());
     return -1; /* skip — not counted as pass or fail */
-    return assert_lsp_strategy_files(
-        kGoCrossFile, (int)(sizeof(kGoCrossFile) / sizeof(kGoCrossFile[0])),
-        "lsp_strategy_cross_file");
+    return assert_lsp_strategy_files(kGoCrossFile,
+                                     (int)(sizeof(kGoCrossFile) / sizeof(kGoCrossFile[0])),
+                                     "lsp_strategy_cross_file");
 }
 
 TEST(repro_lsp_go_unresolved) {
@@ -536,6 +522,10 @@ TEST(repro_lsp_py_direct) {
 
 TEST(repro_lsp_py_constructor) {
     return assert_lsp_strategy("main.py", kPyConstructor, "lsp_constructor");
+}
+
+TEST(repro_lsp_py_constructor_init) {
+    return assert_lsp_strategy("main.py", kPyConstructorInit, "lsp_constructor_init");
 }
 
 TEST(repro_lsp_py_method) {
@@ -561,8 +551,7 @@ TEST(repro_lsp_py_module_attr) {
            tf_reset());
     return -1; /* skip — not counted as pass or fail */
     return assert_lsp_strategy_files(
-        kPyModuleAttr, (int)(sizeof(kPyModuleAttr) / sizeof(kPyModuleAttr[0])),
-        "lsp_module_attr");
+        kPyModuleAttr, (int)(sizeof(kPyModuleAttr) / sizeof(kPyModuleAttr[0])), "lsp_module_attr");
 }
 
 TEST(repro_lsp_py_module_attr_unresolved) {
@@ -572,8 +561,7 @@ TEST(repro_lsp_py_module_attr_unresolved) {
      * rather than a strategy on an edge (unachievable by design). */
     return assert_no_resolvable_edge_files(
         kPyModuleAttrUnresolved,
-        (int)(sizeof(kPyModuleAttrUnresolved) / sizeof(kPyModuleAttrUnresolved[0])),
-        "missing_fn");
+        (int)(sizeof(kPyModuleAttrUnresolved) / sizeof(kPyModuleAttrUnresolved[0])), "missing_fn");
 }
 
 TEST(repro_lsp_py_dict_dispatch) {
@@ -581,8 +569,7 @@ TEST(repro_lsp_py_dict_dispatch) {
 }
 
 TEST(repro_lsp_py_operator_dunder) {
-    return assert_lsp_strategy("main.py", kPyOperatorDunder,
-                               "lsp_operator_dunder");
+    return assert_lsp_strategy("main.py", kPyOperatorDunder, "lsp_operator_dunder");
 }
 
 TEST(repro_lsp_py_builtin) {
@@ -594,8 +581,7 @@ TEST(repro_lsp_py_builtin) {
 TEST(repro_lsp_py_builtin_constructor) {
     /* str(v) resolves to the injected builtins.str type node (py_builtins.c)
      * and emits lsp_builtin_constructor with a real CALLS edge. */
-    return assert_lsp_strategy("main.py", kPyBuiltinConstructor,
-                               "lsp_builtin_constructor");
+    return assert_lsp_strategy("main.py", kPyBuiltinConstructor, "lsp_builtin_constructor");
 }
 
 TEST(repro_lsp_py_builtin_method) {
@@ -623,6 +609,7 @@ SUITE(repro_lsp_go_py) {
 
     RUN_TEST(repro_lsp_py_direct);
     RUN_TEST(repro_lsp_py_constructor);
+    RUN_TEST(repro_lsp_py_constructor_init);
     RUN_TEST(repro_lsp_py_method);
     RUN_TEST(repro_lsp_py_super);
     RUN_TEST(repro_lsp_py_super_init);
