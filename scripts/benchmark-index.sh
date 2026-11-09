@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Index a single benchmark repository and capture metrics.
-# Usage: benchmark-index.sh <binary> <lang> <repo_path> <results_dir>
+# Usage: benchmark-index.sh <codebase-memory-cli binary> <lang> <repo_path> <results_dir>
 
 BINARY="${1:?Usage: benchmark-index.sh <binary> <lang> <repo_path> <results_dir>}"
 LANG="${2:?}"
@@ -66,10 +66,6 @@ DAEMON_START_LOG="$BENCH_TMP/daemon-start.log"
 
 # Resolve symlinks
 REPO=$(cd "$REPO" && pwd -P)
-# One pre-escaped spelling of the path for every request below, the way the
-# soak harness builds its own: a repository path may legitimately contain a
-# quote or a backslash, and hand-built JSON turns that into a parse error.
-REPO_JSON=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$REPO")
 
 # Elapsed time is read from a monotonic clock, never the wall clock: an NTP
 # step mid-run would otherwise skew — or negate — a figure whose whole purpose
@@ -115,7 +111,12 @@ fi
 # Index via CLI and capture timing
 START_MS=$(bench_now_ms)
 
-INDEX_JSON=$("$BINARY" index "$REPO" --mode full --json 2>/dev/null || echo '{"error":"index failed"}')
+# The path is one argv element, so a quote or backslash in it needs no escaping.
+# The exit status is kept (a bare `|| echo` would hide it) and stderr goes to
+# INDEX_ERR for the failure path below.
+INDEX_RC=0
+INDEX_JSON=$("$BINARY" index "$REPO" --mode full --json 2>"$INDEX_ERR") || INDEX_RC=$?
+[ -n "$INDEX_JSON" ] || INDEX_JSON='{"error":"index failed"}'
 
 END_MS=$(bench_now_ms)
 ELAPSED=$((END_MS - START_MS))
