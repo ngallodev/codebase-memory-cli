@@ -389,8 +389,9 @@ static const tool_def_t TOOLS[] = {
      "not, why.",
      "{\"type\":\"object\",\"properties\":{\"project\":{\"type\":\"string\"},"
      "\"verbose\":{\"type\":\"boolean\",\"default\":false,\"description\":\"Include the git "
-     "context block (worktree/shadow path variants). Only needed when debugging where an index "
-     "lives — omitted by default to keep the status lean.\"},"
+     "context block (worktree/shadow path variants) and a report-only freshness verdict "
+     "(current/stale/unknown against the indexed checkout and worktree status). Only needed "
+     "when debugging where an index lives — omitted by default to keep the status lean.\"},"
      "\"diagnostics\":{\"type\":\"string\",\"enum\":[\"none\",\"summary\",\"full\"],"
      "\"default\":\"none\",\"description\":\"Coverage detail: none = counts only; summary = a few "
      "sample paths per class; full = up to 500 paths per class.\"}},\"required\":["

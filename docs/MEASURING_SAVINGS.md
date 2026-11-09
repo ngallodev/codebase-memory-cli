@@ -104,10 +104,12 @@ codebase-memory-cli status --project PROJECT_NAME --verbose
 ```
 
 Confirm that `root_path` is `GRAPH_REPO`, `git.head_sha` is `SHA`, and the Git
-context is detached. `index_status` describes the project root and its current
-filesystem Git context; it does **not** by itself prove that indexed records
-were produced from that revision. The immediately preceding successful fresh
-`index_repository` call is the freshness requirement.
+context is detached. The verbose `freshness` object compares the checkout SHA
+recorded when the index was written with the live HEAD and a bounded worktree
+status; `verdict` is `current`, `stale`, or `unknown` (report-only, it never
+indexes). Treat anything other than `current` as not proven. The immediately
+preceding successful fresh `index_repository` call remains the freshness
+requirement.
 
 Finally, run one or more representative queries whose expected symbols you
 have verified directly at the recorded SHA:
