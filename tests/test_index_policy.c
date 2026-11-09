@@ -354,10 +354,16 @@ TEST(index_policy_worker_rejects_missing_parent_policy) {
 }
 
 TEST(index_policy_mcp_rejects_forged_override_and_preserves_serving_index) {
-    char *repo = th_mktempdir("cbm_index_policy_mcp_repo");
-    char *cache = th_mktempdir("cbm_index_policy_mcp_cache");
-    ASSERT_NOT_NULL(repo);
-    ASSERT_NOT_NULL(cache);
+    char repo_path[1024];
+    char *created = th_mktempdir("cbm_index_policy_mcp_repo");
+    ASSERT_NOT_NULL(created);
+    (void)snprintf(repo_path, sizeof(repo_path), "%s", created);
+    created = th_mktempdir("cbm_index_policy_mcp_cache");
+    ASSERT_NOT_NULL(created);
+    char cache_path[1024];
+    (void)snprintf(cache_path, sizeof(cache_path), "%s", created);
+    const char *repo = repo_path;
+    const char *cache = cache_path;
     ASSERT_EQ(th_write_file(TH_PATH(repo, "first.c"), "int first(void) { return 1; }\n"), 0);
 
     const char *saved_cache = getenv("CBM_CACHE_DIR");
