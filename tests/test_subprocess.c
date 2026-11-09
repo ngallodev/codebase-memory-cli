@@ -885,7 +885,7 @@ static bool rss_tree_finish(cbm_subprocess_t *process, rss_tree_sample_t *sample
 
 /* Measure one tree whose descendant holds `mib` MiB, with every non-root
  * member's measurement failing with `member_fault` (0 = real calls). */
-static rss_tree_sample_t rss_tree_sample(int mib, int member_fault) {
+static rss_tree_sample_t rss_tree_sample_in(int mib, int member_fault, bool own_group) {
     rss_tree_sample_t sample = {.status = CBM_PROC_TREE_RSS_ERROR,
                                 .final_status = CBM_PROC_TREE_RSS_ERROR,
                                 .final_rss = UINT64_MAX};
@@ -898,7 +898,12 @@ static rss_tree_sample_t rss_tree_sample(int mib, int member_fault) {
         return sample;
     }
     (void)snprintf(mib_text, sizeof(mib_text), "%d", mib);
-    const char *argv[] = {cbm_test_program_path, "__cbm_rss_tree_root", ready_path, mib_text, NULL};
+    const char *argv[] = {cbm_test_program_path,
+                          "__cbm_rss_tree_root",
+                          ready_path,
+                          mib_text,
+                          own_group ? "detach" : NULL,
+                          NULL};
     cbm_proc_opts_t opts = {0};
     opts.bin = cbm_test_program_path;
     opts.argv = argv;
@@ -916,6 +921,10 @@ static rss_tree_sample_t rss_tree_sample(int mib, int member_fault) {
     }
     th_cleanup(dir);
     return sample;
+}
+
+static rss_tree_sample_t rss_tree_sample(int mib, int member_fault) {
+    return rss_tree_sample_in(mib, member_fault, false);
 }
 
 /* Only the DESCENDANT allocates, so the difference between two otherwise
@@ -943,6 +952,26 @@ TEST(subprocess_tree_rss_measures_contained_descendants) {
     ASSERT_EQ(loaded.final_status, CBM_PROC_TREE_RSS_EMPTY);
     ASSERT_EQ(loaded.final_rss, 0);
     PASS();
+}
+
+/* git discovery children run in a process group of their own. The probe must
+ * still count them: the memory is the worker's, and a group-only probe would
+ * let it grow past the limit unseen. POSIX only (a Job Object has no groups). */
+TEST(subprocess_tree_rss_counts_descendants_in_their_own_process_group) {
+#ifdef _WIN32
+    SKIP_PLATFORM("process groups are POSIX; the Job Object probe already covers descendants");
+#else
+    rss_tree_sample_t idle = rss_tree_sample_in(0, 0, true);
+    rss_tree_sample_t loaded = rss_tree_sample_in(128, 0, true);
+    ASSERT_TRUE(idle.ready);
+    ASSERT_EQ(idle.status, CBM_PROC_TREE_RSS_OK);
+    ASSERT_TRUE(loaded.ready);
+    ASSERT_EQ(loaded.status, CBM_PROC_TREE_RSS_OK);
+    ASSERT_TRUE(loaded.rss >= idle.rss + 96 * RSS_TREE_MIB);
+    ASSERT_TRUE(idle.quiesced);
+    ASSERT_TRUE(loaded.quiesced);
+    PASS();
+#endif
 }
 
 /* A live member the platform will not let us measure must fail the probe: a
@@ -2817,6 +2846,7 @@ SUITE(subprocess) {
     RUN_TEST(subprocess_run_null_bin_rejected);
     RUN_TEST(subprocess_spawn_returns_while_child_is_running);
     RUN_TEST(subprocess_tree_rss_measures_contained_descendants);
+    RUN_TEST(subprocess_tree_rss_counts_descendants_in_their_own_process_group);
     RUN_TEST(subprocess_tree_rss_fails_when_a_live_member_cannot_be_measured);
     RUN_TEST(subprocess_tree_rss_skips_a_member_that_exited_mid_probe);
     RUN_TEST(subprocess_natural_completion_is_cached_across_polls);
