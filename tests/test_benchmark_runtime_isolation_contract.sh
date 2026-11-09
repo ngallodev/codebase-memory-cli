@@ -36,8 +36,8 @@ ENV_PROBE="$WORKDIR/environment-probe"
 cat > "$ENV_PROBE" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\t%s\n' "${CBM_CACHE_DIR-}" "${CBM_RUNTIME_DIR-}" >> "$CBM_BENCH_ENV_PROBE"
-if [[ "${1-} ${2-}" == "cli index_repository" ]]; then
-    [[ -z "${CBM_BENCH_REQUEST_LOG-}" ]] || printf '%s\n' "${3-}" >> "$CBM_BENCH_REQUEST_LOG"
+if [[ "${1-}" == "index" ]]; then
+    [[ -z "${CBM_BENCH_REQUEST_LOG-}" ]] || printf '%s\n' "${2-}" >> "$CBM_BENCH_REQUEST_LOG"
     if [[ -n "${CBM_BENCH_PROBE_INDEX_OK-}" ]]; then
         printf '%s\n' '{"project":"probe"}'
         exit 0
@@ -117,7 +117,7 @@ grep -q 'probe: index refused' "$WORKDIR/index.out" ||
     fail "benchmark-index did not surface the cause of the index failure"
 
 # The evaluation plan indexes a language and then reads that index from its own
-# MCP session (docs/EVALUATION_PLAN.md §7). Asked to keep the runtime, a
+# graph session (docs/EVALUATION_PLAN.md §7). Asked to keep the runtime, a
 # successful run must leave its root behind and record, sourceably, the paths
 # that reach it — and they must be the paths the product processes actually
 # used. Unasked, the root is gone (asserted above). The fixture answers this
@@ -257,10 +257,11 @@ for harness in benchmark-index benchmark-search-graph; do
         fail "$harness did not surface why its private daemon did not start"
 done
 
-# The request carrying the repository path has to be built as JSON. A path may
-# legitimately contain a quote or a backslash — hand-built JSON turns that into
-# a payload the server cannot parse, or one that means something else. NTFS
-# rejects both characters in a path component, so this case is POSIX-only.
+# The repository path reaches the CLI as a single argv element. A path may
+# legitimately contain a quote or a backslash — word-splitting or re-quoting
+# would mangle it. NTFS rejects both characters in a path component, so this
+# case is POSIX-only. (Adapted: upstream asserted a JSON request body; the
+# fork's CLI takes the path as `index <repo>`, so the fixture logs argv.)
 case "$(uname -s)" in
 MINGW* | MSYS* | CYGWIN*) ;;
 *)
@@ -275,8 +276,7 @@ MINGW* | MSYS* | CYGWIN*) ;;
     CBM_BENCH_REQUEST_LOG="$REQUEST_LOG" \
         "$ROOT/scripts/benchmark-search-graph.sh" "$ENV_PROBE" "$QUIRKY_REPO" \
         > "$WORKDIR/quirky.out" 2>&1 || true
-    python3 - "$REQUEST_LOG" "$QUIRKY_RESOLVED" <<'PY' || fail "benchmark-search-graph built an index request that is not valid JSON for a quoted path"
-import json
+    python3 - "$REQUEST_LOG" "$QUIRKY_RESOLVED" <<'PY' || fail "benchmark-search-graph did not pass a quoted path intact to the index command"
 import sys
 
 request_log, expected = sys.argv[1], sys.argv[2]
@@ -286,9 +286,8 @@ except OSError:
     sys.exit("the search benchmark sent no index request")
 if not lines:
     sys.exit("the search benchmark sent no index request")
-payload = json.loads(lines[0])
-if payload.get("repo_path") != expected:
-    sys.exit(f"repo_path is {payload.get('repo_path')!r}, expected {expected!r}")
+if lines[0] != expected:
+    sys.exit(f"repo path is {lines[0]!r}, expected {expected!r}")
 PY
     ;;
 esac

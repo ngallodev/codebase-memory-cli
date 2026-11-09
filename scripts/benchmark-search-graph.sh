@@ -3,7 +3,7 @@
 # codebase-memory-cli binary to measure regex / BM25 search performance.
 #
 # Usage:
-#   scripts/benchmark-search-graph.sh <binary-path> <project-name>
+#   scripts/benchmark-search-graph.sh <binary-path> <repo-path>
 
 set -euo pipefail
 
@@ -30,20 +30,14 @@ if ! "$BINARY" daemon start >"$DAEMON_START_LOG" 2>&1; then
     fi
     exit 1
 fi
-# One pre-escaped spelling of the path, the way the soak harness builds its
-# own: a repository path may legitimately contain a quote or a backslash, and
-# hand-built JSON turns that into a parse error.
-REPO_JSON=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$REPO")
 # Index and parse keep their stderr instead of discarding it: without it the
 # failure below names only its symptom, and the cause — an unreadable
-# repository, a refused daemon, a malformed envelope — is unrecoverable.
-INDEX_JSON=$("$BINARY" cli index_repository "{\"repo_path\":$REPO_JSON,\"mode\":\"full\"}" \
-    2>"$INDEX_ERR" || echo '{}')
+# repository, a refused daemon, a malformed envelope — is unrecoverable. The
+# repository path is one argv element, so a quote or backslash needs no escaping.
+INDEX_JSON=$("$BINARY" index "$REPO" --mode full --json 2>"$INDEX_ERR" || echo '{}')
 PROJECT=$(echo "$INDEX_JSON" | python3 -c "
 import json, sys
 d = json.load(sys.stdin)
-if 'content' in d:
-    d = json.loads(d['content'][0]['text'])
 print(d.get('project', ''))
 " 2>>"$INDEX_ERR" || echo "")
 if [ -z "$PROJECT" ]; then

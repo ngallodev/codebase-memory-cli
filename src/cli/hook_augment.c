@@ -23,6 +23,8 @@
 #include "foundation/constants.h"
 #include "foundation/mem.h"
 #include "foundation/platform.h"
+#include "foundation/str_util.h"
+#include "git/git_context.h"
 #include "pipeline/pipeline.h"
 #include "yyjson/yyjson.h"
 
@@ -1715,6 +1717,53 @@ static bool ha_invocation_supported(ha_lifecycle_dialect_t dialect, const char *
 static CBM_TLS int *g_ha_worktree_gate_counter = NULL;
 #endif
 
+/* Reads ignore_worktrees from the runtime config store only when the store
+ * already exists: the hook must not create _config.db as a side effect, and
+ * with the key off (the default) it does nothing else for worktrees. */
+static bool ha_ignore_worktrees_enabled(void) {
+    const char *cache_dir = cbm_resolve_cache_dir();
+    if (!cache_dir || !cache_dir[0]) {
+        return false;
+    }
+    char db_path[4096];
+    int written = snprintf(db_path, sizeof(db_path), "%s/" CBM_CONFIG_DB_FILENAME, cache_dir);
+    if (written <= 0 || (size_t)written >= sizeof(db_path) || !cbm_file_exists(db_path)) {
+        return false;
+    }
+    cbm_config_t *cfg = cbm_config_open(cache_dir);
+    bool enabled = cbm_config_get_bool(cfg, CBM_CONFIG_IGNORE_WORKTREES, false);
+    cbm_config_close(cfg);
+    return enabled;
+}
+
+/* Project resolution once ignore_worktrees is on; the caller runs this only
+ * after reading the key. A symlink alias has no .git of its own, so cwd is
+ * canonicalized as the index operation does before the same gate. A linked
+ * worktree is refused even inside an indexed checkout or another linked
+ * worktree, so a match is kept only when its root belongs to this cwd's own
+ * linked worktree, not a parent graph. */
+static char *ha_resolve_project_ignoring_worktrees(const char *cwd, bool *drop_ancestor,
+                                                   bool *worktree_ignored) {
+#ifdef CBM_CLI_ENABLE_TEST_API
+    if (g_ha_worktree_gate_counter) {
+        (*g_ha_worktree_gate_counter)++;
+    }
+#endif
+    char canonical_cwd[4096];
+    if (ha_canonical_path(cwd, canonical_cwd, sizeof(canonical_cwd))) {
+        cwd = canonical_cwd;
+    }
+    char project_root[4096];
+    project_root[0] = '\0';
+    char *project = ha_resolve_indexed_project_with_root(cwd, project_root, sizeof(project_root));
+    bool linked = cbm_git_is_linked_worktree(cwd);
+    /* Drop a parent graph without a second free(): this file's raw free count
+     * is ratcheted, and the caller's single free(project) still releases it. */
+    *drop_ancestor = linked && project && !cbm_git_same_linked_worktree(cwd, project_root);
+    *worktree_ignored = linked && (!project || *drop_ancestor);
+    return project;
+}
+
 static char *ha_lifecycle_json_from_root(const char *session_root, yyjson_val *root,
                                          const char *forced_event, ha_lifecycle_dialect_t dialect) {
     if (!root || !yyjson_is_obj(root)) {
@@ -1728,10 +1777,14 @@ static char *ha_lifecycle_json_from_root(const char *session_root, yyjson_val *r
     char cwd_buffer[4096];
     const char *cwd =
         ha_normalized_cwd_with_root(root, session_root, cwd_buffer, sizeof(cwd_buffer));
-    char *project = cwd ? ha_resolve_indexed_project(cwd) : NULL;
-    /* Upstream #1430 worktree gate; set by the ignore_worktrees resolution. */
     bool drop_ancestor = false;
     bool worktree_ignored = false;
+    char *project = NULL;
+    if (cwd && ha_ignore_worktrees_enabled()) {
+        project = ha_resolve_project_ignoring_worktrees(cwd, &drop_ancestor, &worktree_ignored);
+    } else if (cwd) {
+        project = ha_resolve_indexed_project(cwd);
+    }
 
     char context[2048];
     const char *scope = "Session";

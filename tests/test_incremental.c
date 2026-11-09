@@ -15,6 +15,7 @@
 #include "test_helpers.h"
 #include "test_operation_host.h"
 #include <store/store.h>
+#include <git/git_context.h>
 #include <pipeline/pipeline.h>
 #include <pipeline/pipeline_internal.h>
 #include <foundation/log.h>
@@ -3221,7 +3222,362 @@ TEST(tool_delete_and_verify) {
  *  SUITE
  * ══════════════════════════════════════════════════════════════════ */
 
+/* ── index_status verbose freshness verdict ────────────────────────
+ * Real git repos on disk and a real project DB in a private cache dir. The
+ * verdict is report-only: it compares the indexed checkout SHA recorded in the
+ * store with the live HEAD and the bounded worktree status. */
+
+typedef struct {
+    char cache[512];
+    char *saved_cache;
+    char repo[512];
+} fresh_fixture_t;
+
+static int fresh_git_run(const char *dir, const char *args) {
+    char cmd[1024];
+    snprintf(cmd, sizeof(cmd), "git -C \"%s\" %s 2>/dev/null", dir, args);
+    FILE *fp = cbm_popen(cmd, "r");
+    if (!fp) {
+        return -1;
+    }
+    char drain[256];
+    while (fgets(drain, sizeof(drain), fp)) {}
+    return cbm_pclose(fp);
+}
+
+static int fresh_make_git_repo(const char *dir) {
+    if (th_mkdir_p(dir) != 0 || fresh_git_run(dir, "init -q") != 0 ||
+        fresh_git_run(dir, "config user.email test@example.com") != 0 ||
+        fresh_git_run(dir, "config user.name Test") != 0 ||
+        th_write_file(TH_PATH(dir, ".keep"), "") != 0 || fresh_git_run(dir, "add -A") != 0 ||
+        fresh_git_run(dir, "commit -qm init") != 0) {
+        return -1;
+    }
+    return 0;
+}
+
+static int fresh_commit_tracked(const char *dir) {
+    if (th_write_file(TH_PATH(dir, "tracked.txt"), "v1") != 0 ||
+        fresh_git_run(dir, "add -f -- tracked.txt") != 0 ||
+        fresh_git_run(dir, "commit -q -m add-tracked") != 0) {
+        return -1;
+    }
+    return 0;
+}
+
+/* Copies the live HEAD into buf; false when git or HEAD is unavailable. */
+static bool fresh_head_sha(const char *dir, char *buf, size_t bufsz) {
+    cbm_git_context_t ctx = {0};
+    bool ok = cbm_git_context_resolve(dir, &ctx) == 0 && ctx.head_sha && ctx.head_sha[0];
+    if (ok) {
+        snprintf(buf, bufsz, "%s", ctx.head_sha);
+    }
+    cbm_git_context_free(&ctx);
+    return ok;
+}
+
+static void fresh_fixture_close(fresh_fixture_t *fx) {
+    if (fx->saved_cache) {
+        cbm_setenv("CBM_CACHE_DIR", fx->saved_cache, 1);
+    } else {
+        cbm_unsetenv("CBM_CACHE_DIR");
+    }
+    free(fx->saved_cache);
+    fx->saved_cache = NULL;
+    if (fx->cache[0]) {
+        th_rmtree(fx->cache);
+    }
+    if (fx->repo[0]) {
+        th_rmtree(fx->repo);
+    }
+}
+
+/* Private cache dir + empty repo dir (git-initialised when want_git) and a
+ * "fresh-project" DB rooted there recording indexed_checkout_sha = sha. */
+static bool fresh_fixture_open(fresh_fixture_t *fx, bool want_git) {
+    memset(fx, 0, sizeof(*fx));
+    snprintf(fx->cache, sizeof(fx->cache), "%s/cbm-fresh-cache-XXXXXX", cbm_tmpdir());
+    if (!cbm_mkdtemp(fx->cache)) {
+        fx->cache[0] = '\0';
+        return false;
+    }
+    const char *saved = getenv("CBM_CACHE_DIR");
+    fx->saved_cache = saved ? strdup(saved) : NULL;
+    if (cbm_setenv("CBM_CACHE_DIR", fx->cache, 1) != 0) {
+        return false;
+    }
+    const char *repo = th_mktempdir("cbm_fresh_git");
+    if (!repo) {
+        return false;
+    }
+    snprintf(fx->repo, sizeof(fx->repo), "%s", repo);
+    if (want_git && fresh_make_git_repo(fx->repo) != 0) {
+        return false;
+    }
+    return true;
+}
+
+static bool fresh_seed_project(const fresh_fixture_t *fx, const char *sha) {
+    char db_path[640];
+    snprintf(db_path, sizeof(db_path), "%s/fresh-project.db", fx->cache);
+    cbm_store_t *st = cbm_store_open_path(db_path);
+    if (!st) {
+        return false;
+    }
+    cbm_coverage_meta_t meta = {
+        .generation = "fresh-generation",
+        .index_mode = "fast",
+        .recorded_at = "2026-08-11T00:00:00Z",
+        .recording_status = "complete",
+        .coverage_version = 1,
+        .hash_records_complete = true,
+        .indexed_checkout_sha = sha,
+    };
+    bool ok = cbm_store_upsert_project(st, "fresh-project", fx->repo) == CBM_STORE_OK &&
+              cbm_store_coverage_replace_ex(st, "fresh-project", NULL, 0, &meta) == CBM_STORE_OK;
+    cbm_store_close(st);
+    return ok;
+}
+
+static char *fresh_status(bool verbose) {
+    cbm_test_operation_host_t *host = cbm_test_operation_host_new(NULL);
+    if (!host) {
+        return NULL;
+    }
+    char *r =
+        cbm_test_operation_execute(host, "index_status",
+                                   verbose ? "{\"project\":\"fresh-project\",\"verbose\":true}"
+                                           : "{\"project\":\"fresh-project\"}");
+    cbm_test_operation_host_free(host);
+    return r;
+}
+
+TEST(tool_index_status_fails_closed_without_indexed_checkout_identity) {
+    fresh_fixture_t fx;
+    if (!fresh_fixture_open(&fx, true) || !fresh_seed_project(&fx, NULL)) {
+        fresh_fixture_close(&fx);
+        FAIL("fixture setup failed");
+    }
+    char *r = fresh_status(true);
+    ASSERT_NOT_NULL(r);
+    ASSERT_NOT_NULL(strstr(r, "\"freshness\""));
+    ASSERT_NOT_NULL(strstr(r, "\"verdict\":\"unknown\""));
+    ASSERT_NOT_NULL(strstr(r, "\"indexed_generation\""));
+    ASSERT_NOT_NULL(strstr(r, "\"indexed_checkout_sha\":null"));
+    ASSERT_NOT_NULL(strstr(r, "indexed_checkout_unavailable"));
+    ASSERT_NOT_NULL(strstr(r, "\"recommended_action\":\"reindex_to_record_indexed_checkout\""));
+    free(r);
+    fresh_fixture_close(&fx);
+    PASS();
+}
+
+TEST(tool_index_status_omits_freshness_by_default) {
+    fresh_fixture_t fx;
+    if (!fresh_fixture_open(&fx, true) || !fresh_seed_project(&fx, NULL)) {
+        fresh_fixture_close(&fx);
+        FAIL("fixture setup failed");
+    }
+    char *r = fresh_status(false);
+    ASSERT_NOT_NULL(r);
+    ASSERT_NOT_NULL(strstr(r, "\"status\""));
+    ASSERT_NULL(strstr(r, "\"freshness\""));
+    ASSERT_NULL(strstr(r, "indexed_checkout_sha"));
+    ASSERT_NULL(strstr(r, "status_available"));
+    ASSERT_NULL(strstr(r, "tracked_changes"));
+    ASSERT_NULL(strstr(r, "untracked_source"));
+    free(r);
+    fresh_fixture_close(&fx);
+    PASS();
+}
+
+TEST(tool_index_status_freshness_verdict_current_when_indexed_checkout_matches) {
+    fresh_fixture_t fx;
+    char head[128];
+    if (!fresh_fixture_open(&fx, true)) {
+        fresh_fixture_close(&fx);
+        SKIP_PLATFORM("git not available to init a repo");
+    }
+    if (!fresh_head_sha(fx.repo, head, sizeof(head))) {
+        fresh_fixture_close(&fx);
+        SKIP_PLATFORM("git head not resolvable");
+    }
+    if (!fresh_seed_project(&fx, head)) {
+        fresh_fixture_close(&fx);
+        FAIL("seed failed");
+    }
+    char *r = fresh_status(true);
+    ASSERT_NOT_NULL(r);
+    ASSERT_NOT_NULL(strstr(r, "\"verdict\":\"current\""));
+    ASSERT_NOT_NULL(strstr(r, "indexed_checkout_current"));
+    ASSERT_NOT_NULL(strstr(r, "\"indexed_checkout_sha\":\""));
+    ASSERT_NOT_NULL(strstr(r, "\"checkout_sha\":\""));
+    ASSERT_NOT_NULL(strstr(r, "\"recommended_action\":\"use_graph\""));
+    ASSERT_NOT_NULL(strstr(r, "\"status_available\":true"));
+    ASSERT_NOT_NULL(strstr(r, "\"tracked_changes\":{\"count\":0"));
+    ASSERT_NOT_NULL(strstr(r, "\"untracked_source\":{\"count\":0"));
+    free(r);
+    fresh_fixture_close(&fx);
+    PASS();
+}
+
+TEST(tool_index_status_freshness_verdict_stale_when_indexed_checkout_mismatches) {
+    fresh_fixture_t fx;
+    if (!fresh_fixture_open(&fx, true)) {
+        fresh_fixture_close(&fx);
+        SKIP_PLATFORM("git not available to init a repo");
+    }
+    if (!fresh_seed_project(&fx, "0000000000000000000000000000000000000000")) {
+        fresh_fixture_close(&fx);
+        FAIL("seed failed");
+    }
+    char *r = fresh_status(true);
+    ASSERT_NOT_NULL(r);
+    ASSERT_NOT_NULL(strstr(r, "\"verdict\":\"stale\""));
+    ASSERT_NOT_NULL(strstr(r, "indexed_checkout_mismatch"));
+    ASSERT_NOT_NULL(
+        strstr(r, "\"indexed_checkout_sha\":\"0000000000000000000000000000000000000000\""));
+    ASSERT_NOT_NULL(strstr(r, "\"recommended_action\":\"reindex_to_match_checkout\""));
+    free(r);
+    fresh_fixture_close(&fx);
+    PASS();
+}
+
+TEST(tool_index_status_freshness_verdict_stale_when_tracked_changes) {
+    fresh_fixture_t fx;
+    char head[128];
+    if (!fresh_fixture_open(&fx, true)) {
+        fresh_fixture_close(&fx);
+        SKIP_PLATFORM("git not available to init a repo");
+    }
+    if (fresh_commit_tracked(fx.repo) != 0 || !fresh_head_sha(fx.repo, head, sizeof(head)) ||
+        th_write_file(TH_PATH(fx.repo, "tracked.txt"), "v2") != 0 ||
+        !fresh_seed_project(&fx, head)) {
+        fresh_fixture_close(&fx);
+        FAIL("fixture setup failed");
+    }
+    char *r = fresh_status(true);
+    ASSERT_NOT_NULL(r);
+    ASSERT_NOT_NULL(strstr(r, "\"verdict\":\"stale\""));
+    ASSERT_NOT_NULL(strstr(r, "tracked_changes_present"));
+    ASSERT_NOT_NULL(strstr(r, "\"tracked_changes\":{\"count\":1,\"paths\":[\"tracked.txt\"],"
+                              "\"truncated\":false}"));
+    ASSERT_NULL(strstr(r, "indexed_checkout_current"));
+    free(r);
+    fresh_fixture_close(&fx);
+    PASS();
+}
+
+TEST(tool_index_status_freshness_verdict_unknown_when_untracked_only) {
+    fresh_fixture_t fx;
+    char head[128];
+    if (!fresh_fixture_open(&fx, true)) {
+        fresh_fixture_close(&fx);
+        SKIP_PLATFORM("git not available to init a repo");
+    }
+    if (th_write_file(TH_PATH(fx.repo, "newfile.txt"), "n") != 0 ||
+        !fresh_head_sha(fx.repo, head, sizeof(head)) || !fresh_seed_project(&fx, head)) {
+        fresh_fixture_close(&fx);
+        FAIL("fixture setup failed");
+    }
+    char *r = fresh_status(true);
+    ASSERT_NOT_NULL(r);
+    ASSERT_NOT_NULL(strstr(r, "\"verdict\":\"unknown\""));
+    ASSERT_NOT_NULL(strstr(r, "untracked_not_indexed"));
+    ASSERT_NOT_NULL(strstr(r, "\"untracked_source\":{\"count\":1,\"paths\":[\"newfile.txt\"]"));
+    ASSERT_NULL(strstr(r, "indexed_checkout_current"));
+    free(r);
+    fresh_fixture_close(&fx);
+    PASS();
+}
+
+TEST(tool_index_status_freshness_verdict_stale_when_tracked_and_untracked) {
+    fresh_fixture_t fx;
+    char head[128];
+    if (!fresh_fixture_open(&fx, true)) {
+        fresh_fixture_close(&fx);
+        SKIP_PLATFORM("git not available to init a repo");
+    }
+    if (fresh_commit_tracked(fx.repo) != 0 || !fresh_head_sha(fx.repo, head, sizeof(head)) ||
+        th_write_file(TH_PATH(fx.repo, "tracked.txt"), "v2") != 0 ||
+        th_write_file(TH_PATH(fx.repo, "untracked.txt"), "n") != 0 ||
+        !fresh_seed_project(&fx, head)) {
+        fresh_fixture_close(&fx);
+        FAIL("fixture setup failed");
+    }
+    char *r = fresh_status(true);
+    ASSERT_NOT_NULL(r);
+    ASSERT_NOT_NULL(strstr(r, "\"verdict\":\"stale\""));
+    ASSERT_NOT_NULL(strstr(r, "tracked_changes_present"));
+    ASSERT_NOT_NULL(strstr(r, "untracked_not_indexed"));
+    free(r);
+    fresh_fixture_close(&fx);
+    PASS();
+}
+
+TEST(tool_index_status_freshness_status_unavailable_non_git) {
+    fresh_fixture_t fx;
+    if (!fresh_fixture_open(&fx, false) ||
+        !fresh_seed_project(&fx, "0123456789012345678901234567890123456789")) {
+        fresh_fixture_close(&fx);
+        FAIL("fixture setup failed");
+    }
+    char *r = fresh_status(true);
+    ASSERT_NOT_NULL(r);
+    ASSERT_NOT_NULL(strstr(r, "\"status_available\":false"));
+    ASSERT_NOT_NULL(strstr(r, "status_unavailable"));
+    ASSERT_NOT_NULL(strstr(r, "\"verdict\":\"unknown\""));
+    ASSERT_NULL(strstr(r, "indexed_checkout_current"));
+    ASSERT_NOT_NULL(strstr(r, "\"tracked_changes\":{\"count\":0"));
+    ASSERT_NOT_NULL(strstr(r, "\"untracked_source\":{\"count\":0"));
+    free(r);
+    fresh_fixture_close(&fx);
+    PASS();
+}
+
+TEST(tool_index_status_freshness_sample_cap_truncates) {
+    fresh_fixture_t fx;
+    char head[128];
+    if (!fresh_fixture_open(&fx, true)) {
+        fresh_fixture_close(&fx);
+        SKIP_PLATFORM("git not available to init a repo");
+    }
+    for (int i = 0; i < 17; i++) {
+        char path[1024];
+        snprintf(path, sizeof(path), "%s/u%02d.txt", fx.repo, i);
+        if (th_write_file(path, "u") != 0) {
+            fresh_fixture_close(&fx);
+            FAIL("failed to create untracked file");
+        }
+    }
+    if (!fresh_head_sha(fx.repo, head, sizeof(head)) || !fresh_seed_project(&fx, head)) {
+        fresh_fixture_close(&fx);
+        FAIL("fixture setup failed");
+    }
+    char *r = fresh_status(true);
+    ASSERT_NOT_NULL(r);
+    static const char EXPECTED[] =
+        "\"untracked_source\":{\"count\":17,\"paths\":[\"u00.txt\",\"u01.txt\",\"u02.txt\","
+        "\"u03.txt\",\"u04.txt\",\"u05.txt\",\"u06.txt\",\"u07.txt\",\"u08.txt\",\"u09.txt\","
+        "\"u10.txt\",\"u11.txt\",\"u12.txt\",\"u13.txt\",\"u14.txt\",\"u15.txt\"],"
+        "\"truncated\":true}";
+    ASSERT_NOT_NULL(strstr(r, EXPECTED));
+    free(r);
+    fresh_fixture_close(&fx);
+    PASS();
+}
+
 SUITE(incremental) {
+    /* Self-contained freshness tests: private cache + repos, no fixture clone. */
+    RUN_TEST(tool_index_status_fails_closed_without_indexed_checkout_identity);
+    RUN_TEST(tool_index_status_omits_freshness_by_default);
+    RUN_TEST(tool_index_status_freshness_verdict_current_when_indexed_checkout_matches);
+    RUN_TEST(tool_index_status_freshness_verdict_stale_when_indexed_checkout_mismatches);
+    RUN_TEST(tool_index_status_freshness_verdict_stale_when_tracked_changes);
+    RUN_TEST(tool_index_status_freshness_verdict_unknown_when_untracked_only);
+    RUN_TEST(tool_index_status_freshness_verdict_stale_when_tracked_and_untracked);
+    RUN_TEST(tool_index_status_freshness_status_unavailable_non_git);
+    RUN_TEST(tool_index_status_freshness_sample_cap_truncates);
+
     if (incremental_setup() != 0) {
         printf("  SETUP FAILED — skipping incremental tests (network?)\n");
         return;

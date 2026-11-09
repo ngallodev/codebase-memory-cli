@@ -283,7 +283,7 @@ for lang in $ALL_LANGS; do                      # ALL_LANGS = full 159-name list
   # --- step 2: cold index in the main channel, TIMED (key metric) ---
   t0=$(now_ms)
   CBM_BENCH_KEEP_RUNTIME=1 \
-  scripts/benchmark-index.sh ~/.local/bin/codebase-memory-mcp "$lang" /tmp/bench/"$lang" /tmp/eval-results
+  scripts/benchmark-index.sh ~/.local/bin/codebase-memory-cli "$lang" /tmp/bench/"$lang" /tmp/eval-results
   index_ms=$(( $(now_ms) - t0 ))                 # clone+index wall-clock → manifest + report (§5)
   # The harness indexes into a run-private root (#1696). CBM_BENCH_KEEP_RUNTIME leaves that
   # root behind on success and records its paths; the graph session in steps 4-7 must be
@@ -878,7 +878,7 @@ scripts/clone-bench-repos.sh /tmp/bench
 mkdir -p /tmp/eval-results
 for lang in $ALL_LANGS; do
   CBM_BENCH_KEEP_RUNTIME=1 \
-  scripts/benchmark-index.sh ~/.local/bin/codebase-memory-mcp "$lang" /tmp/bench/"$lang" /tmp/eval-results
+  scripts/benchmark-index.sh ~/.local/bin/codebase-memory-cli "$lang" /tmp/bench/"$lang" /tmp/eval-results
 done
 
 # 3. Cross-repo pass for the 9 LSP pairs (index each service dir, then cross-repo-intelligence)
