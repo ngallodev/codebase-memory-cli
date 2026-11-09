@@ -2774,7 +2774,9 @@ TEST(daemon_application_programmatic_index_forwards_set_doc_candidates) {
 }
 
 TEST(daemon_application_worker_resource_failure_is_structured_and_not_retried) {
-    char *cache = th_mktempdir("cbm_app_worker_resource_cache");
+    /* th_mktempdir returns one static buffer: copy the cache path. */
+    char *cache_made = th_mktempdir("cbm_app_worker_resource_cache");
+    char *cache = cache_made ? strdup(cache_made) : NULL;
     cbm_config_t *stored_config = cache ? cbm_config_open(cache) : NULL;
     app_fake_worker_context_t fake;
     app_fake_worker_context_init(&fake);
@@ -2799,7 +2801,8 @@ TEST(daemon_application_worker_resource_failure_is_structured_and_not_retried) {
     cbm_daemon_runtime_application_callbacks_t callbacks =
         cbm_daemon_application_runtime_callbacks(application);
     cbm_daemon_runtime_application_session_t *session = app_test_open(&callbacks, 4188);
-    char *root = th_mktempdir("cbm_app_worker_resource");
+    char *root_made = th_mktempdir("cbm_app_worker_resource");
+    char *root = root_made ? strdup(root_made) : NULL;
     uint8_t *context = NULL;
     uint32_t context_length = 0;
     uint8_t *tool = NULL;
@@ -2847,6 +2850,8 @@ TEST(daemon_application_worker_resource_failure_is_structured_and_not_retried) {
     free(tool);
     th_cleanup(root);
     th_cleanup(cache);
+    free(root);
+    free(cache);
 
     ASSERT_TRUE(setup);
     ASSERT_EQ(status, CBM_DAEMON_RUNTIME_APPLICATION_OK);
@@ -2858,7 +2863,9 @@ TEST(daemon_application_worker_resource_failure_is_structured_and_not_retried) {
 }
 
 TEST(daemon_application_worker_resource_failure_after_crash_stops_recovery) {
-    char *cache = th_mktempdir("cbm_app_worker_resource_crash_cache");
+    /* th_mktempdir returns one static buffer: copy the cache path. */
+    char *cache_made = th_mktempdir("cbm_app_worker_resource_crash_cache");
+    char *cache = cache_made ? strdup(cache_made) : NULL;
     cbm_config_t *stored_config = cache ? cbm_config_open(cache) : NULL;
     app_fake_worker_context_t fake;
     app_fake_worker_context_init(&fake);
@@ -2887,7 +2894,8 @@ TEST(daemon_application_worker_resource_failure_after_crash_stops_recovery) {
     cbm_daemon_runtime_application_callbacks_t callbacks =
         cbm_daemon_application_runtime_callbacks(application);
     cbm_daemon_runtime_application_session_t *session = app_test_open(&callbacks, 4189);
-    char *root = th_mktempdir("cbm_app_worker_resource_crash");
+    char *root_made = th_mktempdir("cbm_app_worker_resource_crash");
+    char *root = root_made ? strdup(root_made) : NULL;
     uint8_t *context = NULL;
     uint32_t context_length = 0;
     uint8_t *tool = NULL;
@@ -2935,6 +2943,8 @@ TEST(daemon_application_worker_resource_failure_after_crash_stops_recovery) {
     free(tool);
     th_cleanup(root);
     th_cleanup(cache);
+    free(root);
+    free(cache);
 
     ASSERT_TRUE(setup);
     ASSERT_EQ(status, CBM_DAEMON_RUNTIME_APPLICATION_OK);

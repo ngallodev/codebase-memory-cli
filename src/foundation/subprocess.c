@@ -591,7 +591,7 @@ static cbm_proc_tree_rss_status_t cbm_subprocess_tree_rss_platform(cbm_subproces
  * all-process scan cannot decide membership: proc_pidinfo answers EPERM for
  * every process of another user, so "not in our group" and "in our group but
  * unreadable" would look the same. Returns the member count, or -1. */
-static int cbm_tree_rss_list_group(pid_t pgid, pid_t **pids_out) {
+static int cbm_tree_rss_list_pids(uint32_t type, uint32_t arg, pid_t **pids_out) {
     int capacity = 64;
     pid_t *pids = NULL;
     for (;;) {
@@ -602,8 +602,7 @@ static int cbm_tree_rss_list_group(pid_t pgid, pid_t **pids_out) {
         }
         pids = grown;
         errno = 0;
-        int bytes =
-            proc_listpids(PROC_PGRP_ONLY, (uint32_t)pgid, pids, capacity * (int)sizeof(*pids));
+        int bytes = proc_listpids(type, arg, pids, capacity * (int)sizeof(*pids));
         if (bytes < 0 || (bytes == 0 && errno != 0)) {
             cbm_free(CBM_MEM_CLASS_OTHER, pids);
             return -1;
@@ -619,6 +618,63 @@ static int cbm_tree_rss_list_group(pid_t pgid, pid_t **pids_out) {
         }
         capacity *= 2;
     }
+}
+
+/* Bound on the processes one probe retains; past it the probe fails closed. */
+enum { CBM_APPLE_PROBE_MAX_PROCS = 65536 };
+
+/* The worker's process group plus every descendant by parent pid. Children
+ * placed in a group of their own (git discovery) are not in the group list.
+ * Pids already collected are skipped, so nothing is counted twice. Returns the
+ * count, or -1. */
+static int cbm_tree_rss_list_tree(pid_t pgid, pid_t **pids_out) {
+    pid_t *tree = NULL;
+    int count = cbm_tree_rss_list_pids(PROC_PGRP_ONLY, (uint32_t)pgid, &tree);
+    if (count < 0) {
+        return -1;
+    }
+    int capacity = count > 0 ? count : 1;
+    for (int index = 0; index < count; index++) {
+        pid_t *children = NULL;
+        int child_count = tree[index] > 0 ? cbm_tree_rss_list_pids(PROC_PPID_ONLY,
+                                                                   (uint32_t)tree[index], &children)
+                                          : 0;
+        if (child_count < 0) {
+            /* ESRCH-style races surface as an empty listing; a real error
+             * must not under-report the tree. */
+            cbm_free(CBM_MEM_CLASS_OTHER, tree);
+            return -1;
+        }
+        for (int child = 0; child < child_count; child++) {
+            bool known = children[child] <= 0;
+            for (int seen = 0; !known && seen < count; seen++) {
+                known = tree[seen] == children[child];
+            }
+            if (known) {
+                continue;
+            }
+            if (count >= CBM_APPLE_PROBE_MAX_PROCS) {
+                cbm_free(CBM_MEM_CLASS_OTHER, children);
+                cbm_free(CBM_MEM_CLASS_OTHER, tree);
+                return -1;
+            }
+            if (count == capacity) {
+                pid_t *grown =
+                    cbm_realloc(CBM_MEM_CLASS_OTHER, tree, (size_t)capacity * 2 * sizeof(*tree));
+                if (!grown) {
+                    cbm_free(CBM_MEM_CLASS_OTHER, children);
+                    cbm_free(CBM_MEM_CLASS_OTHER, tree);
+                    return -1;
+                }
+                tree = grown;
+                capacity *= 2;
+            }
+            tree[count++] = children[child];
+        }
+        cbm_free(CBM_MEM_CLASS_OTHER, children);
+    }
+    *pids_out = tree;
+    return count;
 }
 
 static int cbm_tree_rss_member_rusage(pid_t pid, bool root, struct rusage_info_v2 *usage) {
@@ -637,7 +693,7 @@ static int cbm_tree_rss_member_rusage(pid_t pid, bool root, struct rusage_info_v
 static cbm_proc_tree_rss_status_t cbm_subprocess_tree_rss_platform(cbm_subprocess_t *process,
                                                                    uint64_t *rss_bytes) {
     pid_t *pids = NULL;
-    int count = cbm_tree_rss_list_group(process->pgid, &pids);
+    int count = cbm_tree_rss_list_tree(process->pgid, &pids);
     if (count < 0) {
         return CBM_PROC_TREE_RSS_ERROR;
     }
@@ -730,8 +786,8 @@ static cbm_linux_stat_t cbm_linux_proc_stat_line(const char *pid_name, bool root
     return CBM_LINUX_STAT_OK;
 }
 
-static cbm_linux_stat_t cbm_linux_proc_stat(const char *pid_name, bool root, pid_t *group,
-                                            int64_t *rss_pages) {
+static cbm_linux_stat_t cbm_linux_proc_stat(const char *pid_name, bool root, pid_t *parent,
+                                            pid_t *group, int64_t *rss_pages) {
     char stat_line[4096];
     cbm_linux_stat_t status =
         cbm_linux_proc_stat_line(pid_name, root, stat_line, sizeof(stat_line));
@@ -746,16 +802,20 @@ static cbm_linux_stat_t cbm_linux_proc_stat(const char *pid_name, bool root, pid
     char *save = NULL;
     char *token = strtok_r(command_end + 2, " ", &save);
     int field = 3;
+    bool have_parent = false;
     bool have_group = false;
     bool have_rss = false;
     while (token) {
-        if (field == 5 || field == 24) {
+        if (field == 4 || field == 5 || field == 24) {
             char *end = NULL;
             long long value = strtoll(token, &end, 10);
             if (!end || *end != '\0') {
                 return CBM_LINUX_STAT_UNREADABLE;
             }
-            if (field == 5) {
+            if (field == 4) {
+                *parent = (pid_t)value;
+                have_parent = true;
+            } else if (field == 5) {
                 *group = (pid_t)value;
                 have_group = true;
             } else {
@@ -767,7 +827,76 @@ static cbm_linux_stat_t cbm_linux_proc_stat(const char *pid_name, bool root, pid
         token = strtok_r(NULL, " ", &save);
         field++;
     }
-    return have_group && have_rss ? CBM_LINUX_STAT_OK : CBM_LINUX_STAT_UNREADABLE;
+    return have_parent && have_group && have_rss ? CBM_LINUX_STAT_OK : CBM_LINUX_STAT_UNREADABLE;
+}
+
+/* One scanned process. `counted` is set once it is known to belong to the
+ * worker tree. */
+typedef struct {
+    pid_t pid;
+    pid_t parent;
+    pid_t group;
+    uint64_t bytes;
+    bool counted;
+} cbm_linux_proc_t;
+
+/* Bound on the processes one probe retains. Past it the probe fails closed
+ * instead of reporting a total that may miss part of the tree. */
+enum { CBM_LINUX_PROBE_MAX_PROCS = 262144, CBM_LINUX_PROBE_INITIAL_PROCS = 512 };
+
+static bool cbm_linux_probe_push(cbm_linux_proc_t **procs, size_t *count, size_t *capacity,
+                                 const cbm_linux_proc_t *proc) {
+    if (*count == *capacity) {
+        if (*capacity >= CBM_LINUX_PROBE_MAX_PROCS) {
+            return false;
+        }
+        size_t grown_capacity = *capacity ? *capacity * 2 : CBM_LINUX_PROBE_INITIAL_PROCS;
+        cbm_linux_proc_t *grown =
+            cbm_realloc(CBM_MEM_CLASS_OTHER, *procs, grown_capacity * sizeof(**procs));
+        if (!grown) {
+            return false;
+        }
+        *procs = grown;
+        *capacity = grown_capacity;
+    }
+    (*procs)[(*count)++] = *proc;
+    return true;
+}
+
+static int cbm_linux_probe_by_pid(const void *left, const void *right) {
+    pid_t a = ((const cbm_linux_proc_t *)left)->pid;
+    pid_t b = ((const cbm_linux_proc_t *)right)->pid;
+    return (a > b) - (a < b);
+}
+
+/* Mark every process of the worker tree: members of its process group, plus
+ * any descendant by parent pid. Descendants can sit in a group of their own
+ * (git discovery children are spawned with setpgid), so the group alone would
+ * miss them. `procs` is sorted by pid, so a parent is found by binary search
+ * and each pass is O(n log n); passes repeat until no process is added (at
+ * most the tree depth). A process is counted once because the flag is checked
+ * before it is set. */
+static void cbm_linux_probe_mark_tree(cbm_linux_proc_t *procs, size_t count, pid_t pgid) {
+    qsort(procs, count, sizeof(*procs), cbm_linux_probe_by_pid);
+    for (size_t index = 0; index < count; index++) {
+        procs[index].counted = procs[index].group == pgid;
+    }
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (size_t index = 0; index < count; index++) {
+            if (procs[index].counted || procs[index].parent <= 1) {
+                continue;
+            }
+            cbm_linux_proc_t key = {.pid = procs[index].parent};
+            const cbm_linux_proc_t *parent =
+                bsearch(&key, procs, count, sizeof(*procs), cbm_linux_probe_by_pid);
+            if (parent && parent->counted) {
+                procs[index].counted = true;
+                changed = true;
+            }
+        }
+    }
 }
 
 static cbm_proc_tree_rss_status_t cbm_subprocess_tree_rss_platform(cbm_subprocess_t *process,
@@ -782,36 +911,54 @@ static cbm_proc_tree_rss_status_t cbm_subprocess_tree_rss_platform(cbm_subproces
         return CBM_PROC_TREE_RSS_ERROR;
     }
 
-    uint64_t total = 0;
-    int measured = 0;
+    cbm_linux_proc_t *procs = NULL;
+    size_t count = 0;
+    size_t capacity = 0;
     bool failed = false;
     struct dirent *entry;
     while (!failed && (entry = readdir(proc)) != NULL) {
         if (!cbm_proc_pid_name(entry->d_name)) {
             continue;
         }
+        pid_t parent = 0;
         pid_t group = 0;
         int64_t pages = 0;
-        bool root_entry = strtol(entry->d_name, NULL, 10) == (long)process->pid;
-        cbm_linux_stat_t status = cbm_linux_proc_stat(entry->d_name, root_entry, &group, &pages);
+        long pid = strtol(entry->d_name, NULL, 10);
+        bool root_entry = pid == (long)process->pid;
+        cbm_linux_stat_t status =
+            cbm_linux_proc_stat(entry->d_name, root_entry, &parent, &group, &pages);
         if (status != CBM_LINUX_STAT_OK) {
             failed = root_entry || status != CBM_LINUX_STAT_GONE;
             continue;
         }
-        if (group != process->pgid || pages < 0) {
+        if (pages < 0) {
             continue;
         }
         uint64_t page_count = (uint64_t)pages;
-        uint64_t bytes = page_count > UINT64_MAX / (uint64_t)page_size
-                             ? UINT64_MAX
-                             : page_count * (uint64_t)page_size;
-        cbm_rss_add_saturated(&total, bytes);
-        measured++;
+        cbm_linux_proc_t item = {.pid = (pid_t)pid,
+                                 .parent = parent,
+                                 .group = group,
+                                 .bytes = page_count > UINT64_MAX / (uint64_t)page_size
+                                              ? UINT64_MAX
+                                              : page_count * (uint64_t)page_size};
+        failed = !cbm_linux_probe_push(&procs, &count, &capacity, &item);
     }
     (void)closedir(proc);
     if (failed) {
+        cbm_free(CBM_MEM_CLASS_OTHER, procs);
         return CBM_PROC_TREE_RSS_ERROR;
     }
+
+    cbm_linux_probe_mark_tree(procs, count, process->pgid);
+    uint64_t total = 0;
+    int measured = 0;
+    for (size_t index = 0; index < count; index++) {
+        if (procs[index].counted) {
+            cbm_rss_add_saturated(&total, procs[index].bytes);
+            measured++;
+        }
+    }
+    cbm_free(CBM_MEM_CLASS_OTHER, procs);
     if (measured == 0) {
         return CBM_PROC_TREE_RSS_EMPTY;
     }

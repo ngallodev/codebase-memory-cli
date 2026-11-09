@@ -2045,7 +2045,7 @@ static int tf_role_env_isolation(int argc, char **argv) {
  * publishes its pid by an atomic rename once every page is touched, then
  * blocks until it is killed. The root exits when its descendant dies, so a
  * failed setup ends the tree instead of leaving the test waiting. */
-static int tf_rss_tree_hold(const char *ready_path, const char *mib_text) {
+static int tf_rss_tree_hold(const char *ready_path, const char *mib_text, bool own_group) {
     char *end = NULL;
     long mib = strtol(mib_text, &end, 10);
     if (!end || *end != '\0' || mib < 0 || mib > 1024) {
@@ -2075,6 +2075,18 @@ static int tf_rss_tree_hold(const char *ready_path, const char *mib_text) {
     }
     volatile unsigned char keep = block ? block[bytes - 1] : 0;
     (void)keep;
+#ifndef _WIN32
+    if (own_group) {
+        /* Nothing kills a process outside the worker's group, so leave when
+         * the root (the parent) is gone, with an alarm as a backstop. */
+        pid_t parent = getppid();
+        (void)alarm(120);
+        while (getppid() == parent) {
+            cbm_usleep(10000);
+        }
+        return 0;
+    }
+#endif
     for (;;) {
 #ifdef _WIN32
         Sleep(INFINITE);
@@ -2085,11 +2097,13 @@ static int tf_rss_tree_hold(const char *ready_path, const char *mib_text) {
 }
 
 static int tf_role_rss_tree_hold(int argc, char **argv) {
-    return argc == 4 ? tf_rss_tree_hold(argv[2], argv[3]) : -1;
+    return argc == 4 ? tf_rss_tree_hold(argv[2], argv[3], false) : -1;
 }
 
 static int tf_role_rss_tree_root(int argc, char **argv) {
-    if (argc != 4) {
+    /* A fifth argument "detach" puts the descendant in a process group of its
+     * own, as git discovery children are. */
+    if (argc != 4 && argc != 5) {
         return -1;
     }
 #ifdef _WIN32
@@ -2124,7 +2138,10 @@ static int tf_role_rss_tree_root(int argc, char **argv) {
         return 85;
     }
     if (child == 0) {
-        _exit(tf_rss_tree_hold(argv[2], argv[3]));
+        if (argc == 5 && setpgid(0, 0) != 0) {
+            _exit(86);
+        }
+        _exit(tf_rss_tree_hold(argv[2], argv[3], argc == 5));
     }
     int status = 0;
     while (waitpid(child, &status, 0) < 0 && errno == EINTR) {}
