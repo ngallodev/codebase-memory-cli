@@ -7456,9 +7456,9 @@ static bool cli_hermes_cycle_open(cli_hermes_cycle_t *cycle, const char *initial
     snprintf(cycle->config_path, sizeof(cycle->config_path), "%s/config.yaml", hermes_dir);
 #ifdef _WIN32
     snprintf(cycle->binary_path, sizeof(cycle->binary_path),
-             "%s/.local/bin/codebase-memory-mcp.exe", cycle->tmpdir);
+             "%s/.local/bin/codebase-memory-cli.exe", cycle->tmpdir);
 #else
-    snprintf(cycle->binary_path, sizeof(cycle->binary_path), "%s/.local/bin/codebase-memory-mcp",
+    snprintf(cycle->binary_path, sizeof(cycle->binary_path), "%s/.local/bin/codebase-memory-cli",
              cycle->tmpdir);
 #endif
     test_mkdirp(hermes_dir);
@@ -7490,13 +7490,15 @@ TEST(cli_hermes_hook_reinstalls_after_uninstall_empties_hooks) {
         FAIL("Hermes fake-HOME setup failed");
     }
     char *argv[] = {"uninstall", "--yes"};
-    int install_rc = cbm_install_agent_configs(cycle.tmpdir, cycle.binary_path, false, false);
+    int install_rc =
+        cbm_install_agent_hooks_for_testing(cycle.tmpdir, cycle.binary_path, false, false);
     char *installed = read_test_file_alloc(cycle.config_path);
     int uninstall_rc = cli_test_cmd_uninstall(2, argv);
     char *emptied = read_test_file_alloc(cycle.config_path);
     int repeat_rc = cli_test_cmd_uninstall(2, argv);
     char *repeated = read_test_file_alloc(cycle.config_path);
-    int reinstall_rc = cbm_install_agent_configs(cycle.tmpdir, cycle.binary_path, false, false);
+    int reinstall_rc =
+        cbm_install_agent_hooks_for_testing(cycle.tmpdir, cycle.binary_path, false, false);
     char *reinstalled = read_test_file_alloc(cycle.config_path);
     cli_hermes_cycle_close(&cycle);
 
@@ -7539,11 +7541,13 @@ TEST(cli_hermes_hook_cycle_keeps_foreign_pre_llm_hook) {
         FAIL("Hermes fake-HOME setup failed");
     }
     char *argv[] = {"uninstall", "--yes"};
-    int install_rc = cbm_install_agent_configs(cycle.tmpdir, cycle.binary_path, false, false);
+    int install_rc =
+        cbm_install_agent_hooks_for_testing(cycle.tmpdir, cycle.binary_path, false, false);
     char *installed = read_test_file_alloc(cycle.config_path);
     int uninstall_rc = cli_test_cmd_uninstall(2, argv);
     char *restored = read_test_file_alloc(cycle.config_path);
-    int reinstall_rc = cbm_install_agent_configs(cycle.tmpdir, cycle.binary_path, false, false);
+    int reinstall_rc =
+        cbm_install_agent_hooks_for_testing(cycle.tmpdir, cycle.binary_path, false, false);
     char *reinstalled = read_test_file_alloc(cycle.config_path);
     cli_hermes_cycle_close(&cycle);
 
