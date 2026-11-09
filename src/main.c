@@ -1247,7 +1247,7 @@ static void print_help(void) {
     printf("\nAdministration:\n");
     printf("  codebase-memory-cli allow-root [--approve-sensitive | --approve-broad] <path>\n");
     printf("  codebase-memory-cli install [-y|-n] [--force] [--dry-run] [--dir=<path>] "
-           "[--skip-config]\n");
+           "[--skip-config] [--hooks|--no-hooks]\n");
     printf("                                      [--clients=<tokens>]  Run "
            "'install --clients' to list tokens\n");
     printf("  codebase-memory-cli install-hooks [--dry-run] [--plan] [--clients=<list>]\n");

@@ -162,7 +162,7 @@ To configure detected agent assets without replacing an externally managed binar
 codebase-memory-cli install --skip-binary
 ```
 
-Use `install --plan` to inspect asset writes and `install-hooks --plan` to inspect hook writes before applying either surface. `--clients=<list>` is supported independently by both commands.
+Use `install --plan` to inspect asset writes and `install-hooks --plan` to inspect hook writes before applying either surface. `--clients=<list>` is supported independently by both commands. `install --no-hooks` removes CLI-owned hooks and stores the opt-out (`config get install_hooks`); later `install`, `update`, and `install-hooks` honour it until `install --hooks` clears it.
 
 ## Installation
 

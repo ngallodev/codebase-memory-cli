@@ -81,6 +81,7 @@ codebase-memory-cli config set watcher_enabled false
 codebase-memory-cli config set ignore_worktrees true
 codebase-memory-cli config set doc_candidates false
 codebase-memory-cli config reset doc_candidates
+codebase-memory-cli config get install_hooks
 ```
 
 `doc_candidates` is `auto` by default: unset, the index mode decides. A single
@@ -103,6 +104,9 @@ Current keys:
 | `index_max_source_mb` | `off` | Optional maximum accepted source size in MiB in one discovery run. |
 | `index_max_rss_mb` | `off` | Optional maximum charged memory in MiB for the complete contained index-worker process tree (`64..1048576`). On macOS this is phys_footprint, not resident size. |
 | `index_max_duration_seconds` | `off` | Optional maximum wall-clock duration in seconds for the whole index request, including crash/hang recovery (`1..86400`). Like `index_max_rss_mb`, it stops a worker only before it starts to publish the new index; see [INDEX_RESOURCE_LIMITS.md](INDEX_RESOURCE_LIMITS.md). |
+| `install_hooks` | `true` | Whether CLI-owned client hooks may be installed. `install --no-hooks` removes CLI-owned hooks and persists `false`; `install --hooks` restores `true`. |
+
+While `install_hooks` is `false`, `install`, `update`, and `install-hooks` leave CLI-owned hooks off (`install` and `update` re-remove them); user-owned hook entries are never touched. `install --hooks` only clears the opt-out; run `install-hooks` afterwards to add hooks. Skills and instructions are unaffected.
 
 > **`watcher_enabled` vs `auto_watch`.** `watcher_enabled` controls whether the
 > retained watcher subsystem starts at all. `auto_watch` is narrower: it controls
