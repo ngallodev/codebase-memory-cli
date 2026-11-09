@@ -241,6 +241,100 @@ cbm_operation_command_cause_t cbm_operation_run_shell_command_bounded(
                                                  : CBM_OPERATION_COMMAND_CONTAINED_FAILURE;
 }
 
+#ifndef _WIN32
+static void operation_argv_stage_poll_latches(const cbm_operation_runtime_t *runtime,
+                                              const char *measured_path, uint64_t output_base,
+                                              size_t output_limit, uint64_t deadline_ms,
+                                              bool deadline_enabled, bool *cancellation_latched,
+                                              bool *deadline_latched, bool *output_limit_latched) {
+    *cancellation_latched = *cancellation_latched || cbm_operation_runtime_cancelled(runtime);
+    *deadline_latched = *deadline_latched || (deadline_enabled && cbm_now_ms() >= deadline_ms);
+    if (!*output_limit_latched && output_limit > 0 && measured_path && measured_path[0]) {
+        int64_t measured_size = cbm_file_size(measured_path);
+        *output_limit_latched =
+            measured_size > 0 && output_base + (uint64_t)measured_size > output_limit;
+    }
+}
+
+cbm_operation_command_cause_t cbm_operation_run_argv_stage_bounded(
+    const cbm_operation_runtime_t *runtime, const char *bin, const char *const *argv,
+    const char *const *env_overrides, const char *stdout_capture, uint64_t output_base,
+    size_t output_limit, uint64_t deadline_ms, bool deadline_enabled, bool tolerate_exit_one,
+    bool *cancellation_latched, bool *deadline_latched, bool *output_limit_latched,
+    cbm_proc_result_t *result_out) {
+    if (!bin || !argv || !result_out || !cancellation_latched || !deadline_latched ||
+        !output_limit_latched) {
+        return CBM_OPERATION_COMMAND_FAILURE;
+    }
+    memset(result_out, 0, sizeof(*result_out));
+    operation_argv_stage_poll_latches(runtime, stdout_capture, output_base, output_limit,
+                                      deadline_ms, deadline_enabled, cancellation_latched,
+                                      deadline_latched, output_limit_latched);
+    if (*cancellation_latched || *deadline_latched || *output_limit_latched) {
+        result_out->tree_quiesced = true; /* no child was spawned */
+        if (*cancellation_latched) {
+            return CBM_OPERATION_COMMAND_CANCELLED;
+        }
+        return *deadline_latched ? CBM_OPERATION_COMMAND_DEADLINE
+                                 : CBM_OPERATION_COMMAND_OUTPUT_LIMIT;
+    }
+    cbm_proc_opts_t options = {
+        .bin = bin,
+        .argv = argv,
+        .env_overrides = env_overrides,
+        .log_file = NULL,
+        .quiet_timeout_ms = 0,
+        .cancel_grace_ms = CBM_SUBPROCESS_DEFAULT_CANCEL_GRACE_MS,
+        .delete_log_on_exit = false,
+        .strip_git_repo_env = false,
+        .stdout_file = stdout_capture,
+    };
+    cbm_subprocess_t *process = NULL;
+    if (cbm_subprocess_spawn(&options, &process) != 0) {
+        result_out->tree_quiesced = true;
+        return CBM_OPERATION_COMMAND_FAILURE;
+    }
+    cbm_proc_poll_t state;
+    for (;;) {
+        operation_argv_stage_poll_latches(runtime, stdout_capture, output_base, output_limit,
+                                          deadline_ms, deadline_enabled, cancellation_latched,
+                                          deadline_latched, output_limit_latched);
+        if (*cancellation_latched || *deadline_latched || *output_limit_latched) {
+            (void)cbm_subprocess_request_cancel(process);
+        }
+        state = cbm_subprocess_poll(process, result_out);
+        if (state != CBM_PROC_POLL_RUNNING) {
+            break;
+        }
+        cbm_usleep(OPERATION_COMMAND_POLL_US);
+    }
+    bool contained = state == CBM_PROC_POLL_TERMINAL && result_out->tree_quiesced &&
+                     !result_out->supervision_failed;
+    cbm_subprocess_destroy(process);
+    operation_argv_stage_poll_latches(runtime, stdout_capture, output_base, output_limit,
+                                      deadline_ms, deadline_enabled, cancellation_latched,
+                                      deadline_latched, output_limit_latched);
+    if (!contained) {
+        return CBM_OPERATION_COMMAND_SUPERVISION_FAILURE;
+    }
+    if (*cancellation_latched) {
+        return CBM_OPERATION_COMMAND_CANCELLED;
+    }
+    if (*deadline_latched) {
+        return CBM_OPERATION_COMMAND_DEADLINE;
+    }
+    if (*output_limit_latched) {
+        return CBM_OPERATION_COMMAND_OUTPUT_LIMIT;
+    }
+    if (tolerate_exit_one && result_out->outcome == CBM_PROC_EXIT_NONZERO &&
+        result_out->exit_code == 1) {
+        return CBM_OPERATION_COMMAND_SUCCESS; /* ordinary grep-style no-match */
+    }
+    return result_out->outcome == CBM_PROC_CLEAN ? CBM_OPERATION_COMMAND_SUCCESS
+                                                 : CBM_OPERATION_COMMAND_CONTAINED_FAILURE;
+}
+#endif
+
 int cbm_operation_run_shell_command(const cbm_operation_runtime_t *runtime, const char *command,
                                     char output_path[CBM_SZ_2K], cbm_proc_result_t *result_out) {
     cbm_operation_command_cause_t cause = cbm_operation_run_shell_command_bounded(
