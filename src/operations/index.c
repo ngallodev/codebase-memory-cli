@@ -41,6 +41,11 @@ static char *index_strdup(const char *text) {
     return copy;
 }
 
+/* One release point for project-name strings from cbm_project_name_from_path. */
+static void index_release_text(char *text) {
+    free(text);
+}
+
 static char *index_string_arg(const char *args_json, const char *key) {
     const char *json = args_json ? args_json : "{}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -249,9 +254,8 @@ bool cbm_index_operation_policy_add_to_args(yyjson_mut_doc *doc, yyjson_mut_val 
     return valid && yyjson_mut_obj_add_val(doc, root, INDEX_WORKER_POLICY_KEY, encoded);
 }
 
-static bool index_policy_from_worker_args(const char *args_json,
-                                          cbm_index_resource_policy_t *policy, char *error,
-                                          size_t error_size) {
+bool cbm_index_policy_from_internal_args(const char *args_json, cbm_index_resource_policy_t *policy,
+                                         char *error, size_t error_size) {
     yyjson_doc *doc = args_json ? yyjson_read(args_json, strlen(args_json), 0) : NULL;
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *encoded =
@@ -282,7 +286,7 @@ static bool index_policy_from_worker_args(const char *args_json,
 static bool index_load_policy(const char *args_json, cbm_index_resource_policy_t *policy,
                               char *error, size_t error_size) {
     if (cbm_index_worker_active()) {
-        return index_policy_from_worker_args(args_json, policy, error, error_size);
+        return cbm_index_policy_from_internal_args(args_json, policy, error, error_size);
     }
     cbm_config_t *config = cbm_config_open(cbm_resolve_cache_dir());
     bool loaded = cbm_config_load_index_policy(config, policy, error, error_size);
@@ -439,6 +443,94 @@ static bool index_project_db_is_servable(const char *project, const char *db_pat
     cbm_project_free_fields(&stored_project);
     cbm_store_close(store);
     return servable;
+}
+
+/* Whether the project named by internal worker args has a servable index now. */
+static bool index_args_serving_index_servable(const char *args_json) {
+    char *repo_path = index_string_arg(args_json, "repo_path");
+    char *name = index_string_arg(args_json, "name");
+    char *project = cbm_project_name_from_path(name && name[0] ? name : repo_path);
+    bool servable = false;
+    char db_path[CBM_SZ_1K] = {0};
+    if (project && index_db_path(project, db_path, sizeof(db_path))) {
+        servable = index_project_db_is_servable(project, db_path);
+    }
+    index_release_text(project);
+    cbm_operation_arg_free(name);
+    cbm_operation_arg_free(repo_path);
+    return servable;
+}
+
+void cbm_index_request_facts_begin(const char *args_json, cbm_index_request_facts_t *facts) {
+    if (!facts) {
+        return;
+    }
+    facts->serving_index_existed = index_args_serving_index_servable(args_json);
+    facts->publication_committed = false;
+}
+
+void cbm_index_request_facts_record(cbm_index_request_facts_t *facts,
+                                    const cbm_index_worker_result_t *worker_result) {
+    if (facts && worker_result && worker_result->publication_committed) {
+        facts->publication_committed = true;
+    }
+}
+
+char *cbm_index_worker_resource_response(const char *args_json,
+                                         const cbm_index_worker_result_t *worker_result,
+                                         const cbm_index_request_facts_t *facts) {
+    if (!worker_result) {
+        return NULL;
+    }
+    /* The publication fence makes a limit-stopped attempt and a publication by
+     * that attempt mutually exclusive; an EARLIER attempt of the request may
+     * still have published (it crashed after committing), and an index that
+     * appeared during the request (artifact bootstrap) was not preserved. */
+    bool serving_index_preserved =
+        facts && facts->serving_index_existed && !facts->publication_committed &&
+        !worker_result->publication_committed && index_args_serving_index_servable(args_json);
+
+    const cbm_index_resource_violation_t *violation = &worker_result->resource_violation;
+    const char *config_key = cbm_index_resource_config_key(violation->resource);
+    char message[CBM_SZ_256];
+    (void)snprintf(message, sizeof(message),
+                   worker_result->resource_probe_failed
+                       ? "Worker resource measurement failed for %s"
+                       : "Index worker exceeded %s",
+                   config_key);
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *root = doc ? yyjson_mut_obj(doc) : NULL;
+    if (!root) {
+        if (doc) {
+            yyjson_mut_doc_free(doc);
+        }
+        return NULL;
+    }
+    yyjson_mut_doc_set_root(doc, root);
+    yyjson_mut_obj_add_str(doc, root, "status", "error");
+    yyjson_mut_obj_add_str(doc, root, "code",
+                           worker_result->resource_probe_failed ? "resource_probe_failed"
+                                                                : "resource_limit_exceeded");
+    yyjson_mut_obj_add_str(doc, root, "stage", "worker");
+    yyjson_mut_obj_add_str(doc, root, "resource", cbm_index_resource_name(violation->resource));
+    if (!worker_result->resource_probe_failed) {
+        yyjson_mut_obj_add_uint(doc, root, "observed", violation->observed);
+        yyjson_mut_obj_add_uint(doc, root, "limit", violation->limit);
+        yyjson_mut_obj_add_str(doc, root, "unit", cbm_index_resource_unit(violation->resource));
+    }
+    yyjson_mut_obj_add_bool(doc, root, "retryable", true);
+    yyjson_mut_obj_add_bool(doc, root, "serving_index_preserved", serving_index_preserved);
+    yyjson_mut_obj_add_strcpy(doc, root, "message", message);
+    char *repo_path = index_string_arg(args_json, "repo_path");
+    if (repo_path) {
+        yyjson_mut_obj_add_strcpy(doc, root, "repo_path", repo_path);
+    }
+    cbm_operation_arg_free(repo_path);
+    cbm_operation_result_t error = cbm_operation_result_take(cbm_operation_json_write(doc), true);
+    yyjson_mut_doc_free(doc);
+    char *wire = cbm_operation_result_wire_encode(&error);
+    cbm_operation_result_dispose(&error);
+    return wire;
 }
 
 static bool index_project_has_adr(cbm_store_t *store, const char *project, const char *root_path) {
@@ -908,6 +1000,11 @@ static char *index_encode_run_response(const char *project, const char *repo_pat
     return payload;
 }
 
+static bool index_worker_publish_gate(void *context) {
+    (void)context;
+    return cbm_index_worker_claim_publication();
+}
+
 static cbm_operation_result_t index_run_physical(const char *repo_path, const char *args_json,
                                                  const cbm_operation_runtime_t *runtime) {
     char *mode_text = index_string_arg(args_json, "mode");
@@ -925,7 +1022,7 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
         cbm_operation_arg_free(mode_text);
         cbm_operation_arg_free(name);
         cbm_operation_arg_free(metrics_out);
-        free(mutation_project);
+        index_release_text(mutation_project);
         return index_text_error("index operation blocked by another mutation for this project");
     }
     if (runtime->cancelled && runtime->cancelled(runtime->cancelled_context)) {
@@ -935,7 +1032,7 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
         cbm_operation_arg_free(mode_text);
         cbm_operation_arg_free(name);
         cbm_operation_arg_free(metrics_out);
-        free(mutation_project);
+        index_release_text(mutation_project);
         return index_text_error("index operation cancelled for this request");
     }
     cbm_index_mode_t mode = CBM_MODE_FULL;
@@ -952,7 +1049,7 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
         runtime->mutation_end(runtime->mutation_context, mutation_project);
         cbm_operation_arg_free(name);
         cbm_operation_arg_free(metrics_out);
-        free(mutation_project);
+        index_release_text(mutation_project);
         return index_text_error("failed to create pipeline");
     }
     if (name && name[0] && !cbm_pipeline_set_project_name(pipeline, name)) {
@@ -960,22 +1057,27 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
         runtime->mutation_end(runtime->mutation_context, mutation_project);
         cbm_operation_arg_free(name);
         cbm_operation_arg_free(metrics_out);
-        free(mutation_project);
+        index_release_text(mutation_project);
         return index_text_error("invalid project name");
     }
     cbm_operation_arg_free(name);
     cbm_pipeline_set_persistence(pipeline, persistence);
     cbm_index_resource_policy_t resource_policy;
     char policy_error[CBM_SZ_256] = {0};
-    if (!index_policy_from_worker_args(args_json, &resource_policy, policy_error,
-                                       sizeof(policy_error))) {
+    if (!cbm_index_policy_from_internal_args(args_json, &resource_policy, policy_error,
+                                             sizeof(policy_error))) {
         cbm_pipeline_free(pipeline);
         runtime->mutation_end(runtime->mutation_context, mutation_project);
         cbm_operation_arg_free(metrics_out);
-        free(mutation_project);
+        index_release_text(mutation_project);
         return index_text_error(policy_error);
     }
     cbm_pipeline_set_resource_policy(pipeline, &resource_policy);
+    if (cbm_index_worker_publish_fence()) {
+        /* Supervised worker with a worker limit: claim publication from the
+         * supervisor before the serving database is replaced. */
+        cbm_pipeline_set_publish_gate(pipeline, index_worker_publish_gate, NULL);
+    }
     index_doc_candidates_apply(pipeline, index_doc_candidates_from_args(args_json));
     char *project = index_strdup(cbm_pipeline_project_name(pipeline));
     index_try_artifact_bootstrap(project, repo_path);
@@ -1016,8 +1118,8 @@ static cbm_operation_result_t index_run_physical(const char *repo_path, const ch
     else
         cbm_pipeline_free(pipeline);
     runtime->mutation_end(runtime->mutation_context, mutation_project);
-    free(project);
-    free(mutation_project);
+    index_release_text(project);
+    index_release_text(mutation_project);
     return payload ? cbm_operation_result_take(payload, rc != 0)
                    : index_text_error("result encoding failed");
 }
@@ -1280,22 +1382,22 @@ cbm_operation_result_t cbm_index_operation_execute(const char *args_json,
     char *project = raw_name && raw_name[0] ? cbm_project_name_sanitize(raw_name) : NULL;
     cbm_operation_arg_free(raw_name);
     if (!project || !project[0]) {
-        free(project);
+        index_release_text(project);
         project = index_root_project(repo_path, owner_error, sizeof(owner_error));
     }
     if (!project || !cbm_validate_project_name(project)) {
-        free(project);
+        index_release_text(project);
         free(repo_path);
         return index_text_error(owner_error[0] ? owner_error : "invalid index project name");
     }
     if (status_mode) {
         cbm_operation_result_t out = runtime->index_status(runtime->index_status_context, project);
-        free(project);
+        index_release_text(project);
         free(repo_path);
         return out;
     }
     char *named_args = index_args_with_string(json, "name", project);
-    free(project);
+    index_release_text(project);
     if (!named_args) {
         free(repo_path);
         return index_text_error("failed to prepare named index request");
