@@ -751,7 +751,7 @@ static cbm_operation_result_t execute_status(const char *args_json,
         yyjson_mut_obj_add_strcpy(doc, root, "indexed_at", info.indexed_at ? info.indexed_at : "");
         if (verbose && root_path[0]) {
             cbm_git_context_t git = {0};
-            if (cbm_git_context_resolve(root_path, &git) && git.is_git) {
+            if (cbm_git_context_resolve(root_path, &git) == 0 && git.is_git) {
                 yyjson_mut_val *git_obj = yyjson_mut_obj(doc);
                 if (git.branch)
                     yyjson_mut_obj_add_strcpy(doc, git_obj, "branch", git.branch);
