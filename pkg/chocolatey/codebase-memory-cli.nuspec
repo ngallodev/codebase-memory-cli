@@ -18,7 +18,7 @@ with authenticated release-owned runtime assets. Chocolatey retains the complete
 extracted runtime set and exposes its executable through a PATH shim.
 
 Full indexes an average repository in milliseconds, the Linux kernel (28M LOC) in
-3 minutes. Answers structural queries in under 1ms. Supports 162 languages via
+3 minutes. Answers structural queries in under 1ms. Supports 163 languages via
 vendored tree-sitter grammars. No hosted service or API key. Designed for shell and agent-runner workflows with deterministic machine-readable
 output and local repository intelligence.
 
