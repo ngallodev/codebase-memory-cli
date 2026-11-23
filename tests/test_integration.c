@@ -1228,6 +1228,62 @@ TEST(integ_search_graph_bm25_applies_label_filter) {
     PASS();
 }
 
+/* An empty semantic_query array is ignored as if absent: the BM25 response is
+ * byte-identical to the one without the key. A non-empty or malformed value
+ * still conflicts with query, and the error names both ways out. */
+TEST(integ_search_graph_empty_semantic_query_is_ignored) {
+    char *cache = th_mktempdir("cbm_integ_empty_sq");
+    ASSERT_NOT_NULL(cache);
+    const char *saved = getenv("CBM_CACHE_DIR");
+    char *saved_copy = saved ? strdup(saved) : NULL;
+    (void)cbm_setenv("CBM_CACHE_DIR", cache, 1);
+    bool fixture = integ_write_bm25_fixture(cache, "bm25-find");
+    cbm_test_operation_host_t *host = fixture ? cbm_test_operation_host_new(NULL) : NULL;
+    const char *cases[] = {"\"query\":\"Table\",\"label\":\"Class\",", "\"query\":\"Table\",",
+                           "\"name_pattern\":\"^Table$\",", ""};
+    bool all_same = host != NULL;
+    for (size_t i = 0; host && i < sizeof(cases) / sizeof(cases[0]); i++) {
+        char args[512];
+        snprintf(args, sizeof(args),
+                 "{\"project\":\"bm25-find\",\"format\":\"json\",%s\"limit\":5}", cases[i]);
+        char *baseline = cbm_test_operation_execute(host, "search_graph", args);
+        snprintf(args, sizeof(args),
+                 "{\"project\":\"bm25-find\",\"format\":\"json\",%s\"semantic_query\":[],"
+                 "\"limit\":5}",
+                 cases[i]);
+        char *response = cbm_test_operation_execute(host, "search_graph", args);
+        all_same = all_same && baseline && response && strcmp(baseline, response) == 0 &&
+                   strstr(response, "mutually exclusive") == NULL &&
+                   strstr(response, "Table") != NULL;
+        free(baseline);
+        free(response);
+    }
+    bool conflicts = host != NULL;
+    const char *invalid[] = {"null", "\"meaning\"", "[42]", "[\"meaning\",42]", "[\"meaning\"]"};
+    for (size_t i = 0; host && i < sizeof(invalid) / sizeof(invalid[0]); i++) {
+        char args[256];
+        snprintf(args, sizeof(args),
+                 "{\"project\":\"bm25-find\",\"format\":\"json\",\"query\":\"Table\","
+                 "\"semantic_query\":%s}",
+                 invalid[i]);
+        char *response = cbm_test_operation_execute(host, "search_graph", args);
+        conflicts = conflicts && response &&
+                    strstr(response, "query and semantic_query are mutually exclusive") &&
+                    strstr(response, "remove the semantic_query key") &&
+                    strstr(response, "remove the query key entirely") &&
+                    strstr(response, "do not retry unchanged arguments");
+        free(response);
+    }
+    cbm_test_operation_host_free(host);
+    integ_restore_cache_dir(saved_copy);
+    free(saved_copy);
+    th_cleanup(cache);
+    ASSERT_TRUE(fixture);
+    ASSERT_TRUE(all_same);
+    ASSERT_TRUE(conflicts);
+    PASS();
+}
+
 /* The definition whose NAME is the query ranks first: the `Table` class above
  * its own methods and above test methods that repeat "table" three times; the
  * `get_object_or_404` function above the test methods that contain it. */
@@ -3357,6 +3413,7 @@ SUITE(integration) {
     RUN_TEST(integ_mcp_search_graph_by_label);
     RUN_TEST(integ_mcp_search_graph_by_name);
     RUN_TEST(integ_search_graph_bm25_applies_label_filter);
+    RUN_TEST(integ_search_graph_empty_semantic_query_is_ignored);
     RUN_TEST(integ_search_graph_bm25_ranks_exact_name_first);
     RUN_TEST(integ_coverage_freshness_uses_indexer_mtime_source_issue1714);
     RUN_TEST(integ_mcp_query_graph_functions);
