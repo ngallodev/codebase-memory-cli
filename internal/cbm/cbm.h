@@ -328,7 +328,43 @@ typedef struct {
      * for a defined type `type A B` (its method set is its own) and in every
      * other language. Tail field: zero-init stays valid. */
     const char *alias_target;
+    /* Go and Python only: the facts the declared-type scope step and the
+     * cross-file registrars read (CBMDefTypeFacts), in the result arena; NULL
+     * for a definition without one and in every other language. One pointer,
+     * so the other languages pay 8 bytes per definition. Tail field:
+     * zero-init stays valid. */
+    const struct CBMDefTypeFacts *type_facts;
 } CBMDefinition;
+
+/* Facts of one Go or Python definition that no graph property carries; only
+ * the cross-file step reads them (src/pipeline/type_scope.h, the Go and
+ * Python cross registrars). Every field is NULL when absent. */
+typedef struct CBMDefTypeFacts {
+    /* The names its type parameter lists declare, '|'-joined: Python PEP 695
+     * (`def f[T, *Ts, **P]`, `class C[T]`), Go (`func F[K, V any]`, a generic
+     * receiver `(s *Set[T])`, `type Box[T any]`). They never name a type of
+     * the project. */
+    const char *type_params;
+    /* Go: the type a package-level `var`/`const` declares, or the type its
+     * single initializer spells (`T{}` is T, `&T{}` and `new(T)` are *T, a
+     * const block's bare spec repeats the previous one's): the Variable's
+     * type in the cross-file LSP (go_lsp.c, package-level values). */
+    const char *value_type;
+    /* Go: the types a struct embeds, '|'-joined as written
+     * ("logging.LogHolder|*Base"): the cross-file LSP promotes their members
+     * and names them as fields (go_lsp.c, embedded-member hook). */
+    const char *go_embedded;
+    /* Python class: the names its body binds other than by a nested def or
+     * class (assignments, annotated assignments with a value, imports,
+     * for/with/except/match targets, walrus, global/nonlocal/del; an
+     * annotation alone binds nothing), '|'-joined. A method annotation naming
+     * one of them means the class attribute, not the module's name. */
+    const char *class_bindings;
+    /* Python function or class: the names its body declares `global` and
+     * binds, '|'-joined. The body rebinds them in the module, so no
+     * annotation of the file names them through the module's other binding. */
+    const char *global_names;
+} CBMDefTypeFacts;
 
 /* extra_props key of a generated member, one the compiler writes and the
  * source never spells: a Java record's implicit accessor carries
@@ -442,6 +478,11 @@ typedef struct {
      * re-export, bare `require('x').y`), so local_name is the path's last segment,
      * not a binding the file can call through (#1128). Default false. */
     bool local_name_synthesized;
+    /* Byte offset of the import statement in the source, recorded by the
+     * spec-driven import parser (parse_spec_imports); 0 where no parser sets
+     * it. Scope facts (CBMScopeEvent INCLUDE) find their row by it. Fills
+     * padding: the struct does not grow. */
+    uint32_t start_byte;
     const char *local_name;  // local alias or name
     const char *module_path; // resolved module path / QN
     const char *member;      // ES named import: the exported name the local binds (`get` in
@@ -720,6 +761,48 @@ typedef struct {
     int cap;
 } CBMImportArray;
 
+/* Scope facts (extract_scope.c): what one file defines and includes, in
+ * source order, for the languages with a scope row. A pure function of the
+ * file's bytes; empty for every other language. The values are those of the
+ * parked include-scope branch; the gaps are its ordered-row kinds (shell,
+ * Make), which keep their numbers when they come. */
+typedef enum {
+    CBM_SCOPE_DEF = 1,     /* result->defs[index] is defined here */
+    CBM_SCOPE_INCLUDE = 2, /* result->imports[index] takes effect after `pos` */
+    CBM_SCOPE_ASSIGN = 3,  /* `name` is defined here by a form the graph has no node for */
+    /* bytes [index, pos) are a qualified type reference written as `name`,
+     * qualifier included ("google.protobuf.Empty", ".a.B"): a usage site of
+     * the reference carries only its last identifier */
+    CBM_SCOPE_QREF = 5,
+    /* a parse the facts cannot trust: what is found past it is not proven */
+    CBM_SCOPE_OPAQUE = 8,
+} CBMScopeEventKind;
+
+enum {
+    CBM_SCOPE_REEXPORT = 1u << 4, /* INCLUDE: its names reach this file's includers */
+    /* inside a parse error: may or may not hold where a later name is used */
+    CBM_SCOPE_CONDITIONAL = 1u << 5,
+};
+
+typedef struct {
+    const char *name; /* defined name, or QREF's text; NULL for INCLUDE and OPAQUE */
+    /* DEF: the full name where the row has packages or nesting (Protobuf:
+     * package, enclosing messages, name: "a.b.Outer.Inner"). INCLUDE: the
+     * importing file's package ("" when none), which its references are
+     * relative to. NULL elsewhere. */
+    const char *qual;
+    uint32_t pos;  /* byte offset after which the event is in effect */
+    int32_t index; /* into defs (DEF) or imports (INCLUDE); QREF: start byte; else -1 */
+    uint8_t kind;  /* CBMScopeEventKind */
+    uint8_t flags; /* CBM_SCOPE_* */
+} CBMScopeEvent;
+
+typedef struct {
+    CBMScopeEvent *items;
+    int count;
+    int cap;
+} CBMScopeEventArray;
+
 typedef struct {
     CBMUsage *items;
     int count;
@@ -931,6 +1014,11 @@ typedef struct CBMFileResult {
     const char **constants;     // NULL-terminated (NULL if none)
     const char **global_vars;   // NULL-terminated (NULL if none)
     const char **macros;        // NULL-terminated, C/C++ only (NULL if none)
+    /* C, C++, CUDA: the repository files the preprocessed pass's #include
+     * lookup read (repository-relative, sorted, NULL-terminated; NULL if none).
+     * The file's graph depends on their bytes as well as its own, so an
+     * incremental refresh re-extracts the file when one of them changes. */
+    const char **included_files;
 
     bool has_error;
     const char *error_msg;
@@ -1017,6 +1105,10 @@ typedef struct CBMFileResult {
     int test_owner_source_len;
     CBMLanguage test_owner_language;
     char test_owner_source_sha256[65]; /* exact raw source; identity, not authentication */
+    /* The def walk named this file's GoogleTest macro heads TEST_Suite_Case
+     * (cbm_cpp_test_macro_names_on): the C/C++ engine, per file and across
+     * files, names the callers in those bodies the same way. */
+    bool cpp_test_macro_names;
 
     /* Doc-comment references of this file's definitions (doclink.h), and the
      * file's doc-link scope: a language-tagged text blob with what OTHER
@@ -1025,6 +1117,10 @@ typedef struct CBMFileResult {
      * bytes; NULL for languages without a scope scanner. */
     CBMDocLinkArray doc_links;
     const char *doc_scope;
+
+    /* Scope facts: definitions and includes in source order (extract_scope.c);
+     * empty outside the languages with a scope row. */
+    CBMScopeEventArray scope;
 } CBMFileResult;
 
 // --- Enclosing function cache ---
@@ -1057,6 +1153,40 @@ typedef struct {
 
 // Forward declaration: ObjectScript macro table (defined in macro_table.h).
 typedef struct CBMMacroTable CBMMacroTable;
+
+/* The raw line span of a GoogleTest definition the def walk named with
+ * cbm_cpp_test_macro_name, and its qualified name. */
+typedef struct {
+    uint32_t start_line;
+    uint32_t end_line;
+    const char *qualified_name;
+} CBMTestSpan;
+
+/* A top-level function definition of the preprocessed view (directly in the
+ * translation unit or in a namespace body) by its bytes in that view, and the
+ * raw test span its first and last lines map onto; span -1 when another
+ * top-level definition of the view maps onto the same span. */
+typedef struct {
+    uint32_t start_byte;
+    uint32_t end_byte;
+    int span;
+} CBMTestViewDef;
+
+/* What the preprocessed second view of a C/C++ file needs to name a test body
+ * as the raw view did: the raw test definitions sorted by (start_line,
+ * end_line), the preprocessor's 1-based map from expanded lines to raw lines
+ * (0 = no raw line) with the lines that belong to the file itself, and the
+ * view's top-level definitions that map onto a raw test span, in document
+ * order (cbm_test_span_index_view). */
+typedef struct {
+    const CBMTestSpan *spans;
+    int count;
+    const uint32_t *raw_line_by_line;
+    const uint8_t *in_main_file;
+    int line_count;
+    const CBMTestViewDef *view_defs;
+    int view_def_count;
+} CBMTestSpanMap;
 
 // Method-return-type table for ObjectScript variable type inference. Populated
 // from definition nodes (method QN -> declared return type) so a later
@@ -1137,6 +1267,22 @@ typedef struct {
      * The core never reads, interprets or frees it. It is the only place for
      * such state: a static or thread-local cache is not. */
     void *doclink_state;
+    /* C#: the first named file-scoped namespace among the children of the
+     * tree top cs_file_ns_top (extract_defs.c), found once per file. */
+    const void *cs_file_ns_top;
+    const char *cs_file_ns_name;
+    uint32_t cs_file_ns_start;
+    /* Go: what each block's statements bind (extract_calls.c), NULL until a route call asks;
+     * allocated in `scratch`. */
+    void *go_block_bindings;
+    /* C++/CUDA raw view: the GoogleTest definitions the def walk named
+     * (CBMTestSpan, in `scratch`), in walk order. */
+    CBMTestSpan *test_spans;
+    int test_span_count;
+    int test_span_cap;
+    /* The preprocessed second view only: the raw view's test definitions and
+     * the line map (cbm_test_span_owner_qn). NULL in every raw view. */
+    const CBMTestSpanMap *pp_test_spans;
 } CBMExtractCtx;
 
 /* Internal configured-definition seams. No declarations pointer enters a result. */
@@ -1160,6 +1306,46 @@ const char *cbm_test_definition_qn(CBMExtractCtx *ctx, TSNode function);
 bool cbm_test_definition_owners_match(const CBMFileResult *owners, const char *source,
                                       int source_len, bool cpp_mode, const char *module_qn);
 const char *cbm_test_definition_owner_qn(const CBMFileResult *owners, TSNode function);
+
+/* GoogleTest test-case macros (TEST, TEST_F, TEST_P, TYPED_TEST, TYPED_TEST_P)
+ * parse as function definitions named by the bare macro. With the gtest preset
+ * on, a C++/CUDA definition is named <MACRO>_<Suite>_<Case> (#1266), and every
+ * place that names the caller of a call in such a body names it through this
+ * one function: the def walk, the call-scope walk (compute_func_qn),
+ * cbm_enclosing_func_qn_cached and the C/C++ engine (c_process_function).
+ * `func_node` is the function_definition. NULL when `enabled` is false, `name`
+ * is not one of the five macros, or the head carries no argument; the caller
+ * keeps its own name then. */
+char *cbm_cpp_test_macro_name(CBMArena *a, bool enabled, const char *name, TSNode func_node,
+                              const char *source);
+/* The `enabled` argument above for a file of `language`: C++ or CUDA with the
+ * gtest preset on (on when nothing is configured). */
+bool cbm_cpp_test_macro_names_on(CBMLanguage language, const cbm_test_declarations_t *declarations);
+/* The preprocessed view reads a head after macro expansion and without its
+ * comments, so it can spell a test differently from the raw view (a project
+ * macro among the arguments, a project's own TEST macro). A top-level function
+ * definition of that view whose first and last lines map to exactly one raw
+ * test definition's span (CBMTestSpanMap), and the only top-level definition
+ * of the view that does, is that test: its QN. Otherwise NULL and the caller
+ * names the body as usual: a method of a local class, a function written on a
+ * one-line test's line, two raw tests on one line. Used by the call scope, the
+ * enclosing-function helper and the C/C++ engine, the three places that name
+ * a caller. A binary search over the view's indexed definitions. */
+const char *cbm_test_span_owner_qn(const CBMTestSpanMap *map, TSNode function);
+/* Index the preprocessed view's top-level function definitions (directly in
+ * the translation unit, or in namespace, extern-block, template and
+ * conditional bodies; never inside a function or class body) that map onto a
+ * raw test span, into map->view_defs (allocated in `a`). One pass over those
+ * containers plus a binary search per definition. On allocation failure the
+ * index stays empty and no body is named from a span. */
+void cbm_test_span_index_view(CBMTestSpanMap *map, CBMArena *a, TSNode root);
+#ifdef CBM_ENABLE_TEST_SEAMS
+/* Steps of the test-span searches and the view index walk plus spans indexed,
+ * since reset. */
+void cbm_test_span_test_reset(void);
+uint64_t cbm_test_span_test_work(void);
+void cbm_test_span_test_count(uint64_t work);
+#endif
 
 // --- Public API ---
 
@@ -1271,15 +1457,29 @@ CBMFileResult *cbm_extract_file_ex(
     const CBMReturnTypeTable *return_type_table // OS return types, or NULL
 );
 
+/* The indexed repository as the C-family preprocessed pass's #include lookup
+ * sees it (#2993): `root` is the directory rel_path is relative to, and a
+ * quoted include resolves only to a file is_indexed() accepts -- one of the
+ * files the index run covers -- so the expansion is a function of the indexed
+ * tree alone, never of the process working directory. */
+typedef struct {
+    const char *root;
+    bool (*is_indexed)(const void *userdata, const char *rel_path);
+    const void *userdata;
+} CBMIncludeScope;
+
 /* Additive immutable-snapshot entry point. NULL preserves legacy behavior.
  * Snapshot must outlive this call; returned data is independently result-owned.
  * A non-OK result status is an explicit configured-mapping failure, not a
- * successful empty inventory. error_msg may be NULL on diagnostic OOM. */
+ * successful empty inventory. error_msg may be NULL on diagnostic OOM.
+ * include_scope: where quoted #include names resolve (preprocessor.h); NULL
+ * resolves none. */
 CBMFileResult *cbm_extract_file_ex_with_tests(
     const char *source, int source_len, CBMLanguage language, const char *project,
     const char *rel_path, int64_t timeout_micros, const char **extra_defines,
     const char **include_paths, const CBMMacroTable *macro_table,
-    const CBMReturnTypeTable *return_type_table, const cbm_test_declarations_t *test_declarations);
+    const CBMReturnTypeTable *return_type_table, const cbm_test_declarations_t *test_declarations,
+    const CBMIncludeScope *include_scope);
 
 // Free all memory associated with a result.
 void cbm_free_result(CBMFileResult *result);
@@ -1379,12 +1579,16 @@ bool cbm_py_namespace_facts_copy(CBMArena *arena, const CBMPyNamespaceFacts *sou
 #ifdef CBM_ENABLE_TEST_SEAMS
 void cbm_py_namespace_test_capture_fail_after(int successful_allocations);
 void cbm_py_namespace_test_copy_fail_after(int successful_allocations);
+/* Work of building Go structs' embedded-type texts (field-list entries
+ * visited plus spelling bytes): the growth test counts it at three sizes. */
+uint64_t cbm_extract_test_go_embedded_work(void);
 #endif
 
 // Growable array push functions (arena-allocated, no individual free needed).
 void cbm_defs_push(CBMDefArray *arr, CBMArena *a, CBMDefinition def);
 void cbm_calls_push(CBMCallArray *arr, CBMArena *a, CBMCall call);
 void cbm_imports_push(CBMImportArray *arr, CBMArena *a, CBMImport imp);
+void cbm_scope_events_push(CBMScopeEventArray *arr, CBMArena *a, CBMScopeEvent ev);
 /* True unless every import of `imports` that binds `local_name` is
  * annotation-only (cbm_import_binds_runtime_name), so also true when no import
  * names it: the rule for the builders that key IMPORTS edges by local name. */
@@ -1429,6 +1633,11 @@ void cbm_extract_dbt(CBMExtractCtx *ctx);
 // parse past `?>` (#2000). Same length and line breaks as the input; returns
 // `source` itself when nothing needs rewriting. Defined in php_inline_html.c.
 const char *cbm_php_mask_inline_html(CBMArena *arena, const char *source, int source_len);
+// C-family source with each `\` CR LF line splice rewritten as space `\` LF so
+// the grammars built on tree-sitter-c read it as they read the LF splice
+// (#1546). Same length and line breaks as the input; returns `source` itself
+// when there is no such splice. Defined in cbm.c.
+const char *cbm_c_mask_crlf_splices(CBMArena *arena, const char *source, int source_len);
 void cbm_extract_imports(CBMExtractCtx *ctx);
 void cbm_extract_usages(CBMExtractCtx *ctx);
 void cbm_extract_semantic(CBMExtractCtx *ctx);
@@ -1469,6 +1678,14 @@ const char *cbm_route_canon_path(const char *in, char *out, size_t out_sz);
 
 // Single-pass unified extraction (replaces the 7 calls above except defs+imports).
 void cbm_extract_unified(CBMExtractCtx *ctx);
+
+/* Scope facts (extract_scope.c): result->scope for a language with a scope
+ * row, after its definitions and imports; nothing for any other language. */
+void cbm_extract_scope(CBMExtractCtx *ctx);
+/* True for a language with a scope row. */
+bool cbm_extract_scope_has_row(CBMLanguage lang);
+/* Nodes visited and index probes of every scope walk so far (growth tests). */
+uint64_t cbm_extract_scope_nodes_visited(void);
 
 // K8s / Kustomize semantic extractor (called when language is CBM_LANG_K8S or CBM_LANG_KUSTOMIZE).
 void cbm_extract_k8s(CBMExtractCtx *ctx);

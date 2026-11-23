@@ -70,6 +70,17 @@ static int __attribute__((unused)) has_import(CBMFileResult *r, const char *path
     return 0;
 }
 
+static const CBMImport *find_import(CBMFileResult *r, const char *local, const char *path) {
+    for (int i = 0; i < r->imports.count; i++) {
+        const CBMImport *imp = &r->imports.items[i];
+        if (imp->local_name && imp->module_path && strcmp(imp->local_name, local) == 0 &&
+            strcmp(imp->module_path, path) == 0) {
+            return imp;
+        }
+    }
+    return NULL;
+}
+
 /* Count definitions with a given label. */
 /* Check for a definition with the given qualified name. Distinct from
  * find_def_by_name, which returns the first match by NAME and so cannot tell two
@@ -400,6 +411,140 @@ TEST(extract_cpp_real_in_body_error_still_flagged_issue1071) {
                                CBM_LANG_CPP, "t", "broken.cpp");
     ASSERT_NOT_NULL(r);
     ASSERT_TRUE(r->parse_incomplete); /* real gap stays reported */
+    cbm_free_result(r);
+    PASS();
+}
+
+/* #1546: the grammars built on tree-sitter-c read a backslash line splice
+ * inside a string literal as `\` plus one character. With CRLF line endings
+ * that character was the CR, the LF then ended the literal, and every
+ * function after it was lost to one ERROR region. */
+static const CBMDefinition *splice_def(CBMFileResult *r, const char *name) {
+    for (int i = 0; i < r->defs.count; i++) {
+        if (r->defs.items[i].name && strcmp(r->defs.items[i].name, name) == 0) {
+            return &r->defs.items[i];
+        }
+    }
+    return NULL;
+}
+
+/* The reporter's file, byte for byte. */
+TEST(extract_cpp_crlf_string_splice_keeps_later_functions_issue1546) {
+    CBMFileResult *r = extract("void Head()\r\n"
+                               "{\r\n"
+                               "    int h = 0;\r\n"
+                               "}\r\n"
+                               "\r\n"
+                               "void Middle()\r\n"
+                               "{\r\n"
+                               "    const wchar_t* s = L\"line 0\\r\\n\\\r\n"
+                               "line 1\\r\\n\";\r\n"
+                               "}\r\n"
+                               "\r\n"
+                               "void TrailerOne()\r\n"
+                               "{\r\n"
+                               "    int a = 1;\r\n"
+                               "}\r\n"
+                               "\r\n"
+                               "void TrailerTwo()\r\n"
+                               "{\r\n"
+                               "    int b = 2;\r\n"
+                               "}\r\n",
+                               CBM_LANG_CPP, "t", "repro.cpp");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    ASSERT_FALSE(r->parse_incomplete);
+    const CBMDefinition *middle = splice_def(r, "Middle");
+    const CBMDefinition *one = splice_def(r, "TrailerOne");
+    const CBMDefinition *two = splice_def(r, "TrailerTwo");
+    ASSERT_NOT_NULL(middle);
+    ASSERT_NOT_NULL(one);
+    ASSERT_NOT_NULL(two);
+    ASSERT_EQ((int)middle->start_line, 6);
+    ASSERT_EQ((int)middle->end_line, 10);
+    ASSERT_EQ((int)one->start_line, 12);
+    ASSERT_EQ((int)two->start_line, 17);
+    cbm_free_result(r);
+    PASS();
+}
+
+/* Every grammar built on tree-sitter-c has the same escape rule. */
+TEST(extract_c_family_crlf_string_splice_parses_clean_issue1546) {
+    static const CBMLanguage langs[] = {CBM_LANG_C,    CBM_LANG_CPP,  CBM_LANG_CUDA,
+                                        CBM_LANG_OBJC, CBM_LANG_GLSL, CBM_LANG_HLSL,
+                                        CBM_LANG_ISPC, CBM_LANG_SLANG};
+    const char *src = "void Head()\r\n"
+                      "{\r\n"
+                      "    int h = 0;\r\n"
+                      "}\r\n"
+                      "\r\n"
+                      "void Middle()\r\n"
+                      "{\r\n"
+                      "    const char *s = \"line 0\\\r\n"
+                      "line 1\";\r\n"
+                      "}\r\n"
+                      "\r\n"
+                      "void TrailerOne()\r\n"
+                      "{\r\n"
+                      "    int a = 1;\r\n"
+                      "}\r\n";
+    for (size_t i = 0; i < sizeof(langs) / sizeof(langs[0]); i++) {
+        CBMFileResult *r = extract(src, langs[i], "t", "splice.c");
+        ASSERT_NOT_NULL(r);
+        ASSERT_FALSE(r->parse_incomplete);
+        const CBMDefinition *middle = splice_def(r, "Middle");
+        const CBMDefinition *tail = splice_def(r, "TrailerOne");
+        ASSERT_NOT_NULL(middle);
+        ASSERT_NOT_NULL(tail);
+        ASSERT_EQ((int)middle->end_line, 10);
+        ASSERT_EQ((int)tail->start_line, 12);
+        cbm_free_result(r);
+    }
+    PASS();
+}
+
+/* Splices in a macro and a line comment, which the grammar already read with
+ * CRLF, still do; the preprocessed second pass sees the rewritten bytes too. */
+TEST(extract_c_crlf_splices_in_macro_comment_and_string_issue1546) {
+    CBMFileResult *r = extract("#define LOG2(a, b) \\\r\n"
+                               "    do { log_it(a); \\\r\n"
+                               "         log_it(b); } while (0)\r\n"
+                               "\r\n"
+                               "// a comment that ends with a splice \\\r\n"
+                               "   and goes on here\r\n"
+                               "\r\n"
+                               "static const char *usage = \"usage: tool\\n\\\r\n"
+                               "  -h  help\\n\";\r\n"
+                               "\r\n"
+                               "int helper(int x)\r\n"
+                               "{\r\n"
+                               "    return x + 1;\r\n"
+                               "}\r\n"
+                               "\r\n"
+                               "int main(void)\r\n"
+                               "{\r\n"
+                               "    LOG2(\"a\", \"b\");\r\n"
+                               "    return helper(2);\r\n"
+                               "}\r\n",
+                               CBM_LANG_C, "t", "mix.c");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->parse_incomplete);
+    ASSERT(has_def(r, "Macro", "LOG2"));
+    const CBMDefinition *usage = splice_def(r, "usage");
+    const CBMDefinition *helper = splice_def(r, "helper");
+    ASSERT_NOT_NULL(usage);
+    ASSERT_NOT_NULL(helper);
+    ASSERT_EQ((int)usage->end_line, 9);
+    ASSERT_EQ((int)helper->start_line, 11);
+    ASSERT_EQ((int)helper->end_line, 14);
+    for (int i = 0; i < r->calls.count; i++) {
+        const CBMCall *c = &r->calls.items[i];
+        if (c->callee_name && strcmp(c->callee_name, "helper") == 0) {
+            ASSERT_NOT_NULL(c->enclosing_func_qn);
+            ASSERT_NOT_NULL(strstr(c->enclosing_func_qn, "main"));
+        }
+    }
+    ASSERT(has_call(r, "log_it"));
     cbm_free_result(r);
     PASS();
 }
@@ -3176,6 +3321,81 @@ TEST(haskell_infix_definition_name) {
     PASS();
 }
 
+/* #2439: the vendored grammar lexes an escaped char literal with
+ * /'\\[^ ]*'/, whose `[^ ]*` also matches newlines and quotes. With only
+ * newlines between `'\n'` and the next definition's primed name, the char
+ * token runs from `'\n` through `g'`, so `f` swallows `g'` and `g'` gets no
+ * node. Each top-level definition must keep its own node and span. */
+TEST(haskell_escaped_char_does_not_swallow_primed_def) {
+    CBMFileResult *r = extract("module M where\n"
+                               "\n"
+                               "f = '\\n'\n"
+                               "\n"
+                               "g' = 2\n"
+                               "\n"
+                               "h = 3\n",
+                               CBM_LANG_HASKELL, "t", "M.hs");
+    ASSERT_NOT_NULL(r);
+    const CBMDefinition *f = NULL;
+    for (int i = 0; i < r->defs.count; i++) {
+        if (strcmp(r->defs.items[i].name, "f") == 0) {
+            f = &r->defs.items[i];
+        }
+    }
+    ASSERT_NOT_NULL(f);
+    ASSERT_EQ((int)f->end_line, 3);
+    ASSERT(has_def(r, "Function", "g'"));
+    ASSERT(has_def(r, "Function", "h"));
+    ASSERT_FALSE(r->has_error);
+    cbm_free_result(r);
+    PASS();
+}
+
+/* Append the text of every `char` node under root to out, space-separated. */
+static void haskell_char_texts(TSNode root, const char *src, char *out, size_t out_sz) {
+    TSTreeCursor c = ts_tree_cursor_new(root);
+    size_t len = 0;
+    for (;;) {
+        TSNode n = ts_tree_cursor_current_node(&c);
+        if (strcmp(ts_node_type(n), "char") == 0 && len < out_sz) {
+            uint32_t s = ts_node_start_byte(n);
+            uint32_t e = ts_node_end_byte(n);
+            len += (size_t)snprintf(out + len, out_sz - len, "%.*s ", (int)(e - s), src + s);
+        }
+        if (ts_tree_cursor_goto_first_child(&c)) {
+            continue;
+        }
+        while (!ts_tree_cursor_goto_next_sibling(&c)) {
+            if (!ts_tree_cursor_goto_parent(&c)) {
+                ts_tree_cursor_delete(&c);
+                return;
+            }
+        }
+    }
+}
+
+/* #2439, same-line form: the old regex ran from the first `'\` to the last
+ * `'` before a space, so `['\n','\t']` lexed as ONE char token with no parse
+ * error. Each literal must be its own token, and the escapes that contain a
+ * quote or a backslash (`'\''`, `'\\'`) must still lex whole. */
+TEST(haskell_escaped_char_list_lexes_each_literal) {
+    const char *src = "x = ['\\n','\\t','\\'','\\\\','\\x41','\\SOH','a']\n";
+    TSParser *parser = ts_parser_new();
+    ASSERT_NOT_NULL(parser);
+    ASSERT_TRUE(ts_parser_set_language(parser, cbm_ts_language(CBM_LANG_HASKELL)));
+    TSTree *tree = ts_parser_parse_string(parser, NULL, src, (uint32_t)strlen(src));
+    ASSERT_NOT_NULL(tree);
+    TSNode root = ts_tree_root_node(tree);
+    char got[128] = "";
+    haskell_char_texts(root, src, got, sizeof(got));
+    bool has_error = ts_node_has_error(root);
+    ts_tree_delete(tree);
+    ts_parser_delete(parser);
+    ASSERT_FALSE(has_error);
+    ASSERT_STR_EQ(got, "'\\n' '\\t' '\\'' '\\\\' '\\x41' '\\SOH' 'a' ");
+    PASS();
+}
+
 /* --- OCaml --- */
 TEST(ocaml_function) {
     CBMFileResult *r =
@@ -4641,6 +4861,281 @@ TEST(cpp_gtest_f_unique_name_issue1266) {
     ASSERT(has_def(r, "Function", "TEST_F_MyFixture_SecondTest"));
     ASSERT(!has_def(r, "Function", "TEST_F"));
     cbm_free_result(r);
+    PASS();
+}
+
+/* A call written in a GoogleTest body belongs to the test's own node. The def
+ * walk names TEST(Suite, Case) TEST_Suite_Case (#1266), so the three places
+ * that name the caller of a call must name it the same way: the call-scope
+ * walk (CBMCall.enclosing_func_qn), the enclosing-function helper behind the
+ * reference extractors (CBMUsage.enclosing_func_qn) and the C/C++ engine
+ * (CBMResolvedCall.caller_qn). Under the bare macro name no node exists, and
+ * the pipeline sources every such call at the file. One row per macro form
+ * the def walk renames, plus one inside a namespace. */
+static const char gtest_caller_src[] =
+    "int helper_sum(int a, int b) { return a + b; }\n"
+    "int kLimit = 3;\n"
+    "TEST(WidgetSuite, Adds) { helper_sum(1, kLimit); }\n"
+    "TEST_F(WidgetFixture, Runs) { helper_sum(2, kLimit); }\n"
+    "TEST_P(WidgetParam, Each) { helper_sum(3, kLimit); }\n"
+    "TYPED_TEST(WidgetTyped, Holds) { helper_sum(4, kLimit); }\n"
+    "TYPED_TEST_P(WidgetTypedP, Keeps) { helper_sum(5, kLimit); }\n"
+    "namespace demo {\n"
+    "TEST(NsSuite, Inside) { helper_sum(6, kLimit); }\n"
+    "}\n";
+
+static const char *const gtest_caller_names[] = {
+    "TEST_WidgetSuite_Adds",        "TEST_F_WidgetFixture_Runs",       "TEST_P_WidgetParam_Each",
+    "TYPED_TEST_WidgetTyped_Holds", "TYPED_TEST_P_WidgetTypedP_Keeps", "demo.TEST_NsSuite_Inside"};
+
+static int count_resolved_from(const CBMFileResult *r, const char *caller_qn,
+                               const char *callee_suffix) {
+    int count = 0;
+    size_t sl = strlen(callee_suffix);
+    for (int i = 0; i < r->resolved_calls.count; i++) {
+        const CBMResolvedCall *rc = &r->resolved_calls.items[i];
+        size_t cl = rc->callee_qn ? strlen(rc->callee_qn) : 0;
+        if (rc->caller_qn && strcmp(rc->caller_qn, caller_qn) == 0 && cl >= sl &&
+            strcmp(rc->callee_qn + cl - sl, callee_suffix) == 0) {
+            count++;
+        }
+    }
+    return count;
+}
+
+TEST(cpp_gtest_body_caller_is_test_node) {
+    CBMFileResult *r = extract(gtest_caller_src, CBM_LANG_CPP, "t", "widget_test.cc");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    /* Inputs reached: every body's call and reference was extracted. */
+    ASSERT_EQ(count_calls_named(r, "helper_sum"), 6);
+    ASSERT_EQ(count_usages_named(r, "kLimit"), 6);
+    for (size_t i = 0; i < sizeof(gtest_caller_names) / sizeof(gtest_caller_names[0]); i++) {
+        const CBMDefinition *def = find_def_in_module(r, gtest_caller_names[i]);
+        if (!def) {
+            printf("  no definition %s\n", gtest_caller_names[i]);
+        }
+        ASSERT_NOT_NULL(def);
+        int calls = count_calls_from(r, "helper_sum", def->qualified_name);
+        int refs = count_usages_from(r, "kLimit", def->qualified_name);
+        int lsp = count_resolved_from(r, def->qualified_name, ".helper_sum");
+        if (calls != 1 || refs != 1 || lsp != 1) {
+            printf("  %s: calls %d, references %d, engine %d\n", def->qualified_name, calls, refs,
+                   lsp);
+        }
+        ASSERT_EQ(calls, 1); /* RED on 08a7a586: the call-scope walk says <module>.TEST */
+        ASSERT_EQ(refs, 1);  /* RED on 08a7a586: cbm_enclosing_func_qn says <module>.TEST */
+        ASSERT_EQ(lsp, 1);   /* RED on 08a7a586: the engine's caller is <module>.TEST */
+    }
+    /* Nothing is left on the bare macro names (the positive rows above are the
+     * partner: the same calls, under the test names). */
+    static const char *const bare[] = {"TEST",       "TEST_F",       "TEST_P",
+                                       "TYPED_TEST", "TYPED_TEST_P", "demo.TEST"};
+    for (size_t i = 0; i < sizeof(bare) / sizeof(bare[0]); i++) {
+        char qn[256];
+        snprintf(qn, sizeof(qn), "%s.%s", r->module_qn, bare[i]);
+        ASSERT_EQ(count_calls_from(r, "helper_sum", qn), 0);
+        ASSERT_EQ(count_usages_from(r, "kLimit", qn), 0);
+        ASSERT_EQ(count_resolved_from(r, qn, ".helper_sum"), 0);
+    }
+    cbm_free_result(r);
+    PASS();
+}
+
+/* Every C++ file is also read a second time after the built-in preprocessor,
+ * and that view can spell a test's head differently: a project macro among the
+ * arguments is expanded, comments are gone, and a project's own TEST macro is
+ * replaced by its expansion. The second view must still name the body as the
+ * raw view's definition, or the same call is drawn from the test node and, a
+ * second time, from the File. The definition's name drops comments from the
+ * head's arguments. Rows of each view are counted per origin, so the second
+ * view is shown to have run (the positive partner of "no other caller"). */
+static int pp_rows(const CBMFileResult *r, const char *callee, const char *ref,
+                   const char *caller_qn, CBMSourceOrigin origin, int *calls, int *engine,
+                   int *refs) {
+    *calls = *engine = *refs = 0;
+    for (int i = 0; i < r->calls.count; i++) {
+        const CBMCall *c = &r->calls.items[i];
+        *calls += c->callee_name && strcmp(c->callee_name, callee) == 0 &&
+                  c->source_origin == origin && c->enclosing_func_qn &&
+                  (!caller_qn || strcmp(c->enclosing_func_qn, caller_qn) == 0);
+    }
+    for (int i = 0; i < r->resolved_calls.count; i++) {
+        const CBMResolvedCall *rc = &r->resolved_calls.items[i];
+        size_t cl = rc->callee_qn ? strlen(rc->callee_qn) : 0;
+        size_t nl = strlen(callee);
+        *engine += rc->kind == CBM_RESOLVED_INVOCATION && rc->source_origin == origin && cl > nl &&
+                   rc->callee_qn[cl - nl - 1] == '.' &&
+                   strcmp(rc->callee_qn + cl - nl, callee) == 0 && rc->caller_qn &&
+                   (!caller_qn || strcmp(rc->caller_qn, caller_qn) == 0);
+    }
+    for (int i = 0; i < r->usages.count; i++) {
+        const CBMUsage *u = &r->usages.items[i];
+        *refs += u->ref_name && strcmp(u->ref_name, ref) == 0 && u->source_origin == origin &&
+                 u->enclosing_func_qn &&
+                 (!caller_qn || strcmp(u->enclosing_func_qn, caller_qn) == 0);
+    }
+    return *calls + *engine + *refs;
+}
+
+/* `callee` and `ref` occur in this test's body only. */
+static int assert_pp_view_names_raw_test(const CBMFileResult *r, const char *def_name,
+                                         const char *callee, const char *ref) {
+    const CBMDefinition *def = NULL;
+    for (int i = 0; i < r->defs.count; i++) {
+        if (r->defs.items[i].name && strcmp(r->defs.items[i].name, def_name) == 0) {
+            def = &r->defs.items[i];
+        }
+    }
+    if (!def) {
+        printf("  no definition named %s\n", def_name);
+    }
+    ASSERT_NOT_NULL(def);
+    int any[3];
+    int own[3];
+    for (int origin = 0; origin < 2; origin++) {
+        CBMSourceOrigin o = origin ? CBM_SOURCE_ORIGIN_PREPROCESSED : CBM_SOURCE_ORIGIN_RAW;
+        (void)pp_rows(r, callee, ref, NULL, o, &any[0], &any[1], &any[2]);
+        (void)pp_rows(r, callee, ref, def->qualified_name, o, &own[0], &own[1], &own[2]);
+        if (any[0] != own[0] || any[1] != own[1] || any[2] != own[2]) {
+            printf(
+                "  %s, %s view: calls %d of %d, engine %d of %d, references %d of %d at the test\n",
+                def_name, origin ? "preprocessed" : "raw", own[0], any[0], own[1], any[1], own[2],
+                any[2]);
+        }
+        /* Both views saw the call, its resolution and the reference. */
+        ASSERT_GTE(any[0], 1);
+        ASSERT_GTE(any[1], 1);
+        ASSERT_GTE(any[2], 1);
+        /* RED on cbm-ctest-caller-c2a10ffd: the preprocessed view names the
+         * test from its own head text, a name no definition carries. */
+        ASSERT_EQ(own[0], any[0]);
+        ASSERT_EQ(own[1], any[1]);
+        ASSERT_EQ(own[2], any[2]);
+    }
+    return 0;
+}
+
+TEST(cpp_gtest_preprocessed_view_names_the_raw_test) {
+    static const char suites[] = "int kVia = 1;\n"
+                                 "int kBlock = 2;\n"
+                                 "int kLine = 3;\n"
+                                 "int via_target(int v) { return v; }\n"
+                                 "int block_target(int v) { return v; }\n"
+                                 "int line_target(int v) { return v; }\n"
+                                 "#define MY_SUITE RealSuite\n"
+                                 "TEST(MY_SUITE, ViaMacro) { via_target(kVia); }\n"
+                                 "TEST(CommentSuite /* c */, Commented) { block_target(kBlock); }\n"
+                                 "TEST(LineCommentSuite,  // why\n"
+                                 "     LineCommented) {\n"
+                                 "  line_target(kLine);\n"
+                                 "}\n";
+    CBMFileResult *r = extract(suites, CBM_LANG_CPP, "t", "misc_test.cc");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    /* The definitions keep the raw head's names, without its comments
+     * (RED on cbm-ctest-caller-c2a10ffd: TEST_CommentSuite_/\* c *\/). */
+    ASSERT_EQ(assert_pp_view_names_raw_test(r, "TEST_MY_SUITE_ViaMacro", "via_target", "kVia"), 0);
+    ASSERT_EQ(
+        assert_pp_view_names_raw_test(r, "TEST_CommentSuite_Commented", "block_target", "kBlock"),
+        0);
+    ASSERT_EQ(assert_pp_view_names_raw_test(r, "TEST_LineCommentSuite_LineCommented", "line_target",
+                                            "kLine"),
+              0);
+    cbm_free_result(r);
+
+    /* A project's own one-argument TEST macro: the def walk names its use
+     * TEST_alpha, the second view sees `void test_alpha()`. */
+    static const char own[] = "int kShared = 1;\n"
+                              "int helper_b(int v) { return v; }\n"
+                              "#define TEST(name) void test_##name()\n"
+                              "TEST(alpha) { helper_b(kShared); }\n";
+    r = extract(own, CBM_LANG_CPP, "t", "own_test_macro.cc");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    ASSERT_EQ(assert_pp_view_names_raw_test(r, "TEST_alpha", "helper_b", "kShared"), 0);
+    cbm_free_result(r);
+    PASS();
+}
+
+/* Two tests on one line share their raw line span, so the second view cannot
+ * tell them apart by lines: each keeps the name its own head gives, which is
+ * the raw view's name when the two heads read the same. */
+TEST(cpp_gtest_preprocessed_view_one_line_pair) {
+    static const char src[] = "int kShared = 1;\n"
+                              "int helper_c(int v) { return v; }\n"
+                              "#define UNUSED_MACRO 1\n"
+                              "TEST(PairSuite, First) { helper_c(kShared); } "
+                              "TEST(PairSuite, Second) { helper_c(kShared); }\n";
+    CBMFileResult *r = extract(src, CBM_LANG_CPP, "t", "pair_test.cc");
+    ASSERT_NOT_NULL(r);
+    const CBMDefinition *first = find_def_in_module(r, "TEST_PairSuite_First");
+    const CBMDefinition *second = find_def_in_module(r, "TEST_PairSuite_Second");
+    ASSERT_NOT_NULL(first);
+    ASSERT_NOT_NULL(second);
+    int any[3];
+    int a[3];
+    int b[3];
+    (void)pp_rows(r, "helper_c", "kShared", NULL, CBM_SOURCE_ORIGIN_PREPROCESSED, &any[0], &any[1],
+                  &any[2]);
+    (void)pp_rows(r, "helper_c", "kShared", first->qualified_name, CBM_SOURCE_ORIGIN_PREPROCESSED,
+                  &a[0], &a[1], &a[2]);
+    (void)pp_rows(r, "helper_c", "kShared", second->qualified_name, CBM_SOURCE_ORIGIN_PREPROCESSED,
+                  &b[0], &b[1], &b[2]);
+    ASSERT_EQ(any[0], 2); /* the second view ran and saw both calls */
+    ASSERT_EQ(a[0], 1);
+    ASSERT_EQ(b[0], 1);
+    ASSERT_EQ(a[1] + b[1], any[1]);
+    cbm_free_result(r);
+    PASS();
+}
+
+/* The preprocessed view finds the raw test of a body by a binary search over
+ * the file's test spans, sorted once per file, and over the view's indexed
+ * top-level definitions: counted work (spans indexed, nodes walked, search
+ * steps) grows like n log n with the number of tests, never n^2. So it pins
+ * "not worse than main's growth": main's own calls pass on such a file grows
+ * faster than n log n (not counted here), and this change adds no growth of
+ * its own beyond n log n. */
+static uint64_t pp_test_span_work(int tests, int *at_tests) {
+    size_t cap = (size_t)tests * 64 + 256;
+    char *src = malloc(cap);
+    if (!src) {
+        return UINT64_MAX;
+    }
+    int off = snprintf(src, cap, "int span_target() { return 0; }\n#define SPAN_UNUSED 1\n");
+    for (int i = 0; i < tests; i++) {
+        off += snprintf(src + off, cap - (size_t)off,
+                        "TEST(SpanSuite, Case%d) { span_target(); }\n", i);
+    }
+    cbm_test_span_test_reset();
+    CBMFileResult *r = cbm_extract_file(src, off, CBM_LANG_CPP, "t", "span_test.cc", 0, NULL, NULL);
+    free(src);
+    uint64_t work = r ? cbm_test_span_test_work() : UINT64_MAX;
+    *at_tests = 0;
+    for (int i = 0; r && i < r->calls.count; i++) {
+        const CBMCall *c = &r->calls.items[i];
+        *at_tests += c->source_origin == CBM_SOURCE_ORIGIN_PREPROCESSED && c->callee_name &&
+                     strcmp(c->callee_name, "span_target") == 0 && c->enclosing_func_qn &&
+                     strstr(c->enclosing_func_qn, ".TEST_SpanSuite_Case") != NULL;
+    }
+    cbm_free_result(r);
+    return work;
+}
+
+TEST(cpp_gtest_preprocessed_view_lookup_growth) {
+    enum { SMALL = 100, BIG = 1000, WORK_RATIO_MAX = 20 };
+    int small_at = 0;
+    int big_at = 0;
+    uint64_t small = pp_test_span_work(SMALL, &small_at);
+    uint64_t big = pp_test_span_work(BIG, &big_at);
+    fprintf(stderr, "  [pp-test-spans] work(%d)=%llu work(%d)=%llu\n", SMALL,
+            (unsigned long long)small, BIG, (unsigned long long)big);
+    ASSERT_TRUE(small != UINT64_MAX && big != UINT64_MAX);
+    ASSERT_EQ(small_at, SMALL); /* the second view ran and placed every body */
+    ASSERT_EQ(big_at, BIG);
+    ASSERT_GTE(small, (uint64_t)SMALL);
+    ASSERT(big <= small * WORK_RATIO_MAX); /* 10x input: n log n is about 15x, n^2 100x */
     PASS();
 }
 
@@ -10330,6 +10825,65 @@ TEST(extract_ts_member_call_flags_is_method) {
     PASS();
 }
 
+TEST(extract_scala_import_selectors_and_aliases) {
+    CBMFileResult *r = extract("import foo.Direct\n"
+                               "import foo.{Selected, Original => Alias, Hidden => _, _}\n"
+                               "import modern.{Source as ModernAlias, *}\n"
+                               "import alpha.One, beta.Two\n",
+                               CBM_LANG_SCALA, "t", "Imports.scala");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    ASSERT_NOT_NULL(find_import(r, "Direct", "foo.Direct"));
+    ASSERT_NOT_NULL(find_import(r, "Selected", "foo.Selected"));
+    ASSERT_NOT_NULL(find_import(r, "Alias", "foo.Original"));
+    ASSERT_NULL(find_import(r, "Hidden", "foo.Hidden"));
+    ASSERT_NOT_NULL(find_import(r, "*", "foo"));
+    ASSERT_NOT_NULL(find_import(r, "ModernAlias", "modern.Source"));
+    ASSERT_NOT_NULL(find_import(r, "*", "modern"));
+    ASSERT_NOT_NULL(find_import(r, "One", "alpha.One"));
+    ASSERT_NOT_NULL(find_import(r, "Two", "beta.Two"));
+    cbm_free_result(r);
+    PASS();
+}
+
+TEST(extract_scala_package_namespace) {
+    CBMFileResult *r = extract("package com.example.app.account\n"
+                               "import com.example.app.model.Target\n"
+                               "object Consumer\n",
+                               CBM_LANG_SCALA, "t", "modules/client/Consumer.scala");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    ASSERT_NOT_NULL(r->namespace_name);
+    ASSERT_STR_EQ(r->namespace_name, "com.example.app.account");
+    cbm_free_result(r);
+    PASS();
+}
+
+TEST(extract_scala_chained_package_clauses) {
+    CBMFileResult *r = extract("package com.example\n"
+                               "// chained clause below\n"
+                               "package app.account\n"
+                               "import com.example.app.model.Target\n"
+                               "object Consumer\n",
+                               CBM_LANG_SCALA, "t", "modules/client/Consumer.scala");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    ASSERT_NOT_NULL(r->namespace_name);
+    ASSERT_STR_EQ(r->namespace_name, "com.example.app.account");
+    cbm_free_result(r);
+
+    /* A braced clause scopes only its body; the file namespace stays the outer one. */
+    r = extract("package com.example\n"
+                "package braced { object Inner }\n"
+                "object Outer\n",
+                CBM_LANG_SCALA, "t", "Outer.scala");
+    ASSERT_NOT_NULL(r);
+    ASSERT_NOT_NULL(r->namespace_name);
+    ASSERT_STR_EQ(r->namespace_name, "com.example");
+    cbm_free_result(r);
+    PASS();
+}
+
 /* this/super receivers keep the enclosing-class target, where a weak
  * namespace-proximity match is usually correct — so they are NOT flagged. A
  * new_expression has no member receiver and is never flagged either. */
@@ -12721,6 +13275,12 @@ TEST(doc_perl_module_doc_is_the_pod_no_sub_holds) {
     ASSERT_NOT_NULL(r);
     ASSERT_NULL(r->module_doc);
     cbm_free_result(r);
+    /* POD without any declarations leaves both scope sort inputs empty. */
+    r = extract("=head1 NAME\n\nStandalone module.\n\n=cut\n", CBM_LANG_PERL, "t", "Standalone.pm");
+    ASSERT_NOT_NULL(r);
+    ASSERT_EQ(count_defs_with_label(r, "Function"), 0);
+    ASSERT_STR_EQ(r->module_doc, "=head1 NAME\n\nStandalone module.\n\n=cut");
+    cbm_free_result(r);
     PASS();
 }
 
@@ -13272,6 +13832,77 @@ TEST(objectscript_udl_methods_after_goto_label) {
     PASS();
 }
 
+/* #1261: a brace inside a Language = python body (string, comment, triple
+ * quote) must not desynchronize the body lexer. Before the grammar fix the
+ * first such body swallowed every later method in the class, together with
+ * their CALLS, and extraction still reported no error. */
+static void assert_python_body_is_contained(const char *py_body, int *failed) {
+    char src[1024];
+    snprintf(src, sizeof(src),
+             "Class My.Brace Extends %%RegisteredObject\n"
+             "{\n"
+             "ClassMethod PyBad() As %%String [ Language = python ]\n"
+             "{\n"
+             "%s"
+             "}\n"
+             "ClassMethod RealOne() As %%String\n"
+             "{\n"
+             "    Do ##class(My.Tgt).Hit()\n"
+             "    Quit \"one\"\n"
+             "}\n"
+             "ClassMethod RealTwo() As %%String\n"
+             "{\n"
+             "    Do ##class(My.Tgt).Hit()\n"
+             "    Quit \"two\"\n"
+             "}\n"
+             "}\n",
+             py_body);
+    CBMFileResult *r = extract(src, CBM_LANG_OBJECTSCRIPT_UDL, "t", "Brace.cls");
+    int ok = r && !r->has_error && has_def(r, "Method", "PyBad") &&
+             has_def(r, "Method", "RealOne") && has_def(r, "Method", "RealTwo") &&
+             count_calls_named(r, "My.Tgt.Hit") == 2;
+    if (ok) {
+        /* PyBad must end at its own closing brace, before RealOne starts. */
+        const CBMDefinition *bad = find_def(r, "PyBad");
+        const CBMDefinition *one = find_def(r, "RealOne");
+        ok = bad && one && bad->end_line < one->start_line;
+    }
+    if (!ok) {
+        fprintf(stderr, "    python body not contained: %s", py_body);
+        (*failed)++;
+    }
+    if (r) {
+        cbm_free_result(r);
+    }
+}
+
+TEST(objectscript_udl_python_body_braces_do_not_swallow_class) {
+    int failed = 0;
+    /* The #1261 repro. */
+    assert_python_body_is_contained("    s = \"dict literal { unbalanced\"\n"
+                                    "    return s\n",
+                                    &failed);
+    assert_python_body_is_contained("    s = 'closing } first'\n"
+                                    "    return s\n",
+                                    &failed);
+    assert_python_body_is_contained("    # a { in a comment\n"
+                                    "    return 1\n",
+                                    &failed);
+    assert_python_body_is_contained("    s = \"\"\"triple {\n"
+                                    "    still inside\"\"\"\n"
+                                    "    return s\n",
+                                    &failed);
+    assert_python_body_is_contained("    s = 'escaped \\' {'\n"
+                                    "    return s\n",
+                                    &failed);
+    /* Balanced braces in real Python syntax keep working. */
+    assert_python_body_is_contained("    d = {'k': {'n': 1}}\n"
+                                    "    return str(d)\n",
+                                    &failed);
+    ASSERT_EQ(failed, 0);
+    PASS();
+}
+
 TEST(objectscript_udl_methods) {
     CBMFileResult *r = extract("Class MyApp.Utils Extends %RegisteredObject\n"
                                "{\n"
@@ -13369,6 +14000,32 @@ TEST(objectscript_routine_tags) {
     ASSERT_FALSE(r->has_error);
     ASSERT(has_def(r, "Function", "Format"));
     ASSERT(has_def(r, "Function", "Log"));
+    cbm_free_result(r);
+    PASS();
+}
+
+/* Each routine call form keeps the callee text it had before the grammar hid
+ * line_ref under routine_tag_call and extrinsic_function. */
+TEST(objectscript_routine_call_forms_callee_text) {
+    CBMFileResult *r = extract("run(x)\n"
+                               "    Do accept(x)\n"
+                               "    Do accept\n"
+                               "    Do accept^Other(x)\n"
+                               "    Do ^Other\n"
+                               "    Do accept+2^Other\n"
+                               "    Set a = $$accept(x)\n"
+                               "    Set b = $$accept^Other(x)\n"
+                               "    Set c = $$^Other(1)\n"
+                               "    Quit\n"
+                               "accept(value)\n"
+                               "    Quit value\n",
+                               CBM_LANG_OBJECTSCRIPT_ROUTINE, "t", "Forms.mac");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    ASSERT_EQ(count_calls_named(r, "accept"), 3);
+    ASSERT_EQ(count_calls_named(r, "accept^Other"), 2);
+    ASSERT_EQ(count_calls_named(r, "^Other"), 2);
+    ASSERT_EQ(count_calls_named(r, "accept+2^Other"), 1);
     cbm_free_result(r);
     PASS();
 }
@@ -13474,6 +14131,37 @@ TEST(objectscript_udl_trigger_body_tokens) {
             ASSERT(strstr(r->defs.items[i].body_tokens, "Log") != NULL ||
                    strstr(r->defs.items[i].body_tokens, "Audit") != NULL ||
                    strstr(r->defs.items[i].body_tokens, "id") != NULL);
+            break;
+        }
+    }
+    cbm_free_result(r);
+    PASS();
+}
+
+TEST(objectscript_udl_storage_docstring) {
+    CBMFileResult *r = extract("Class MyApp.Patient Extends %Persistent\n"
+                               "{\n"
+                               "Storage Default\n"
+                               "{\n"
+                               "<Data name=\"PatientDefaultData\">\n"
+                               "<Value name=\"1\"><Value>%classname</Value></Value>\n"
+                               "</Data>\n"
+                               "<DataLocation>^MyApp.PatientD</DataLocation>\n"
+                               "<IdLocation>^MyApp.PatientD</IdLocation>\n"
+                               "<Type>%Storage.Persistent</Type>\n"
+                               "}\n"
+                               "}\n",
+                               CBM_LANG_OBJECTSCRIPT_UDL, "t", "Patient.cls");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    ASSERT(has_def(r, "Storage", "Default"));
+    for (int i = 0; i < r->defs.count; i++) {
+        if (strcmp(r->defs.items[i].label, "Storage") == 0 &&
+            strcmp(r->defs.items[i].name, "Default") == 0) {
+            ASSERT_NOT_NULL(r->defs.items[i].docstring);
+            ASSERT(strstr(r->defs.items[i].docstring, "\"data_global\":\"^MyApp.PatientD\"") !=
+                   NULL);
+            ASSERT(strstr(r->defs.items[i].docstring, "\"id_global\"") != NULL);
             break;
         }
     }
@@ -15809,23 +16497,29 @@ SUITE(extraction) {
     RUN_TEST(extract_templ_method_qn_matches_call_scope);
     RUN_TEST(extract_go_multiple_init_disambiguated);
     RUN_TEST(extract_ts_member_call_flags_is_method);
+    RUN_TEST(extract_scala_import_selectors_and_aliases);
+    RUN_TEST(extract_scala_package_namespace);
+    RUN_TEST(extract_scala_chained_package_clauses);
     RUN_TEST(extract_ts_this_super_receiver_not_flagged);
     RUN_TEST(extract_js_member_call_flags_is_method);
 
     /* InterSystems ObjectScript (UDL / routine / Export XML). */
     RUN_TEST(objectscript_udl_class);
     RUN_TEST(objectscript_udl_methods_after_goto_label);
+    RUN_TEST(objectscript_udl_python_body_braces_do_not_swallow_class);
     RUN_TEST(objectscript_udl_methods);
     RUN_TEST(objectscript_udl_base_classes);
     RUN_TEST(objectscript_udl_multiple_bases);
     RUN_TEST(objectscript_udl_properties);
     RUN_TEST(objectscript_routine_tags);
+    RUN_TEST(objectscript_routine_call_forms_callee_text);
     RUN_TEST(objectscript_udl_query_member);
     RUN_TEST(objectscript_udl_index_member);
     RUN_TEST(objectscript_udl_xdata_member);
     RUN_TEST(objectscript_udl_trigger_member);
     RUN_TEST(objectscript_udl_trigger_body_quit);
     RUN_TEST(objectscript_udl_trigger_body_tokens);
+    RUN_TEST(objectscript_udl_storage_docstring);
     RUN_TEST(objectscript_udl_ensemble_production_def_parses_items);
     RUN_TEST(objectscript_udl_ensemble_production_def_hs_settings);
     RUN_TEST(objectscript_udl_ensemble_production_def_absent_no_error);
@@ -15858,6 +16552,9 @@ SUITE(extraction) {
     RUN_TEST(extract_cpp_macros_issue375);
     RUN_TEST(extract_cpp_functionlike_macro_type_arg_no_false_parse_partial_issue1071);
     RUN_TEST(extract_cpp_real_in_body_error_still_flagged_issue1071);
+    RUN_TEST(extract_cpp_crlf_string_splice_keeps_later_functions_issue1546);
+    RUN_TEST(extract_c_family_crlf_string_splice_parses_clean_issue1546);
+    RUN_TEST(extract_c_crlf_splices_in_macro_comment_and_string_issue1546);
     RUN_TEST(macro_check_reads_no_source_for_regions_outside_functions_issue1735);
     RUN_TEST(macro_check_locates_lines_with_one_table_issue1735);
     RUN_TEST(extract_gdscript_issue186);
@@ -15962,6 +16659,8 @@ SUITE(extraction) {
     RUN_TEST(elixir_complexity_wide_body_exceeds_old_stack_cap);
     RUN_TEST(haskell_function);
     RUN_TEST(haskell_infix_definition_name);
+    RUN_TEST(haskell_escaped_char_does_not_swallow_primed_def);
+    RUN_TEST(haskell_escaped_char_list_lexes_each_literal);
     RUN_TEST(ocaml_function);
     RUN_TEST(erlang_function);
 
@@ -16048,6 +16747,10 @@ SUITE(extraction) {
     RUN_TEST(cpp_function);
     RUN_TEST(cpp_gtest_same_name_collision_issue1266);
     RUN_TEST(cpp_gtest_f_unique_name_issue1266);
+    RUN_TEST(cpp_gtest_body_caller_is_test_node);
+    RUN_TEST(cpp_gtest_preprocessed_view_names_the_raw_test);
+    RUN_TEST(cpp_gtest_preprocessed_view_one_line_pair);
+    RUN_TEST(cpp_gtest_preprocessed_view_lookup_growth);
     RUN_TEST(cpp_out_of_line_method_issue428);
     RUN_TEST(cobol_paragraph);
     RUN_TEST(verilog_module);

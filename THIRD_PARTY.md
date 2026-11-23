@@ -44,7 +44,7 @@ The core runtime headers in `internal/cbm/vendored/common/tree_sitter/`
 
 ## Tree-sitter Grammars
 
-163 pre-generated parsers are vendored in `internal/cbm/vendored/grammars/<lang>/`
+164 pre-generated parsers are vendored in `internal/cbm/vendored/grammars/<lang>/`
 (generated `parser.c` plus `scanner.c` where applicable, compiled statically).
 Each grammar is the work of its upstream authors and each grammar directory
 contains the upstream `LICENSE` file.
@@ -84,8 +84,8 @@ License summary:
   smart-coin language, written for the upstream project because no usable public
   grammar exists; its source and corpus tests live in
   `tools/tree-sitter-chialisp/`.
-- Twelve further grammars (`arkts`, `assembly`, `cfml`,
-  `cfscript`, `dotenv`, `javascript`, `pascal`, `pine`, `qml`, `sql`, `tsx`, `vbnet`) are
+- Fourteen further grammars (`arkts`, `assembly`, `cfml`, `cfscript`, `dotenv`,
+  `haskell`, `javascript`, `pascal`, `pine`, `qml`, `sql`, `tsx`, `vba`, `vbnet`) are
   self-maintained forks that retain their original upstream authors' licenses —
   see the manifest for per-grammar provenance. `arkts` is an upstream DeusData first-party derivative of
   [tree-sitter/tree-sitter-typescript](https://github.com/tree-sitter/tree-sitter-typescript)
@@ -103,13 +103,35 @@ License summary:
   ([Isopod/tree-sitter-pascal](https://github.com/Isopod/tree-sitter-pascal),
   MIT, (c) 2018 Benjamin Gray) is the upstream grammar with one (c) 2026
   DeusData patch that accepts non-ASCII letters in identifiers; its grammar
-  source lives in `tools/tree-sitter-pascal/`. `sql`
+  source lives in `tools/tree-sitter-pascal/`. `haskell`
+  ([tree-sitter/tree-sitter-haskell](https://github.com/tree-sitter/tree-sitter-haskell),
+  MIT, (c) 2014 Max Brunsfeld) is the upstream grammar with one (c) 2026
+  DeusData patch that stops an escaped char literal at its closing quote; its
+  grammar source lives in `tools/tree-sitter-haskell/`. `sql`
   ([DerekStride/tree-sitter-sql](https://github.com/DerekStride/tree-sitter-sql),
   MIT, (c) 2021 Derek Stride) is the upstream grammar with one (c) 2026
   DeusData patch that accepts the SQLite syntax of real migration files
   (PRAGMA, AUTOINCREMENT, WITHOUT ROWID, trigger bodies, virtual tables); its
-  grammar source lives in `tools/tree-sitter-sql/`. `vbnet` is described in its
-  own section below.
+  grammar source lives in `tools/tree-sitter-sql/`. `vba` and `vbnet` are described
+  in their own sections below.
+
+### tree-sitter-vba
+
+- **Project:** [harumiWeb/tree-sitter-vba](https://github.com/harumiWeb/tree-sitter-vba)
+- **License:** MIT
+- **Copyright:** (c) 2026 harumiWeb
+- **Vendored at:** `internal/cbm/vendored/grammars/vba/`
+- **Pinned commit:** `83c5c3c3c721` (v0.14.5)
+- **Notes:** Visual Basic for Applications and Visual Basic 6 grammar (its
+  `vba` dialect), maintained here as a self-maintained fork without local
+  changes: upstream does not track its generated parser, so its grammar source
+  (`common/define-grammar.js` and `vba/grammar.js`, byte-identical to
+  upstream) and the regeneration recipe live in `tools/tree-sitter-vba/`, and
+  the parser is generated in this repository with tree-sitter-cli 0.25.10.
+  Upstream's `THIRD_PARTY_LICENSE.md` covers only its test fixtures, none of
+  which is carried here. The grammar is vendored ahead of VB6/VBA extraction
+  (#2564); provenance hashes are in
+  `internal/cbm/vendored/grammars/MANIFEST.md`.
 
 ### tree-sitter-vbnet (with CodeGraph's real-world VB.NET patch)
 
@@ -153,8 +175,8 @@ License summary:
 - **License:** MIT
 - **Copyright:** (c) 2025 InterSystems Corporation
 - **Vendored at:** `internal/cbm/vendored/grammars/objectscript_udl/`, `internal/cbm/vendored/grammars/objectscript_routine/`
-- **Pinned commit:** `a7ffcdf`
-- **Notes:** InterSystems-maintained grammar for the ObjectScript language (InterSystems IRIS / Caché). Vendor-maintained; not in nvim-treesitter or Helix registries. Each `scanner.c`'s upstream `#include "../../common/scanner.h"` is repointed to a per-directory `objectscript_common.h` copied from upstream `common/scanner.h`; two loop counters in that copy are widened from `uint8_t` to `int` as documented in `internal/cbm/vendored/grammars/MANIFEST.md`.
+- **Pinned commit:** `25cf0f67a380` (tag `v1.11.0`; refreshed from `a7ffcdf` on 2026-11-13)
+- **Notes:** InterSystems-maintained grammar for the ObjectScript language (InterSystems IRIS / Caché). Vendor-maintained; not in nvim-treesitter or Helix registries. Each `scanner.c`'s upstream `#include "../../common/scanner.h"` is repointed to a per-directory `objectscript_common.h` copied from upstream `common/scanner.h`; two loop counters in that copy are widened from `uint8_t` to `int`, and each `scanner.c` guards its deserialize `memcpy` against an empty state, as documented in `internal/cbm/vendored/grammars/MANIFEST.md`.
 
 ## Vendored C/C++ Libraries
 

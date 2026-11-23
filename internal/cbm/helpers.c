@@ -479,6 +479,24 @@ TSNode cbm_find_child_by_kind(TSNode parent, const char *kind) {
     return null_node;
 }
 
+bool cbm_objectscript_is_instance_call(TSNode node) {
+    const char *kind = ts_node_type(node);
+    if (strcmp(kind, "method_call") == 0) {
+        return true;
+    }
+    if (strcmp(kind, "do_parameter") != 0 && strcmp(kind, "job_argument") != 0) {
+        return false;
+    }
+    return !ts_node_is_null(cbm_find_child_by_kind(node, "oref_method"));
+}
+
+bool cbm_is_call_site(CBMLanguage lang, TSNode node, const char **call_types) {
+    if (cbm_kind_in_set(node, call_types)) {
+        return true;
+    }
+    return lang == CBM_LANG_OBJECTSCRIPT_UDL && cbm_objectscript_is_instance_call(node);
+}
+
 int cbm_find_children_by_kind(TSNode parent, const char *kind, TSNode *out, int max) {
     int n = 0;
     uint32_t count = ts_node_child_count(parent);
@@ -885,7 +903,8 @@ static const char *func_kinds_ocaml[] = {"value_definition", "let_binding", NULL
 static const char *func_kinds_zig[] = {"function_declaration", "test_declaration", NULL};
 static const char *func_kinds_bash[] = {"function_definition", NULL};
 static const char *func_kinds_erlang[] = {"function_clause", NULL};
-static const char *func_kinds_csharp[] = {"method_declaration", "constructor_declaration", NULL};
+static const char *func_kinds_csharp[] = {"method_declaration", "constructor_declaration",
+                                          "operator_declaration", NULL};
 static const char *func_kinds_matlab[] = {"function_definition", NULL};
 static const char *func_kinds_lean[] = {"def", "theorem", "instance", "abbrev", NULL};
 static const char *func_kinds_form[] = {"procedure_definition", NULL};
@@ -1234,6 +1253,13 @@ char *cbm_func_name_node_text(CBMArena *a, TSNode name_node, const char *source,
             *paren = '\0';
         }
     }
+    /* C# `operator +` is named by its token alone, an anonymous node; any other C# name
+     * is a named node. Spelled like C++'s `operator+` and `operator bool`, here so the
+     * def name and the call-scope QN cannot disagree. */
+    if (text && lang == CBM_LANG_CSHARP && !ts_node_is_named(name_node)) {
+        bool word = text[0] >= 'a' && text[0] <= 'z'; /* operator true, operator false */
+        return cbm_arena_sprintf(a, "operator%s%s", word ? " " : "", text);
+    }
     /* Nix quoted attrpath segment: `"kebab-case" = a: a;` and `services."my.svc" = …`
      * are ordinary names that merely need quoting in source. The node text carries
      * the delimiters, so without this the def is named `"kebab-case"` — quotes and
@@ -1524,6 +1550,11 @@ static const char *func_node_name(CBMArena *a, TSNode func_node, const char *sou
     if (!ts_node_is_null(name_node)) {
         return cbm_node_text(a, name_node, source);
     }
+    // C#: an overloaded operator has no name field, its token names it.
+    if (lang == CBM_LANG_CSHARP && strcmp(ts_node_type(func_node), "operator_declaration") == 0) {
+        TSNode op = ts_node_child_by_field_name(func_node, TS_FIELD("operator"));
+        return ts_node_is_null(op) ? NULL : cbm_func_name_node_text(a, op, source, lang);
+    }
     // Arrow functions: check parent variable_declarator
     if (strcmp(ts_node_type(func_node), "arrow_function") == 0) {
         TSNode parent = ts_node_parent(func_node);
@@ -1545,15 +1576,27 @@ static const char *func_node_name(CBMArena *a, TSNode func_node, const char *sou
 }
 
 const char *cbm_enclosing_func_qn(CBMArena *a, TSNode node, CBMLanguage lang, const char *source,
-                                  const char *project, const char *rel_path,
-                                  const char *module_qn) {
+                                  const char *project, const char *rel_path, const char *module_qn,
+                                  bool test_macro_names, const CBMTestSpanMap *pp_test_spans) {
     TSNode func_node = cbm_find_enclosing_func(node, lang);
     if (ts_node_is_null(func_node)) {
         return module_qn;
     }
+    /* The preprocessed view: a raw GoogleTest definition's body is that test. */
+    if (pp_test_spans && strcmp(ts_node_type(func_node), "function_definition") == 0) {
+        const char *raw_test = cbm_test_span_owner_qn(pp_test_spans, func_node);
+        if (raw_test) {
+            return raw_test;
+        }
+    }
     const char *name = func_node_name(a, func_node, source, lang);
     if (!name || !name[0]) {
         return module_qn;
+    }
+    /* GoogleTest TEST(Suite, Case): the def walk's TEST_Suite_Case (#1266). */
+    const char *test_name = cbm_cpp_test_macro_name(a, test_macro_names, name, func_node, source);
+    if (test_name) {
+        name = test_name;
     }
 
     // Check if the function is inside a class — compute classQN.funcName.
@@ -1621,8 +1664,9 @@ const char *cbm_enclosing_func_qn_cached(CBMExtractCtx *ctx, TSNode node) {
     }
 
     // Cache miss: compute via parent walk
-    const char *qn = cbm_enclosing_func_qn(ctx->arena, node, ctx->language, ctx->source,
-                                           ctx->project, ctx->rel_path, ctx->module_qn);
+    const char *qn = cbm_enclosing_func_qn(
+        ctx->arena, node, ctx->language, ctx->source, ctx->project, ctx->rel_path, ctx->module_qn,
+        cbm_cpp_test_macro_names_on(ctx->language, ctx->test_declarations), ctx->pp_test_spans);
 
     // Cache the result: find the enclosing function's byte range
     TSNode func_node = cbm_find_enclosing_func(node, ctx->language);

@@ -268,7 +268,7 @@ assert_test_runner_build_config() {
     fi
 }
 
-print_env "test.sh"
+print_env "test.sh" --cpu
 
 if [ "$PHASE" = "shard" ]; then
     test -x "$BUILD_DIR/test-runner" || {

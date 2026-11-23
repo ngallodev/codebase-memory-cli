@@ -28,6 +28,7 @@ static const double PC_SWIFT_AMBIGUOUS_CONF = 0.55;
 #include "pipeline/pipeline_internal.h"
 #include "pipeline/lsp_resolve.h"
 #include "pipeline/laravel_routing.h"
+#include "pipeline/site_bind.h"
 #include "graph_buffer/graph_buffer.h"
 #include "foundation/log.h"
 #include "foundation/compat.h"
@@ -133,7 +134,7 @@ static const cbm_gbuf_node_t *pc_find_by_computed_qn(const cbm_gbuf_t *gbuf, con
     return n;
 }
 
-static int build_import_map(cbm_pipeline_ctx_t *ctx, const char *rel_path,
+static int build_import_map(cbm_pipeline_ctx_t *ctx, const char *rel_path, CBMLanguage language,
                             const CBMFileResult *result, const char ***out_keys,
                             const char ***out_vals, int *out_count) {
     *out_keys = NULL;
@@ -157,7 +158,7 @@ static int build_import_map(cbm_pipeline_ctx_t *ctx, const char *rel_path,
                 continue;
             }
             const cbm_gbuf_node_t *target =
-                cbm_pipeline_resolve_import_node(ctx, rel_path, file_qn, imp, NULL);
+                cbm_pipeline_resolve_import_node(ctx, rel_path, file_qn, language, imp, NULL, NULL);
             if (!target) {
                 continue;
             }
@@ -1061,15 +1062,18 @@ static bool calls_emit_lsp_target(cbm_pipeline_ctx_t *ctx, const CBMCall *call,
 /* Vendor receivers, Java library receivers and cross-language name guesses
  * cannot bind project calls. Keep the registry policy shared with the
  * parallel resolver. `caller_test`: cbm_pipeline_caller_is_test of the
- * calling definition. */
-static cbm_resolution_t calls_registry_resolution(cbm_pipeline_ctx_t *ctx, const CBMCall *call,
-                                                  const char *module_qn, const char **imp_keys,
-                                                  const char **imp_vals, int imp_count,
-                                                  CBMLanguage lang, bool rust_external,
-                                                  bool php_vendor_call, bool java_external,
-                                                  bool caller_test) {
+ * calling definition. `scoped`: the shared layer's answer at this site
+ * (site_bind.h); a proven one takes the place of the name chain. */
+static cbm_resolution_t calls_registry_resolution(
+    cbm_pipeline_ctx_t *ctx, const CBMCall *call, const char *module_qn, const char **imp_keys,
+    const char **imp_vals, int imp_count, CBMLanguage lang, bool rust_external,
+    bool php_vendor_call, bool java_external, bool caller_test, const cbm_site_answer_t *scoped) {
     cbm_resolution_t res = {0};
     if (!rust_external && !php_vendor_call && !java_external) {
+        /* MUST match pass_parallel.c. */
+        if (scoped->verdict == CBM_SITE_PROVEN) {
+            return scoped->res;
+        }
         /* Python LEGB fallback first (MUST match pass_parallel.c). */
         res = cbm_registry_resolve_call_scoped(ctx->registry, call->callee_name, module_qn,
                                                imp_keys, imp_vals, imp_count, lang,
@@ -1119,7 +1123,8 @@ static int resolve_single_call(cbm_pipeline_ctx_t *ctx, CBMCall *call, const CBM
                                const CBMImportArray *imports, const char *route_mount,
                                const cbm_php_vendor_names_t *php_vendor,
                                cbm_external_import_index_t *ext_imports,
-                               CBMCallEvidence *evidence) {
+                               const cbm_pipeline_lsp_index_t *lsp_index, CBMCallEvidence *evidence,
+                               cbm_site_file_t *site) {
     const CBMResolvedCallArray *lsp_calls = &result->resolved_calls;
     const cbm_gbuf_node_t *source_node = calls_find_source(ctx, rel, call->enclosing_func_qn);
     if (!source_node) {
@@ -1129,8 +1134,8 @@ static int resolve_single_call(cbm_pipeline_ctx_t *ctx, CBMCall *call, const CBM
     /* LSP-resolved calls take precedence over registry-textual matching.
      * Unique-tail fallbacks are JVM-only (see cbm_pipeline_lsp_allow_tail_match). */
     bool allow_tail = cbm_pipeline_lsp_allow_tail_match(lang);
-    const CBMResolvedCall *lsp = cbm_pipeline_find_lsp_resolution_in_graph(
-        lsp_calls, call, allow_tail, ctx->gbuf, ctx->project_name);
+    const CBMResolvedCall *lsp = cbm_pipeline_lsp_index_find(lsp_index, lsp_calls, call, allow_tail,
+                                                             ctx->gbuf, ctx->project_name);
     /* #1186: a PHP call on a vendor type (`new Request`, or a receiver the LSP
      * typed as an imported vendor class) takes the LSP result or no target: a
      * same-named project symbol found by name alone is never the vendor's.
@@ -1153,6 +1158,15 @@ static int resolve_single_call(cbm_pipeline_ctx_t *ctx, CBMCall *call, const CBM
      * project `operator+`, fabricating a CALLS edge. */
     if (call->requires_lsp_resolution) {
         return 0;
+    }
+
+    /* The shared cross-file layer (site_bind.h) is asked at every call no
+     * engine row matched, here before the service classification so both
+     * routes ask the same sites; a proven answer replaces the name chain
+     * below. MUST match pass_parallel.c. */
+    cbm_site_answer_t scoped = {.verdict = CBM_SITE_NO_ANSWER};
+    if (!lsp) {
+        scoped = cbm_pipeline_site_bind_call(site, call, source_node);
     }
 
     /* Service-pattern HTTP/ASYNC client call (`requests.get(url)`): the service
@@ -1240,9 +1254,10 @@ static int resolve_single_call(cbm_pipeline_ctx_t *ctx, CBMCall *call, const CBM
                                     lang, lsp->strategy, lsp->callee_qn, ctx->project_name);
     cbm_resolution_t res = {0};
     if (swift_candidates >= 0) {
-        res = calls_registry_resolution(ctx, call, module_qn, imp_keys, imp_vals, imp_count, lang,
-                                        rust_external, php_vendor_call, java_external,
-                                        cbm_pipeline_caller_is_test(source_node, rel, lang));
+        res =
+            calls_registry_resolution(ctx, call, module_qn, imp_keys, imp_vals, imp_count, lang,
+                                      rust_external, php_vendor_call, java_external,
+                                      cbm_pipeline_caller_is_test(source_node, rel, lang), &scoped);
     }
     /* `p->open(fd)`: the registry does not split a callee on the arrow, and a
      * member is not a name it could resolve anyway. The object's type decides,
@@ -1383,7 +1398,8 @@ static int resolve_single_call(cbm_pipeline_ctx_t *ctx, CBMCall *call, const CBM
                                             cbm_pipeline_get_nsmap()) ||
         /* MUST match pass_parallel.c exactly. */
         (lang == CBM_LANG_PHP && cbm_suppress_weak_member_match(true, true, res.strategy) &&
-         cbm_pipeline_php_receiver_type_unindexed(lsp_calls, call, ctx->registry)) ||
+         cbm_pipeline_lsp_index_php_receiver_unindexed(lsp_index, lsp_calls, call,
+                                                       ctx->registry)) ||
         /* Same-module bound-receiver suppression (#1128): `axios.get()` with
          * axios imported must not bind the `get` this file happens to define.
          * The language list is inside the helper - MUST match pass_parallel.c. */
@@ -1545,12 +1561,13 @@ static CBMFileResult *calls_get_or_extract(cbm_pipeline_ctx_t *ctx, int idx,
         }
         return NULL;
     }
-    CBMFileResult *r =
-        cbm_pipeline_test_force_extract_null(ctx, fi->language)
-            ? NULL
-            : cbm_extract_file_ex_with_tests(
-                  src, slen, fi->language, ctx->project_name, fi->rel_path, CBM_EXTRACT_BUDGET,
-                  NULL, NULL, ctx->macro_table, ctx->return_type_table, ctx->test_declarations);
+    CBMIncludeScope include_scope = cbm_pipeline_include_scope(ctx);
+    CBMFileResult *r = cbm_pipeline_test_force_extract_null(ctx, fi->language)
+                           ? NULL
+                           : cbm_extract_file_ex_with_tests(
+                                 src, slen, fi->language, ctx->project_name, fi->rel_path,
+                                 CBM_EXTRACT_BUDGET, NULL, NULL, ctx->macro_table,
+                                 ctx->return_type_table, ctx->test_declarations, &include_scope);
     free(src);
     (void)cbm_pipeline_test_extraction_ok(ctx, fi->language, r);
     if (r) {
@@ -1614,7 +1631,7 @@ int cbm_pipeline_pass_calls(cbm_pipeline_ctx_t *ctx, const cbm_file_info_t *file
         const char **imp_keys = NULL;
         const char **imp_vals = NULL;
         int imp_count = 0;
-        build_import_map(ctx, rel, result, &imp_keys, &imp_vals, &imp_count);
+        build_import_map(ctx, rel, files[i].language, result, &imp_keys, &imp_vals, &imp_count);
         cbm_php_vendor_names_t php_vendor;
         cbm_pipeline_php_vendor_names_build(ctx->gbuf, ctx->project_name, rel, result, &php_vendor);
 
@@ -1628,8 +1645,18 @@ int cbm_pipeline_pass_calls(cbm_pipeline_ctx_t *ctx, const cbm_file_info_t *file
         cbm_laravel_file_route_mount(ctx->repo_path, rel, files[i].language, result, route_mount,
                                      sizeof(route_mount));
 
+        /* The file's engine rows by caller, leaf and span: one lookup per call
+         * instead of a scan of every row (shared with pass_parallel.c). */
+        cbm_pipeline_lsp_index_t lsp_index;
+        cbm_pipeline_lsp_index_build(&lsp_index, &result->resolved_calls, ctx->gbuf,
+                                     ctx->project_name,
+                                     cbm_pipeline_lsp_allow_tail_match(files[i].language));
+
         /* Resolve each call */
         cbm_external_import_index_t ext_imports = {0};
+        cbm_spawn_file_begin(result->imports.items, result->imports.count);
+        cbm_site_file_t site;
+        cbm_pipeline_site_bind_begin(&site, ctx, ctx->gbuf, rel, files[i].language, result);
         for (int c = 0; c < result->calls.count; c++) {
             CBMCall *call = &result->calls.items[c];
             if (!call->callee_name) {
@@ -1639,14 +1666,17 @@ int cbm_pipeline_pass_calls(cbm_pipeline_ctx_t *ctx, const cbm_file_info_t *file
             total_calls++;
             if (resolve_single_call(ctx, call, result, rel, module_qn, imp_keys, imp_vals,
                                     imp_count, files[i].language, &result->imports, route_mount,
-                                    &php_vendor, &ext_imports,
-                                    calls_evidence_at(evidence, c, &fallback))) {
+                                    &php_vendor, &ext_imports, &lsp_index,
+                                    calls_evidence_at(evidence, c, &fallback), &site)) {
                 resolved++;
             } else {
                 unresolved++;
             }
         }
+        cbm_pipeline_site_bind_end(&site, ctx->gbuf);
+        cbm_spawn_file_end();
         cbm_pipeline_external_import_index_free(&ext_imports);
+        cbm_pipeline_lsp_index_free(&lsp_index);
 
         cbm_pipeline_record_unresolved_calls(ctx->pipeline, rel, result, evidence);
         cbm_free(CBM_MEM_CLASS_RESOLVE, evidence);
@@ -1788,7 +1818,8 @@ void cbm_pipeline_pass_fastapi_depends(cbm_pipeline_ctx_t *ctx, const cbm_file_i
         const char **imp_keys = NULL;
         const char **imp_vals = NULL;
         int imp_count = 0;
-        build_import_map(ctx, files[i].rel_path, result, &imp_keys, &imp_vals, &imp_count);
+        build_import_map(ctx, files[i].rel_path, files[i].language, result, &imp_keys, &imp_vals,
+                         &imp_count);
 
         for (int d = 0; d < result->defs.count; d++) {
             CBMDefinition *def = &result->defs.items[d];
