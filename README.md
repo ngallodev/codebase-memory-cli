@@ -55,7 +55,7 @@ The graph is a discovery and structural-evidence layer, not a substitute for sou
 
 It includes:
 
-- tree-sitter parsing for 163 languages;
+- tree-sitter parsing for 164 languages;
 - hybrid LSP-style semantic enrichment for supported languages;
 - definitions, calls, imports, usages, routes, channels, and cross-service links;
 - architecture summaries, change-impact analysis, dead-code queries, ADRs, and Cypher queries;
