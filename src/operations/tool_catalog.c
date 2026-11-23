@@ -96,7 +96,8 @@ static const tool_def_t TOOLS[] = {
      "keyword strings (e.g. [\\\"send\\\",\\\"pubsub\\\",\\\"publish\\\"]) — NOT a single string. "
      "Each keyword is scored independently via per-keyword min-cosine; results reflect functions "
      "that score well on ALL keywords. Requires moderate/full index mode. Results appear in the "
-     "'semantic_results' field (separate from 'results').\"},\"limit\":{\"type\":"
+     "'semantic_results' field (separate from 'results'). [] is ignored; otherwise omit "
+     "query.\"},\"limit\":{\"type\":"
      "\"integer\",\"description\":\"Max results per call. Default 50. Response carries "
      "'total' (full match count) and 'has_more' (true if truncated) so callers can "
      "detect the limit and paginate.\"},\"offset\":{\"type\":\"integer\",\"default\":0,"
@@ -119,7 +120,8 @@ static const tool_def_t TOOLS[] = {
      "semantic_total_relation eq|gte), semantic_has_more and semantic_next_offset.\"},"
      "\"semantic_offset\":{\"type\":\"integer\",\"default\":0,\"minimum\":0,\"maximum\":99998,"
      "\"description\":\"Skip the first N ranked semantic rows; continue only with an emitted "
-     "semantic_next_offset. query and semantic_query are mutually exclusive.\"}},"
+     "semantic_next_offset. An empty semantic_query is ignored; otherwise query and "
+     "semantic_query are mutually exclusive.\"}},"
      "\"required\":[\"project\"]}"},
 
     {"query_graph", "Query graph",
@@ -209,7 +211,10 @@ static const tool_def_t TOOLS[] = {
      "\"include_evidence\":{\"type\":\"boolean\",\"default\":false,"
      "\"description\":\"Add how each hop was resolved: a strategy class (lsp | language_rule | "
      "heuristic | unresolved) and the resolver's confidence. Off by default — it adds two "
-     "columns per row. Use it to judge whether an edge is trustworthy, not to find edges.\"}},"
+     "columns per row. Use it to judge whether an edge is trustworthy, not to find edges.\"},"
+     "\"include_overrides\":{\"type\":\"boolean\",\"default\":false,"
+     "\"description\":\"For outbound calls, list OVERRIDE implementations separately as possible "
+     "callees. Declared CALLS edges remain unchanged.\"}},"
      "\"required\":[\"function_name\",\"project\"]}"},
 
     {"get_code_snippet", "Get code snippet",
