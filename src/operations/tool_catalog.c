@@ -211,7 +211,10 @@ static const tool_def_t TOOLS[] = {
      "\"include_evidence\":{\"type\":\"boolean\",\"default\":false,"
      "\"description\":\"Add how each hop was resolved: a strategy class (lsp | language_rule | "
      "heuristic | unresolved) and the resolver's confidence. Off by default — it adds two "
-     "columns per row. Use it to judge whether an edge is trustworthy, not to find edges.\"}},"
+     "columns per row. Use it to judge whether an edge is trustworthy, not to find edges.\"},"
+     "\"include_overrides\":{\"type\":\"boolean\",\"default\":false,"
+     "\"description\":\"For outbound calls, list OVERRIDE implementations separately as possible "
+     "callees. Declared CALLS edges remain unchanged.\"}},"
      "\"required\":[\"function_name\",\"project\"]}"},
 
     {"get_code_snippet", "Get code snippet",
