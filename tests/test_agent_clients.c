@@ -105,7 +105,6 @@ static char *agent_read(const char *path) {
     return text;
 }
 
-
 static int agent_write_rovo_override(const char *config_path, const char *mcp_path) {
     size_t length = strlen("mcp:\n  mcpConfigPath: \"\"\n") + strlen(mcp_path) + 1U;
     char *yaml = (char *)malloc(length);
@@ -120,10 +119,10 @@ static int agent_write_rovo_override(const char *config_path, const char *mcp_pa
 
 TEST(agent_clients_registry_is_stable_and_cleanup_driven) {
     static const char *expected[] = {
-        "qoder",     "kimi",        "gitlab-duo",    "rovo-dev", "amp",      "devin",
-        "tabnine",   "continue",    "visual-studio", "trae",     "roo-code", "amazon-q",
-        "codebuddy", "ibm-bob-ide", "ibm-bob-shell", "pochi",    "pi",       "sourcegraph-cody",
-        "omp",
+        "qoder",    "kimi",     "gitlab-duo",       "rovo-dev",      "amp",
+        "devin",    "tabnine",  "continue",         "visual-studio", "trae",
+        "roo-code", "amazon-q", "codebuddy",        "ibm-bob-ide",   "ibm-bob-shell",
+        "pochi",    "pi",       "sourcegraph-cody", "omp",           "agentty",
     };
     static const uint32_t expected_capabilities[] = {
         CBM_AGENT_CAP_SKILL | CBM_AGENT_CAP_AGENT | CBM_AGENT_CAP_HOOK,
@@ -132,7 +131,12 @@ TEST(agent_clients_registry_is_stable_and_cleanup_driven) {
         CBM_AGENT_CAP_INSTRUCTIONS | CBM_AGENT_CAP_SKILL | CBM_AGENT_CAP_AGENT,
         CBM_AGENT_CAP_INSTRUCTIONS | CBM_AGENT_CAP_SKILL,
         CBM_AGENT_CAP_INSTRUCTIONS | CBM_AGENT_CAP_SKILL | CBM_AGENT_CAP_HOOK,
-        0U, 0U, 0U, 0U, 0U, 0U,
+        0U,
+        0U,
+        0U,
+        0U,
+        0U,
+        0U,
         CBM_AGENT_CAP_INSTRUCTIONS | CBM_AGENT_CAP_SKILL | CBM_AGENT_CAP_AGENT,
         CBM_AGENT_CAP_INSTRUCTIONS | CBM_AGENT_CAP_SKILL,
         CBM_AGENT_CAP_INSTRUCTIONS,
@@ -140,10 +144,11 @@ TEST(agent_clients_registry_is_stable_and_cleanup_driven) {
         CBM_AGENT_CAP_INSTRUCTIONS | CBM_AGENT_CAP_SKILL,
         0U,
         CBM_AGENT_CAP_SKILL | CBM_AGENT_CAP_AGENT,
+        CBM_AGENT_CAP_SKILL,
     };
     static const bool expected_legacy_mcp_cleanup[] = {
-        true, true, true, true, true, true, true, true, true, true,
-        true, true, true, true, true, true, false, true, true,
+        true, true, true, true, true, true, true,  true, true, true,
+        true, true, true, true, true, true, false, true, true, true,
     };
     ASSERT_EQ(cbm_agent_client_count(), CBM_AGENT_CLIENT_COUNT);
     ASSERT_EQ(CBM_AGENT_CLIENT_COUNT, sizeof(expected) / sizeof(expected[0]));
@@ -179,7 +184,7 @@ TEST(agent_clients_visual_studio_cleanup_survives_missing_command) {
     char *path = agent_fixture(foreign, &dir);
     ASSERT_NOT_NULL(path);
     ASSERT_EQ(cbm_agent_client_remove_legacy_mcp(CBM_AGENT_CLIENT_VISUAL_STUDIO, path,
-                                          "C:/Tools/codebase-memory-mcp.exe"),
+                                                 "C:/Tools/codebase-memory-mcp.exe"),
               CBM_AGENT_EDIT_FOREIGN);
     char *after = agent_read(path);
     ASSERT_NOT_NULL(after);
@@ -697,30 +702,29 @@ TEST(agent_clients_omp_resolves_to_injected_agent_dir_when_provided) {
     char resolved[512];
 
     /* Default (no env) keeps the documented ~/.omp/agent path. */
-    ASSERT_EQ(cbm_agent_client_resolve_path(CBM_AGENT_CLIENT_OMP, &options, resolved,
-                                            sizeof(resolved)),
-              0);
+    ASSERT_EQ(
+        cbm_agent_client_resolve_path(CBM_AGENT_CLIENT_OMP, &options, resolved, sizeof(resolved)),
+        0);
     ASSERT_STR_EQ(resolved, "/home/tester/.omp/agent/mcp.json");
 
     /* Named profile directory takes precedence over the home-relative default. */
     options.omp_agent_dir = "/home/tester/.omp/profiles/work/agent";
-    ASSERT_EQ(cbm_agent_client_resolve_path(CBM_AGENT_CLIENT_OMP, &options, resolved,
-                                            sizeof(resolved)),
-              0);
+    ASSERT_EQ(
+        cbm_agent_client_resolve_path(CBM_AGENT_CLIENT_OMP, &options, resolved, sizeof(resolved)),
+        0);
     ASSERT_STR_EQ(resolved, "/home/tester/.omp/profiles/work/agent/mcp.json");
 
     /* PI_CODING_AGENT_DIR relocations also flow through the resolved option. */
     options.omp_agent_dir = "/srv/omp-shared/agent";
-    ASSERT_EQ(cbm_agent_client_resolve_path(CBM_AGENT_CLIENT_OMP, &options, resolved,
-                                            sizeof(resolved)),
-              0);
+    ASSERT_EQ(
+        cbm_agent_client_resolve_path(CBM_AGENT_CLIENT_OMP, &options, resolved, sizeof(resolved)),
+        0);
     ASSERT_STR_EQ(resolved, "/srv/omp-shared/agent/mcp.json");
     PASS();
 }
 
 TEST(agent_clients_omp_profile_does_not_register_global_instructions_capability) {
-    const cbm_agent_client_profile_t *profile =
-        cbm_agent_client_by_id(CBM_AGENT_CLIENT_OMP);
+    const cbm_agent_client_profile_t *profile = cbm_agent_client_by_id(CBM_AGENT_CLIENT_OMP);
     ASSERT_NOT_NULL(profile);
     ASSERT_EQ(profile->capabilities & CBM_AGENT_CAP_INSTRUCTIONS, 0U);
     ASSERT(profile->legacy_mcp_cleanup);
@@ -728,7 +732,6 @@ TEST(agent_clients_omp_profile_does_not_register_global_instructions_capability)
     ASSERT_NEQ(profile->capabilities & CBM_AGENT_CAP_AGENT, 0U);
     PASS();
 }
-
 
 /* ── Generated client adapters ──────────────────────────────────── */
 

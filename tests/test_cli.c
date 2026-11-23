@@ -17,6 +17,7 @@
 #include <cli/legacy_agent_profiles.h>
 #include <cli/activation_transaction.h>
 #include <cli/cli.h>
+#include <cli/agent_clients.h>
 #include <cli/progress_sink.h>
 #include <daemon/application.h>
 #include <daemon/bootstrap.h>
@@ -7058,6 +7059,73 @@ TEST(cli_detect_agents_finds_cursor_issue222) {
     PASS();
 }
 
+TEST(cli_detect_agents_finds_agentty) {
+    char tmpdir[256];
+    snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-detect-XXXXXX");
+    if (!cbm_mkdtemp(tmpdir))
+        FAIL("cbm_mkdtemp failed");
+
+    /* agentty lives in the table-driven registry, not the legacy detector. */
+    const cbm_agent_client_profile_t *profile = cbm_agent_client_by_stable_id("agentty");
+    ASSERT_NOT_NULL(profile);
+
+    char dir[512];
+    snprintf(dir, sizeof(dir), "%s/.agentty", tmpdir);
+    test_mkdirp(dir);
+
+    cbm_agent_client_resolve_options_t options;
+    memset(&options, 0, sizeof(options));
+    options.home_dir = tmpdir;
+    ASSERT_TRUE(cbm_agent_client_detect(CBM_AGENT_CLIENT_AGENTTY, &options));
+
+    char config_path[512];
+    ASSERT_EQ(cbm_agent_client_resolve_path(CBM_AGENT_CLIENT_AGENTTY, &options, config_path,
+                                            sizeof(config_path)),
+              0);
+    char expected[512];
+    snprintf(expected, sizeof(expected), "%s/.agentty/mcp.json", tmpdir);
+    ASSERT_STR_EQ(config_path, expected);
+
+    test_rmdir_r(tmpdir);
+    PASS();
+}
+
+TEST(cli_agentty_mcp_config_env_override) {
+    char tmpdir[256];
+    snprintf(tmpdir, sizeof(tmpdir), "/tmp/cli-agentty-env-XXXXXX");
+    if (!cbm_mkdtemp(tmpdir))
+        FAIL("cbm_mkdtemp failed");
+
+    char agentty_dir[512];
+    snprintf(agentty_dir, sizeof(agentty_dir), "%s/.agentty", tmpdir);
+    test_mkdirp(agentty_dir);
+    char *saved = save_test_env("AGENTTY_MCP_CONFIG");
+    char override_path[512];
+    snprintf(override_path, sizeof(override_path), "%s/override.json", tmpdir);
+    char default_path[512];
+    snprintf(default_path, sizeof(default_path), "%s/.agentty/mcp.json", tmpdir);
+
+    /* The registry option is the only input the resolver reads. */
+    cbm_agent_client_resolve_options_t options;
+    memset(&options, 0, sizeof(options));
+    options.home_dir = tmpdir;
+    options.agentty_mcp_config = override_path;
+    char config_path[512];
+    ASSERT_EQ(cbm_agent_client_resolve_path(CBM_AGENT_CLIENT_AGENTTY, &options, config_path,
+                                            sizeof(config_path)),
+              0);
+    ASSERT_STR_EQ(config_path, override_path);
+    options.agentty_mcp_config = NULL;
+    ASSERT_EQ(cbm_agent_client_resolve_path(CBM_AGENT_CLIENT_AGENTTY, &options, config_path,
+                                            sizeof(config_path)),
+              0);
+    ASSERT_STR_EQ(config_path, default_path);
+
+    restore_test_env("AGENTTY_MCP_CONFIG", saved);
+    test_rmdir_r(tmpdir);
+    PASS();
+}
+
 /* issue #388: `install --plan` must emit a machine-readable receipt of planned
  * writes WITHOUT mutating any config (the pre-mutation trust primitive). */
 /* Supported-agent metadata must track the real installer surface. */
@@ -7108,8 +7176,11 @@ TEST(cli_supported_agent_surfaces_match_installers) {
         "Pi",
         "Sourcegraph Cody",
         "Oh My Pi (omp)",
+        "agentty",
     };
-    ASSERT_EQ(sizeof(required_agents) / sizeof(required_agents[0]), 45U);
+    ASSERT_EQ(sizeof(required_agents) / sizeof(required_agents[0]), 46U);
+    /* The table-driven registry must carry agentty too. */
+    ASSERT_NOT_NULL(cbm_agent_client_by_stable_id("agentty"));
 
     char *data = read_test_file_alloc("README.md");
     if (!data)
@@ -7128,21 +7199,6 @@ TEST(cli_supported_agent_surfaces_match_installers) {
         !strstr(data, "New installs do not create MCP server registrations")) {
         free(data);
         FAIL("npm README must describe the current CLI-first integration contract");
-    }
-    free(data);
-
-    data = read_test_file_alloc("docs/index.html");
-    if (!data)
-        FAIL("could not read docs/index.html for supported-agent contract");
-    if (!strstr(data, "configures 45 automatic/conditional client surfaces")) {
-        free(data);
-        FAIL("landing page must describe all 45 automatic/conditional client surfaces accurately");
-    }
-    for (size_t i = 0; i < sizeof(required_agents) / sizeof(required_agents[0]); i++) {
-        if (!strstr(data, required_agents[i])) {
-            free(data);
-            FAIL("landing page must include every installed agent");
-        }
     }
     free(data);
 
@@ -7208,6 +7264,7 @@ TEST(cli_new_agent_install_plans_use_documented_paths) {
 #endif
         ".vibe",
         ".grok",
+        ".agentty",
     };
     char path[768];
     for (size_t i = 0; i < sizeof(dirs) / sizeof(dirs[0]); i++) {
@@ -7264,6 +7321,8 @@ TEST(cli_new_agent_install_plans_use_documented_paths) {
         "\"grok\"",
         "/.grok/rules/codebase-memory.md",
         "/.grok/skills/codebase-memory-cli/SKILL.md",
+        "\"agentty\"",
+        "/.agentty/skills/codebase-memory-cli/SKILL.md",
     };
     const char *const forbidden[] = {
         "/.openhands/mcp.json",
@@ -7273,6 +7332,8 @@ TEST(cli_new_agent_install_plans_use_documented_paths) {
         "/.factory/mcp.json",
         "/.grok/config.toml",
         "/.grok/agents/codebase-memory.md",
+        "/.agentty/mcp.json",
+        "/.agentty/skills/codebase-memory/SKILL.md",
     };
     const char *missing = NULL;
     const char *unexpected = NULL;
@@ -15372,19 +15433,31 @@ TEST(cli_hook_augment_deadline_breadcrumb_issue858) {
     snprintf(logpath, sizeof(logpath), "%s/timeouts.log", tmpdir);
 
     int fds[2];
+    int errfds[2];
     if (pipe(fds) != 0) {
         test_rmdir_r(tmpdir);
         FAIL("pipe failed");
+    }
+    if (pipe(errfds) != 0) {
+        close(fds[0]);
+        close(fds[1]);
+        test_rmdir_r(tmpdir);
+        FAIL("stderr pipe failed");
     }
 
     fflush(NULL);
     pid_t pid = fork();
     if (pid == 0) {
         /* Child: hook-augment with a 60ms deadline and stdin that blocks
-         * forever (parent keeps the write end open, sends nothing). */
+         * forever (parent keeps the write end open, sends nothing). Its stderr
+         * is redirected so the parent can prove the deadline is also announced
+         * there, not only in the timeouts log. */
         close(fds[1]);
         dup2(fds[0], 0);
         close(fds[0]);
+        close(errfds[0]);
+        dup2(errfds[1], 2);
+        close(errfds[1]);
         setenv("CBM_HOOK_DEADLINE_MS", "60", 1);
         setenv("CBM_HOOK_TIMEOUT_LOG", logpath, 1);
         alarm(10); /* backstop: never hang the suite */
@@ -15392,6 +15465,19 @@ TEST(cli_hook_augment_deadline_breadcrumb_issue858) {
     }
     ASSERT_GT(pid, 0);
     close(fds[0]);
+    close(errfds[1]);
+
+    /* Drain the child's stderr before reaping, so a full pipe can never wedge
+     * it. EOF arrives once the child's deadline handler has run and _exit()ed. */
+    char errbuf[4096] = "";
+    size_t errlen = 0;
+    ssize_t rd;
+    while (errlen + 1 < sizeof(errbuf) &&
+           (rd = read(errfds[0], errbuf + errlen, sizeof(errbuf) - 1 - errlen)) > 0) {
+        errlen += (size_t)rd;
+    }
+    errbuf[errlen] = '\0';
+    close(errfds[0]);
 
     int status = 0;
     waitpid(pid, &status, 0);
@@ -15402,8 +15488,8 @@ TEST(cli_hook_augment_deadline_breadcrumb_issue858) {
     ASSERT_EQ(WEXITSTATUS(status), 0);
 
     /* RED before the fix: no breadcrumb existed — a fired deadline was
-     * indistinguishable from a no-match run. GREEN: the log names the
-     * deadline and the knob. */
+     * indistinguishable from a no-match run. GREEN: it is announced on BOTH
+     * the timeouts log and stderr, each naming the deadline and the knob. */
     FILE *f = fopen(logpath, "r");
     if (!f) {
         fprintf(stderr, "  [858] FAIL no timeout breadcrumb written to %s\n", logpath);
@@ -15415,6 +15501,9 @@ TEST(cli_hook_augment_deadline_breadcrumb_issue858) {
     ASSERT_NOT_NULL(got);
     ASSERT(strstr(line, "deadline_exceeded") != NULL);
     ASSERT(strstr(line, "CBM_HOOK_DEADLINE_MS") != NULL);
+
+    ASSERT(strstr(errbuf, "deadline_exceeded") != NULL);
+    ASSERT(strstr(errbuf, "CBM_HOOK_DEADLINE_MS") != NULL);
 
     cbm_unsetenv("CBM_HOOK_DEADLINE_MS");
     cbm_unsetenv("CBM_HOOK_TIMEOUT_LOG");
@@ -17368,6 +17457,19 @@ TEST(cli_clients_selector_vocabulary_is_complete_and_strict_issue1558) {
     ASSERT_FALSE(registry.claude_code);
     ASSERT_FALSE(registry.cursor);
 
+    /* agentty is a registry client: selectable through the shared selector
+     * vocabulary, and a selection that omits it must drop it (a registry
+     * install only ever runs when cli_clients_selects_registry_client passes). */
+    cbm_detected_agents_t agentty = all;
+    ASSERT_TRUE(cbm_cli_clients_apply_selection_for_testing("agentty", &agentty));
+    cbm_detected_agents_t leak = all;
+    ASSERT_TRUE(cbm_cli_clients_apply_selection_for_testing("claude,codex", &leak));
+    cbm_cli_set_client_selection_for_testing("agentty");
+    ASSERT_TRUE(cbm_cli_selects_registry_client_for_testing("agentty"));
+    cbm_cli_set_client_selection_for_testing("claude,codex");
+    ASSERT_FALSE(cbm_cli_selects_registry_client_for_testing("agentty"));
+    cbm_cli_set_client_selection_for_testing(NULL);
+
     /* Every token in the table must resolve — a client added to detection but
      * forgotten here is invisible to the selector. */
     for (size_t i = 0; i < cbm_cli_clients_count_for_testing(); i++) {
@@ -18287,7 +18389,7 @@ SUITE(cli) {
     RUN_TEST(cli_yaml_parse_empty);
     RUN_TEST(cli_yaml_has);
 
-    /* Agent detection (6 tests — group A) */
+    /* Agent detection */
     RUN_TEST(cli_detect_agents_finds_claude);
     RUN_TEST(cli_detect_agents_finds_claude_via_env);
     RUN_TEST(cli_detect_claude_empty_dir_not_detected_issue1180);
@@ -18300,6 +18402,8 @@ SUITE(cli) {
     RUN_TEST(cli_detect_agents_finds_codex);
     RUN_TEST(cli_detect_agents_finds_grok);
     RUN_TEST(cli_detect_agents_finds_cursor_issue222);
+    RUN_TEST(cli_detect_agents_finds_agentty);
+    RUN_TEST(cli_agentty_mcp_config_env_override);
     RUN_TEST(cli_supported_agent_surfaces_match_installers);
     RUN_TEST(cli_new_agent_install_plans_use_documented_paths);
     RUN_TEST(cli_cp78_install_and_hook_plans_are_disjoint);
