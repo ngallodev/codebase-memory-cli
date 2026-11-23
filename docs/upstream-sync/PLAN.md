@@ -14,7 +14,7 @@ and ports #3016 and #2978; index format 4 -> 5. 14B (`sync/upstream-14b-20261123
 5 -> 7 (schema migration; existing indexes rebuild). `git rev-list --count HEAD..upstream/main`
 is 0 at 14B. See [14a.md](14a.md), [14b.md](14b.md), and [ledger.json](ledger.json).
 Jenkins release-tooling for 14A: #99 aborted (mistaken trigger on a stale head), #100 failed at the
-language-count contract (fixed in `984d34dd2`), #101 pending. 14B Jenkins is pending. Native
+language-count contract (fixed in `984d34dd2`), #101 SUCCESS on `984d34dd2`. 14B Jenkins is pending (#102 was aborted to record #101 here). Native
 Windows, macOS, FreeBSD, and the TSan image probe were not run. Independent review and host
 acceptance remain open. Older campaign inventory and PR bases below are historical and do not
 override the continuation run contract.

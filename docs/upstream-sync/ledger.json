@@ -1083,7 +1083,7 @@
       ],
       "verification": {
         "local": "see 14a.md",
-        "jenkins": "#99 ABORTED (triggered by mistake on stale head 2dc699f79, not a qualification); #100 FAILURE on 613f32ce2 at step 0w language-count contract (docs 162, 163 vendored), fixed in 984d34dd2; #101 on 984d34dd2 pending",
+        "jenkins": "#99 ABORTED (triggered by mistake on stale head 2dc699f79, not a qualification); #100 FAILURE on 613f32ce2 at step 0w language-count contract (docs 162, 163 vendored), fixed in 984d34dd2; #101 SUCCESS on 984d34dd2",
         "windows": "not_run"
       },
       "upstream_prs": [
@@ -1101,7 +1101,7 @@
         2952,
         2962
       ],
-      "qualification": "Pending: Jenkins release-tooling #101 on exact head 984d34dd2."
+      "qualification": "Jenkins release-tooling #101 SUCCESS on exact head 984d34dd2."
     },
     {
       "batch": "14B",
@@ -1875,7 +1875,7 @@
     "upstream_commits_remaining": 0,
     "baseline_upstream_commits_behind": 355,
     "status": "13m1_13m2_13n_merged_to_main_14a_14b_jenkins_pending",
-    "jenkins_qualification": "13M-2/13N: #97 f2b0dae54 and #98 2dc699f79 SUCCESS. 14A: #99 aborted (mistaken trigger), #100 FAILURE fixed in 984d34dd2, #101 pending. 14B: pending.",
+    "jenkins_qualification": "13M-2/13N: #97 f2b0dae54 and #98 2dc699f79 SUCCESS. 14A: #99 aborted (mistaken trigger), #100 FAILURE fixed in 984d34dd2, #101 SUCCESS. 14B: pending (#102 aborted to record #101).",
     "native_windows": "not_run; macOS, FreeBSD, TSan image probe not run",
     "publication": "no push, no PR, no Actions dispatch at time of writing"
   },
