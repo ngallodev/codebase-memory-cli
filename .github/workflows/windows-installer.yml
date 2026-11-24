@@ -171,7 +171,7 @@ jobs:
         run: |
           ls -la stage
           cp install.ps1 stage/install.ps1
-          (cd stage && bash "$GITHUB_WORKSPACE/scripts/ci/release-artifacts.sh" checksums)
+          (cd stage && sha256sum *.zip > checksums.txt)
           cat stage/checksums.txt
 
       - name: Compile Inno Setup installer
@@ -179,19 +179,15 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          # The script uses x64compatible, which needs Inno Setup 6.3 or later;
-          # install or upgrade when the runner's copy is missing or older.
+          # The script uses x64compatible, which needs Inno Setup 6.3 or later.
+          # ISCC.exe carries no usable file version (it reads 0.0.0.0), so
+          # always let choco install or upgrade to the current release; it is
+          # a no-op when the runner already has it. ISCC itself rejects the
+          # script if it is too old.
+          choco upgrade innosetup -y --no-progress
+          if ($LASTEXITCODE -ne 0) { throw "choco upgrade innosetup failed" }
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          $minimum = [version]'6.3.0'
-          $have = if (Test-Path -LiteralPath $iscc) { [version](Get-Item -LiteralPath $iscc).VersionInfo.ProductVersion } else { $null }
-          if (-not $have -or $have -lt $minimum) {
-            choco upgrade innosetup -y --no-progress
-            if ($LASTEXITCODE -ne 0) { throw "choco upgrade innosetup failed" }
-          }
           if (-not (Test-Path -LiteralPath $iscc)) { throw "ISCC.exe not found" }
-          $have = [version](Get-Item -LiteralPath $iscc).VersionInfo.ProductVersion
-          if ($have -lt $minimum) { throw "Inno Setup $have is older than $minimum" }
-          Write-Host "Inno Setup $have"
           $root = $env:GITHUB_WORKSPACE
           New-Item -ItemType Directory -Path "$root\out" | Out-Null
           & $iscc "/DAppVersion=$env:VERSION" "/DStageDir=$root\stage" "/DRepoRoot=$root" "/O$root\out" "$root\pkg\windows\codebase-memory-cli.iss"
