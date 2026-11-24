@@ -171,7 +171,7 @@ jobs:
         run: |
           ls -la stage
           cp install.ps1 stage/install.ps1
-          (cd stage && bash "$GITHUB_WORKSPACE/scripts/ci/release-artifacts.sh" checksums)
+          (cd stage && sha256sum *.zip > checksums.txt)
           cat stage/checksums.txt
 
       - name: Compile Inno Setup installer
