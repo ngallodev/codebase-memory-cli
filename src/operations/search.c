@@ -85,10 +85,13 @@ static bool bool_arg(const char *args, const char *name) {
     return result;
 }
 
-static bool search_arg_present(const char *args, const char *name) {
+/* An empty semantic_query array is ignored, as if the key were absent; any
+ * other value (including malformed ones) counts as present. */
+static bool search_semantic_query_present(const char *args) {
     yyjson_doc *doc = read_args(args);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
-    bool present = yyjson_is_obj(root) && yyjson_obj_get(root, name) != NULL;
+    yyjson_val *value = yyjson_is_obj(root) ? yyjson_obj_get(root, "semantic_query") : NULL;
+    bool present = value && (!yyjson_is_arr(value) || yyjson_arr_size(value) > 0);
     if (doc)
         yyjson_doc_free(doc);
     return present;
@@ -859,7 +862,7 @@ static semantic_status_t semantic_query(const char *args, cbm_store_t *store, co
     yyjson_doc *doc = read_args(args);
     yyjson_val *root = doc ? yyjson_doc_get_root(doc) : NULL;
     yyjson_val *array = yyjson_is_obj(root) ? yyjson_obj_get(root, "semantic_query") : NULL;
-    if (!array) {
+    if (!array || (yyjson_is_arr(array) && yyjson_arr_size(array) == 0)) {
         if (doc)
             yyjson_doc_free(doc);
         return SEMANTIC_OK;
@@ -1004,10 +1007,12 @@ cbm_operation_result_t cbm_search_operation_execute(const char *args) {
         result = error_result("relationship must be uppercase letters and underscores", NULL);
         goto done;
     }
-    if (query && search_arg_present(args, "semantic_query")) {
-        result = error_result("query and semantic_query are mutually exclusive",
-                              "Use query for BM25 full-text ranking or semantic_query for vector "
-                              "ranking, then issue a separate request for the other mode.");
+    if (query && search_semantic_query_present(args)) {
+        result = error_result(
+            "query and semantic_query are mutually exclusive",
+            "For BM25 search, remove the semantic_query key (an empty array is also accepted). "
+            "For vector search, remove the query key entirely. To run both modes, send two "
+            "separate requests; do not retry unchanged arguments.");
         goto done;
     }
     store = open_indexed_project(project, &open_status);

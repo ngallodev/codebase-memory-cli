@@ -34,6 +34,8 @@ enum {
 #define PP_NSEC_PER_SEC 1000000000ULL
 #define PP_USEC_PER_MS 1000000ULL
 #define PP_HALF_CONF 0.5
+static const double PP_SWIFT_SINGLE_CONF = 0.90;
+static const double PP_SWIFT_AMBIGUOUS_CONF = 0.55;
 #define PP_FIELD_HINT_CONF 0.85
 enum { PP_CSHARP_M_PREFIX_LEN = 2 };
 
@@ -1487,7 +1489,7 @@ int cbm_parallel_extract(cbm_pipeline_ctx_t *ctx, const cbm_file_info_t *files, 
 /* `file_node_id` is the defining file's node id (0 when it has none), looked up
  * once per file by the caller: computing the file QN and finding its node for
  * every definition was 700 k allocations and lookups on the Go corpus. */
-static int register_and_link_def(cbm_pipeline_ctx_t *ctx, const CBMDefinition *def,
+static int register_and_link_def(cbm_pipeline_ctx_t *ctx, const CBMDefinition *def, const char *rel,
                                  int64_t file_node_id, CBMLanguage lang, size_t module_prefix_len,
                                  int *reg_entries) {
     int edges = 0;
@@ -1495,14 +1497,24 @@ static int register_and_link_def(cbm_pipeline_ctx_t *ctx, const CBMDefinition *d
         return 0;
     }
     /* Registry membership is defined ONCE by cbm_label_is_registry_symbol
-     * (helpers.c) — see pass_definitions.c for the per-label rationale, and
-     * for the generated member registered by qualified name only. */
+     * (helpers.c) — see pass_definitions.c for the per-label rationale, for
+     * the generated member registered by qualified name only, and for the
+     * test verdict (the extractor's, its file rule, the test-double path
+     * rule), judged on the path the def's node stores. */
     if (cbm_label_is_registry_symbol(def->label)) {
         if (cbm_def_props_generated(def->extra_props)) {
             cbm_registry_add_qn_only(ctx->registry, def->qualified_name, def->label);
         } else {
+            const char *def_rel = def->file_path ? def->file_path : rel;
+            bool is_test = def->is_test || cbm_is_test_file(def_rel, lang) ||
+                           cbm_registry_test_double_path(def_rel);
             cbm_registry_add_lang_in_module(ctx->registry, def->name, def->qualified_name,
-                                            def->label, lang, module_prefix_len);
+                                            def->label, lang, module_prefix_len, is_test);
+        }
+        if (def->qn_sig_off) {
+            cbm_registry_set_swift_signature(ctx->registry, def->qualified_name,
+                                             def->param_default_mask, def->selector_param_count,
+                                             def->call_selector);
         }
         (*reg_entries)++;
     }
@@ -1684,7 +1696,7 @@ int cbm_build_registry_from_cache(cbm_pipeline_ctx_t *ctx, const cbm_file_info_t
             cbm_def_file_doc(file_node, result->module_doc);
             for (int d = 0; d < result->defs.count; d++) {
                 defines_edges +=
-                    register_and_link_def(ctx, &result->defs.items[d], file_node_id,
+                    register_and_link_def(ctx, &result->defs.items[d], rel, file_node_id,
                                           files[i].language, py_prefix_len, &reg_entries);
             }
         }
@@ -1703,6 +1715,9 @@ int cbm_build_registry_from_cache(cbm_pipeline_ctx_t *ctx, const cbm_file_info_t
      * The pipeline owns it from here and frees it in its cleanup. */
     cbm_pipeline_namespace_map_free(cbm_pipeline_get_nsmap());
     cbm_pipeline_set_nsmap(namespace_map);
+
+    cbm_registry_build_swift_owners(ctx->registry, ctx->gbuf, ctx->repo_path, ctx->excluded_dirs,
+                                    ctx->excluded_count);
 
     cbm_log_info("parallel.registry.done", "entries", itoa_log(reg_entries), "defines",
                  itoa_log(defines_edges), "imports", itoa_log(imports_edges));
@@ -2497,11 +2512,15 @@ static void emit_trpc_edge(cbm_gbuf_t *gbuf, const cbm_gbuf_node_t *source, cons
 static bool emit_service_edge(cbm_gbuf_t *gbuf, const cbm_gbuf_node_t *source,
                               const cbm_gbuf_node_t *target, const CBMCall *call,
                               const cbm_resolution_t *res, const char *module_qn,
-                              const cbm_registry_t *registry, const cbm_gbuf_t *main_gbuf,
-                              const char **imp_keys, const char **imp_vals, int imp_count,
-                              bool suppress_plain_calls, const char *route_mount,
-                              CBMLanguage lang) {
-    cbm_svc_kind_t svc = cbm_service_pattern_match(res->qualified_name);
+                              const char *project_name, const cbm_registry_t *registry,
+                              const cbm_gbuf_t *main_gbuf, const char **imp_keys,
+                              const char **imp_vals, int imp_count, bool suppress_plain_calls,
+                              const char *route_mount, CBMLanguage lang) {
+    cbm_svc_kind_t svc = cbm_service_pattern_match_in_project(
+        res->qualified_name, target ? target->name : NULL,
+        target && res->qualified_name && strcmp(target->qualified_name, res->qualified_name) == 0
+            ? project_name
+            : NULL);
     const char *arg = call->first_string_arg;
 
     /* Also detect route registration by callee name suffix alone (handles unresolved
@@ -3079,12 +3098,20 @@ static void resolve_file_calls(resolve_ctx_t *rc, resolve_worker_state_t *ws, CB
                                (lsp && !lsp_target && cbm_pipeline_lsp_external_receiver(lsp));
         bool rust_external = lsp && cbm_pipeline_rust_external_target(
                                         lang, lsp->strategy, lsp->callee_qn, rc->project_name);
+        /* Typed Swift calls must not scan the global name bucket first. */
+        const char *candidates[CBM_SZ_256];
+        int count = 0;
+        if (lang == CBM_LANG_SWIFT && !lsp_target && !call->requires_lsp_resolution) {
+            count = cbm_registry_swift_candidates_in_file(rc->registry, call, result, rc->main_gbuf,
+                                                          module_qn, imp_vals, imp_count,
+                                                          candidates, CBM_SZ_256);
+        }
         if ((!res.qualified_name || !res.qualified_name[0]) && !call->requires_lsp_resolution &&
-            !rust_external && !php_vendor_call && !java_external) {
+            !rust_external && !php_vendor_call && !java_external && count == 0) {
             /* Python LEGB fallback first (MUST match pass_calls.c). */
-            res = cbm_registry_resolve_call_scoped(rc->registry, call->callee_name, module_qn,
-                                                   imp_keys, imp_vals, imp_count, lang,
-                                                   call->enclosing_func_qn);
+            res = cbm_registry_resolve_call_scoped(
+                rc->registry, call->callee_name, module_qn, imp_keys, imp_vals, imp_count, lang,
+                call->enclosing_func_qn, cbm_pipeline_caller_is_test(source_node, rel, lang));
         }
         /* `p->open(fd)`: the registry does not split a callee on the arrow.
          * The object's type decides, as for the dot call handled further
@@ -3200,7 +3227,13 @@ static void resolve_file_calls(resolve_ctx_t *rc, resolve_worker_state_t *ws, CB
                                                 cbm_pipeline_get_nsmap()) ||
             /* MUST match pass_calls.c exactly. */
             (lang == CBM_LANG_PHP && cbm_suppress_weak_member_match(true, true, res.strategy) &&
-             cbm_pipeline_php_receiver_type_unindexed(&result->resolved_calls, call, rc->registry));
+             cbm_pipeline_php_receiver_type_unindexed(&result->resolved_calls, call,
+                                                      rc->registry)) ||
+            /* Same-module bound-receiver suppression (#1128) - see pass_calls.c;
+             * the language list is inside the helper, so the two cannot drift. */
+            cbm_suppress_same_module_bound_receiver(
+                lang, call->is_method, call->callee_name, res.qualified_name, res.strategy,
+                &result->imports, call->receiver_is_amd_dependency);
 
         /* Service-pattern HTTP/ASYNC client call (`requests.get(url)`): the
          * service signal lives in the callee_name. The registry can mis-resolve
@@ -3242,9 +3275,41 @@ static void resolve_file_calls(resolve_ctx_t *rc, resolve_worker_state_t *ws, CB
                                             .strategy = "service_pattern"};
                 site_evidence->calls_emitted |=
                     emit_service_edge(ws->local_edge_buf, source_node, source_node, call, &svc_res,
-                                      module_qn, rc->registry, rc->main_gbuf, imp_keys, imp_vals,
-                                      imp_count, false, route_mount, lang);
+                                      module_qn, rc->project_name, rc->registry, rc->main_gbuf,
+                                      imp_keys, imp_vals, imp_count, false, route_mount, lang);
                 continue;
+            }
+        }
+
+        if (lang == CBM_LANG_SWIFT && !lsp_target) {
+            if (count > 0) {
+                for (int i = 0; i < count; i++) {
+                    const cbm_gbuf_node_t *target =
+                        cbm_gbuf_find_by_qn(rc->main_gbuf, candidates[i]);
+                    if (!target || target->id == source_node->id) {
+                        continue;
+                    }
+                    cbm_resolution_t selected = {.qualified_name = candidates[i],
+                                                 .strategy = "swift_labels",
+                                                 .confidence = count == SKIP_ONE
+                                                                   ? PP_SWIFT_SINGLE_CONF
+                                                                   : PP_SWIFT_AMBIGUOUS_CONF,
+                                                 .candidate_count = count};
+                    site_evidence->candidate_qn = count == SKIP_ONE ? target->qualified_name : NULL;
+                    site_evidence->calls_emitted |=
+                        emit_service_edge(ws->local_edge_buf, source_node, target, call, &selected,
+                                          module_qn, rc->project_name, rc->registry, rc->main_gbuf,
+                                          imp_keys, imp_vals, imp_count, false, route_mount, lang);
+                    ws->calls_resolved++;
+                }
+                continue;
+            }
+            if (count < 0) {
+                /* Same-named Swift symbols exist but none is label-compatible:
+                 * clear the bare-name match (it would bind a wrong overload)
+                 * and fall through as unresolved — the empty-resolution
+                 * fallbacks below still run. Mirrors pass_calls.c. */
+                res = (cbm_resolution_t){0};
             }
         }
 
@@ -3270,8 +3335,8 @@ static void resolve_file_calls(resolve_ctx_t *rc, resolve_worker_state_t *ws, CB
                  * route/HTTP/service classification is unchanged. */
                 site_evidence->calls_emitted |=
                     emit_service_edge(ws->local_edge_buf, source_node, source_node, call, &fake_res,
-                                      module_qn, rc->registry, rc->main_gbuf, imp_keys, imp_vals,
-                                      imp_count, true, route_mount, lang);
+                                      module_qn, rc->project_name, rc->registry, rc->main_gbuf,
+                                      imp_keys, imp_vals, imp_count, true, route_mount, lang);
             } else if (cbm_service_pattern_is_global_fetch(call->callee_name)) {
                 /* Native `fetch()` (#856): only the global API once resolution
                  * has failed to find a local/imported `fetch`. Call the low-level
@@ -3380,9 +3445,10 @@ static void resolve_file_calls(resolve_ctx_t *rc, resolve_worker_state_t *ws, CB
                                     (u[0] == '/' || strstr(u, "://") != NULL ||
                                      (psvc == CBM_SVC_ASYNC && strlen(u) > PP_ESC_SPACE));
                 if (url_or_topic) {
-                    site_evidence->calls_emitted |= emit_service_edge(
-                        ws->local_edge_buf, source_node, NULL, call, &res, module_qn, rc->registry,
-                        rc->main_gbuf, imp_keys, imp_vals, imp_count, false, route_mount, lang);
+                    site_evidence->calls_emitted |=
+                        emit_service_edge(ws->local_edge_buf, source_node, NULL, call, &res,
+                                          module_qn, rc->project_name, rc->registry, rc->main_gbuf,
+                                          imp_keys, imp_vals, imp_count, false, route_mount, lang);
                     ws->calls_resolved++;
                 }
             }
@@ -3390,9 +3456,10 @@ static void resolve_file_calls(resolve_ctx_t *rc, resolve_worker_state_t *ws, CB
         }
         site_evidence->candidate_qn = target_node->qualified_name;
         _rc_t0 = extract_now_ns();
-        site_evidence->calls_emitted |= emit_service_edge(
-            ws->local_edge_buf, source_node, target_node, call, &res, module_qn, rc->registry,
-            rc->main_gbuf, imp_keys, imp_vals, imp_count, drop_plain_call, route_mount, lang);
+        site_evidence->calls_emitted |=
+            emit_service_edge(ws->local_edge_buf, source_node, target_node, call, &res, module_qn,
+                              rc->project_name, rc->registry, rc->main_gbuf, imp_keys, imp_vals,
+                              imp_count, drop_plain_call, route_mount, lang);
         atomic_fetch_add_explicit(&rc->time_ns_rc_emit, extract_now_ns() - _rc_t0,
                                   memory_order_relaxed);
         ws->calls_resolved++;
@@ -3516,8 +3583,9 @@ static void resolve_file_usages(resolve_ctx_t *rc, resolve_worker_state_t *ws,
                 (lang == CBM_LANG_SQL)
                     ? cbm_registry_resolve_lineage(rc->registry, usage->ref_name, module_qn,
                                                    imp_keys, imp_vals, imp_count)
-                    : cbm_registry_resolve_lang(rc->registry, usage->ref_name, module_qn, imp_keys,
-                                                imp_vals, imp_count, lang);
+                    : cbm_registry_resolve_ref(rc->registry, usage->ref_name, module_qn, imp_keys,
+                                               imp_vals, imp_count, lang,
+                                               cbm_pipeline_caller_is_test(src, rel, lang));
             if (!res.qualified_name || res.qualified_name[0] == '\0') {
                 continue;
             }
@@ -3656,8 +3724,9 @@ static void resolve_file_rw(resolve_ctx_t *rc, resolve_worker_state_t *ws, CBMFi
             }
             continue;
         }
-        cbm_resolution_t res = cbm_registry_resolve_lang(rc->registry, rw->var_name, module_qn,
-                                                         imp_keys, imp_vals, imp_count, lang);
+        cbm_resolution_t res =
+            cbm_registry_resolve_ref(rc->registry, rw->var_name, module_qn, imp_keys, imp_vals,
+                                     imp_count, lang, cbm_pipeline_caller_is_test(src, rel, lang));
         if (!res.qualified_name || res.qualified_name[0] == '\0') {
             continue;
         }
