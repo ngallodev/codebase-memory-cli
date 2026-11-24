@@ -4,6 +4,12 @@
 #
 # Environment:
 #   CBM_DOWNLOAD_URL  Override base URL for downloads (for testing)
+#   CBM_ARCHIVE_DIR   Absolute path of an existing directory holding the
+#                     release archive for this architecture and checksums.txt.
+#                     When set, both are copied from there instead of being
+#                     downloaded; every later step is unchanged. Used by the
+#                     Windows setup.exe and for offline installs.
+#   CBM_ARCH          Override the detected architecture (amd64 or arm64)
 
 $ErrorActionPreference = "Stop"
 
@@ -185,6 +191,37 @@ function New-CbmExclusiveTempDirectory {
     throw "could not reserve an exclusive installer temporary directory"
 }
 
+# Local-archive mode: validate CBM_ARCHIVE_DIR before anything is created.
+$LocalArchiveDir = $null
+if ($env:CBM_ARCHIVE_DIR) {
+    $LocalArchiveDir = $env:CBM_ARCHIVE_DIR
+    if (-not [System.IO.Path]::IsPathRooted($LocalArchiveDir) -or
+        -not (Test-Path -LiteralPath $LocalArchiveDir -PathType Container)) {
+        Write-Host "error: CBM_ARCHIVE_DIR must be an absolute path to an existing directory: $LocalArchiveDir" -ForegroundColor Red
+        exit 1
+    }
+    if ((Get-Item -LiteralPath $LocalArchiveDir).Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+        Write-Host "error: refusing reparse-point CBM_ARCHIVE_DIR: $LocalArchiveDir" -ForegroundColor Red
+        exit 1
+    }
+}
+
+# Copy one file out of CBM_ARCHIVE_DIR into the staging directory, refusing
+# anything that is not a regular, non-reparse-point file.
+function Copy-CbmLocalFile {
+    param([Parameter(Mandatory=$true)][string]$Name,
+          [Parameter(Mandatory=$true)][string]$OutFile)
+
+    $source = Join-Path $LocalArchiveDir $Name
+    if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+        throw "$Name not found in $LocalArchiveDir"
+    }
+    if ((Get-Item -LiteralPath $source).Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+        throw "refusing reparse-point file: $source"
+    }
+    Copy-Item -LiteralPath $source -Destination $OutFile -Force -ErrorAction Stop
+}
+
 # Build download URL
 $Archive = "codebase-memory-cli-windows-$Arch.zip"
 $Url = "$BaseUrl/$Archive"
@@ -227,11 +264,23 @@ try {
     Write-Host "note: could not harden the staging directory ACL: $($_.Exception.Message)"
 }
 
-Write-Host "Downloading $Archive..."
+if ($LocalArchiveDir) {
+    Write-Host "Using local archive $Archive from $LocalArchiveDir"
+} else {
+    Write-Host "Downloading $Archive..."
+}
 try {
-    Invoke-CbmDownload -Url $Url -OutFile "$TmpDir\$Archive"
+    if ($LocalArchiveDir) {
+        Copy-CbmLocalFile -Name $Archive -OutFile "$TmpDir\$Archive"
+    } else {
+        Invoke-CbmDownload -Url $Url -OutFile "$TmpDir\$Archive"
+    }
 } catch {
-    Write-Host "error: download failed: $_" -ForegroundColor Red
+    if ($LocalArchiveDir) {
+        Write-Host "error: local archive unavailable: $_" -ForegroundColor Red
+    } else {
+        Write-Host "error: download failed: $_" -ForegroundColor Red
+    }
     Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
     exit 1
 }
@@ -241,7 +290,11 @@ try {
 # a candidate that was not positively matched to the published release digest.
 $ChecksumUrl = "$BaseUrl/checksums.txt"
 try {
-    Invoke-CbmDownload -Url $ChecksumUrl -OutFile "$TmpDir\checksums.txt"
+    if ($LocalArchiveDir) {
+        Copy-CbmLocalFile -Name "checksums.txt" -OutFile "$TmpDir\checksums.txt"
+    } else {
+        Invoke-CbmDownload -Url $ChecksumUrl -OutFile "$TmpDir\checksums.txt"
+    }
     $checksumPath = "$TmpDir\checksums.txt"
     if ((Get-Item -LiteralPath $checksumPath).Length -gt 1048576) {
         throw "checksums.txt exceeds the 1 MiB safety limit"
