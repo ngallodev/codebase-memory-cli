@@ -43,6 +43,9 @@ AppSupportURL=https://github.com/ngallodev/codebase-memory-cli/issues
 ; Same location install.ps1 uses; the page is hidden so the two cannot differ.
 DefaultDirName={localappdata}\Programs\codebase-memory-cli
 DisableDirPage=yes
+; Keep unins000.* out of the CLI's install directory: `codebase-memory-cli
+; uninstall` owns that directory and must not delete the running uninstaller.
+UninstallFilesDir={localappdata}\Programs\codebase-memory-cli-setup
 DisableProgramGroupPage=yes
 DisableReadyPage=no
 PrivilegesRequired=lowest
