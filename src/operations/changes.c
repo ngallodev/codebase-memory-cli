@@ -1748,18 +1748,32 @@ cbm_operation_result_t cbm_changes_operation_execute(const char *args,
      * detect_collect_seeds' zero-overlap fallback: a file whose definitions all
      * miss reverts to whole-file seeding rather than dropping out. */
     if (!seed_rows.failed && (want_symbols || seed_req.list)) {
+        int hunk_len;
 #ifdef _WIN32
-        snprintf(cmd, sizeof(cmd),
-                 "git -C \"%s\" diff --relative --unified=0 \"%s\" \"%s\" -- 2>NUL && "
-                 "git -C \"%s\" diff --relative --unified=0 -- 2>NUL",
-                 root_path, merge_base, head_oid, root_path);
+        hunk_len =
+            snprintf(cmd, sizeof(cmd),
+                     "git -C \"%s\" " CBM_TEST_IMPACT_GIT_PINS
+                     " diff --relative " CBM_TEST_IMPACT_DIFF_FLAGS " \"%s\" \"%s\" -- 2>NUL && "
+                     "git -C \"%s\" " CBM_TEST_IMPACT_GIT_PINS
+                     " diff --relative " CBM_TEST_IMPACT_DIFF_FLAGS " -- 2>NUL",
+                     root_path, merge_base, head_oid, root_path);
 #else
-        snprintf(cmd, sizeof(cmd),
-                 "git -C '%s' diff --relative --unified=0 '%s' '%s' -- 2>/dev/null && "
-                 "git -C '%s' diff --relative --unified=0 -- 2>/dev/null",
-                 root_path, merge_base, head_oid, root_path);
+        hunk_len =
+            snprintf(cmd, sizeof(cmd),
+                     "git -C '%s' " CBM_TEST_IMPACT_GIT_PINS
+                     " diff --relative " CBM_TEST_IMPACT_DIFF_FLAGS " '%s' '%s' -- 2>/dev/null && "
+                     "git -C '%s' " CBM_TEST_IMPACT_GIT_PINS
+                     " diff --relative " CBM_TEST_IMPACT_DIFF_FLAGS " -- 2>/dev/null",
+                     root_path, merge_base, head_oid, root_path);
 #endif
-        changes_git_run(runtime, cmd, &git);
+        /* A root path long enough to truncate the command would run a cut-off
+         * git command (an error, or a flag list without --unified=0): skip hunk
+         * scoping instead, which leaves whole-file seeding. */
+        if (hunk_len > 0 && (size_t)hunk_len < sizeof(cmd)) {
+            changes_git_run(runtime, cmd, &git);
+        } else {
+            memset(&git, 0, sizeof(git));
+        }
         if (git.fp) {
             (void)fseek(git.fp, 0, SEEK_END);
             long hsz = ftell(git.fp);

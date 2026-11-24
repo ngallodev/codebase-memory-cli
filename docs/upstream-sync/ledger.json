@@ -987,7 +987,7 @@
       "depends_on": [
         "13M-1"
       ],
-      "state": "jenkins_passed_draft_pr_review_pending",
+      "state": "merged_to_main_pr34",
       "branch": "sync/upstream-13m2-20261108",
       "merge_commit": "bff6508606c296e3d96e5a01af44a9c35ae64049",
       "head": "0f1927fd3cf872aa3d85719339af255fb1890394",
@@ -1011,7 +1011,8 @@
         2499,
         1784
       ],
-      "qualification": "Jenkins release-tooling #91 FAILED on 1c5f82a3a (2 Hermes hook tests); fixed in 0f1927fd3; #93 SUCCESS on exact head 0f1927fd3 (full gate)."
+      "qualification": "Jenkins release-tooling #91 FAILED on 1c5f82a3a (2 Hermes hook tests); fixed in 0f1927fd3; #93 SUCCESS on exact head 0f1927fd3 (full gate). Merged to main via PR #34 as merge commit 89e57fa71; Jenkins #97 SUCCESS on f2b0dae54.",
+      "main_merge_commit": "89e57fa7123d241763f2b70e6fad9741d57441b9"
     },
     {
       "batch": "13N",
@@ -1023,7 +1024,7 @@
       "depends_on": [
         "13M-2"
       ],
-      "state": "jenkins_passed_draft_pr_review_pending",
+      "state": "merged_to_main_pr35",
       "branch": "sync/upstream-13n-20261108",
       "merge_commit": "2efba854891c7edbc8839c8cce0a7fb9fa7dec11",
       "head": "98eab3ceb0666aee5521745414f5199acacba315",
@@ -1049,7 +1050,103 @@
         2903,
         2911
       ],
-      "qualification": "Jenkins release-tooling #92 on cf24b6a32 aborted (stale head); #94 SUCCESS on exact head 98eab3ceb (full gate), which merges the 13M-2 fix."
+      "qualification": "Jenkins release-tooling #92 on cf24b6a32 aborted (stale head); #94 SUCCESS on exact head 98eab3ceb (full gate), which merges the 13M-2 fix. Merged to main via PR #35 as merge commit 420959524; Jenkins #98 SUCCESS on 2dc699f79.",
+      "main_merge_commit": "4209595244ba67213a6bc85e6b4c38dab38de4a0"
+    },
+    {
+      "batch": "14A",
+      "upstream_start": "612eee2518ef84cc573e491fdee5fa5c90264cb5",
+      "upstream_checkpoint": "b62a2ffaf9e5e97f000b9302fdca1cdeae087920",
+      "upstream_commits": 210,
+      "ancestry_validated": true,
+      "fork_base": "4209595244ba67213a6bc85e6b4c38dab38de4a0",
+      "depends_on": [
+        "13N"
+      ],
+      "state": "jenkins_pending_local_branch",
+      "branch": "sync/upstream-14a-20261123",
+      "merge_commit": "e8bf657a8eb560d7a5354f3b01498df62cf3286e",
+      "head": "984d34dd23631879fc9f00fd6d39c741e2bd9112",
+      "receipt": "14a.md",
+      "adaptations": [
+        "Ported #3016 (empty semantic_query ignored, clearer conflict error) in 19ef64d90 and #2978 (opt-in include_overrides on trace) in aa89f44c0, merged in 613f32ce2.",
+        "Applied #2959/#2970 engine hunks to src/operations/test_impact_engine_reach.c via rename detection.",
+        "Added #2906 agentty as a skill-only client (no MCP config).",
+        "Dropped the #2436 test_mcp hunk; kept the fork nuspec for #2948.",
+        "CBM_INDEX_FORMAT_VERSION 4 -> 5 (upstream value)."
+      ],
+      "exclusions": [
+        "#2927, #2929, #2928 Actions bumps (pins taken, triggers unchanged).",
+        "#2951 targets deleted frontend.c.",
+        "#2952 Windows MCP stdio guard.",
+        "#2962 MSan Actions lane."
+      ],
+      "verification": {
+        "local": "see 14a.md",
+        "jenkins": "#99 ABORTED (triggered by mistake on stale head 2dc699f79, not a qualification); #100 FAILURE on 613f32ce2 at step 0w language-count contract (docs 162, 163 vendored), fixed in 984d34dd2; #101 SUCCESS on 984d34dd2",
+        "windows": "not_run"
+      },
+      "upstream_prs": [
+        2205,
+        2906,
+        2959,
+        2970,
+        2977,
+        3016,
+        2978,
+        2927,
+        2929,
+        2928,
+        2951,
+        2952,
+        2962
+      ],
+      "qualification": "Jenkins release-tooling #101 SUCCESS on exact head 984d34dd2."
+    },
+    {
+      "batch": "14B",
+      "upstream_start": "b62a2ffaf9e5e97f000b9302fdca1cdeae087920",
+      "upstream_checkpoint": "9a4da7a314833d8d965b74612e1f25fef5371861",
+      "upstream_commits": 145,
+      "ancestry_validated": true,
+      "fork_base": "613f32ce2fef8a104c3a4cc1421a1df32980416b",
+      "depends_on": [
+        "14A"
+      ],
+      "state": "jenkins_pending_local_branch",
+      "branch": "sync/upstream-14b-20261123",
+      "merge_commit": "594a5013bba73e748c5308e8ed0ba87338a0ed5d",
+      "head": "76ec0f51b7144f744be800f72733428c40b5d8f1",
+      "receipt": "14b.md",
+      "adaptations": [
+        "Ported #2809 detect_changes pins to src/operations/changes.c (cb37f570e).",
+        "Applied #3037 classify hunk to src/operations/test_impact_classify.c via rename detection.",
+        "Merged 14A head 984d34dd2 (a862cb4de); docs language count 164 (VBA) in 76ec0f51b.",
+        "Schema migration: CBM_INDEX_FORMAT_VERSION 5 -> 7 (#2360 and #3030); existing indexes rebuild."
+      ],
+      "exclusions": [
+        "#2985, #2984 Actions bumps (pins only, triggers unchanged).",
+        "#2971 MCP-only request cancellation."
+      ],
+      "verification": {
+        "local": "scripts/build-dev.sh; about 85 suites, 6972 passed, 0 failed, 4 skipped under umask 022; memory-core lint; lint.sh --ci; Actions policy; 36 pre-build contracts.",
+        "jenkins": "pending",
+        "windows": "not_run; macOS, FreeBSD, and TSan image probe also not run"
+      },
+      "upstream_prs": [
+        2969,
+        2547,
+        2809,
+        3016,
+        3030,
+        2360,
+        3037,
+        3052,
+        2985,
+        2984,
+        2971
+      ],
+      "qualification": "Pending: Jenkins release-tooling on exact head 76ec0f51b."
     }
   ],
   "reconciliation": [
@@ -1769,17 +1866,17 @@
     }
   },
   "current_continuation": {
-    "baseline": "cf63fe667579482c7e3b73238b73d4ad2d01db97",
+    "baseline": "4209595244ba67213a6bc85e6b4c38dab38de4a0",
     "upstream_baseline": "612eee2518ef84cc573e491fdee5fa5c90264cb5",
-    "merge_base": "a5b248f47272413189746589b9a2c551c6b6c5ec",
-    "integrated_through": "612eee2518ef84cc573e491fdee5fa5c90264cb5",
-    "current_merge_commit": "2efba854891c7edbc8839c8cce0a7fb9fa7dec11",
-    "current_head": "98eab3ceb0666aee5521745414f5199acacba315",
+    "merge_base": "612eee2518ef84cc573e491fdee5fa5c90264cb5",
+    "integrated_through": "9a4da7a314833d8d965b74612e1f25fef5371861",
+    "current_merge_commit": "594a5013bba73e748c5308e8ed0ba87338a0ed5d",
+    "current_head": "76ec0f51b7144f744be800f72733428c40b5d8f1",
     "upstream_commits_remaining": 0,
-    "baseline_upstream_commits_behind": 214,
-    "status": "jenkins_passed_13m1_merged_13m2_13n_review_pending",
-    "jenkins_qualification": "PASSED: #90 c3c5271ab, #93 0f1927fd3, #94 98eab3ceb",
-    "native_windows": "not_run; #2903 nul handling remains unverified natively",
+    "baseline_upstream_commits_behind": 355,
+    "status": "13m1_13m2_13n_merged_to_main_14a_14b_jenkins_pending",
+    "jenkins_qualification": "13M-2/13N: #97 f2b0dae54 and #98 2dc699f79 SUCCESS. 14A: #99 aborted (mistaken trigger), #100 FAILURE fixed in 984d34dd2, #101 SUCCESS. 14B: pending (#102 aborted to record #101).",
+    "native_windows": "not_run; macOS, FreeBSD, TSan image probe not run",
     "publication": "no push, no PR, no Actions dispatch at time of writing"
   },
   "upstream_commits_remaining": 0

@@ -365,14 +365,16 @@ static const char *cpp_branch_types[] = {"if_statement",    "for_statement",    
                                          "while_statement", "switch_statement", "case_statement",
                                          "try_statement",   "catch_clause",     NULL};
 static const char *cpp_var_types[] = {"declaration", NULL};
+/* No update_expression here, unlike C: a bare C++ name can be an implicit-this
+ * member, so a local counter's `i++` would bind by name to an unrelated member. */
 static const char *cpp_assign_types[] = {"assignment_expression", NULL};
 static const char *cpp_throw_types[] = {"throw_statement", NULL};
 
 // ==================== C# ====================
-static const char *cs_func_types[] = {"destructor_declaration",      "local_function_statement",
-                                      "function_pointer_type",       "constructor_declaration",
-                                      "anonymous_method_expression", "lambda_expression",
-                                      "method_declaration",          NULL};
+static const char *cs_func_types[] = {
+    "destructor_declaration",  "local_function_statement",    "function_pointer_type",
+    "constructor_declaration", "anonymous_method_expression", "lambda_expression",
+    "method_declaration",      "operator_declaration",        NULL};
 static const char *cs_class_types[] = {"class_declaration",
                                        "struct_declaration",
                                        "enum_declaration",
@@ -490,7 +492,7 @@ static const char *c_branch_types[] = {"if_statement",
                                        "case_statement",
                                        NULL};
 static const char *c_var_types[] = {"declaration", NULL};
-static const char *c_assign_types[] = {"assignment_expression", NULL};
+static const char *c_assign_types[] = {"assignment_expression", "update_expression", NULL};
 
 // ==================== BASH ====================
 static const char *bash_func_types[] = {"function_definition", NULL};
@@ -1699,8 +1701,11 @@ static const char *objectscript_udl_func_types[] = {"method", "classmethod", "qu
 static const char *objectscript_udl_class_types[] = {"class_definition", NULL};
 static const char *objectscript_udl_field_types[] = {
     "property", "parameter", "index", "trigger", "xdata", "storage", "foreignkey", NULL};
-static const char *objectscript_udl_call_types[] = {"class_method_call", "method_call",
-                                                    "relative_dot_method", "macro", NULL};
+/* Instance calls (`Do obj.M()`) have no call node of their own: the grammar
+ * hides method_call, leaving do_parameter/job_argument with an oref_method
+ * child. cbm_is_call_site() matches those via cbm_objectscript_is_instance_call. */
+static const char *objectscript_udl_call_types[] = {"class_method_call", "relative_dot_method",
+                                                    "macro", NULL};
 static const char *objectscript_udl_module_types[] = {"source_file", NULL};
 /* Branching nodes for cyclomatic complexity (verified against grammar node-types) */
 static const char *objectscript_udl_branch_types[] = {

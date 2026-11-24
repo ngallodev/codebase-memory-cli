@@ -403,6 +403,10 @@ typedef struct {
     char *pkg_name;     /* heap: "@myorg/pkg", "github.com/foo/bar" */
     char *entry_rel;    /* heap: "packages/pkg/src/index" (no extension) */
     char *manifest_rel; /* heap: owning SwiftPM manifest, NULL for other ecosystems */
+    char *source_rel;   /* heap: the manifest file that yielded this entry; NULL if hand-built */
+    int source_seq;     /* position among that manifest's entries, in the parser's order */
+    /* A registry dependency a package.json declares, named by pkg_name; entry_rel is NULL. */
+    bool npm_dependency;
 } cbm_pkg_entry_t;
 
 /* Growable array of package entries (per-worker, no thread contention). */
@@ -414,6 +418,16 @@ typedef struct {
 
 void cbm_pkg_entries_init(cbm_pkg_entries_t *e);
 void cbm_pkg_entries_free(cbm_pkg_entries_t *e);
+
+/* A file's declared namespace/package clause, as persisted on its File node
+ * (`package` property) by the previous index generation. */
+typedef struct {
+    char *rel_path;       /* heap */
+    char *namespace_name; /* heap, raw (un-normalized) clause */
+} cbm_file_namespace_t;
+
+/* Scala top-level index (pass_pkgmap.c); see cbm_pipeline_import_maps_build. */
+typedef struct cbm_scala_index cbm_scala_index_t;
 
 /* The env join's inputs held by the unchanged files of an incremental
  * repair (pass_envjoin.c), read from the store before the K8s pass; ids are
@@ -461,6 +475,10 @@ typedef struct cbm_tf_release {
 typedef struct {
     const char *project_name; /* borrowed from pipeline */
     const char *repo_path;    /* borrowed from pipeline */
+    /* The rel_path of every file of the run's whole discovery (keys borrowed
+     * from its file list), also when a pass is handed only some of them: the
+     * files a C-family #include may resolve to (#2993). NULL: none resolves. */
+    const CBMHashTable *indexed_files;
     /* An incremental run: the unchanged files whose earlier run declared
      * image builds (docker build ...), read again by the shell pass, as
      * those edges are recomputed whole. Borrowed; NULL in a full run. */
@@ -500,6 +518,16 @@ typedef struct {
     /* Directory subtrees excluded during discovery. Borrowed from pipeline.c. */
     char **excluded_dirs;
     int excluded_count;
+
+    /* Package clauses of the files this run does NOT re-extract, read back
+     * from their File nodes by the incremental routes. The import maps
+     * (namespace map, Scala index) are built from the files handed to a pass,
+     * and an incremental pass receives only the changed files; without these
+     * the maps would know only the changed files' packages and an import into
+     * an unchanged package would resolve differently than in a full build.
+     * NULL/0 on a full build. Owned by pipeline_incremental.c. */
+    const cbm_file_namespace_t *stored_namespaces;
+    int stored_namespace_count;
 
     /* Stem collisions of the discovered files: which Module definitions take
      * `qn#ext`. Borrowed for the extraction phase; NULL elsewhere. */
@@ -568,7 +596,19 @@ typedef struct {
     cbm_tf_release_t *tf_releases;
     int tf_release_n;
     int tf_release_cap;
+
+    /* The path rule's universe (include_path.h): built from the run's indexed
+     * files with the context, read-only afterwards, freed with it. NULL: no
+     * import is read by the path rule (main's strategies decide). */
+    struct cbm_include_universe *include_universe;
 } cbm_pipeline_ctx_t;
+
+/* The set for cbm_pipeline_ctx_t.indexed_files: every rel_path of `files`
+ * (keys borrowed; free with cbm_ht_free). NULL on allocation failure. */
+CBMHashTable *cbm_pipeline_indexed_files_new(const cbm_file_info_t *files, int file_count);
+/* The #include scope of a pass's C-family extraction: the run's repository
+ * root and its indexed files. */
+CBMIncludeScope cbm_pipeline_include_scope(const cbm_pipeline_ctx_t *ctx);
 
 /* Origin-aware LSP returns only success/failure. Never retain partial output
  * when its configured owner proof cannot be applied to current source. */
@@ -923,19 +963,48 @@ void cbm_pipeline_emit_spawn(cbm_gbuf_t *gbuf, const cbm_gbuf_node_t *source, co
  *   1. Module-path resolution (relative / pkgmap / fqn_module) → existing node.
  *      This preserves the behavior for Python/TS/Go whose module path maps
  *      directly to a sibling Module/File QN.
- *   2. namespace_map[module_path-prefix] → File node QN (Java/Kotlin/C#/PHP
+ *   2. namespace_map[module_path-prefix] → File/symbol node QN (Java/Kotlin/Scala/C#/PHP
  *      `using`/`import` of a NAMESPACE that the path-based QN cannot express).
  *   3. Symbol-name fallback: the import's last path segment matched against an
  *      in-graph definition node of the same simple name in a different file
  *      (Rust `use crate::util::helper`, Java `import com.example.Util`, ...).
  *
- * `namespace_map` may be NULL (skips step 2).  `source_file_qn` is the importing
- * file's __file__ QN, used to avoid self-imports in step 3. */
+ * `namespace_map` may be NULL (skips step 2).  `scala_index` is the Scala
+ * top-level index from cbm_pipeline_import_maps_build (NULL when no Scala
+ * file is among the importers).  `source_file_qn` is the importing file's
+ * __file__ QN, used to avoid self-imports in step 3. */
 const cbm_gbuf_node_t *cbm_pipeline_resolve_import_node(const cbm_pipeline_ctx_t *ctx,
                                                         const char *source_rel,
                                                         const char *source_file_qn,
-                                                        const CBMImport *imp,
-                                                        CBMHashTable *namespace_map);
+                                                        CBMLanguage language, const CBMImport *imp,
+                                                        CBMHashTable *namespace_map,
+                                                        const cbm_scala_index_t *scala_index);
+
+/* The import-resolution maps of one definitions/registry pass, built after
+ * all definition nodes are in the graph buffer:
+ *
+ *   namespace_map: namespace → '\n'-separated File-node QNs of every file
+ *     declaring it (e.g. "App.Utils", "com.example"), for C# `using`, Java/
+ *     Kotlin `import`, PHP `use`. NULL when no file declares a namespace.
+ *   scala_index: "<package>.<Name>" → the node declaring a top-level `Name`
+ *     in a file whose package clause is `<package>`, plus the package's
+ *     wildcard target, so the Scala resolver does every step in O(1). A name
+ *     declared at top level by two files of a split package is recorded as
+ *     ambiguous and never binds. NULL unless a Scala file is among `files`
+ *     (only the Scala resolver reads it).
+ *
+ * `namespaces[i]` is the clause of files[i] or NULL — a caller that spilled
+ * results must still supply it (cbm_result_spill_namespace): a file missing
+ * from the map does not fail to resolve, it resolves through the looser
+ * fallback, so an incomplete map CHANGES the graph instead of shrinking it.
+ * ctx->stored_namespaces complete the maps on an incremental run. Each
+ * declaring file's clause is also recorded as the `package` property of its
+ * File node, which is where a later incremental run reads it from. Frees via
+ * cbm_pipeline_import_maps_free. */
+void cbm_pipeline_import_maps_build(const cbm_pipeline_ctx_t *ctx, const cbm_file_info_t *files,
+                                    int file_count, const char *const *namespaces,
+                                    CBMHashTable **namespace_map, cbm_scala_index_t **scala_index);
+void cbm_pipeline_import_maps_free(CBMHashTable *namespace_map, cbm_scala_index_t *scala_index);
 
 /* PHP binding arrays borrow current result and graph strings. Free before
  * releasing/reloading the result; never cache this state across files. */
@@ -1651,6 +1720,11 @@ bool cbm_pipeline_incremental_generation_exact(cbm_pipeline_t *p, cbm_store_t *s
 #define CBM_SEMANTIC_INPUT_GIT_CONTEXT CBM_SEMANTIC_INPUT_PREFIX "git-context-v1"
 #define CBM_SEMANTIC_INPUT_GLOBAL_CONFIG CBM_SEMANTIC_INPUT_PREFIX "global-extension-config-v1"
 #define CBM_SEMANTIC_INPUT_PROJECT_CONFIG CBM_SEMANTIC_INPUT_PREFIX "project-extension-config-v1"
+/* The path rule's inventory (include_path.h): the indexed files named like
+ * what a path row's import names; present only when a file of a path-row
+ * language is discovered. A changed set of such names, anywhere, routes the
+ * run to a full index. */
+#define CBM_SEMANTIC_INPUT_INCLUDE_LISTING CBM_SEMANTIC_INPUT_PREFIX "include-listing-v1"
 
 int cbm_pipeline_build_semantic_manifest(const cbm_pipeline_t *p, const char *project,
                                          const char *repo_path, const cbm_file_info_t *files,
@@ -2001,6 +2075,67 @@ void cbm_pp_bp_nap_cycles_reset(void);
  * coverage; deterministic and independent of wall-clock timing. */
 uint64_t cbm_pp_lsp_linear_fallback_rows(void);
 void cbm_pp_lsp_linear_fallback_rows_reset(void);
+/* Index lookups made by cbm_pipeline_lsp_index_find since the last reset of
+ * the counter above (the same reset clears both). */
+uint64_t cbm_pp_lsp_index_lookups(void);
+/* Rows read by a per-call scan of a file's engine rows since that reset,
+ * counted inside the scan itself (lsp_resolve.h), whoever called it. */
+uint64_t cbm_pp_lsp_scan_rows(void);
+
+/* One file's engine rows (CBMResolvedCall invocations) by caller, leaf and
+ * span, built and searched by the same code on both resolvers
+ * (pass_parallel.c). cbm_pipeline_lsp_index_find returns what the matcher
+ * cbm_pipeline_find_lsp_resolution_in_graph returns, scanning only where the
+ * index may not hold the answer. */
+typedef struct {
+    uint32_t start;
+    uint32_t end;
+    uint32_t origin;
+    int row; /* position in the file's row array */
+} cbm_pipeline_lsp_site_row_t;
+
+typedef struct {
+    CBMHashTable *exact;  /* caller|leaf|start:end|origin */
+    CBMHashTable *legacy; /* caller|leaf|origin, rows without a span */
+    bool exact_complete;
+    bool legacy_complete;
+    /* Every row with a span, sorted by span, origin and array position: the
+     * rows at one occurrence are neighbours, in array order. Only such a row
+     * ranks for a call that needs the engine, so that call is answered from
+     * these alone; the JVM tail phase reads them for its exact rows. */
+    cbm_pipeline_lsp_site_row_t *site_rows;
+    int site_count;
+    bool site_complete;
+    /* JVM callers only: the rows without a span by the Class.method tail of
+     * their caller (tail|leaf|origin), for the tail phase. Built only when
+     * the index was built for tail matching (tail_indexed). */
+    CBMHashTable *tail_legacy;
+    bool tail_legacy_complete;
+    bool tail_indexed;
+    /* PHP's unindexed-receiver rows (cbm_pipeline_php_unindexed_row), which
+     * lie below the confidence floor and so in neither table above: the first
+     * row of each key in array order. */
+    CBMHashTable *php_exact;  /* caller|leaf|start:end|origin */
+    CBMHashTable *php_legacy; /* caller|leaf|origin, rows without a span */
+    int php_rows;             /* such rows in the file */
+    bool php_complete;
+} cbm_pipeline_lsp_index_t;
+
+void cbm_pipeline_lsp_index_build(cbm_pipeline_lsp_index_t *idx, const CBMResolvedCallArray *arr,
+                                  const cbm_gbuf_t *gbuf, const char *project_name,
+                                  bool allow_tail);
+const CBMResolvedCall *cbm_pipeline_lsp_index_find(const cbm_pipeline_lsp_index_t *idx,
+                                                   const CBMResolvedCallArray *arr,
+                                                   const CBMCall *call, bool allow_tail,
+                                                   const cbm_gbuf_t *gbuf,
+                                                   const char *project_name);
+/* cbm_pipeline_php_receiver_type_unindexed's answer, from the index where the
+ * index holds it and from that scan where it may not. */
+bool cbm_pipeline_lsp_index_php_receiver_unindexed(const cbm_pipeline_lsp_index_t *idx,
+                                                   const CBMResolvedCallArray *arr,
+                                                   const CBMCall *call,
+                                                   const cbm_registry_t *registry);
+void cbm_pipeline_lsp_index_free(cbm_pipeline_lsp_index_t *idx);
 
 #if defined(CBM_COVERAGE_MARKER_TEST_API) && CBM_COVERAGE_MARKER_TEST_API
 /* Test-only view of the Studio Export range join, so the ",+<N>" truncation
@@ -2045,6 +2180,16 @@ void cbm_pipeline_incremental_test_after_stage_created_once(cbm_pipeline_test_ho
                                                             void *userdata);
 cbm_incremental_route_t cbm_pipeline_incremental_test_last_route(void);
 void cbm_pipeline_incremental_test_reset_faults(void);
+/* The last closure plan: an accepted plan's re-parse set size, surface-changed
+ * files and dependents (decline NULL), or a declined plan's reason (counters
+ * -1). All -1 / NULL after a reset and when no plan ran. */
+typedef struct {
+    int files;
+    int surface_changed;
+    int dependents;
+    const char *decline;
+} cbm_incremental_closure_plan_t;
+cbm_incremental_closure_plan_t cbm_pipeline_incremental_test_last_closure_plan(void);
 
 /* Shared persistence-hook plumbing. Tests use the incremental facade above so
  * one reset covers route, extraction, and publication faults. */

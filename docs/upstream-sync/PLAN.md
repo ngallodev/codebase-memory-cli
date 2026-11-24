@@ -2,14 +2,22 @@
 
 ## Live continuation — 2026-11-02
 
-13A–13L are historical checkpoints. The 2026-11-08 stacked continuation integrates
-13M-1, 13M-2, and 13N, ending at `98eab3ceb0666aee5521745414f5199acacba315`;
-the pinned upstream main `612eee2518ef84cc573e491fdee5fa5c90264cb5` is an ancestor
-with zero upstream-only commits. See [13m1.md](13m1.md), [13m2.md](13m2.md),
-[13n.md](13n.md), and [ledger.json](ledger.json). Jenkins full gate passed for exact heads
-`c3c5271ab` (#90, merged as PR #33), `0f1927fd3` (#93), and `98eab3ceb` (#94); native Windows was not run.
-Independent review and host acceptance remain open. Older campaign inventory and
-PR bases below are historical and do not override the continuation run contract.
+13A–13L are historical checkpoints. The 2026-11-08 stacked continuation (13M-1, 13M-2, 13N)
+is merged to main: PR #33, PR #34 (`89e57fa71`), and PR #35 (`420959524`), with Jenkins
+#97 (`f2b0dae54`) and #98 (`2dc699f79`) SUCCESS for the last two. Main at `420959524`
+contained upstream through `612eee2518ef84cc573e491fdee5fa5c90264cb5`.
+
+The 2026-11-23 continuation adds two stacked local branches. 14A
+(`sync/upstream-14a-20261123`, head `984d34dd2`) merges upstream `b62a2ffaf` (PRs #2205..#2977)
+and ports #3016 and #2978; index format 4 -> 5. 14B (`sync/upstream-14b-20261123`, head
+`76ec0f51b`) merges upstream main `9a4da7a31` (PRs #2969..#3052) and ports #2809; index format
+5 -> 7 (schema migration; existing indexes rebuild). `git rev-list --count HEAD..upstream/main`
+is 0 at 14B. See [14a.md](14a.md), [14b.md](14b.md), and [ledger.json](ledger.json).
+Jenkins release-tooling for 14A: #99 aborted (mistaken trigger on a stale head), #100 failed at the
+language-count contract (fixed in `984d34dd2`), #101 SUCCESS on `984d34dd2`. 14B Jenkins is pending (#102 was aborted to record #101 here). Native
+Windows, macOS, FreeBSD, and the TSan image probe were not run. Independent review and host
+acceptance remain open. Older campaign inventory and PR bases below are historical and do not
+override the continuation run contract.
 
 This campaign supplements the [canonical integration ledger](../UPSTREAM_308_CANDIDATE_AUDIT_20260912.md); it does not supersede older unresolved semantic dispositions. Machine status and per-checkpoint acceptance live in [ledger.json](ledger.json). [commits.tsv](commits.tsv) enumerates all 933 reachable campaign commits once, including 578 merges and 355 non-merges. Subsystem tags derive from changed paths; they are triage, not proof of implementation.
 

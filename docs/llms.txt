@@ -1,12 +1,12 @@
 # codebase-memory-cli
 
-> Codebase Memory is an open-source local code-intelligence CLI for coding agents and humans. It indexes a repository into a persistent structural knowledge graph, then exposes deterministic commands for search, source snippets, call tracing, coverage checks, architecture/query operations, change detection, ADRs, and cross-repository intelligence. It parses 163 languages through vendored tree-sitter grammars, with Hybrid LSP semantic type resolution for selected language families. All indexing and querying are local; the native runtime requires no hosted service or API key.
+> Codebase Memory is an open-source local code-intelligence CLI for coding agents and humans. It indexes a repository into a persistent structural knowledge graph, then exposes deterministic commands for search, source snippets, call tracing, coverage checks, architecture/query operations, change detection, ADRs, and cross-repository intelligence. It parses 164 languages through vendored tree-sitter grammars, with Hybrid LSP semantic type resolution for selected language families. All indexing and querying are local; the native runtime requires no hosted service or API key.
 
 ## Key facts
 
 - Product executable: `codebase-memory-cli`. Running it with no command shows CLI help; there is no supported MCP stdio server entry point.
 - License: MIT, open source.
-- Languages: 163 vendored tree-sitter grammars.
+- Languages: 164 vendored tree-sitter grammars.
 - Hybrid LSP type resolution: Python, TypeScript/JavaScript/JSX/TSX, PHP, C#, Go, C/C++, Java, Kotlin, and Rust.
 - Core workflow: `projects` / `status` → `search` → `snippet` → `trace` → `coverage`.
 - Machine output: canonical commands support deterministic `--json` output and non-zero exit status on operational failure.
