@@ -975,8 +975,9 @@ typedef struct {
     _Atomic bool failed;
 } surface_job_t;
 
-/* Row strings are released with cbm_store_free_lsp_surfaces (free), so they
- * come from the C heap: one place allocates them. */
+/* Row strings other than included_files are released with
+ * cbm_store_free_lsp_surfaces (free), so they come from the C heap: one place
+ * allocates them. */
 static char *surface_row_alloc(size_t n) {
     return malloc(n);
 }
@@ -990,13 +991,16 @@ static char *surface_row_strdup(const char *s) {
     return copy;
 }
 
-/* CBMFileResult.included_files, one file per line ("" when none). */
+/* CBMFileResult.included_files, one file per line ("" when none). Unlike the
+ * other row strings this one is a memory-core STORE block: the store's own
+ * reader allocates it that way and cbm_store_free_lsp_surfaces releases it
+ * with cbm_free(CBM_MEM_CLASS_STORE), so both producers must match. */
 static char *surface_row_included_files(const CBMFileResult *fr) {
     size_t len = 0;
     for (const char *const *f = fr->included_files; f && *f; f++) {
         len += strlen(*f) + 1;
     }
-    char *out = surface_row_alloc(len + 1);
+    char *out = cbm_alloc(CBM_MEM_CLASS_STORE, len + 1);
     if (!out) {
         return NULL;
     }
@@ -1054,7 +1058,7 @@ static void surface_row_build(int i, void *arg) {
     cbm_pipeline_result_release(fr, loaded);
     if (!json || !included) {
         free(json);
-        free(included);
+        cbm_free(CBM_MEM_CLASS_STORE, included);
         atomic_store_explicit(&job->failed, true, memory_order_relaxed);
         return;
     }
