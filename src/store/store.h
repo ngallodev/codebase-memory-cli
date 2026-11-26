@@ -468,7 +468,7 @@ cbm_integrity_verdict_t cbm_store_check_integrity_verdict(cbm_store_t *s);
  * cache directory (the UI activity log) do not and are not stores. */
 typedef enum {
     CBM_STORE_SCHEMA_PROJECT = 0,    /* has a `projects` table */
-    CBM_STORE_SCHEMA_FOREIGN = 1,    /* readable SQLite, no `projects` table */
+    CBM_STORE_SCHEMA_FOREIGN = 1,    /* readable SQLite with tables, none `projects` */
     CBM_STORE_SCHEMA_TRANSIENT = 2,  /* sqlite_master read hit BUSY/LOCKED */
     CBM_STORE_SCHEMA_UNREADABLE = 3, /* sqlite_master read failed hard */
 } cbm_store_schema_kind_t;

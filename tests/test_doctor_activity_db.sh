@@ -81,4 +81,11 @@ check "garbage broken.db" "${out}" "corrupt 2 1 1" || exit 1
 if "${BINARY}" doctor --deep --json >/dev/null 2>&1; then
   fail "doctor --deep must exit non-zero with a corrupt store"
 fi
+
+# A store truncated to zero bytes is an empty SQLite file with no tables. It
+# must stay a store failure, not be skipped as another application's database.
+rm -f "${cache}/broken.db"
+: >"${cache}/truncated.db"
+out="$("${BINARY}" doctor --deep --json || true)"
+check "zero-byte truncated.db" "${out}" "corrupt 2 1 1" || exit 1
 echo "doctor activity.db regression passed"
