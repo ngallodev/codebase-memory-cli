@@ -72,3 +72,12 @@ The directory must contain `codebase-memory-cli-windows-<arch>.zip` and
   and setup steps are unverified until a first dispatch completes.
 - If the runner does not have Inno Setup 6, the workflow installs it with
   Chocolatey. The script needs Inno Setup 6.3 or later (`x64compatible`).
+
+## Troubleshooting: permission refusal
+
+If setup fails with `acl-grants-cross-account-mutation` or `secure CLI coordination
+could not be created`, another account has write access to a profile folder
+(often an agent sandbox). The check is intentional. Set `CBM_CACHE_DIR` and
+`CBM_RUNTIME_DIR` to owner-private directories; see "Windows: permission refusal"
+in [CONFIGURATION.md](CONFIGURATION.md). `setup.exe` and `install.ps1` honor
+both variables when they are set before you run them.

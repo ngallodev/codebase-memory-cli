@@ -59,6 +59,16 @@ const char *cbm_daemon_ipc_validation_detail(void) {
     return ipc_validation_detail_buffer;
 }
 
+#ifndef _WIN32
+bool cbm_daemon_ipc_sid_account_name(const void *sid, char *out, size_t capacity) {
+    (void)sid;
+    if (out && capacity > 0) {
+        out[0] = '\0';
+    }
+    return false;
+}
+#endif
+
 /* #1717: a cache root on a network filesystem (a shared HPC home, an NFS or
  * SMB mount) is ACCEPTED -- this is advice, never a refusal. SQLite's WAL mode
  * relies on shared-memory locking that network filesystems do not provide
@@ -5052,6 +5062,41 @@ static DWORD win_private_mutation_rights(void) {
            DELETE | WRITE_DAC | WRITE_OWNER | ACCESS_SYSTEM_SECURITY;
 }
 
+/* Resolve a SID to "DOMAIN\\name" for refusal diagnostics only. Called solely
+ * on the refusal path; any failure (orphaned SID, lookup unavailable) yields
+ * false with an empty string and the caller omits the name. */
+bool cbm_daemon_ipc_sid_account_name(const void *sid, char *out, size_t capacity) {
+    if (!out || capacity == 0) {
+        return false;
+    }
+    out[0] = '\0';
+    if (!sid || !IsValidSid((PSID)sid)) {
+        return false;
+    }
+    wchar_t name[256];
+    wchar_t domain[256];
+    DWORD name_len = (DWORD)(sizeof(name) / sizeof(name[0]));
+    DWORD domain_len = (DWORD)(sizeof(domain) / sizeof(domain[0]));
+    SID_NAME_USE use = SidTypeUnknown;
+    if (!LookupAccountSidW(NULL, (PSID)sid, name, &name_len, domain, &domain_len, &use)) {
+        return false;
+    }
+    wchar_t full[520];
+    if (domain[0] != L'\0') {
+        (void)_snwprintf(full, sizeof(full) / sizeof(full[0]), L"%ls\\%ls", domain, name);
+    } else {
+        (void)_snwprintf(full, sizeof(full) / sizeof(full[0]), L"%ls", name);
+    }
+    full[(sizeof(full) / sizeof(full[0])) - 1U] = L'\0';
+    int written = WideCharToMultiByte(CP_UTF8, 0, full, -1, out, (int)capacity, NULL, NULL);
+    if (written <= 0) {
+        out[0] = '\0';
+        return false;
+    }
+    out[capacity - 1U] = '\0';
+    return true;
+}
+
 static bool win_file_acl_secure(win_security_t *security, HANDLE file, DWORD mutation,
                                 bool ancestor) {
     PACL dacl = NULL;
@@ -5115,9 +5160,16 @@ static bool win_file_acl_secure(win_security_t *security, HANDLE file, DWORD mut
                                           NULL, NULL);
                 LocalFree(sid_text);
             }
+            char account[320];
+            char account_suffix[336] = "";
+            if (cbm_daemon_ipc_sid_account_name((PSID)sid, account, sizeof(account)) &&
+                account[0]) {
+                (void)snprintf(account_suffix, sizeof(account_suffix), " = %s", account);
+            }
             ipc_validation_detail_set(
-                "DACL entry %lu grants mutation rights 0x%08lx to untrusted identity (%s %s)",
-                (unsigned long)index, (unsigned long)(ace->Mask & mutation), sid_class, sid_utf8);
+                "DACL entry %lu grants mutation rights 0x%08lx to untrusted identity (%s %s%s)",
+                (unsigned long)index, (unsigned long)(ace->Mask & mutation), sid_class, sid_utf8,
+                account_suffix);
             secure = false;
         }
     }

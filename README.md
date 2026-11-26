@@ -282,7 +282,7 @@ Important environment variables include:
 |---|---|
 | `CBM_CACHE_DIR` | Override the local cache/index root. |
 | `CBM_ALLOWED_ROOT` | Constrain permissible indexing roots. |
-| `CBM_RUNTIME_DIR` | Override the secure local coordination rendezvous parent. |
+| `CBM_RUNTIME_DIR` | Override the secure local coordination rendezvous parent; the fix when the default coordination directory fails the permission check. |
 | `CBM_WORKERS` | Override indexing worker count. |
 | `CBM_LOG_LEVEL` | Control runtime logging. One-shot CLI and hook commands default to `warn`; the detached daemon and supervised index workers default to `info`. |
 

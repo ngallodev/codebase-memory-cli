@@ -310,7 +310,11 @@ static void cli_activation_diagnostic(const cbm_cli_activation_ops_t *ops, const
                        "trust, remove the flagged permission grant (icacls <dir> /remove:g <sid>; "
                        "an INHERITED grant needs icacls <dir> /inheritance:r /grant:r "
                        "\"%%USERNAME%%\":(OI)(CI)F instead, because /remove:g cannot delete one) "
-                       "or use an owner-private directory for --dir/CBM_CACHE_DIR, then retry.",
+                       "or use an owner-private directory for --dir/CBM_CACHE_DIR (the cache "
+                       "and install side), then retry. CBM_CACHE_DIR does not move the "
+                       "coordination directory (default %%LOCALAPPDATA%% on Windows); that is "
+                       "moved with CBM_RUNTIME_DIR. Both must point at owner-private "
+                       "directories.",
                        note);
         diagnostic = attributed;
     } else if (diagnostic == CLI_ACTIVATION_REFUSED_MESSAGE) {

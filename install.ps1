@@ -480,6 +480,7 @@ try {
     & $DownloadedBinary @InstallArgs
     if ($LASTEXITCODE -ne 0) {
         Write-Host "error: installation failed (exit code $LASTEXITCODE)" -ForegroundColor Red
+        Write-Host "hint: if the error is a permission refusal, set CBM_CACHE_DIR and CBM_RUNTIME_DIR to owner-private directories and re-run (docs/CONFIGURATION.md, 'Windows: permission refusal')." -ForegroundColor Yellow
         Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
         exit 1
     }

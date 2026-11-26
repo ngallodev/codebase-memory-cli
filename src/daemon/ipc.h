@@ -105,6 +105,10 @@ bool cbm_daemon_ipc_private_directory_secure(const char *directory_path);
  * append it to their error messages; policy decisions never read it. */
 const char *cbm_daemon_ipc_validation_detail(void);
 
+/* Diagnostics only: resolve a Windows SID (PSID) to "DOMAIN\\name" in UTF-8.
+ * Returns false and leaves out empty on any failure and on non-Windows hosts. */
+bool cbm_daemon_ipc_sid_account_name(const void *sid, char *out, size_t capacity);
+
 /* #1717: advice, never a refusal. When cache_root lives on a network
  * filesystem (Linux statfs: NFS, CIFS, SMB2, Lustre, GPFS), log one
  * `daemon.cache_root_network_fs` warning per process pointing at local
