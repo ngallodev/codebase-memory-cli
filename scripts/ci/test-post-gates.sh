@@ -35,6 +35,9 @@ CBM_TEST_BINARY="$WATCHDOG_BINARY" bash "$ROOT/tests/test_worker_error_response.
 echo "=== Step 5e: watcher_enabled kill-switch regression (#335) ==="
 CBM_TEST_BINARY="$WATCHDOG_BINARY" bash "$ROOT/tests/test_watcher_disabled.sh"
 
+echo "=== Step 5f: doctor ignores non-project databases in the cache ==="
+CBM_TEST_BINARY="$WATCHDOG_BINARY" bash "$ROOT/tests/test_doctor_activity_db.sh"
+
 echo "=== Step 6: security-strings allow-list regression ==="
 bash "$ROOT/tests/test_security_strings_allowlist.sh"
 bash "$ROOT/tests/test_destructive_ordering_contract.sh"

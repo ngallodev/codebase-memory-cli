@@ -463,6 +463,20 @@ typedef enum {
  * O(db size); use only on the recovery/quarantine path, not hot opens. */
 cbm_integrity_verdict_t cbm_store_check_integrity_verdict(cbm_store_t *s);
 
+/* What a readable SQLite file in the cache directory is. A project graph store
+ * always has a `projects` table; other application databases that share the
+ * cache directory (the UI activity log) do not and are not stores. */
+typedef enum {
+    CBM_STORE_SCHEMA_PROJECT = 0,    /* has a `projects` table */
+    CBM_STORE_SCHEMA_FOREIGN = 1,    /* readable SQLite, no `projects` table */
+    CBM_STORE_SCHEMA_TRANSIENT = 2,  /* sqlite_master read hit BUSY/LOCKED */
+    CBM_STORE_SCHEMA_UNREADABLE = 3, /* sqlite_master read failed hard */
+} cbm_store_schema_kind_t;
+
+/* Classify an open store by its schema. A hard read error is UNREADABLE, never
+ * FOREIGN, so a damaged file is not mistaken for another application's DB. */
+cbm_store_schema_kind_t cbm_store_schema_kind(cbm_store_t *s);
+
 /* Open database for a named project in the default cache dir. */
 cbm_store_t *cbm_store_open(const char *project);
 

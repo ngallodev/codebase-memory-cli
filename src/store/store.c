@@ -1365,6 +1365,28 @@ static bool st_rc_is_transient(int rc) {
     }
 }
 
+cbm_store_schema_kind_t cbm_store_schema_kind(cbm_store_t *s) {
+    if (!s || !s->db) {
+        return CBM_STORE_SCHEMA_UNREADABLE;
+    }
+    sqlite3_stmt *stmt = NULL;
+    int rc = sqlite3_prepare_v2(
+        s->db, "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'projects' LIMIT 1;",
+        CBM_NOT_FOUND, &stmt, NULL);
+    if (rc != SQLITE_OK) {
+        return st_rc_is_transient(rc) ? CBM_STORE_SCHEMA_TRANSIENT : CBM_STORE_SCHEMA_UNREADABLE;
+    }
+    int step_rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    if (step_rc == SQLITE_ROW) {
+        return CBM_STORE_SCHEMA_PROJECT;
+    }
+    if (step_rc == SQLITE_DONE) {
+        return CBM_STORE_SCHEMA_FOREIGN;
+    }
+    return st_rc_is_transient(step_rc) ? CBM_STORE_SCHEMA_TRANSIENT : CBM_STORE_SCHEMA_UNREADABLE;
+}
+
 cbm_integrity_verdict_t cbm_store_check_integrity_verdict(cbm_store_t *s) {
     if (!s || !s->db) {
         /* No handle at all — the caller could not even open the file. That is
