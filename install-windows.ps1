@@ -185,6 +185,7 @@ function New-PrivateDirectory([string]$Path) {
     $acl = New-Object System.Security.AccessControl.DirectorySecurity
     # Protected: drop inherited entries so only the current user remains.
     $acl.SetAccessRuleProtection($true, $false)
+    $acl.SetOwner($sid)
     $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
         $sid,
         [System.Security.AccessControl.FileSystemRights]::FullControl,
@@ -193,6 +194,26 @@ function New-PrivateDirectory([string]$Path) {
         [System.Security.AccessControl.AccessControlType]::Allow)
     $acl.AddAccessRule($rule)
     Set-Acl -LiteralPath $Path -AclObject $acl
+}
+
+# The binary validates the directory it is installed FROM and refuses an
+# inherited write grant to another account there (for example CREATOR OWNER
+# or an agent-sandbox group on the extracted folder). Stage the executable in
+# a fresh owner-private directory under %TEMP%, as install.ps1 does, and
+# install from that copy.
+function New-StagingDirectory {
+    $parent = [System.IO.Path]::GetTempPath()
+    for ($attempt = 0; $attempt -lt 32; $attempt++) {
+        $candidate = Join-Path $parent ('cbm-install-' + [guid]::NewGuid().ToString('N'))
+        try {
+            New-Item -ItemType Directory -Path $candidate -ErrorAction Stop | Out-Null
+        } catch [System.IO.IOException] {
+            continue  # never adopt a path another process created
+        }
+        New-PrivateDirectory $candidate
+        return $candidate
+    }
+    throw 'could not create a private staging directory under %TEMP%'
 }
 
 # The uninstaller written next to the installed binary. Single-quoted here-string:
@@ -311,6 +332,7 @@ if (-not $Quiet) { Start-Sleep -Seconds 3 }
 exit 0
 '@
 
+$StagingDir = $null
 try {
     # ---- 1. Preflight ------------------------------------------------------
     $SourceDir = $PSScriptRoot
@@ -514,9 +536,15 @@ try {
 
     # ---- 4. Install -------------------------------------------------------
     Write-Step "Installing to $InstallDir..."
+    if ((Get-Item -LiteralPath $SourceExe).Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+        throw "refusing to install a reparse-point executable: $SourceExe"
+    }
+    $StagingDir = New-StagingDirectory
+    $StagedExe = Join-Path $StagingDir $BinName
+    Copy-Item -LiteralPath $SourceExe -Destination $StagedExe -ErrorAction Stop
     $installArgs = @('install', '-y', '--force', "--dir=$InstallDir")
     if ($SkipConfig) { $installArgs += '--skip-config' }
-    $code = Invoke-Native $SourceExe $installArgs
+    $code = Invoke-Native $StagedExe $installArgs
     if ($code -ne 0) {
         Write-Host "error: installation failed (exit code $code)" -ForegroundColor Red
         Write-Host "hint: if the error is a permission refusal, set CBM_CACHE_DIR and CBM_RUNTIME_DIR to owner-private directories and re-run (docs/CONFIGURATION.md, 'Windows: permission refusal'). -CacheDir and -RuntimeDir on this script create and set them." -ForegroundColor Yellow
@@ -589,4 +617,8 @@ try {
 } catch {
     Write-Host "error: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
+} finally {
+    if ($StagingDir -and (Test-Path -LiteralPath $StagingDir)) {
+        Remove-Item -LiteralPath $StagingDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
