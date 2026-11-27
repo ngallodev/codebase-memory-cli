@@ -296,7 +296,10 @@ static void cli_activation_diagnostic(const cbm_cli_activation_ops_t *ops, const
      * every process, and hunted phantom handles because the message pointed at
      * sessions that did not exist. The sessions wording remains for genuine
      * stop/reservation failures, which record no refusal note. */
-    char attributed[CBM_SZ_1K];
+    /* Sized for the longest refusal note (CBM_SZ_1K, see
+     * activation_transaction.c) plus the fixed remedy text, so the remedy,
+     * including CBM_RUNTIME_DIR, is never truncated away. */
+    char attributed[CBM_SZ_2K];
     const char *note = cbm_activation_transaction_refusal_note();
     /* A recorded refusal is more specific than EITHER generic message, so it
      * wins over both the busy and the reservation-failure wording. */
@@ -310,7 +313,11 @@ static void cli_activation_diagnostic(const cbm_cli_activation_ops_t *ops, const
                        "trust, remove the flagged permission grant (icacls <dir> /remove:g <sid>; "
                        "an INHERITED grant needs icacls <dir> /inheritance:r /grant:r "
                        "\"%%USERNAME%%\":(OI)(CI)F instead, because /remove:g cannot delete one) "
-                       "or use an owner-private directory for --dir/CBM_CACHE_DIR, then retry.",
+                       "or use an owner-private directory for --dir/CBM_CACHE_DIR (the cache "
+                       "and install side), then retry. CBM_CACHE_DIR does not move the "
+                       "coordination directory (default %%LOCALAPPDATA%% on Windows); that is "
+                       "moved with CBM_RUNTIME_DIR. Both must point at owner-private "
+                       "directories.",
                        note);
         diagnostic = attributed;
     } else if (diagnostic == CLI_ACTIVATION_REFUSED_MESSAGE) {

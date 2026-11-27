@@ -240,6 +240,31 @@ same validation as the default, and a value that fails it is refused rather than
 silently ignored. Because the rendezvous is how sessions find each other, every
 process that should share one daemon must see the same value — set it consistently for any shells or agent processes that should share the same retained runtime coordination.
 
+### Windows: permission refusal
+
+Symptoms: activation or install is refused for `%USERPROFILE%\.cache` with
+`acl-grants-cross-account-mutation to <SID> (= DOMAIN\name)`, and/or commands fail
+at `%LOCALAPPDATA%` with `secure CLI coordination could not be created (endpoint)`
+or a `DACL entry ... grants mutation rights ... to untrusted identity` detail.
+
+Common cause: an agent sandbox or another tool has added an ACE granting write
+access to another account on profile folders such as `.cache` or `AppData`. The
+refusal is intentional. The check does not trust write grants to other accounts,
+and it is not relaxed.
+
+Fix: point both directories at owner-private locations, as persistent user
+variables. `CBM_CACHE_DIR` moves only the cache; the coordination directory
+(default `%LOCALAPPDATA%`, taken from the shell folder, not the environment) moves
+only with `CBM_RUNTIME_DIR`.
+
+```powershell
+[Environment]::SetEnvironmentVariable('CBM_CACHE_DIR','C:\cbm\cache','User')
+[Environment]::SetEnvironmentVariable('CBM_RUNTIME_DIR','C:\cbm\runtime','User')
+```
+
+Open a new shell afterwards. Redirecting `USERPROFILE` or `HOME` is not needed and
+not recommended, since it also moves editor and agent config paths.
+
 **WSL2 and Windows drives (`/mnt/c`, `/mnt/e`, ...).** `CBM_CACHE_DIR` goes through
 the same private-directory check. With WSL's default automount options, DrvFs
 reports every directory as `0777` and ignores `chmod`, so a cache under

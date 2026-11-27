@@ -1365,6 +1365,38 @@ static bool st_rc_is_transient(int rc) {
     }
 }
 
+cbm_store_schema_kind_t cbm_store_schema_kind(cbm_store_t *s) {
+    if (!s || !s->db) {
+        return CBM_STORE_SCHEMA_UNREADABLE;
+    }
+    sqlite3_stmt *stmt = NULL;
+    int rc = sqlite3_prepare_v2(
+        s->db,
+        "SELECT count(*), coalesce(sum(name = 'projects'), 0) FROM sqlite_master "
+        "WHERE type = 'table';",
+        CBM_NOT_FOUND, &stmt, NULL);
+    if (rc != SQLITE_OK) {
+        return st_rc_is_transient(rc) ? CBM_STORE_SCHEMA_TRANSIENT : CBM_STORE_SCHEMA_UNREADABLE;
+    }
+    int step_rc = sqlite3_step(stmt);
+    if (step_rc != SQLITE_ROW) {
+        sqlite3_finalize(stmt);
+        return st_rc_is_transient(step_rc) ? CBM_STORE_SCHEMA_TRANSIENT
+                                           : CBM_STORE_SCHEMA_UNREADABLE;
+    }
+    sqlite3_int64 tables = sqlite3_column_int64(stmt, 0);
+    sqlite3_int64 projects = sqlite3_column_int64(stmt, 1);
+    sqlite3_finalize(stmt);
+    if (projects > 0) {
+        return CBM_STORE_SCHEMA_PROJECT;
+    }
+    /* No tables at all is a zero-byte or truncated file, not another
+     * application's database: a project store cut to zero bytes must keep
+     * being reported, so only a schema with tables but no `projects` table is
+     * FOREIGN. */
+    return tables > 0 ? CBM_STORE_SCHEMA_FOREIGN : CBM_STORE_SCHEMA_UNREADABLE;
+}
+
 cbm_integrity_verdict_t cbm_store_check_integrity_verdict(cbm_store_t *s) {
     if (!s || !s->db) {
         /* No handle at all — the caller could not even open the file. That is

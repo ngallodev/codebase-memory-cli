@@ -1613,6 +1613,17 @@ static uint64_t main_deadline_after(uint32_t timeout_ms) {
     return now_ms > UINT64_MAX - timeout_ms ? UINT64_MAX : now_ms + timeout_ms;
 }
 
+/* The coordination endpoint lives under the runtime parent, not the cache, so
+ * a refusal here is not fixed by moving CBM_CACHE_DIR. */
+static void main_print_runtime_dir_hint(void) {
+    (void)fprintf(stderr,
+                  "codebase-memory-cli: the coordination directory lives under the runtime "
+                  "parent (default %%LOCALAPPDATA%% on Windows, /tmp elsewhere), not the cache. "
+                  "If its permissions are not acceptable and cannot be changed, set "
+                  "CBM_RUNTIME_DIR to an owner-private directory (and CBM_CACHE_DIR for the "
+                  "cache); see docs/CONFIGURATION.md.\n");
+}
+
 static cbm_daemon_ipc_endpoint_t *main_daemon_endpoint_new(void) {
     const char *runtime_parent = NULL;
 #ifdef CBM_ENABLE_TEST_SEAMS
@@ -1638,6 +1649,7 @@ static bool main_doctor_db_name(const char *name) {
 
 typedef struct {
     size_t discovered;
+    size_t other; /* readable SQLite files that are not project stores */
     size_t readable;
     size_t unreadable;
     size_t healthy;
@@ -1656,18 +1668,48 @@ static main_doctor_store_summary_t main_doctor_scan_stores(const char *cache_dir
         if (!main_doctor_db_name(entry->name)) {
             continue;
         }
-        summary.discovered++;
         char path[MAIN_PATH_CAP];
         if (snprintf(path, sizeof(path), "%s/%s", cache_dir, entry->name) >= (int)sizeof(path)) {
+            summary.discovered++;
             summary.unreadable++;
             continue;
         }
         cbm_store_t *store = cbm_store_open_path_query(path);
         if (!store) {
+            summary.discovered++;
             summary.unreadable++;
             continue;
         }
+        /* The cache directory also holds other application databases (the UI
+         * activity log). Only a readable SQLite file without a projects table
+         * is skipped; a file whose schema cannot be read stays a store
+         * failure so real damage is never hidden. */
+        cbm_store_schema_kind_t kind = cbm_store_schema_kind(store);
+        if (kind == CBM_STORE_SCHEMA_FOREIGN) {
+            summary.other++;
+            cbm_store_close(store);
+            continue;
+        }
+        summary.discovered++;
         summary.readable++;
+        if (kind == CBM_STORE_SCHEMA_UNREADABLE) {
+            if (deep) {
+                summary.corrupt++;
+            } else {
+                summary.unreadable++;
+            }
+            cbm_store_close(store);
+            continue;
+        }
+        if (kind == CBM_STORE_SCHEMA_TRANSIENT) {
+            if (deep) {
+                summary.transient++;
+            } else {
+                summary.unreadable++;
+            }
+            cbm_store_close(store);
+            continue;
+        }
         cbm_project_t *projects = NULL;
         int project_count = 0;
         if (!deep) {
@@ -1703,13 +1745,13 @@ static int main_run_doctor(int argc, char **argv) {
         } else if (strcmp(argv[i], "--json") == 0 || strcmp(argv[i], "--format=json") == 0) {
             json = true;
         } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
-            printf("doctor — inspect Codebase Memory runtime health without repairing it\\n\\n");
-            printf("Usage:\\n  codebase-memory-cli doctor [--deep] [--json]\\n\\n");
-            printf("--deep performs an expensive integrity verdict for each project database.\\n");
-            printf("BUSY/LOCKED integrity outcomes are reported as transient, never corrupt.\\n");
+            printf("doctor — inspect Codebase Memory runtime health without repairing it\n\n");
+            printf("Usage:\n  codebase-memory-cli doctor [--deep] [--json]\n\n");
+            printf("--deep performs an expensive integrity verdict for each project database.\n");
+            printf("BUSY/LOCKED integrity outcomes are reported as transient, never corrupt.\n");
             return EXIT_SUCCESS;
         } else {
-            (void)fprintf(stderr, "error: unknown doctor option: %s\\n", argv[i]);
+            (void)fprintf(stderr, "error: unknown doctor option: %s\n", argv[i]);
             return EXIT_FAILURE;
         }
     }
@@ -1768,7 +1810,7 @@ static int main_run_doctor(int argc, char **argv) {
             !event_counts) {
             if (doc)
                 yyjson_mut_doc_free(doc);
-            (void)fprintf(stderr, "error: doctor result allocation failed\\n");
+            (void)fprintf(stderr, "error: doctor result allocation failed\n");
             return EXIT_FAILURE;
         }
         yyjson_mut_doc_set_root(doc, root);
@@ -1795,6 +1837,7 @@ static int main_run_doctor(int argc, char **argv) {
         }
         yyjson_mut_obj_add_val(doc, root, "daemon", daemon);
         yyjson_mut_obj_add_uint(doc, store, "databases", stores.discovered);
+        yyjson_mut_obj_add_uint(doc, store, "other_databases", stores.other);
         yyjson_mut_obj_add_uint(doc, store, "readable", stores.readable);
         yyjson_mut_obj_add_uint(doc, store, "unreadable", stores.unreadable);
         yyjson_mut_obj_add_uint(doc, store, deep ? "integrity_ok" : "schema_readable",
@@ -1821,23 +1864,23 @@ static int main_run_doctor(int argc, char **argv) {
         char *encoded = yyjson_mut_write(doc, 0, NULL);
         yyjson_mut_doc_free(doc);
         if (!encoded) {
-            (void)fprintf(stderr, "error: doctor result encoding failed\\n");
+            (void)fprintf(stderr, "error: doctor result encoding failed\n");
             return EXIT_FAILURE;
         }
-        printf("%s\\n", encoded);
+        printf("%s\n", encoded);
         free(encoded);
     } else {
-        printf("Codebase Memory doctor: %s%s\\n", overall, deep ? " (deep)" : "");
-        printf("  build:  %s (%s)\\n", CBM_VERSION,
+        printf("Codebase Memory doctor: %s%s\n", overall, deep ? " (deep)" : "");
+        printf("  build:  %s (%s)\n", CBM_VERSION,
                main_build_identity_status_name(identity_status));
-        printf("  cache:  %s [%s, %s]\\n", cache ? cache : "unresolved",
+        printf("  cache:  %s [%s, %s]\n", cache ? cache : "unresolved",
                cache_present ? "present" : "missing",
                cache_secure ? "private" : "unsafe/unverified");
         if (daemon_running) {
-            printf("  daemon: reachable, pid=%u, clients=%u%s\\n", daemon_status.daemon_pid,
+            printf("  daemon: reachable, pid=%u, clients=%u%s\n", daemon_status.daemon_pid,
                    daemon_status.committed_clients, daemon_status.stopping ? ", stopping" : "");
         } else {
-            printf("  daemon: not reachable (optional for direct reads)\\n");
+            printf("  daemon: not reachable (optional for direct reads)\n");
         }
         printf("  config: watcher=%s, ui=%s, ui_port=%d\n",
                watcher_enabled ? "enabled" : "disabled",
@@ -1848,24 +1891,27 @@ static int main_run_doctor(int argc, char **argv) {
             printf(", %zu integrity-ok, %zu transient/busy, %zu corrupt", stores.healthy,
                    stores.transient, stores.corrupt);
         }
-        printf("\\n");
+        if (stores.other > 0) {
+            printf(", %zu other (not project stores, skipped)", stores.other);
+        }
+        printf("\n");
         if (reliability.records > 0 || reliability.malformed_records > 0) {
             printf("  events: %zu record(s) across %zu file(s)%s", reliability.records,
                    reliability.files_scanned, reliability.truncated ? " (bounded scan)" : "");
             if (reliability.malformed_records > 0) {
                 printf(", %zu malformed", reliability.malformed_records);
             }
-            printf("\\n");
+            printf("\n");
             for (int event = 0; event < CBM_RELIABILITY_EVENT_COUNT; ++event) {
                 if (reliability.counts[event] == 0)
                     continue;
-                printf("          %s=%" PRIu64 "\\n", cbm_reliability_event_name(event),
+                printf("          %s=%" PRIu64 "\n", cbm_reliability_event_name(event),
                        reliability.counts[event]);
             }
         }
         if (!deep) {
             printf("  hint:   use 'codebase-memory-cli doctor --deep' for explicit integrity "
-                   "verification\\n");
+                   "verification\n");
         }
     }
 
@@ -3387,6 +3433,9 @@ int main(int argc, char **argv) {
                 stderr,
                 "codebase-memory-cli: secure CLI coordination could not be created (%s)%s%s\n",
                 coordination_failure, (why && why[0]) ? ": " : "", (why && why[0]) ? why : "");
+            if (strcmp(coordination_failure, "endpoint") == 0) {
+                main_print_runtime_dir_hint();
+            }
             goto local_cli_cleanup;
         }
         cbm_http_server_set_binary_path(local_executable);
@@ -3516,6 +3565,12 @@ int main(int argc, char **argv) {
                       "(%s)%s%s\n",
                       main_build_identity_status_name(identity_status),
                       validation_detail[0] ? " - " : "", validation_detail);
+        if (identity_status == MAIN_BUILD_IDENTITY_CACHE_PRIVATE) {
+            (void)fprintf(stderr, "codebase-memory-cli: this is the cache directory check. Set "
+                                  "CBM_CACHE_DIR to an owner-private directory to change the cache "
+                                  "location. The coordination directory is checked separately and "
+                                  "needs CBM_RUNTIME_DIR; see docs/CONFIGURATION.md.\n");
+        }
         return role == CBM_DAEMON_PROCESS_HOOK_CLIENT ? EXIT_SUCCESS : EXIT_FAILURE;
     }
     cbm_http_server_set_binary_path(executable_path);
@@ -3676,6 +3731,7 @@ int main(int argc, char **argv) {
         (void)snprintf(message, sizeof(message), "secure daemon endpoint could not be created%s%s",
                        (why && why[0]) ? ": " : "", (why && why[0]) ? why : "");
         main_report_client_failure(message);
+        main_print_runtime_dir_hint();
         return EXIT_FAILURE;
     }
 

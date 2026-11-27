@@ -1,5 +1,7 @@
 /* Transactional binary activation. See activation_transaction.h. */
 #include "cli/activation_transaction.h"
+#include "daemon/ipc.h"
+#include "foundation/constants.h"
 #include "foundation/log.h"
 #include "foundation/macos_acl.h"
 
@@ -88,7 +90,9 @@ struct cbm_activation_transaction {
  * refuses records what refused here; callers append the note to their error
  * line. First-wins so the deepest (root) refusal survives the unwind.
  * Single-threaded by contract: CLI activation runs on one thread. */
-static char g_activation_refusal_note[512];
+/* Room for the predicate label (up to 512 bytes with a resolved account
+ * name), the OS error and the refused path. */
+static char g_activation_refusal_note[CBM_SZ_1K];
 
 /* The validated object's path, set by each validator for the duration of its
  * predicate calls so the note can say WHAT was refused, not just why. Points
@@ -720,7 +724,7 @@ static bool activation_windows_acl_check(HANDLE handle, DWORD tolerated_untruste
                          * launcher ancestry validators). */
                         IsWellKnownSid(sid, WinCreatorOwnerRightsSid));
         if (!trusted) {
-            char label[128];
+            char label[512];
             LPSTR sid_text = NULL;
             /* #1856: say whether the grant is INHERITED. The remedy differs and
              * the wrong one silently does nothing: `icacls <dir> /remove:g <sid>`
@@ -729,10 +733,15 @@ static bool activation_windows_acl_check(HANDLE handle, DWORD tolerated_untruste
              * child directory exactly this way. A reporter following the
              * generic advice sees the command succeed and the refusal persist. */
             bool inherited = (header->AceFlags & INHERITED_ACE) != 0;
-            (void)snprintf(label, sizeof(label), "acl-grants-cross-account-mutation to %s%s",
+            char account[320];
+            char account_suffix[336] = "";
+            if (cbm_daemon_ipc_sid_account_name(sid, account, sizeof(account)) && account[0]) {
+                (void)snprintf(account_suffix, sizeof(account_suffix), " = %s", account);
+            }
+            (void)snprintf(label, sizeof(label), "acl-grants-cross-account-mutation to %s%s%s",
                            ConvertSidToStringSidA(sid, &sid_text) && sid_text ? sid_text
                                                                               : "unparsable-sid",
-                           inherited ? " (inherited from a parent directory)" : "");
+                           account_suffix, inherited ? " (inherited from a parent directory)" : "");
             if (sid_text) {
                 (void)LocalFree(sid_text);
             }
