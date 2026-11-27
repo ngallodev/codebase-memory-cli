@@ -91,10 +91,14 @@ class BinarySelectionTests(unittest.TestCase):
     def test_release_archives_carry_no_sidecars(self):
         # The binary is self-contained; a returning sidecar would silently make
         # `pip install` reject every archive against this exact-set allowlist.
-        for names in (_cli._WINDOWS_ARCHIVE_NAMES, _cli._UNIX_ARCHIVE_NAMES):
+        # Windows additionally ships install-windows.ps1 (offline installer).
+        for names, count in (
+            (_cli._WINDOWS_ARCHIVE_NAMES, 5),
+            (_cli._UNIX_ARCHIVE_NAMES, 4),
+        ):
             self.assertNotIn("cbm-integrations.json", names)
             self.assertFalse([n for n in names if n.startswith("cbm-ui-")])
-            self.assertEqual(len(names), 4)
+            self.assertEqual(len(names), count)
 
     def test_update_guidance_uses_pip_and_names_managed_install(self):
         with mock.patch.object(_cli.sys, "argv", ["cbm", "update"]), \
