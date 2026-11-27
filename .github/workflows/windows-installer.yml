@@ -242,8 +242,19 @@ jobs:
             if (-not (Test-Path -LiteralPath (Join-Path $extract $name))) { throw "zip is missing $name" }
           }
 
-          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $extract 'install-windows.ps1') -Yes -SkipConfig -InstallDir $installDir
+          $cacheDir = Join-Path $env:RUNNER_TEMP 'cbm-smoke-cache'
+          $runtimeDir = Join-Path $env:RUNNER_TEMP 'cbm-smoke-runtime'
+          $installer = Join-Path $extract 'install-windows.ps1'
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer -Yes -SkipConfig -InstallDir $installDir
           if ($LASTEXITCODE -ne 0) { throw "install-windows.ps1 failed with exit code $LASTEXITCODE" }
+          # Second run over the existing install (same-directory replacement)
+          # with the cache/runtime options, so the uninstaller must remove the
+          # user variables this script set.
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer -Yes -SkipConfig -InstallDir $installDir -CacheDir $cacheDir -RuntimeDir $runtimeDir
+          if ($LASTEXITCODE -ne 0) { throw "install-windows.ps1 re-run failed with exit code $LASTEXITCODE" }
+          foreach ($name in 'CBM_CACHE_DIR', 'CBM_RUNTIME_DIR') {
+            if (-not [Environment]::GetEnvironmentVariable($name, 'User')) { throw "user variable $name was not set" }
+          }
 
           $exe = Join-Path $installDir 'codebase-memory-cli.exe'
           if (-not (Test-Path -LiteralPath $exe)) { throw 'installed exe is missing' }
@@ -273,4 +284,7 @@ jobs:
           }
           $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
           if (($userPath -split ';') -contains $installDir) { throw 'user PATH still contains the install directory' }
+          foreach ($name in 'CBM_CACHE_DIR', 'CBM_RUNTIME_DIR') {
+            if ([Environment]::GetEnvironmentVariable($name, 'User')) { throw "user variable $name was not removed" }
+          }
           Write-Host 'install-windows.ps1 smoke passed'

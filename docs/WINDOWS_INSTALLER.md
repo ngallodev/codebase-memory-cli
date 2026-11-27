@@ -91,7 +91,7 @@ Options:
   the current user only and set `CBM_CACHE_DIR` / `CBM_RUNTIME_DIR` as
   persistent user environment variables (and for the install itself). Use these
   for the permission refusal described below.
-- `-Yes`: do not prompt. Also uninstalls other copies found on PATH (see below).
+- `-Yes`: do not prompt. Also removes other copies found on PATH (see below).
 - `-Help`: print the options.
 
 The script refuses to run if the executable is missing, if it is the arm64 build
@@ -108,9 +108,14 @@ What it removes before installing:
   copy's `codebase-memory-cli.exe uninstall -y` runs and leftover files are
   deleted.
 - Other `codebase-memory-cli.exe` copies in directories on your user PATH: they
-  are listed and, after confirmation or with `-Yes`, uninstalled. Without
-  confirmation they are left in place and the script warns, because an older
-  copy earlier on PATH can shadow the new one.
+  are listed and, after confirmation or with `-Yes`, removed. Their daemon is
+  stopped and the executable deleted. If the directory holds only Codebase
+  Memory files, the whole directory and its PATH entry are removed. A directory
+  that also holds other files (a shared bin folder) keeps those files and its
+  PATH entry. The script does not run that copy's `uninstall`, because
+  `uninstall` takes its directory off PATH. Without confirmation the copies are
+  left in place and the script warns, because an older copy earlier on PATH can
+  shadow the new one.
 - An install in the same directory (from `install.ps1` or an earlier run): the
   daemon is stopped and `codebase-memory-cli.exe install --force` replaces it.
 

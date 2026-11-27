@@ -134,6 +134,37 @@ function Remove-CbmLeftovers([string]$Dir) {
     }
 }
 
+# Remove one directory from the persistent current-user PATH, leaving every
+# other segment unchanged and keeping the value's registry type.
+function Remove-UserPathSegment([string]$Dir) {
+    try {
+        $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true)
+        if ($null -eq $key) { return }
+        try {
+            $raw = [string]$key.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+            if (-not $raw) { return }
+            $kind = $key.GetValueKind('Path')
+            $kept = @()
+            $removed = $false
+            foreach ($segment in ($raw -split ';')) {
+                $match = $false
+                if (-not [string]::IsNullOrWhiteSpace($segment)) {
+                    try {
+                        $expanded = [Environment]::ExpandEnvironmentVariables($segment.Trim().Trim('"'))
+                        $match = Test-SamePath $expanded $Dir
+                    } catch { }
+                }
+                if ($match) { $removed = $true } else { $kept += $segment }
+            }
+            if ($removed) { $key.SetValue('Path', ($kept -join ';'), $kind) }
+        } finally {
+            $key.Close()
+        }
+    } catch {
+        Write-Warn "could not update the user PATH for $Dir : $($_.Exception.Message)"
+    }
+}
+
 function Get-RegistryString([string]$Key, [string]$Name) {
     if (-not (Test-Path -LiteralPath $Key)) { return $null }
     $item = Get-ItemProperty -LiteralPath $Key -ErrorAction SilentlyContinue
@@ -439,12 +470,39 @@ try {
     if ($others.Count -gt 0) {
         Write-Host 'Other codebase-memory-cli.exe copies found on your user PATH:'
         foreach ($o in $others) { Write-Host "  $o" }
-        if (Confirm-Action 'Uninstall these copies?') {
+        if (Confirm-Action 'Remove these copies?') {
             foreach ($o in $others) {
-                $otherExe = Join-Path $o $BinName
+                # Do NOT run that copy's `uninstall --dir`: it removes its whole
+                # directory from the user PATH, and these directories can be
+                # shared bin folders (for example ~\.local\bin) holding other
+                # tools. Delete only the Codebase Memory files; drop the
+                # directory and its PATH segment only when nothing else is left.
                 Stop-Daemon $o
-                $code = Invoke-Native $otherExe @('uninstall', '-y', "--dir=$o")
-                if ($code -ne 0) { Write-Warn "uninstall of $o exited with code $code" }
+                $ours = @('LICENSE', 'THIRD_PARTY_NOTICES.md', 'install.ps1', 'install-windows.ps1',
+                          'uninstall-windows.ps1', $BinName)
+                $foreign = @(Get-ChildItem -LiteralPath $o -Force -ErrorAction SilentlyContinue |
+                    Where-Object { -not ($ours -contains $_.Name) -and -not $_.Name.StartsWith("$BinName.retired-") })
+                if ($foreign.Count -eq 0) {
+                    # A dedicated old install directory: remove all of it.
+                    Remove-CbmLeftovers $o
+                } else {
+                    # A shared directory: remove only the executable and its
+                    # retired copies; generic names like LICENSE may belong to
+                    # another tool.
+                    foreach ($f in @(Get-ChildItem -LiteralPath $o -Force -ErrorAction SilentlyContinue |
+                            Where-Object { $_.Name -ieq $BinName -or $_.Name.StartsWith("$BinName.retired-") })) {
+                        try { Remove-Item -LiteralPath $f.FullName -Force -ErrorAction Stop }
+                        catch { Write-Warn "could not remove $($f.FullName) : $($_.Exception.Message)" }
+                    }
+                }
+                if (Test-Path -LiteralPath (Join-Path $o $BinName)) {
+                    Write-Warn "could not remove $(Join-Path $o $BinName); it is probably still running. It may shadow the new install on PATH."
+                } elseif (-not (Test-Path -LiteralPath $o)) {
+                    Remove-UserPathSegment $o
+                    Write-Step "Removed $o and its user PATH entry."
+                } else {
+                    Write-Step "Removed codebase-memory-cli.exe from $o (the directory holds other files and stays on PATH)."
+                }
             }
         } else {
             Write-Warn 'leaving the other copies in place; a stale copy earlier on PATH can shadow the new install.'
