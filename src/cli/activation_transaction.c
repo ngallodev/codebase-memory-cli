@@ -1,6 +1,7 @@
 /* Transactional binary activation. See activation_transaction.h. */
 #include "cli/activation_transaction.h"
 #include "daemon/ipc.h"
+#include "foundation/constants.h"
 #include "foundation/log.h"
 #include "foundation/macos_acl.h"
 
@@ -89,7 +90,9 @@ struct cbm_activation_transaction {
  * refuses records what refused here; callers append the note to their error
  * line. First-wins so the deepest (root) refusal survives the unwind.
  * Single-threaded by contract: CLI activation runs on one thread. */
-static char g_activation_refusal_note[512];
+/* Room for the predicate label (up to 512 bytes with a resolved account
+ * name), the OS error and the refused path. */
+static char g_activation_refusal_note[CBM_SZ_1K];
 
 /* The validated object's path, set by each validator for the duration of its
  * predicate calls so the note can say WHAT was refused, not just why. Points

@@ -296,7 +296,10 @@ static void cli_activation_diagnostic(const cbm_cli_activation_ops_t *ops, const
      * every process, and hunted phantom handles because the message pointed at
      * sessions that did not exist. The sessions wording remains for genuine
      * stop/reservation failures, which record no refusal note. */
-    char attributed[CBM_SZ_1K];
+    /* Sized for the longest refusal note (CBM_SZ_1K, see
+     * activation_transaction.c) plus the fixed remedy text, so the remedy,
+     * including CBM_RUNTIME_DIR, is never truncated away. */
+    char attributed[CBM_SZ_2K];
     const char *note = cbm_activation_transaction_refusal_note();
     /* A recorded refusal is more specific than EITHER generic message, so it
      * wins over both the busy and the reservation-failure wording. */
