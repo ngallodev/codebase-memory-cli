@@ -351,7 +351,7 @@ jobs:
       # it implies (each archive: one executable plus three runtime sidecars).
       RELEASE_TARGETS: ${{ inputs.platforms == 'linux' && 'linux-amd64,linux-arm64,linux-amd64-portable,linux-arm64-portable' || 'linux-amd64,linux-arm64,linux-amd64-portable,linux-arm64-portable,darwin-amd64,darwin-arm64,windows-amd64,windows-arm64' }}
       EXPECT_ARCHIVES: ${{ inputs.platforms == 'linux' && '4' || '8' }}
-      EXPECT_RUNTIME_FILES: ${{ inputs.platforms == 'linux' && '12' || '24' }}
+      EXPECT_RUNTIME_FILES: ${{ inputs.platforms == 'linux' && '12' || '26' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -373,7 +373,8 @@ jobs:
             --archive-dir "$ARCHIVE_DIR"
           # CLI-only release contract: eight platform archives (four for
           # platforms=linux). Each archive contributes one selected executable
-          # plus three runtime sidecars.
+          # plus three runtime sidecars (four for the two Windows archives,
+          # which also ship install-windows.ps1).
           scripts/ci/extract-release-archives.sh "$ARCHIVE_DIR" binaries \
             --targets="$RELEASE_TARGETS" \
             --expect-archives="$EXPECT_ARCHIVES" \

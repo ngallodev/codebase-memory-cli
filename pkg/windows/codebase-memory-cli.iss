@@ -84,6 +84,8 @@ Filename: "{app}\codebase-memory-cli.exe"; Parameters: "uninstall -y ""--dir={ap
 Type: files; Name: "{app}\codebase-memory-cli.exe"
 Type: files; Name: "{app}\codebase-memory-cli.exe.retired-*"
 Type: files; Name: "{app}\install.ps1"
+Type: files; Name: "{app}\install-windows.ps1"
+Type: files; Name: "{app}\uninstall-windows.ps1"
 Type: dirifempty; Name: "{app}"
 
 [Code]

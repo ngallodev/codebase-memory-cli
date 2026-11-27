@@ -447,7 +447,7 @@ vb = blocks.get("verify", "")
 for token in ("--expect-archives=\"$EXPECT_ARCHIVES\"", "--expect-runtime-files=\"$EXPECT_RUNTIME_FILES\"",
               "--targets=\"$RELEASE_TARGETS\"", '--targets "$RELEASE_TARGETS"',
               "EXPECT_ARCHIVES: ${{ inputs.platforms == 'linux' && '4' || '8' }}",
-              "EXPECT_RUNTIME_FILES: ${{ inputs.platforms == 'linux' && '12' || '24' }}"):
+              "EXPECT_RUNTIME_FILES: ${{ inputs.platforms == 'linux' && '12' || '26' }}"):
     if token not in vb:
         failures.append(f"verify: platform-sized archive contract missing: {token}")
 # select-package must not run on a skipped Windows build except for platforms=linux.

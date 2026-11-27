@@ -32,6 +32,7 @@ _WINDOWS_ARCHIVE_NAMES = (
     _WINDOWS_BINARY_NAME,
     "LICENSE",
     "install.ps1",
+    "install-windows.ps1",
     "THIRD_PARTY_NOTICES.md",
 )
 

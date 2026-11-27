@@ -352,6 +352,8 @@ def validate_namespace(archive_name: str, names: Iterable[str]) -> Dict[str, str
         installer: "runtime",
         "THIRD_PARTY_NOTICES.md": "runtime",
     }
+    if windows:
+        fixed["install-windows.ps1"] = "runtime"
     name_set = set(names_list)
     extras = name_set - set(fixed)
     if extras:
@@ -359,7 +361,7 @@ def validate_namespace(archive_name: str, names: Iterable[str]) -> Dict[str, str
     if name_set != set(fixed):
         missing = sorted(set(fixed) - name_set)
         raise ContractError(
-            f"member namespace mismatch in {archive_name}: expected exactly 4 members; missing={missing}"
+            f"member namespace mismatch in {archive_name}: expected exactly {len(fixed)} members; missing={missing}"
         )
     return fixed
 

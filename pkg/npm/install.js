@@ -44,6 +44,7 @@ const WINDOWS_ARCHIVE_NAMES = [
   WINDOWS_BINARY_NAME,
   'LICENSE',
   'install.ps1',
+  'install-windows.ps1',
   'THIRD_PARTY_NOTICES.md',
 ];
 const WINDOWS_PAIR_LOCK_NAME = '.codebase-memory-cli-pair.lock';

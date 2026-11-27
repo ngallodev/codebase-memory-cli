@@ -58,7 +58,7 @@ ARTIFACT_DIR="${CBM_SMOKE_ARTIFACT_DIR:-}"
 if [ -n "$ARTIFACT_DIR" ]; then
     ARTIFACT_DIR="$(cd "$ARTIFACT_DIR" && pwd)"
     for required in codebase-memory-cli.exe \
-        LICENSE install.ps1 THIRD_PARTY_NOTICES.md; do
+        LICENSE install.ps1 install-windows.ps1 THIRD_PARTY_NOTICES.md; do
         [ -s "$ARTIFACT_DIR/$required" ] ||
             { echo "vm-smoke: release artifact is missing $required" >&2; exit 2; }
     done
@@ -146,9 +146,10 @@ cp "$SMOKE_DIR/codebase-memory-cli.exe" "$FIXTURE_DIR/"
 # here would smoke a sidecar the release never ships.
 if [ -n "$ARTIFACT_DIR" ]; then
     cp "$ARTIFACT_DIR/LICENSE" \
-        "$ARTIFACT_DIR/install.ps1" "$ARTIFACT_DIR/THIRD_PARTY_NOTICES.md" "$FIXTURE_DIR/"
+        "$ARTIFACT_DIR/install.ps1" "$ARTIFACT_DIR/install-windows.ps1" \
+        "$ARTIFACT_DIR/THIRD_PARTY_NOTICES.md" "$FIXTURE_DIR/"
 else
-    cp LICENSE install.ps1 "$FIXTURE_DIR/"
+    cp LICENSE install.ps1 install-windows.ps1 "$FIXTURE_DIR/"
     scripts/gen-third-party-notices.sh "$FIXTURE_DIR/THIRD_PARTY_NOTICES.md"
 fi
 
@@ -157,7 +158,7 @@ EXPECTED_ARTIFACT="codebase-memory-cli-windows-${SMOKE_ARCH}.zip"
 (
     cd "$FIXTURE_DIR"
     zip -q "$EXPECTED_ARTIFACT" \
-        codebase-memory-cli.exe LICENSE install.ps1 THIRD_PARTY_NOTICES.md
+        codebase-memory-cli.exe LICENSE install.ps1 install-windows.ps1 THIRD_PARTY_NOTICES.md
     sha256sum *.zip > checksums.txt
 )
 
