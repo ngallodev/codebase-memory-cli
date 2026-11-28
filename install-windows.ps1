@@ -531,6 +531,9 @@ try {
         try { $dir = Get-FullPath ([Environment]::ExpandEnvironmentVariables($entry.Trim().Trim('"'))) }
         catch { continue }
         if (Test-SamePath $dir $InstallDir) { continue }
+        # The extracted release may itself be on PATH. Keep its executable and
+        # sidecars intact; it is the source payload for this install.
+        if (Test-SamePath $dir $SourceDir) { continue }
         if (-not (Test-Path -LiteralPath (Join-Path $dir $BinName) -PathType Leaf)) { continue }
         $known = $false
         foreach ($o in $others) { if (Test-SamePath $o $dir) { $known = $true } }
