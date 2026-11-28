@@ -129,11 +129,12 @@ Uninstall from Settings > Apps > Codebase Memory CLI, or run
 `powershell -NoProfile -ExecutionPolicy Bypass -File "<install dir>\uninstall-windows.ps1"`
 (add `-DeleteIndexes` to also delete project indexes; add `-Quiet` for no
 prompts). It runs `codebase-memory-cli.exe uninstall -y`, deletes the files the
-installer placed, removes only the user environment variables that
-`install-windows.ps1` set (`-CacheDir` / `-RuntimeDir`), and then deletes the
-Settings entry. Project indexes are kept by default. If the executable cannot be
-removed (for example a locked file), the Settings entry is kept so you can retry.
-A directory given with `-CacheDir` or `-RuntimeDir` is not deleted.
+installer placed, and restores the user environment variables it managed to
+their values from before the first install (removing them if they were unset).
+If installation fails before registration, its environment changes are rolled
+back. Project indexes are kept by default. If the executable cannot be removed
+(for example a locked file), the Settings entry and retry script are kept. A
+directory given with `-CacheDir` or `-RuntimeDir` is not deleted.
 
 ## Limits
 
