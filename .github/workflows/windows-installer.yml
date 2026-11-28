@@ -269,8 +269,16 @@ jobs:
           foreach ($name in 'UninstallString', 'QuietUninstallString', 'DisplayVersion') {
             if ([string]::IsNullOrEmpty($entry.$name)) { throw "registry value $name is missing" }
           }
-          $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-          if (($userPath -split ';') -notcontains $installDir) { throw 'user PATH does not contain the install directory' }
+          # The binary writes its PATH segment with forward slashes, so compare
+          # normalized, case-insensitive paths.
+          function Test-OnUserPath([string]$Dir) {
+            $want = ($Dir -replace '/', '\').TrimEnd('\')
+            foreach ($seg in ([Environment]::GetEnvironmentVariable('Path', 'User') -split ';')) {
+              if (($seg -replace '/', '\').TrimEnd('\') -ieq $want) { return $true }
+            }
+            return $false
+          }
+          if (-not (Test-OnUserPath $installDir)) { throw 'user PATH does not contain the install directory' }
 
           # Run the registered quiet uninstall command exactly as Windows would.
           $quiet = $entry.QuietUninstallString
@@ -284,8 +292,7 @@ jobs:
           if ((Test-Path -LiteralPath $installDir) -and @(Get-ChildItem -LiteralPath $installDir -Force).Count -gt 0) {
             throw 'install directory is not empty after uninstall'
           }
-          $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-          if (($userPath -split ';') -contains $installDir) { throw 'user PATH still contains the install directory' }
+          if (Test-OnUserPath $installDir) { throw 'user PATH still contains the install directory' }
           foreach ($name in 'CBM_CACHE_DIR', 'CBM_RUNTIME_DIR') {
             if ([Environment]::GetEnvironmentVariable($name, 'User')) { throw "user variable $name was not removed" }
           }
