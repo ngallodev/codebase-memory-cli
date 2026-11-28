@@ -348,15 +348,14 @@ func goarch() string {
 
 func archiveNamesForOS(platform, binaryName string) []string {
 	installer := "install.sh"
+	extras := []string{}
 	if platform == "windows" {
 		installer = "install.ps1"
+		extras = []string{"install-windows.ps1"}
 	}
-	return []string{
-		binaryName,
-		"LICENSE",
-		installer,
-		"THIRD_PARTY_NOTICES.md",
-	}
+	names := []string{binaryName, "LICENSE", installer}
+	names = append(names, extras...)
+	return append(names, "THIRD_PARTY_NOTICES.md")
 }
 
 func download(dest string) error {

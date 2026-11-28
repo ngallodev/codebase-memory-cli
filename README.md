@@ -195,6 +195,10 @@ MCP client configuration. Afterward, run `codebase-memory-cli install
 `codebase-memory-cli install-hooks` separately only if you explicitly want
 CLI-owned agent hooks.
 
+To install without downloading anything, extract a Windows release zip and run
+the `install-windows.ps1` inside it; it also adds an entry to Settings > Apps for
+uninstalling. See [`docs/WINDOWS_INSTALLER.md`](docs/WINDOWS_INSTALLER.md).
+
 To download the latest published Windows package, install its exact bytes, and
 run the five-repository benchmark in one command, review and run the launcher
 from the Windows benchmark runbook:

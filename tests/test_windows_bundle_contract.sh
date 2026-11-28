@@ -75,9 +75,11 @@ def yaml_run_blocks(text: str) -> list[str]:
 
 binary = "codebase-memory-cli.exe"
 payload = "codebase-memory-mcp.payload.exe"
-windows_archive_names = (binary, "LICENSE", "install.ps1", "THIRD_PARTY_NOTICES.md")
+windows_archive_names = (
+    binary, "LICENSE", "install.ps1", "install-windows.ps1", "THIRD_PARTY_NOTICES.md"
+)
 
-# ── 1. The archive is exactly four files, defined in ONE place ───────────────
+# ── 1. The archive is exactly four files (five on Windows), defined in ONE place ───────────────
 # Every venue (release build, local artifact-flow smoke) produces archives
 # through scripts/package-release.sh, so the layout is asserted where it is
 # defined and cannot fork per venue.
@@ -309,6 +311,7 @@ exact_archive_guards = {
         "$seen.Count -ne $WindowsArchiveNames.Count",
         '"LICENSE"',
         '"install.ps1"',
+        '"install-windows.ps1"',
         "THIRD_PARTY_NOTICES.md",
     ),
     "pkg/npm/install.js": (
@@ -316,6 +319,7 @@ exact_archive_guards = {
         "WINDOWS_BINARY_NAME",
         "'LICENSE'",
         "'install.ps1'",
+        "'install-windows.ps1'",
         "THIRD_PARTY_NOTICES.md",
     ),
     "pkg/pypi/src/codebase_memory_cli/_cli.py": (
@@ -324,6 +328,7 @@ exact_archive_guards = {
         "_WINDOWS_BINARY_NAME",
         '"LICENSE"',
         '"install.ps1"',
+        '"install-windows.ps1"',
         "THIRD_PARTY_NOTICES.md",
     ),
 }

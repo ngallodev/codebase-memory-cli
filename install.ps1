@@ -38,6 +38,7 @@ $WindowsArchiveNames = @(
     $BinName,
     "LICENSE",
     "install.ps1",
+    "install-windows.ps1",
     "THIRD_PARTY_NOTICES.md"
 )
 $BaseUrl = if ($env:CBM_DOWNLOAD_URL) { $env:CBM_DOWNLOAD_URL } else { "https://github.com/$Repo/releases/latest/download" }

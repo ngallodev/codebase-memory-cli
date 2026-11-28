@@ -185,7 +185,7 @@ READ_BY_TESTS = {"scripts/security-vendored.sh", ".codebase-memory.json", "READM
 TEST_REPORT = {"scripts/suite-failure-report.sh"}
 # The release notices ship inside every archive.
 PKG_SCRIPTS = {"scripts/gen-third-party-notices.sh", "scripts/gen-ui-licenses.py"}
-PKG_FILES = {"install.sh", "install.ps1", "server.json", "package.json", "manifest.json",
+PKG_FILES = {"install.sh", "install.ps1", "install-windows.ps1", "server.json", "package.json", "manifest.json",
              "Formula"}
 DOC_SUFFIXES = (".md", ".png", ".svg", ".jpg", ".gif", ".txt")
 DOC_FILES = {"LICENSE", "CODEOWNERS", ".gitignore", ".gitattributes", "DCO",

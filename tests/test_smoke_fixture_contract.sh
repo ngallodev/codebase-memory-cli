@@ -221,6 +221,7 @@ for name in (
     "codebase-memory-cli.exe",
     "LICENSE",
     "install.ps1",
+    "install-windows.ps1",
     "THIRD_PARTY_NOTICES.md",
 ):
     require(name in vm_smoke, f"vm-smoke.sh archive must include {name}")

@@ -4,7 +4,9 @@ name: Windows Installer
 # packages the same zip archives the release publishes, and wraps them in an
 # Inno Setup installer. By request it runs NO tests, lint, soak, smoke,
 # antivirus scan, attestation or CodeQL, and it publishes nothing: no release,
-# no tag. The only output is a workflow artifact.
+# no tag. The only output is a workflow artifact. The optional smoke_install
+# input adds one job that installs and uninstalls the amd64 zip through
+# install-windows.ps1 in an isolated directory; it is off by default.
 
 on:
   workflow_dispatch:
@@ -22,6 +24,11 @@ on:
           - both
           - amd64
           - arm64
+      smoke_install:
+        description: "After the build, smoke-test install-windows.ps1 from the amd64 zip (install, Settings entry, uninstall)"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -212,3 +219,88 @@ jobs:
           path: dist
           retention-days: 30
           if-no-files-found: error
+
+  smoke-install:
+    needs: build-windows-amd64
+    if: ${{ inputs.smoke_install && needs.build-windows-amd64.result == 'success' }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: windows-zip-amd64
+          path: ${{ runner.temp }}\zip
+
+      - name: Install from the extracted zip, check, then uninstall
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $extract = Join-Path $env:RUNNER_TEMP 'extracted'
+          $installDir = Join-Path $env:RUNNER_TEMP 'cbm-smoke-install'
+          Expand-Archive -Path (Join-Path $env:RUNNER_TEMP 'zip\codebase-memory-cli-windows-amd64.zip') -DestinationPath $extract
+          foreach ($name in 'codebase-memory-cli.exe', 'LICENSE', 'install.ps1', 'install-windows.ps1', 'THIRD_PARTY_NOTICES.md') {
+            if (-not (Test-Path -LiteralPath (Join-Path $extract $name))) { throw "zip is missing $name" }
+          }
+
+          # Under the user profile: the runner's D:\a grants BUILTIN\Users write
+          # access, so the binary (correctly) refuses directories below it.
+          $cacheDir = Join-Path $env:LOCALAPPDATA 'cbm-smoke-cache'
+          $runtimeDir = Join-Path $env:LOCALAPPDATA 'cbm-smoke-runtime'
+          $installer = Join-Path $extract 'install-windows.ps1'
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer -Yes -SkipConfig -InstallDir $installDir
+          if ($LASTEXITCODE -ne 0) { throw "install-windows.ps1 failed with exit code $LASTEXITCODE" }
+          # Second run over the existing install (same-directory replacement)
+          # with the cache/runtime options, so the uninstaller must remove the
+          # user variables this script set.
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer -Yes -SkipConfig -InstallDir $installDir -CacheDir $cacheDir -RuntimeDir $runtimeDir
+          if ($LASTEXITCODE -ne 0) { throw "install-windows.ps1 re-run failed with exit code $LASTEXITCODE" }
+          foreach ($name in 'CBM_CACHE_DIR', 'CBM_RUNTIME_DIR') {
+            if (-not [Environment]::GetEnvironmentVariable($name, 'User')) { throw "user variable $name was not set" }
+          }
+
+          $exe = Join-Path $installDir 'codebase-memory-cli.exe'
+          if (-not (Test-Path -LiteralPath $exe)) { throw 'installed exe is missing' }
+          & $exe --version
+          if ($LASTEXITCODE -ne 0) { throw "--version failed with exit code $LASTEXITCODE" }
+
+          $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\codebase-memory-cli'
+          if (-not (Test-Path -LiteralPath $key)) { throw 'Settings > Apps registry key is missing' }
+          $entry = Get-ItemProperty -LiteralPath $key
+          foreach ($name in 'UninstallString', 'QuietUninstallString', 'DisplayVersion') {
+            if ([string]::IsNullOrEmpty($entry.$name)) { throw "registry value $name is missing" }
+          }
+          # The binary writes its PATH segment with forward slashes, so compare
+          # normalized, case-insensitive paths.
+          function Test-OnUserPath([string]$Dir) {
+            $want = ($Dir -replace '/', '\').TrimEnd('\')
+            foreach ($seg in ([Environment]::GetEnvironmentVariable('Path', 'User') -split ';')) {
+              if (($seg -replace '/', '\').TrimEnd('\') -ieq $want) { return $true }
+            }
+            return $false
+          }
+          if (-not (Test-OnUserPath $installDir)) { throw 'user PATH does not contain the install directory' }
+
+          # Run the registered quiet uninstall command exactly as Windows would.
+          $quiet = $entry.QuietUninstallString
+          if ($quiet -notmatch '^"([^"]+)"\s+(.*)$') { throw "unexpected QuietUninstallString: $quiet" }
+          $quietExe = $Matches[1]
+          $quietArgs = $Matches[2]
+          $uninstallLog = Join-Path $env:RUNNER_TEMP 'uninstall.out'
+          $uninstallErr = Join-Path $env:RUNNER_TEMP 'uninstall.err'
+          $proc = Start-Process -FilePath $quietExe -ArgumentList $quietArgs -Wait -PassThru -NoNewWindow `
+            -RedirectStandardOutput $uninstallLog -RedirectStandardError $uninstallErr
+          Write-Host '--- uninstall output ---'
+          Get-Content -LiteralPath $uninstallLog, $uninstallErr -ErrorAction SilentlyContinue | Write-Host
+          Write-Host '------------------------'
+          if ($proc.ExitCode -ne 0) { throw "quiet uninstall failed with exit code $($proc.ExitCode)" }
+
+          if (Test-Path -LiteralPath $key) { throw 'registry key still present after uninstall' }
+          if ((Test-Path -LiteralPath $installDir) -and @(Get-ChildItem -LiteralPath $installDir -Force).Count -gt 0) {
+            Get-ChildItem -LiteralPath $installDir -Force -Recurse | ForEach-Object { Write-Host "left: $($_.FullName) $($_.Length)" }
+            throw 'install directory is not empty after uninstall'
+          }
+          if (Test-OnUserPath $installDir) { throw 'user PATH still contains the install directory' }
+          foreach ($name in 'CBM_CACHE_DIR', 'CBM_RUNTIME_DIR') {
+            if ([Environment]::GetEnvironmentVariable($name, 'User')) { throw "user variable $name was not removed" }
+          }
+          Write-Host 'install-windows.ps1 smoke passed'

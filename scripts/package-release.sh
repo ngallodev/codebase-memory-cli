@@ -35,7 +35,7 @@ Targets are the eight existing release products:
 
 Archive contents — one executable, no sidecars:
   unix:    codebase-memory-cli LICENSE install.sh THIRD_PARTY_NOTICES.md (.tar.gz)
-  windows: codebase-memory-cli.exe LICENSE install.ps1 THIRD_PARTY_NOTICES.md (.zip)
+  windows: codebase-memory-cli.exe LICENSE install.ps1 install-windows.ps1 THIRD_PARTY_NOTICES.md (.zip)
 
 The executable member in every produced archive is verified against
 --expected-sha256 before anything is published.
@@ -232,6 +232,9 @@ assert_expected_hash "$STAGED_BINARY" "composition-gated binary" || exit 2
 assert_expected_hash "$SELECTED_BINARY" "selected binary after staging" || exit 2
 
 cp LICENSE "$INSTALLER" "$PACK_DIR/"
+if [ "$GOOS" = "windows" ]; then
+    cp install-windows.ps1 "$PACK_DIR/"
+fi
 if [ -n "$THIRD_PARTY_NOTICES" ]; then
     cp "$THIRD_PARTY_NOTICES" "$PACK_DIR/THIRD_PARTY_NOTICES.md"
 else
@@ -243,7 +246,7 @@ if [ "$GOOS" = "windows" ]; then
     (
         cd "$PACK_DIR"
         zip -q -X "$ARCHIVE_TMP" \
-            codebase-memory-cli.exe LICENSE install.ps1 THIRD_PARTY_NOTICES.md
+            codebase-memory-cli.exe LICENSE install.ps1 install-windows.ps1 THIRD_PARTY_NOTICES.md
     )
     mkdir "$VERIFY_DIR/archive"
     extract_zip_member "$ARCHIVE_TMP" "$STAGED_BINARY_NAME" \

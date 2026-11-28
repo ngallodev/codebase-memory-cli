@@ -45,6 +45,7 @@ SHARED_LICENSE = b"shared release license\n"
 SHARED_NOTICES = b"shared third-party notices\n"
 SHARED_SH = b"#!/bin/sh\n# shared installer\n"
 SHARED_PS1 = b"Write-Output 'shared installer'\n"
+SHARED_WIN_LOCAL_PS1 = b"Write-Output 'local installer'\n"
 
 failures = []
 
@@ -82,12 +83,15 @@ def members(archive):
         }
     binary = "codebase-memory-cli.exe" if windows else "codebase-memory-cli"
     installer = "install.ps1" if windows else "install.sh"
-    return {
+    entries = {
         binary: binary_bytes,
         "LICENSE": SHARED_LICENSE,
         installer: SHARED_PS1 if windows else SHARED_SH,
         "THIRD_PARTY_NOTICES.md": SHARED_NOTICES,
     }
+    if windows:
+        entries["install-windows.ps1"] = SHARED_WIN_LOCAL_PS1
+    return entries
 
 
 def write_archive(directory, archive, extra=None, drop=None):
@@ -145,7 +149,7 @@ def read_manifest(path, marker):
 good = build_matrix(fixtures / "good" / "archives")
 out = fixtures / "good" / "scan"
 result = run_extractor(good, out, "--expect-archives=8", "--expect-binaries=8",
-                       "--expect-runtime-files=24")
+                       "--expect-runtime-files=26")
 if result.returncode != 0:
     fail(f"exact release matrix was rejected: {result.stdout[-600:]}{result.stderr[-600:]}")
 else:
@@ -157,9 +161,9 @@ else:
                                       "cbm-release-scan-associations-v3")
     set_meta, scan_set = read_manifest(out / "scan-set.tsv", "cbm-release-scan-set-v2")
 
-    # Every member of every archive is covered — 14 containers x 4 members.
-    if len(assoc) != 32:
-        fail(f"association manifest must cover all 32 extracted members, got {len(assoc)}")
+    # Every member of every archive is covered — 14 containers x 4 members, plus one extra member per Windows archive.
+    if len(assoc) != 34:
+        fail(f"association manifest must cover all 34 extracted members, got {len(assoc)}")
 
     # An archive container must never be scanned as if it were a member.
     if any(row["member"] in ARCHIVES for row in assoc):
@@ -268,6 +272,6 @@ if failures:
     sys.exit(1)
 
 print("release archive extractor contract OK "
-      "(8-container CLI matrix, 32 member associations, dedup exact, "
+      "(8-container CLI matrix, 34 member associations, dedup exact, "
       "fail-closed on surplus/missing members and short matrices, 4-container linux set via --targets)")
 PY

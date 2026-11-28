@@ -3,7 +3,11 @@
 The `Windows Installer` workflow (`.github/workflows/windows-installer.yml`)
 builds the Windows CLI and packages it as a setup program. It is build-only: it
 runs no tests, lint, soak, smoke, antivirus scan, attestation or CodeQL, and it
-creates no release or tag. Its only output is a workflow artifact.
+creates no release or tag. Its only output is a workflow artifact. The optional
+`smoke_install` input (default false) adds a final job that runs
+`install-windows.ps1` from the amd64 zip in a temporary directory, checks the
+Settings entry and PATH, runs the registered quiet uninstall command and checks
+that everything was removed.
 
 ## Building
 
@@ -64,6 +68,74 @@ reparse point):
 The directory must contain `codebase-memory-cli-windows-<arch>.zip` and
 `checksums.txt`. All other checks are the same as for a download.
 
+## Offline install from the extracted zip
+
+Each Windows release zip (`codebase-memory-cli-windows-<arch>.zip`) also holds
+`install-windows.ps1`. It installs the `codebase-memory-cli.exe` next to it,
+downloads nothing, and registers the app in Windows Settings > Apps. Extract the
+zip to a folder outside the install directory, open a terminal in that folder
+and run:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\install-windows.ps1 [options]
+
+It works on Windows PowerShell 5.1 and PowerShell 7, for the current user only:
+no administrator rights, nothing under HKLM. If you run it elevated it warns
+that it installs for the elevated user's profile.
+
+Options:
+
+- `-InstallDir <path>`: install directory. Default
+  `%LOCALAPPDATA%\Programs\codebase-memory-cli`.
+- `-SkipConfig`: do not install agent skills or instructions.
+- `-CacheDir <path>`, `-RuntimeDir <path>`: create the directory with access for
+  the current user only and set `CBM_CACHE_DIR` / `CBM_RUNTIME_DIR` as
+  persistent user environment variables (and for the install itself). Use these
+  for the permission refusal described below.
+- `-Yes`: do not prompt. Also removes other copies found on PATH (see below).
+- `-Help`: print the options.
+
+The script refuses to run if the executable is missing, if it is the arm64 build
+on an x64 machine, or if the script itself is inside the install directory. An
+amd64 build on an ARM64 machine installs with a warning (it runs under
+emulation). It clears the downloaded-file mark on the extracted files and runs
+`codebase-memory-cli.exe --version` before changing anything.
+
+What it removes before installing:
+
+- An install made by the Setup program (`setup.exe`): its own uninstaller is run
+  silently and the script waits up to 120 seconds for it to finish.
+- An earlier install registered by this script at a different directory: that
+  copy's `codebase-memory-cli.exe uninstall -y` runs and leftover files are
+  deleted.
+- Other `codebase-memory-cli.exe` copies in directories on your user PATH: they
+  are listed and, after confirmation or with `-Yes`, removed. Their daemon is
+  stopped and the executable deleted. If the directory holds only Codebase
+  Memory files, the whole directory and its PATH entry are removed. A directory
+  that also holds other files (a shared bin folder) keeps those files and its
+  PATH entry. The script does not run that copy's `uninstall`, because
+  `uninstall` takes its directory off PATH. Without confirmation the copies are
+  left in place and the script warns, because an older copy earlier on PATH can
+  shadow the new one.
+- An install in the same directory (from `install.ps1` or an earlier run): the
+  daemon is stopped and `codebase-memory-cli.exe install --force` replaces it.
+
+The install itself is `codebase-memory-cli.exe install -y --force --dir=<dir>`,
+so the PATH entry and agent assets are handled by the binary. The script then
+copies `LICENSE` and `THIRD_PARTY_NOTICES.md` and writes `uninstall-windows.ps1`
+into the install directory. If the install fails, no Settings entry is written.
+Open a new terminal afterwards so the updated PATH applies.
+
+Uninstall from Settings > Apps > Codebase Memory CLI, or run
+`powershell -NoProfile -ExecutionPolicy Bypass -File "<install dir>\uninstall-windows.ps1"`
+(add `-DeleteIndexes` to also delete project indexes; add `-Quiet` for no
+prompts). It runs `codebase-memory-cli.exe uninstall -y`, deletes the files the
+installer placed, and restores the user environment variables it managed to
+their values from before the first install (removing them if they were unset).
+If installation fails before registration, its environment changes are rolled
+back. Project indexes are kept by default. If the executable cannot be removed
+(for example a locked file), the Settings entry and retry script are kept. A
+directory given with `-CacheDir` or `-RuntimeDir` is not deleted.
+
 ## Limits
 
 - The setup program and the binaries are unsigned; Windows SmartScreen and
@@ -80,4 +152,5 @@ could not be created`, another account has write access to a profile folder
 (often an agent sandbox). The check is intentional. Set `CBM_CACHE_DIR` and
 `CBM_RUNTIME_DIR` to owner-private directories; see "Windows: permission refusal"
 in [CONFIGURATION.md](CONFIGURATION.md). `setup.exe` and `install.ps1` honor
-both variables when they are set before you run them.
+both variables when they are set before you run them; `install-windows.ps1`
+can create and set them with `-CacheDir` and `-RuntimeDir`.
