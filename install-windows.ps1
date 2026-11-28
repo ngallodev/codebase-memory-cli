@@ -303,15 +303,26 @@ try {
     if ($binaryGone) {
         # Only the variables install-windows.ps1 itself set are removed.
         $managed = $null
+        $previous = @{}
         if (Test-Path -LiteralPath $AppKey) {
-            $prop = (Get-ItemProperty -LiteralPath $AppKey).PSObject.Properties['CbmManagedEnv']
+            $item = Get-ItemProperty -LiteralPath $AppKey
+            $prop = $item.PSObject.Properties['CbmManagedEnv']
             if ($null -ne $prop) { $managed = [string]$prop.Value }
+            $prop = $item.PSObject.Properties['CbmPreviousEnv']
+            if ($null -ne $prop -and $prop.Value) {
+                $saved = ConvertFrom-Json -InputObject ([string]$prop.Value)
+                foreach ($entry in $saved.PSObject.Properties) { $previous[$entry.Name] = $entry.Value }
+            }
         }
         if ($managed) {
             foreach ($name in ($managed -split ';')) {
                 if ($name -ceq 'CBM_CACHE_DIR' -or $name -ceq 'CBM_RUNTIME_DIR') {
-                    [Environment]::SetEnvironmentVariable($name, $null, 'User')
-                    Write-Host "Removed user environment variable $name"
+                    [Environment]::SetEnvironmentVariable($name, $previous[$name], 'User')
+                    if ($previous.ContainsKey($name) -and $null -ne $previous[$name]) {
+                        Write-Host "Restored user environment variable $name"
+                    } else {
+                        Write-Host "Removed user environment variable $name"
+                    }
                 }
             }
         }
@@ -350,6 +361,8 @@ exit 0
 '@
 
 $StagingDir = $null
+$InstallRegistered = $false
+$EnvSnapshot = @{}
 try {
     # ---- 1. Preflight ------------------------------------------------------
     $SourceDir = $PSScriptRoot
@@ -432,6 +445,14 @@ try {
     $PriorManaged = @()
     $existing = Get-RegistryString $AppKey 'CbmManagedEnv'
     if ($existing) { $PriorManaged = @($existing -split ';' | Where-Object { $_ }) }
+    $PriorEnv = @{}
+    $priorEnvJson = Get-RegistryString $AppKey 'CbmPreviousEnv'
+    if ($priorEnvJson) {
+        try {
+            $priorEnvObject = ConvertFrom-Json -InputObject $priorEnvJson -ErrorAction Stop
+            foreach ($entry in $priorEnvObject.PSObject.Properties) { $PriorEnv[$entry.Name] = $entry.Value }
+        } catch { throw "invalid environment ownership data in $AppKey : $($_.Exception.Message)" }
+    }
     $ManagedEnv = New-Object System.Collections.ArrayList
     foreach ($name in $PriorManaged) { if (-not $ManagedEnv.Contains($name)) { [void]$ManagedEnv.Add($name) } }
 
@@ -443,6 +464,15 @@ try {
         if ([string]::IsNullOrWhiteSpace($request.Path)) { continue }
         $full = Get-FullPath $request.Path
         New-PrivateDirectory $full
+        if (-not $EnvSnapshot.ContainsKey($request.Name)) {
+            $EnvSnapshot[$request.Name] = @{
+                User = [Environment]::GetEnvironmentVariable($request.Name, 'User')
+                Process = [Environment]::GetEnvironmentVariable($request.Name, 'Process')
+            }
+        }
+        if (-not $ManagedEnv.Contains($request.Name)) {
+            $PriorEnv[$request.Name] = [Environment]::GetEnvironmentVariable($request.Name, 'User')
+        }
         [Environment]::SetEnvironmentVariable($request.Name, $full, 'User')
         Set-Item -LiteralPath "Env:$($request.Name)" -Value $full
         if (-not $ManagedEnv.Contains($request.Name)) { [void]$ManagedEnv.Add($request.Name) }
@@ -551,6 +581,15 @@ try {
     # 3d. Same-directory install: the binary's own activation replaces it.
     Stop-Daemon $InstallDir
 
+    # Removing a previous registration may restore the environment it owned.
+    # Reapply this invocation's requested values after that cleanup.
+    foreach ($request in $envRequests) {
+        if ([string]::IsNullOrWhiteSpace($request.Path)) { continue }
+        $full = Get-FullPath $request.Path
+        [Environment]::SetEnvironmentVariable($request.Name, $full, 'User')
+        Set-Item -LiteralPath "Env:$($request.Name)" -Value $full
+    }
+
     # ---- 4. Install -------------------------------------------------------
     Write-Step "Installing to $InstallDir..."
     if ((Get-Item -LiteralPath $SourceExe).Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
@@ -620,7 +659,9 @@ try {
     New-ItemProperty -LiteralPath $AppKey -Name 'NoRepair' -Value 1 -PropertyType DWord -Force | Out-Null
     if ($ManagedEnv.Count -gt 0) {
         New-ItemProperty -LiteralPath $AppKey -Name 'CbmManagedEnv' -Value ($ManagedEnv -join ';') -PropertyType String -Force | Out-Null
+        New-ItemProperty -LiteralPath $AppKey -Name 'CbmPreviousEnv' -Value (ConvertTo-Json -InputObject $PriorEnv -Compress) -PropertyType String -Force | Out-Null
     }
+    $InstallRegistered = $true
 
     # ---- 7. Summary --------------------------------------------------------
     Write-Host ''
@@ -632,6 +673,14 @@ try {
     Write-Host "             powershell -NoProfile -ExecutionPolicy Bypass -File `"$uninstallPath`""
     exit 0
 } catch {
+    if (-not $InstallRegistered) {
+        foreach ($name in $EnvSnapshot.Keys) {
+            try {
+                [Environment]::SetEnvironmentVariable($name, $EnvSnapshot[$name].User, 'User')
+                [Environment]::SetEnvironmentVariable($name, $EnvSnapshot[$name].Process, 'Process')
+            } catch { Write-Warn "could not restore user environment variable $name : $($_.Exception.Message)" }
+        }
+    }
     Write-Host "error: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 } finally {
