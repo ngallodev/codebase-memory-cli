@@ -334,8 +334,8 @@ try {
         [void]$Failed.Add("$Exe is still present; the Settings > Apps entry was kept so you can retry")
     }
 
-    # The script is already parsed, so deleting itself is safe.
-    Remove-Quietly $PSCommandPath
+    # Keep the registered retry command usable while the executable remains.
+    if ($binaryGone) { Remove-Quietly $PSCommandPath }
     if (Test-Path -LiteralPath $Dir -PathType Container) {
         if (-not (Get-ChildItem -LiteralPath $Dir -Force -ErrorAction SilentlyContinue)) {
             try { Remove-Item -LiteralPath $Dir -Force -ErrorAction Stop }
