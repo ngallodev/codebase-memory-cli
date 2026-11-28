@@ -285,11 +285,18 @@ jobs:
           if ($quiet -notmatch '^"([^"]+)"\s+(.*)$') { throw "unexpected QuietUninstallString: $quiet" }
           $quietExe = $Matches[1]
           $quietArgs = $Matches[2]
-          $proc = Start-Process -FilePath $quietExe -ArgumentList $quietArgs -Wait -PassThru
+          $uninstallLog = Join-Path $env:RUNNER_TEMP 'uninstall.out'
+          $uninstallErr = Join-Path $env:RUNNER_TEMP 'uninstall.err'
+          $proc = Start-Process -FilePath $quietExe -ArgumentList $quietArgs -Wait -PassThru -NoNewWindow `
+            -RedirectStandardOutput $uninstallLog -RedirectStandardError $uninstallErr
+          Write-Host '--- uninstall output ---'
+          Get-Content -LiteralPath $uninstallLog, $uninstallErr -ErrorAction SilentlyContinue | Write-Host
+          Write-Host '------------------------'
           if ($proc.ExitCode -ne 0) { throw "quiet uninstall failed with exit code $($proc.ExitCode)" }
 
           if (Test-Path -LiteralPath $key) { throw 'registry key still present after uninstall' }
           if ((Test-Path -LiteralPath $installDir) -and @(Get-ChildItem -LiteralPath $installDir -Force).Count -gt 0) {
+            Get-ChildItem -LiteralPath $installDir -Force -Recurse | ForEach-Object { Write-Host "left: $($_.FullName) $($_.Length)" }
             throw 'install directory is not empty after uninstall'
           }
           if (Test-OnUserPath $installDir) { throw 'user PATH still contains the install directory' }
