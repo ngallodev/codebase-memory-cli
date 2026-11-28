@@ -84,7 +84,9 @@ function Invoke-Native([string]$Exe, [string[]]$Arguments) {
     try {
         $ErrorActionPreference = 'Continue'
         $global:LASTEXITCODE = 1
-        & $Exe @Arguments 2>&1 | Out-Host
+        # Stringify so stderr lines print as plain text, not as red
+        # NativeCommandError records (Windows PowerShell 5.1).
+        & $Exe @Arguments 2>&1 | ForEach-Object { "$_" } | Out-Host
         return $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $previous
@@ -97,7 +99,7 @@ function Get-NativeOutput([string]$Exe, [string[]]$Arguments) {
     try {
         $ErrorActionPreference = 'Continue'
         $global:LASTEXITCODE = 1
-        $text = (& $Exe @Arguments 2>&1 | Out-String).Trim()
+        $text = (& $Exe @Arguments 2>&1 | ForEach-Object { "$_" } | Out-String).Trim()
         return @{ Code = $LASTEXITCODE; Output = $text }
     } finally {
         $ErrorActionPreference = $previous
@@ -241,7 +243,7 @@ function Invoke-Native([string]$Path, [string[]]$Arguments) {
     try {
         $ErrorActionPreference = 'Continue'
         $global:LASTEXITCODE = 1
-        & $Path @Arguments 2>&1 | Out-Host
+        & $Path @Arguments 2>&1 | ForEach-Object { "$_" } | Out-Host
         return $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $previous

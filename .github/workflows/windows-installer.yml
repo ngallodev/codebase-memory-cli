@@ -242,8 +242,10 @@ jobs:
             if (-not (Test-Path -LiteralPath (Join-Path $extract $name))) { throw "zip is missing $name" }
           }
 
-          $cacheDir = Join-Path $env:RUNNER_TEMP 'cbm-smoke-cache'
-          $runtimeDir = Join-Path $env:RUNNER_TEMP 'cbm-smoke-runtime'
+          # Under the user profile: the runner's D:\a grants BUILTIN\Users write
+          # access, so the binary (correctly) refuses directories below it.
+          $cacheDir = Join-Path $env:LOCALAPPDATA 'cbm-smoke-cache'
+          $runtimeDir = Join-Path $env:LOCALAPPDATA 'cbm-smoke-runtime'
           $installer = Join-Path $extract 'install-windows.ps1'
           & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer -Yes -SkipConfig -InstallDir $installDir
           if ($LASTEXITCODE -ne 0) { throw "install-windows.ps1 failed with exit code $LASTEXITCODE" }
