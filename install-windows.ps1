@@ -126,11 +126,13 @@ function Remove-CbmLeftovers([string]$Dir) {
             catch { Write-Warn "could not remove $path : $($_.Exception.Message)" }
         }
     }
-    Get-ChildItem -LiteralPath $Dir -Filter "$BinName.retired-*" -Force -ErrorAction SilentlyContinue |
-        ForEach-Object {
-            try { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop }
-            catch { Write-Warn "could not remove $($_.FullName) : $($_.Exception.Message)" }
-        }
+    foreach ($pattern in @("$BinName.retired-*", '.cbm-backup-*')) {
+        Get-ChildItem -LiteralPath $Dir -Filter $pattern -Force -ErrorAction SilentlyContinue |
+            ForEach-Object {
+                try { Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction Stop }
+                catch { Write-Warn "could not remove $($_.FullName) : $($_.Exception.Message)" }
+            }
+    }
     if (-not (Get-ChildItem -LiteralPath $Dir -Force -ErrorAction SilentlyContinue)) {
         try { Remove-Item -LiteralPath $Dir -Force -ErrorAction Stop } catch { }
     }
@@ -281,6 +283,19 @@ try {
     Remove-Quietly (Join-Path $Dir 'install-windows.ps1')
     Get-ChildItem -LiteralPath $Dir -Filter "$BinName.retired-*" -Force -ErrorAction SilentlyContinue |
         ForEach-Object { Remove-Quietly $_.FullName }
+    # A running executable cannot delete itself, so `uninstall` renames it to
+    # .cbm-backup-<pid>-<n> and schedules deletion at reboot. That process has
+    # exited by now; delete the backup immediately, retrying briefly in case
+    # the image is still being released.
+    for ($attempt = 0; $attempt -lt 10; $attempt++) {
+        $backups = @(Get-ChildItem -LiteralPath $Dir -Filter '.cbm-backup-*' -Force -ErrorAction SilentlyContinue)
+        if ($backups.Count -eq 0) { break }
+        foreach ($b in $backups) {
+            try { Remove-Item -LiteralPath $b.FullName -Recurse -Force -ErrorAction Stop } catch { }
+        }
+        if (@(Get-ChildItem -LiteralPath $Dir -Filter '.cbm-backup-*' -Force -ErrorAction SilentlyContinue).Count -eq 0) { break }
+        Start-Sleep -Milliseconds 500
+    }
     Remove-Quietly $Exe
 
     $binaryGone = -not (Test-Path -LiteralPath $Exe)
@@ -505,7 +520,7 @@ try {
                 $ours = @('LICENSE', 'THIRD_PARTY_NOTICES.md', 'install.ps1', 'install-windows.ps1',
                           'uninstall-windows.ps1', $BinName)
                 $foreign = @(Get-ChildItem -LiteralPath $o -Force -ErrorAction SilentlyContinue |
-                    Where-Object { -not ($ours -contains $_.Name) -and -not $_.Name.StartsWith("$BinName.retired-") })
+                    Where-Object { -not ($ours -contains $_.Name) -and -not $_.Name.StartsWith("$BinName.retired-") -and -not $_.Name.StartsWith('.cbm-backup-') })
                 if ($foreign.Count -eq 0) {
                     # A dedicated old install directory: remove all of it.
                     Remove-CbmLeftovers $o
